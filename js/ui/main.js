@@ -139,8 +139,9 @@
       case 'hit':
         if (!here) break;
         // El número del golpe es progreso de búsqueda, no un recurso.
-        float('+' + CM.fmt(Math.max(1, Math.round(ev.amount))), 'rock', ev.crit ? 'crit' : ev.source === 'manual' ? 'search' : 'search dim');
+        // Solo los golpes del jugador enseñan número; los de los ratones no, para no llenar la pantalla.
         if (ev.source !== 'manual') break;
+        float('+' + CM.fmt(Math.max(1, Math.round(ev.amount))), 'rock', ev.crit ? 'crit' : 'search');
         play('hit', ev.combo);
         buzz(ev.crit ? 25 : 8);
         if (ev.crit) {
@@ -166,15 +167,9 @@
         if (here && ev.source === 'manual') play('start');
         break;
       case 'refineStart':
-        if (ev.source === 'manual') play('start');
-        fly(I.url('raw', ev.base), $('res-raw'), 'refinery', 2);
-        break;
-      case 'cheeseStart':
-        fly(I.url('base', ev.base), $('res-base'), 'cheesery', 2);
-        break;
       case 'sellStart':
+        // Los iconos solo vuelan cuando se GANA algo (del edificio al contador), nunca al gastar.
         if (ev.source === 'manual') play('start');
-        fly(I.url('lot', recipeBase(ev.recipeId)), $('res-lots'), 'shop', Math.min(3, ev.count));
         break;
       case 'drillBoost':
       case 'refineBoost':
@@ -192,8 +187,7 @@
       case 'deeper':
         if (here) {
           play('newRock');
-          banner(q.zoneDef(ev.zone).name.toUpperCase() + ' · DEPTH ' + ev.depth);
-          float('DEEPER! RICHER CHEESE', 'rock', 'lot');
+          float('DEPTH ' + ev.depth + ': RICHER CHEESE', 'rock', 'lot');
           if (ui.station === 'drill' && !q.miners(state)) {
             select('rock');
             toast('Vein used up. The rock goes deeper: mine to find the next vein');
@@ -235,11 +229,14 @@
         break;
       case 'levelUp': {
         const st = B.skills[ev.skill].station;
-        play('goal');
-        scene.celebrate();
-        punch();
-        banner(B.skills[ev.skill].name.toUpperCase() + ' LEVEL ' + ev.level + '!');
-        float('LEVEL UP!', st, 'lot big');
+        // Subir de nivel pasa a menudo: aviso pequeño. La celebración grande, cada 5 niveles.
+        play('upgrade');
+        float('LEVEL ' + ev.level + '!', st, 'lot');
+        if (ev.level % 5 === 0) {
+          play('goal');
+          scene.celebrate();
+          banner(B.skills[ev.skill].name.toUpperCase() + ' LEVEL ' + ev.level + '!');
+        }
         tileBump(st);
         // Avisa de lo que desbloquea ese nivel.
         const unlocked = B.trees[ev.skill].filter((n) => n.level === ev.level).map((n) => n.name);

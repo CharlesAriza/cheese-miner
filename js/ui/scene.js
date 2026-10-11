@@ -58,7 +58,6 @@
     cheesemaker: mouse('#ffffff', '#c9d0df', '#ffffff'),
     keeper: mouse('#5fcf6a', '#2f8f44', '#fff3a0'),
     customer: mouse('#c9975a', '#8b5a2b', '#e6bb80'),
-    fancy: mouse('#9a5fd0', '#5f3590', '#ffe55c'),
   };
   const MOUSE_W = MICE.player.width;
   const MOUSE_H = MICE.player.height;
@@ -185,11 +184,20 @@
       fx.camTarget = Math.max(0, Math.min(WORLD - W, center(id === 'drill' ? 'rock' : id) - W / 2));
     }
 
-    // Un ratón lleva el recurso recién producido al edificio siguiente.
-    function walk(img, from, to, carry) {
-      if (walkers.length >= 14) return;
-      walkers.push({ img, x: from, to, carry, bob: Math.random() * 6 });
+    // REGLA DE CLARIDAD: en pantalla solo se mueve lo que el jugador puede
+    // explicar. Un ratón acarrea únicamente si ESE ratón está contratado: es el
+    // mismo que trabaja en su puesto, que sale con el producto, lo deja en el
+    // edificio siguiente y vuelve. Nunca hay dos acarreando por la misma ruta.
+    function carry(role, from, to, color) {
+      if (walkers.some((w) => w.role === role)) return;
+      walkers.push({ role, img: MICE[role], x: from, home: from, to, carry: color, bob: 0 });
     }
+    // Un cliente se va de la tienda con su queso.
+    function customerLeaves() {
+      if (walkers.some((w) => w.role === 'customer')) return;
+      walkers.push({ role: 'customer', img: MICE.customer, x: POS.shop + 14, to: -30, carry: '#d93a4f', bob: 0 });
+    }
+    const away = (role) => walkers.some((w) => w.role === role);
 
     function onEvent(ev, state, now, zoneId) {
       const rx = POS.rock;
@@ -223,13 +231,11 @@
         case 'drillDone':
           fx.pulseAt.drill = now;
           if (here) burst(rx + 14, ry + 20, 12, YELLOWS, 110, 70);
-          if (state.built.refinery) walk(MICE.driller, POS.drill - 16, POS.refinery + 40, tone(ev.base));
+          if (ev.source === 'worker' && state.built.refinery) carry('driller', POS.drill - 6, POS.refinery + 40, tone(ev.base));
           break;
         case 'deeper':
           if (!here) break;
-          fx.shake = Math.max(fx.shake, 6);
-          fx.rockDropAt = now;
-          fx.rockLanded = false;
+          fx.shake = Math.max(fx.shake, 5);
           burst(rx + 27, ry + 22, 26, GREYS, 110, 40);
           break;
         case 'refineStart':
@@ -240,7 +246,7 @@
         case 'refineDone':
           fx.pulseAt.refinery = now;
           burst(POS.refinery + 36, groundY - 12, 12, ORANGES, 100, 70);
-          if (state.built.cheesery) walk(MICE.refiner, POS.refinery - 14, POS.cheesery + 40, tone(ev.base));
+          if (ev.source === 'worker' && state.built.cheesery) carry('refiner', POS.refinery + 36, POS.cheesery + 42, tone(ev.base));
           break;
         case 'cheeseBoost':
           fx.station = 'cheesery';
@@ -248,7 +254,7 @@
         case 'lotDone':
           fx.pulseAt.cheesery = now;
           burst(center('cheesery'), groundY - 30, 16, YELLOWS, 100, 70);
-          if (state.built.shop) walk(MICE.cheesemaker, POS.cheesery - 14, POS.shop + 36, '#d93a4f');
+          if (ev.source === 'worker' && state.built.shop) carry('cheesemaker', POS.cheesery + 38, POS.shop + 38, '#d93a4f');
           break;
         case 'sellStart':
         case 'sellBoost':
@@ -257,8 +263,7 @@
         case 'sale':
           fx.pulseAt.shop = now;
           burst(center('shop'), groundY - 24, Math.min(40, 14 + ev.count * 4), COINS, 120, 90);
-          // Los clientes se van con su queso.
-          for (let i = 0; i < Math.min(3, ev.count); i++) walk(i % 2 ? MICE.fancy : MICE.customer, POS.shop + 12 + i * 8, -30 - i * 10, '#d93a4f');
+          customerLeaves();
           break;
         case 'nodeBought': {
           const st = (B.skills[ev.skill] || { station: 'storage' }).station;
@@ -272,8 +277,6 @@
           break;
         case 'zoneFocus':
           fx.station = 'rock';
-          fx.rockDropAt = now;
-          fx.rockLanded = false;
           fx.flash = 0.6;
           break;
       }
@@ -773,17 +776,23 @@
         const t = (now - fx.minerSwingAt) / 200 + i * 0.3;
         drawMouseSprite(MICE.miner, POS.rock + 2 + i * 15, rockY() - MOUSE_H + 8 + (active ? 0 : beat(700)), false, active ? swing(t % 1.6, -1.1) + 0.5 : null);
       }
-      if (q.isAutomated(state, 'drilling') && state.built.drill) drawMouseSprite(MICE.driller, POS.drill - 6, groundY - MOUSE_H - 8 + (z.drillJob ? beat(60) : beat(700)), false, null);
-      if (q.isAutomated(state, 'refining') && state.built.refinery) drawMouseSprite(MICE.refiner, POS.refinery + 36, groundY - MOUSE_H + 2 + (state.jobs.refinery ? beat(90) : beat(700)), true, null);
-      if (q.isAutomated(state, 'cheesemaking') && state.built.cheesery) drawMouseSprite(MICE.cheesemaker, POS.cheesery + 38, groundY - MOUSE_H + 2 + (state.jobs.cheesery ? beat(110) : beat(700)), true, null);
+      if (q.isAutomated(state, 'drilling') && state.built.drill && !away('driller')) drawMouseSprite(MICE.driller, POS.drill - 6, groundY - MOUSE_H - 8 + (z.drillJob ? beat(60) : beat(700)), false, null);
+      if (q.isAutomated(state, 'refining') && state.built.refinery && !away('refiner')) drawMouseSprite(MICE.refiner, POS.refinery + 36, groundY - MOUSE_H + 2 + (state.jobs.refinery ? beat(90) : beat(700)), true, null);
+      if (q.isAutomated(state, 'cheesemaking') && state.built.cheesery && !away('cheesemaker')) drawMouseSprite(MICE.cheesemaker, POS.cheesery + 38, groundY - MOUSE_H + 2 + (state.jobs.cheesery ? beat(110) : beat(700)), true, null);
     }
 
     function drawWalkers(now, dt) {
       for (let i = walkers.length - 1; i >= 0; i--) {
         const w = walkers[i];
         const dir = w.to < w.x ? -1 : 1;
-        w.x += dir * 46 * dt;
+        w.x += dir * 70 * dt;
         if ((dir < 0 && w.x <= w.to) || (dir > 0 && w.x >= w.to)) {
+          // Al llegar suelta la carga; si tiene puesto, vuelve a él con las manos vacías.
+          if (w.carry && w.home !== undefined) {
+            w.carry = null;
+            w.to = w.home;
+            continue;
+          }
           walkers.splice(i, 1);
           continue;
         }
@@ -825,19 +834,6 @@
       ctx.translate(-cx, -groundY);
       drawFn();
       ctx.restore();
-    }
-
-    function drawAmbient(now) {
-      for (let i = 0; i < 3; i++) {
-        const t = now / 1000 + i * 7.3;
-        const x = 60 + i * 95 + Math.sin(t * 0.7) * 26;
-        const y = groundY - 16 - Math.abs(Math.sin(t * 1.3)) * 14;
-        const flap = ((now / 110 + i) | 0) % 2;
-        const color = ['#ff9ab5', '#fff3a0', '#8ff3ff'][i];
-        R(x, y, 1, 2, '#2a1d2e');
-        R(x - (flap ? 2 : 1), y - (flap ? 1 : 0), flap ? 2 : 1, 2, color);
-        R(x + 1, y - (flap ? 1 : 0), flap ? 2 : 1, 2, color);
-      }
     }
 
     // Flecha que marca la estación seleccionada.
@@ -896,7 +892,6 @@
         else if (CM.construction.buildInfo(state, id).condOk || id === 'refinery') drawPlot(id, state, now);
       }
       pulsed('storage', now, () => drawStorage(state, now));
-      drawAmbient(now);
       drawRock(state, now, zoneId);
       if (state.built.drill) pulsed('drill', now, () => drawDrill(state, now, zoneId));
       else if (CM.construction.buildInfo(state, 'drill').condOk) drawPlot('drill', state, now);

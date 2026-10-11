@@ -40,6 +40,7 @@ Hechas sobre el juego real, pulsando los controles:
 - Subidas de nivel: aviso, confeti y mensaje de lo desbloqueado.
 - Abrir la segunda roca: explicación, fichas de roca en el panel y cambio de paisaje.
 - Aspectos de edificios: con la rama de potencia subida cambian taladro, refinería, almacén, quesería y tienda; aparece el pozo de la roca y crece el pueblo del fondo.
+- Claridad de animaciones: taladrando a mano no aparece ningún ratón acarreando; con los ratones contratados, cada uno sale de su puesto con el producto y vuelve.
 - Reiniciar deja la partida a cero.
 - Sin desbordamiento horizontal a 320×640 y 375×812.
 - Sin errores en la consola durante todo lo anterior.
