@@ -46,8 +46,8 @@ CM.BALANCE = {
   },
   zones: [
     { id: 'cheddar', base: 'cheddar', name: 'Cheddar Rock', unlockCost: 0, hits: 30, capacity: 60 },
-    { id: 'gouda', base: 'gouda', name: 'Gouda Rock', unlockCost: 2500, hits: 150, capacity: 120 },
-    { id: 'blue', base: 'blue', name: 'Blue Rock', unlockCost: 80000, hits: 800, capacity: 240 },
+    { id: 'gouda', base: 'gouda', name: 'Gouda Rock', unlockCost: 15000, hits: 150, capacity: 120 },
+    { id: 'blue', base: 'blue', name: 'Blue Rock', unlockCost: 500000, hits: 800, capacity: 240 },
   ],
   depth: {
     hitsGrowth: 1.22, // búsqueda necesaria por nivel de profundidad

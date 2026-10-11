@@ -13,8 +13,8 @@ Todas las cifras están en `js/game/config/balance.js` y son provisionales. Se c
 | Roca | Coste | Búsqueda inicial | Veta inicial | Valor de la base |
 | --- | --- | --- | --- | --- |
 | Cheddar | gratis | 30 | 60 | 10 |
-| Gouda | 2.500 | 150 | 120 | 24 |
-| Blue | 80.000 | 800 | 240 | 60 |
+| Gouda | 15.000 | 150 | 120 | 24 |
+| Blue | 500.000 | 800 | 240 | 60 |
 
 Por cada nivel de profundidad: búsqueda ×1,22, veta ×1,15 y +8 % de Raw Cheese por ciclo.
 
