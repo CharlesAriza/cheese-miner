@@ -20,18 +20,23 @@ La pantalla es el cuartel general. Abajo está la **cadena**: MINE → DRILL →
 | Acción | Cómo |
 | --- | --- |
 | Hacer la acción de una etapa | Tocar su edificio en la escena, o el botón grande |
+| Comprar la mejora más barata de una etapa | El botón con su nombre y precio, junto al botón grande |
+| Comprar todo lo que alcance, en todos los árboles | **BUY ALL** |
 | Repetir sin machacar | Mantener pulsado el botón grande |
-| Mejorar o contratar al ratón de una etapa | Botón **UPGRADES** de su panel |
+| Ver el árbol entero de una etapa | **ALL UPGRADES** en su panel |
 | Comprar todo lo que alcance en un árbol | **BUY EVERYTHING I CAN AFFORD** |
 | Descubrir y cocinar recetas | Etapa CHEESE → botón grande |
 | Abrir rocas nuevas y ampliar las horas offline | **COLONY** |
 | Ver todo lo que tienes, tipo por tipo | **PANTRY**, o tocar un contador de arriba |
 | Ver otro queso (escena y contadores) | Tocar su fila en el panel |
 | Moverse por la colonia | Arrastrar la escena |
-| Silenciar | **SOUND** |
-| Exportar, importar, reiniciar, dev tools | **MENU** |
+| Sonido, exportar, importar, reiniciar, dev tools | **MENU** |
 
-Etiquetas de las casillas: `BUILD` (se puede construir), `UP! 3` (tres mejoras que ya puedes pagar), `AUTO` (tiene ratón). La casilla que pide el objetivo actual parpadea.
+Los edificios de la cadena se construyen solos al cumplir su condición. Etiquetas de las casillas: `LOCK` (aún no), `UP! 3` (tres mejoras que ya puedes pagar), `AUTO` (tiene ratón). Los botones de compra que aún no alcanzas se van llenando y dicen cuántos minutos faltan.
+
+El Cheesemaker cocina por su cuenta la receta más valiosa que conozcas de cada queso; fijar otra a mano es opcional.
+
+Bajo la escena se ve el subsuelo de la roca que estás mirando: baja contigo, cambia de material cada cinco niveles y el pozo llega hasta tu profundidad, con carteles numerados. La casilla que pide el objetivo actual parpadea.
 
 No hay almacén con tope: todo se acumula sin límite en la despensa, cada queso por separado.
 

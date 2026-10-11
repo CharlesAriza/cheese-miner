@@ -45,13 +45,13 @@
   const maxDepth = (s) => Math.max(...B.zones.map((z) => s.zones[z.id].depth));
   const GOALS = [
     { id: 'vein', text: 'Find a cheese vein', done: (s) => s.totals.veinsFound >= 1, prog: (s) => [Math.floor(s.zones.cheddar.discover), q.veinHits(s, 'cheddar')] },
-    { id: 'drill', text: 'Build the Cheese Drill', done: (s) => s.built.drill },
+    { id: 'drill', text: 'Unlock the Cheese Drill', done: (s) => s.built.drill },
     { id: 'raw', text: 'Drill 4 Raw Cheese', done: (s) => s.totals.rawProduced >= 4, prog: (s) => [s.totals.rawProduced, 4] },
-    { id: 'refinery', text: 'Build the Refinery', done: (s) => s.built.refinery },
+    { id: 'refinery', text: 'Unlock the Refinery', done: (s) => s.built.refinery },
     { id: 'base', text: 'Refine 3 Cheese Base', done: (s) => s.totals.baseProduced >= 3, prog: (s) => [s.totals.baseProduced, 3] },
-    { id: 'cheesery', text: 'Build the Cheesery', done: (s) => s.built.cheesery },
+    { id: 'cheesery', text: 'Unlock the Cheesery', done: (s) => s.built.cheesery },
     { id: 'recipe', text: 'Discover a recipe', done: (s) => s.totals.recipes >= 1 },
-    { id: 'shop', text: 'Build your Cheese Shop', done: (s) => s.built.shop },
+    { id: 'shop', text: 'Open your Cheese Shop', done: (s) => s.built.shop },
     { id: 'sale', text: 'Sell a cheese', done: (s) => s.totals.lotsSold >= 1 },
     { id: 'node', text: 'Buy an upgrade in any skill tree', done: (s) => s.totals.nodesBought >= 1 },
     { id: 'mouse', text: 'Hire a mouse: buy an AUTO upgrade', done: (s) => AUTO.some((k) => q.isAutomated(s, k)) },
@@ -94,6 +94,7 @@
         runJob(dt, () => z.refJob, refAuto, () => CM.refining.start(s, def.id, 'worker'), () => CM.refining.complete(s, def.id));
         runJob(dt, () => z.cookJob, cookAuto, () => CM.cheesery.start(s, def.id), () => CM.cheesery.complete(s, def.id));
       }
+      CM.construction.autoBuild(s);
       runJob(dt, () => s.jobs.shop, q.isAutomated(s, 'trading'), () => CM.shop.start(s, 'worker'), () => CM.shop.complete(s));
       updateGoals(s);
     },

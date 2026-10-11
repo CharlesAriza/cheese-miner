@@ -84,6 +84,10 @@
       CM.emit(s, 'built', { id });
       return CM.ok();
     },
+    // Son gratis: se levantan solos en cuanto se cumple su condición.
+    autoBuild(s) {
+      for (const id of this.order) if (!s.built[id] && this.buildInfo(s, id).condOk) this.build(s, id);
+    },
   };
 
   // Zonas: se suman, nunca se abandonan. Todas producen a la vez.

@@ -58,7 +58,7 @@
     eq(CM.construction.build(s, 'cheesery').ok, true, 'build cheesery');
     eq(CM.cheesery.experiment(s, COMBO).ok, true, 'experiment');
     run(s, CM.cheesery.jobTime(s, COMBO, null));
-    eq(CM.construction.build(s, 'shop').ok, true, 'build shop');
+    truthy(s.built.shop, 'the shop opens on its own once a recipe exists');
     run(s, STEP);
     return s;
   }
@@ -328,6 +328,32 @@
     valid(s);
   });
 
+  test('chain buildings unlock on their own; the cheesemaker picks the most valuable recipe', () => {
+    const s = fresh();
+    eq(s.built.drill, false, 'nothing built at the start');
+    reveal(s);
+    truthy(s.built.drill, 'drill appears once a vein is found');
+    eq(s.built.refinery, false, 'refinery still needs raw cheese');
+    const t = withCheese();
+    truthy(t.built.cheesery && t.built.shop, 'cheesery and shop built');
+    t.skills.cheesemaking.xp = q.xpForLevel(3);
+    t.inv.base.cheddar = 3;
+    eq(CM.cheesery.experiment(t, Object.assign({}, COMBO, { treatment: 'smoked' })).ok, true, 'second recipe');
+    run(t, 30000);
+    const better = t.recipes[1];
+    truthy(CM.cheesery.valueOf(t, better) > CM.cheesery.valueOf(t, t.recipes[0]), 'the smoked one is worth more');
+    node(t, 'cheesemaking.maker', 1);
+    eq(CM.cheesery.laneRecipe(t, 'cheddar').id, better.id, 'unpinned: picks the most valuable');
+    CM.cheesery.assign(t, t.recipes[0].id);
+    eq(CM.cheesery.laneRecipe(t, 'cheddar').id, t.recipes[0].id, 'pinned: cooks what you chose');
+    CM.cheesery.unassign(t, 'cheddar');
+    t.inv.base.cheddar = 4;
+    const had = t.lots[better.id];
+    run(t, 60000);
+    eq(t.lots[better.id], had + 2, 'cooked the best recipe on its own');
+    eq(CM.cheesery.status(t, 'cheddar'), 'no-base', 'then waits for base');
+  });
+
   test('cheese value: formula, synergies, mastery, cellar and trading level', () => {
     const f = CM.cheesery.formula({ base: 'cheddar', ingredient: 'pepper', treatment: 'smoked', maturation: 'aged' });
     eq(f.value, Math.round(10 * 1.3 * 1.35 * 1.6 * 1.2 * 1.15), 'formula with two synergies');
@@ -358,12 +384,9 @@
     node(s, 'cheesemaking.maker', 1);
     s.inv.base.cheddar = 5;
     run(s, 60000);
-    eq(s.lots[recipe.id], 1, 'no recipe assigned: nothing cooked');
-    eq(CM.cheesery.status(s, 'cheddar'), 'no-recipe', 'status');
+    eq(s.lots[recipe.id], 3, 'with no recipe pinned it cooks the best one it knows: 2 cheeses from 4 of the 5 base');
     eq(CM.cheesery.assign(s, 'nope').reason, 'unknown-recipe', 'bad recipe');
-    eq(CM.cheesery.assign(s, recipe.id).ok, true, 'assign');
-    run(s, CM.cheesery.jobTime(s, COMBO, recipe) * 2 + 1000);
-    eq(s.lots[recipe.id], 3, 'two cheeses cooked with 4 of the 5 base');
+    eq(CM.cheesery.assign(s, recipe.id).ok, true, 'pin a recipe');
     eq(CM.cheesery.status(s, 'cheddar'), 'no-base', 'stops without base');
     s.inv.base.cheddar = 41;
     run(s, 30 * 60 * 1000);
@@ -432,12 +455,11 @@
 
   test('goal rewards are paid exactly once, and never for mining', () => {
     const s = fresh();
+    eq(B.goalRewards.vein, 0, 'finding a vein pays nothing');
     reveal(s);
     run(s, 1000);
-    eq(s.coins, 0, 'finding a vein pays nothing');
-    CM.construction.build(s, 'drill');
-    run(s, STEP);
-    eq(s.coins, B.goalRewards.drill, 'reward for building the drill');
+    truthy(s.built.drill, 'the drill unlocks on its own');
+    eq(s.coins, B.goalRewards.drill, 'only the drill unlock pays');
     const loaded = CM.storage.parse(JSON.stringify(s), 1);
     run(loaded, 60000);
     eq(loaded.coins, B.goalRewards.drill, 'not paid again after time or reload');

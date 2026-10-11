@@ -291,7 +291,7 @@ button {
 }
 
 #combo {
-  top: 10px;
+  top: 50px;
   right: 10px;
   min-width: 96px;
   text-align: right;
@@ -321,7 +321,7 @@ button {
 #banner {
   left: 0;
   right: 0;
-  top: 18%;
+  top: 22%;
   padding: 12px 6px;
   text-align: center;
   font-size: 12px;
@@ -340,7 +340,7 @@ button {
 
 #toast {
   left: 50%;
-  bottom: 8px;
+  top: 6px;
   max-width: 94%;
   width: max-content;
   transform: translateX(-50%);
@@ -1717,6 +1717,98 @@ button {
 
 .jobbar .pix {
   width: 18px;
+}
+
+/* ---------- Repaso de interfaz ---------- */
+.hud {
+  align-items: stretch;
+}
+
+#res-coins {
+  flex: 1.1;
+}
+
+.lanegroup {
+  position: relative;
+  flex: 3;
+  min-width: 0;
+  padding: 9px 3px 3px;
+  background: var(--panel);
+  border: 2px solid #ffcf2e;
+  border-radius: 6px;
+}
+
+.lanegroup.gouda {
+  border-color: #ff9f3a;
+}
+
+.lanegroup.blue {
+  border-color: #7fa7d9;
+}
+
+#lane-name {
+  position: absolute;
+  top: -5px;
+  left: 6px;
+  padding: 1px 5px;
+  font-size: 6px;
+  color: var(--ink);
+  background: #ffcf2e;
+  border-radius: 3px;
+}
+
+.lanegroup.gouda #lane-name {
+  background: #ff9f3a;
+}
+
+.lanegroup.blue #lane-name {
+  background: #7fa7d9;
+}
+
+.lanecells {
+  display: flex;
+  gap: 3px;
+}
+
+.lanecells .res {
+  padding: 3px 4px;
+  background: var(--bg);
+  border-width: 1px;
+  box-shadow: none;
+}
+
+.lanecells .res .pix {
+  width: 18px;
+}
+
+/* Cuánto falta para poder pagar, bajo el precio. */
+[data-eta]:not([data-eta=''])::after {
+  content: attr(data-eta);
+  display: block;
+  margin-top: 3px;
+  font-family: var(--text);
+  font-size: 9px;
+  font-weight: 700;
+  color: #ffe9a8;
+}
+
+#dock-side button.small {
+  flex: 0 0 auto;
+  padding: 6px 4px;
+  font-size: 6px;
+}
+
+.tools button {
+  white-space: nowrap;
+}
+
+.tools button.ready {
+  background: #3fa860;
+  animation: hot 0.9s ease-in-out infinite;
+}
+
+.panel button.auto {
+  background: #58704e;
 }
 
 @keyframes spend {

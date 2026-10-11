@@ -162,7 +162,8 @@
       H = Math.max(130, Math.min(420, Math.round((W * box.height) / box.width)));
       canvas.width = W;
       canvas.height = H;
-      groundY = H - Math.max(34, Math.round(H * 0.3));
+      // El subsuelo ocupa buena parte de la escena: es donde se ve la profundidad.
+      groundY = H - Math.max(44, Math.round(H * 0.42));
     }
 
     function burst(x, y, count, colors, speed, up) {
@@ -349,7 +350,7 @@
       }
     }
 
-    function drawGround(state, zoneId) {
+    function drawGround(state, zoneId, now, dt) {
       const off = Math.round(fx.cam);
       R(0, groundY, W, 6, '#4fc234');
       R(0, groundY, W, 1, '#9cf45e');
@@ -367,35 +368,114 @@
           R(x, groundY - 4, 1, 1, '#ffe55c');
         }
       }
-      for (let y = groundY + 10; y < H; y += 6) {
+      drawUnderground(state, zoneId, now, dt, off);
+    }
+
+    // Dígitos de 3x5 píxeles para los carteles de profundidad.
+    const DIGITS = ['111101101101111', '010110010010111', '111001111100111', '111001111001111', '101101111001001', '111100111001111', '111100111101111', '111001001001001', '111101111101111', '111101111001111'];
+    function drawNumber(x, y, n, color) {
+      const str = String(n);
+      for (let i = 0; i < str.length; i++) {
+        const glyph = DIGITS[+str[i]];
+        for (let p = 0; p < 15; p++) if (glyph[p] === '1') R(x + i * 4 + (p % 3), y + ((p / 3) | 0), 1, 1, color);
+      }
+    }
+    function drawSign(x, y, n) {
+      const w = String(n).length * 4 + 3;
+      R(x, y, w, 7, '#2b1d12');
+      R(x + 1, y + 1, w - 2, 5, '#f3e3b6');
+      drawNumber(x + 2, y + 1, n, '#2b1d12');
+    }
+
+    // SUBSUELO: enseña la profundidad de la roca que se está mirando. El terreno
+    // baja contigo: cada nivel son LAYER píxeles, el material cambia cada cinco
+    // niveles y el pozo llega siempre hasta donde estás, con su cartel.
+    const LAYER = 8;
+    const STRATA = [
+      ['#7a4a2a', '#6e4226', '#5c3620'], // tierra
+      ['#9a6a3a', '#8a5c30', '#6e4826'], // arcilla
+      ['#6b6f7e', '#5f6371', '#4a4d59'], // piedra
+      ['#4a5a7a', '#40506e', '#323f58'], // pizarra
+      ['#5a3f7a', '#4f366c', '#3c2854'], // cristal
+      ['#7a2f2a', '#6c2824', '#521d1a'], // magma
+    ];
+    function drawUnderground(state, zoneId, now, dt, off) {
+      const z = state.zones[zoneId];
+      const top = groundY + 6;
+      const U = H - top;
+      // El fondo del pozo se queda a media altura; lo de arriba se va por el borde.
+      const target = Math.max(0, z.depth * LAYER - U * 0.5);
+      if (fx.depthZone !== zoneId) {
+        fx.depthZone = zoneId;
+        fx.depthScroll = target;
+      }
+      fx.depthScroll += (target - fx.depthScroll) * Math.min(1, dt * 3);
+      const scroll = fx.depthScroll;
+      const T = CM.icons.TONES[q.zoneDef(zoneId).base] || CM.icons.TONES.cheddar;
+      const strata = (level) => STRATA[Math.floor(Math.max(0, level) / 5) % STRATA.length];
+
+      for (let y = top; y < H; y++) {
+        const wy = y - top + scroll;
+        const level = Math.floor(wy / LAYER);
+        const pal = strata(level);
+        const boundary = level > 0 && level % 5 === 0 && Math.floor(wy) % LAYER === 0;
+        R(0, y, W, 1, boundary ? pal[2] : level % 2 ? pal[1] : pal[0]);
+      }
+      if (scroll < 1) R(0, top, W, 1, '#5c3620');
+
+      // Piedras y trocitos de queso incrustados; se mueven con el terreno.
+      for (let wy = Math.floor(scroll / 6) * 6; wy < scroll + U + 6; wy += 6) {
+        const y = top + wy - scroll;
+        if (y < top + 3 || y > H) continue;
+        const pal = strata(Math.floor(wy / LAYER));
         for (let wx = off - (off % 7) - 7; wx < off + W + 7; wx += 7) {
-          const r = h2(wx, y, 5);
-          const x = wx - off + Math.floor(h2(wx, y, 6) * 4);
+          const r = h2(wx, wy, 5);
+          const x = wx - off + Math.floor(h2(wx, wy, 6) * 4);
           if (r > 0.975) {
-            R(x, y - 1, 5, 4, '#c97a08');
-            R(x + 1, y, 3, 2, '#ffcf2e');
-            R(x + 1, y, 1, 1, '#fff3a0');
-          } else if (r > 0.93) R(x, y, 2, 2, '#f5b921');
-          else if (r > 0.6) R(x, y, 3, 2, '#5c3620');
-          else if (r > 0.5) R(x, y, 2, 1, '#93603a');
+            R(x, y - 1, 5, 4, T.H);
+            R(x + 1, y, 3, 2, T.M);
+            R(x + 1, y, 1, 1, T.L);
+          } else if (r > 0.93) R(x, y, 2, 2, T.M);
+          else if (r > 0.6) R(x, y, 3, 2, pal[2]);
         }
       }
-      // Pozo de la roca: baja un tramo por cada nivel de profundidad.
-      const depth = state.zones[zoneId].depth;
-      if (depth > 0) {
-        const x = POS.rock + 22 - off;
-        const maxH = H - groundY - 10;
-        const h = Math.min(maxH, 6 + depth * 5);
-        R(x - 1, groundY + 4, 12, h + 2, '#2b1d12');
-        R(x, groundY + 4, 10, h, '#1c1410');
-        for (let y = groundY + 8; y < groundY + 4 + h; y += 5) {
-          R(x + 2, y, 6, 1, '#8b5a2b');
-          R(x + 2, y - 3, 1, 4, '#6b4a2b');
-          R(x + 7, y - 3, 1, 4, '#6b4a2b');
-        }
-        R(x - 3, groundY + 4, 2, Math.min(h, 14), '#8b5a2b');
-        R(x + 11, groundY + 4, 2, Math.min(h, 14), '#8b5a2b');
-        R(x + 3, groundY + 2 + h, 4, 2, '#ffcf2e');
+      if (z.depth <= 0) return;
+
+      // Pozo desde la superficie hasta la profundidad actual.
+      const sx = POS.rock + 22 - off;
+      const y0 = top - 2;
+      const bottom = top + z.depth * LAYER - scroll;
+      const y1 = Math.min(H, bottom);
+      R(sx - 1, y0, 12, y1 - y0 + 1, '#2b1d12');
+      R(sx, y0, 10, y1 - y0, '#1c1410');
+      R(sx + 2, y0, 1, y1 - y0, '#6b4a2b');
+      R(sx + 7, y0, 1, y1 - y0, '#6b4a2b');
+      for (let wy = Math.ceil(scroll / 4) * 4; wy < scroll + U; wy += 4) {
+        const y = top + wy - scroll;
+        if (y > y0 && y < y1 - 1) R(sx + 2, y, 6, 1, '#8b5a2b');
+      }
+      // Un cartel cada cinco niveles.
+      for (let level = 5; level < z.depth; level += 5) {
+        const y = top + level * LAYER - scroll;
+        if (y > top + 4 && y < H - 4) drawSign(sx - 5 - String(level).length * 4, y - 3, level);
+      }
+      // Fondo del pozo: la bolsa de queso, un farol y el cartel del nivel actual.
+      if (bottom < H) {
+        R(sx - 5, bottom, 20, 5, T.H);
+        R(sx - 4, bottom + 1, 18, 3, T.M);
+        R(sx - 2, bottom + 1, 5, 1, T.L);
+        R(sx + 12, bottom - 7, 1, 3, '#2b1d12');
+        R(sx + 11, bottom - 4, 3, 4, ((now / 380) | 0) % 2 ? '#ffe55c' : '#fff3a0');
+        drawSign(sx + 16, bottom - 4, z.depth);
+      }
+      // Montacargas: sube y baja mientras el taladro trabaja.
+      if (z.drillJob && y1 - y0 > 14) {
+        const t = (now / 1400) % 2;
+        const cy = y0 + 2 + (y1 - y0 - 11) * (t < 1 ? t : 2 - t);
+        R(sx + 4, y0, 1, cy - y0, '#aab0c0');
+        R(sx + 1, cy, 8, 7, '#2b1d12');
+        R(sx + 2, cy + 1, 6, 5, '#c9975a');
+        R(sx + 3, cy + 2, 4, 2, T.M);
       }
     }
 
@@ -867,7 +947,7 @@
       fx.zoneId = zoneId;
       blinking = now % 3400 < 130;
       drawBackground(state, now);
-      drawGround(state, zoneId);
+      drawGround(state, zoneId, now, dt);
       const sx = fx.shake > 0.3 ? Math.round((Math.random() - 0.5) * 2 * fx.shake) : 0;
       const sy = fx.shake > 0.3 ? Math.round((Math.random() - 0.5) * 2 * fx.shake) : 0;
       ctx.setTransform(1, 0, 0, 1, sx - Math.round(fx.cam), sy);

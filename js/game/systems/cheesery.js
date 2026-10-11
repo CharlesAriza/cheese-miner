@@ -153,9 +153,30 @@
       s.zones[zoneId].cookRecipe = '';
       return CM.ok();
     },
+    // Receta fijada a mano en la línea de su base.
     isCooking: (s, recipe) => s.zones[q.zoneOfBase(parseKey(recipe.key).base)].cookRecipe === recipe.id,
+    // Qué cocina el Cheesemaker en una línea: la receta fijada o, si no hay,
+    // la más valiosa que conozca de ese queso y cuyo ingrediente pueda pagar.
+    laneRecipe(s, zoneId) {
+      const pinned = this.recipe(s, s.zones[zoneId].cookRecipe);
+      if (pinned) return pinned;
+      const base = q.zoneDef(zoneId).base;
+      let best = null;
+      let top = -1;
+      for (const r of s.recipes) {
+        const combo = parseKey(r.key);
+        if (combo.base !== base || s.coins < B.ingredients[combo.ingredient].coinCost) continue;
+        const value = valueOf(s, r);
+        if (value > top) {
+          top = value;
+          best = r;
+        }
+      }
+      return best;
+    },
+    knowsRecipeFor: (s, base) => s.recipes.some((r) => r.key.split('+')[0] === base),
     start(s, zoneId) {
-      const recipe = this.recipe(s, s.zones[zoneId].cookRecipe);
+      const recipe = this.laneRecipe(s, zoneId);
       if (!recipe) return CM.fail('no-recipe');
       return startJob(s, 'produce', parseKey(recipe.key), recipe, 1, B.cheesery.lotBase, 'worker');
     },
@@ -166,8 +187,8 @@
       if (!z || !z.unlocked) return 'locked';
       if (z.cookJob) return 'running';
       if (!q.isAutomated(s, 'cheesemaking')) return 'idle';
-      const recipe = this.recipe(s, z.cookRecipe);
-      if (!recipe) return 'no-recipe';
+      const recipe = this.laneRecipe(s, zoneId);
+      if (!recipe) return this.knowsRecipeFor(s, q.zoneDef(zoneId).base) ? 'no-coins' : 'no-recipe';
       const combo = parseKey(recipe.key);
       if (s.inv.base[combo.base] < B.cheesery.lotBase) return 'no-base';
       if (s.coins < B.ingredients[combo.ingredient].coinCost) return 'no-coins';

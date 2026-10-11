@@ -208,11 +208,15 @@
         tileBump('cheesery');
         break;
       }
-      case 'recipeDiscovered':
+      case 'recipeDiscovered': {
+        // Sin ventana que interrumpa: aviso y a seguir. Se renombra desde el libro.
+        const found = CM.cheesery.recipe(state, ev.recipeId);
         play('reveal');
         scene.celebrate();
-        askRecipeName(ev.recipeId, true);
+        banner('NEW RECIPE: ' + found.name.toUpperCase());
+        toast(found.name + ' sells for ' + CM.fmt(CM.shop.price(state, found)) + ' coins. It is in your Recipe Book', true);
         break;
+      }
       case 'masteryUp': {
         const recipe = CM.cheesery.recipe(state, ev.recipeId);
         play('crit');
@@ -336,7 +340,7 @@
 
   // Estado resumido de una estación: locked, build, ready, working, waiting o blocked.
   function stationInfo(st) {
-    if (st !== 'rock' && !state.built[st]) return { state: CM.construction.buildInfo(state, st).condOk ? 'build' : 'locked', progress: 0 };
+    if (st !== 'rock' && !state.built[st]) return { state: 'locked', progress: 0 };
     const z = state.zones[ui.zone];
     if (st === 'rock') {
       if (!z.veinRevealed) return { state: q.miners(state) ? 'working' : 'ready', progress: z.discover / q.veinHits(state, ui.zone) };
@@ -395,7 +399,7 @@
       set(tile.querySelector('u'), 'text', 'LV ' + q.level(state, skill));
       const auto = q.isAutomated(state, skill);
       const ups = info.state !== 'locked' && info.state !== 'build' ? CM.tree.affordable(state, skill) : 0;
-      set(tile.querySelector('em'), 'text', info.state === 'locked' ? 'LOCK' : info.state === 'build' ? 'BUILD' : ups ? 'UP! ' + ups : auto ? 'AUTO' : '');
+      set(tile.querySelector('em'), 'text', info.state === 'locked' ? 'LOCK' : ups ? 'UP! ' + ups : auto ? 'AUTO' : '');
       // Aviso sobre el edificio solo cuando está parado por algo.
       const reason = info.state === 'blocked' || (auto && info.state === 'waiting') ? BUBBLE[info.reason] : '';
       if (st !== 'rock') bubble(st, reason || '', 'bad');
@@ -421,10 +425,11 @@
       const b = CM.construction.buildInfo(state, st);
       m.title = B.buildings[st].name;
       m.status = { drill: 'Extracts Raw Cheese from an exposed vein', refinery: 'Turns Raw Cheese into Cheese Base', cheesery: 'Turns Cheese Base into cheese you can sell', shop: 'Sells your cheese for coins' }[st];
-      m.kind = 'build:' + st;
-      m.label = 'BUILD';
-      m.sub = b.condOk ? 'FREE' : b.condText;
-      m.mode = b.canBuild ? 'hot' : 'locked';
+      // Se construye solo y gratis en cuanto se cumple la condición.
+      m.kind = 'locked:' + st;
+      m.label = 'LOCKED';
+      m.sub = b.condText;
+      m.mode = 'locked';
       m.tree = false;
       return m;
     }
@@ -435,10 +440,13 @@
       if (info.vein) {
         m.status = def.name + ': vein exposed, ' + CM.fmt(z.veinRemaining) + ' Raw Cheese inside';
         m.tone = 'good';
-        m.kind = 'goto:drill';
-        m.label = 'GO DRILL';
-        m.sub = 'Mining is done here';
-        m.mode = q.isAutomated(state, 'drilling') ? 'idle' : 'hot';
+        // Con la veta a la vista, este mismo botón taladra: sin paso intermedio.
+        const ds = CM.drilling.status(state, ui.zone);
+        m.kind = state.built.drill ? 'drill' : 'none';
+        m.label = 'DRILL';
+        m.sub = ds === 'running' ? (q.isAutomated(state, 'drilling') ? 'Auto · hold to boost' : 'HOLD TO BOOST!') : 'Tap to drill the vein';
+        m.fill = progress(z.drillJob);
+        m.mode = ds === 'ready' ? 'hot' : '';
       } else {
         const need = q.veinHits(state, ui.zone);
         m.status = 'Mining finds the vein; it gives no cheese · power ' + round1(q.pickPower(state)) + (auto ? ' · ' + q.miners(state) + (q.miners(state) === 1 ? ' mouse' : ' mice') + ' mining' : '');
@@ -487,7 +495,7 @@
       } else {
         m.kind = 'open:cheese';
         m.label = state.recipes.length ? 'RECIPES' : 'NEW RECIPE';
-        const text = { 'no-recipe': 'Your Cheesemaker has no ' + cheese + ' recipe to cook. Pick one', 'no-base': 'Cheesemaker waiting for ' + cheese + ' Base', 'no-coins': 'Cheesemaker has no coins for the ingredient' }[info.reason];
+        const text = { 'no-recipe': 'You know no ' + cheese + ' recipe yet. Discover one', 'no-base': 'Cheesemaker waiting for ' + cheese + ' Base', 'no-coins': 'Cheesemaker has no coins for the ingredient' }[info.reason];
         m.status = text || (info.state === 'ready' ? 'Ready: you have ' + cheese + ' Base to use' : 'Needs ' + cheese + ' Base from the Refinery');
         m.tone = info.state === 'blocked' ? 'bad' : info.state === 'ready' ? 'good' : 'warn';
         m.sub = recipe && auto ? 'Cooking: ' + recipe.name : state.recipes.length ? state.recipes.length + '/' + CM.cheesery.totalCombos() + ' discovered' : 'Discover your first recipe';
@@ -533,12 +541,21 @@
     for (const cls of ['hot', 'locked', 'idle', 'blocked']) set(els.main, cls, m.mode === cls);
     for (const s2 of STATIONS) set(els.main, 'st-' + s2, s2 === st);
 
-    // Botón del árbol de esta habilidad y, si procede, del libro de recetas.
+    // Compra rápida: la mejora más barata de esta habilidad, de un toque y sin
+    // abrir el árbol. Debajo, el acceso al árbol entero.
     let side = '';
     if (m.tree) {
+      let pick = null;
+      let locked = 0;
+      for (const node of B.trees[skill]) {
+        const info = CM.tree.info(state, skill, node.id);
+        if (info.locked) locked += 1;
+        else if (!info.maxed && (!pick || info.cost < pick.cost)) pick = { node, cost: info.cost, can: info.canBuy };
+      }
+      if (pick) side += P.btn('node:' + skill + ':' + pick.node.id, P.esc(pick.node.name) + '<br>' + P.coin(pick.cost), { cls: 'buy' + (pick.can ? ' ready' : ''), off: !pick.can, cost: pick.cost });
       const n = CM.tree.affordable(state, skill);
-      side += P.btn('tree:' + skill, 'UPGRADES<br>' + (n ? n + ' you can buy!' : 'see the tree'), { cls: 'buy' + (n ? ' ready' : ' calm') });
-      if (m.book) side += P.btn('open:cheese', 'RECIPES<br>open book', { cls: 'buy calm' });
+      side += P.btn('tree:' + skill, m.book ? 'TREE' : 'ALL UPGRADES' + (n > 1 ? ' · ' + n : ''), { cls: 'buy calm small' });
+      if (m.book) side += P.btn('open:cheese', 'RECIPES', { cls: 'buy calm small' });
     }
     if (side !== ui.dockHtml) {
       ui.dockHtml = side;
@@ -565,7 +582,7 @@
     if (state.built.refinery && !auto('refining') && !z.refJob && CM.refining.status(state, def.id) === 'ready') return ['Raw ' + name + ' waiting: tap REFINE', 'warn'];
     if (state.built.cheesery) {
       const cs = CM.cheesery.status(state, def.id);
-      if (cs === 'no-recipe') return ['No ' + name + ' recipe chosen: nothing is cooked', 'bad'];
+      if (cs === 'no-recipe') return ['No ' + name + ' recipe yet: discover one in CHEESE', 'bad'];
       if (cs === 'no-coins') return ['No coins for the ingredient', 'bad'];
       if (cs === 'idle' && state.inv.base[def.base] >= B.cheesery.lotBase) return [name + ' Base waiting: make cheese', 'warn'];
     }
@@ -618,6 +635,7 @@
     if (kind === 'sell') return report(CM.shop.tap(state), els.main);
     if (kind.startsWith('goto:')) return select(kind.slice(5));
     if (kind.startsWith('open:')) return openPanel(kind.slice(5));
+    if (kind.startsWith('locked:')) return report(CM.fail('locked'), els.main), toast(CM.construction.buildInfo(state, kind.slice(7)).condText);
     if (kind.startsWith('build:')) {
       const id = kind.slice(6);
       const info = CM.construction.buildInfo(state, id);
@@ -714,12 +732,26 @@
   // Tocar un contador de recurso abre la despensa.
   for (const id of ['res-raw', 'res-base', 'res-lots']) $(id).addEventListener('click', () => openPanel('stock'));
   $('nav-menu').addEventListener('click', () => openPanel('options'));
-  const muteLabel = () => ($('btn-mute').textContent = sfx.isMuted() ? 'MUTED' : 'SOUND');
-  $('btn-mute').addEventListener('click', () => {
-    sfx.toggleMute();
-    muteLabel();
+  const muteLabel = () => {};
+  // Compra todo lo que alcance en todos los árboles, de más barato a más caro.
+  const buyable = () => Object.keys(B.trees).reduce((a, k) => a + ((B.skills[k] ? state.built[B.skills[k].station] !== false : true) ? CM.tree.affordable(state, k) : 0), 0);
+  $('nav-all').addEventListener('click', () => {
+    let bought = 0;
+    for (let round = 0; round < 50; round++) {
+      let any = 0;
+      for (const skill of Object.keys(B.trees)) {
+        const r = CM.tree.buyAll(state, skill);
+        if (r.ok) any += r.bought;
+      }
+      if (!any) break;
+      bought += any;
+    }
+    drainEvents();
+    ui.dockHtml = null;
+    dirty = true;
+    if (bought) toast('Bought ' + bought + ' upgrade' + (bought === 1 ? '' : 's'), true);
+    else report(CM.fail('no-coins'), $('nav-all'));
   });
-  muteLabel();
   // Clic suave en cualquier botón que no sea el de acción principal (ese ya suena por sí mismo).
   document.addEventListener('pointerdown', (e) => {
     const b = e.target.closest('button');
@@ -972,7 +1004,8 @@
     set($('lots'), 'text', CM.fmt(roll('lots', q.lotsOfBase(state, hb))));
     const hname = B.bases[hb].name.toUpperCase();
     // El nombre del queso en los tres; la forma del icono dice si es Raw, Base o queso.
-    for (const id of ['lbl-raw', 'lbl-base', 'lbl-lots']) set($(id), 'text', hname);
+    set($('lane-name'), 'text', hname);
+    set($('lanegroup'), 'cls', 'lanegroup ' + hb);
 
     const obj = CM.sim.objective(state);
     set($('obj-text'), 'text', (obj.done ? '' : 'GOAL: ') + obj.text + (obj.reward ? '  (+' + CM.fmt(obj.reward) + ' coins)' : ''));
@@ -1012,8 +1045,13 @@
   }
   // Los botones de compra se van llenando según te acercas a poder pagarlos.
   function updateAfford() {
+    // Y dicen cuántos minutos faltan al ritmo actual de ingresos.
+    const perMinute = CM.telemetry.rates(state).coins;
     document.querySelectorAll('[data-cost]').forEach((el) => {
-      el.style.setProperty('--p', Math.round(Math.min(1, state.coins / Number(el.dataset.cost)) * 100) + '%');
+      const cost = Number(el.dataset.cost);
+      el.style.setProperty('--p', Math.round(Math.min(1, state.coins / cost) * 100) + '%');
+      const mins = perMinute > 0 && cost > state.coins ? (cost - state.coins) / perMinute : 0;
+      el.dataset.eta = !mins ? '' : mins < 1 ? 'under a minute' : mins < 90 ? 'in ~' + Math.round(mins) + ' min' : mins < 2880 ? 'in ~' + Math.round(mins / 60) + ' h' : '';
     });
   }
   // Aviso en COLONY cuando hay algo que comprar ahí.
@@ -1021,6 +1059,9 @@
     const next = CM.zones.next(state);
     const colony = next && state.coins >= next.unlockCost;
     $('nav-colony').querySelector('.dot').classList.toggle('on', !!colony);
+    const n = buyable();
+    set($('nav-all'), 'text', n ? 'BUY ALL ' + n : 'BUY ALL');
+    set($('nav-all'), 'ready', n > 0);
   }
 
   // ---------- Bucle ----------

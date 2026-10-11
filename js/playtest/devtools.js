@@ -47,7 +47,6 @@
       for (const [skill, id] of [['mining', 'miner'], ['drilling', 'driller'], ['refining', 'refiner'], ['cheesemaking', 'maker'], ['trading', 'keeper']]) {
         if (!s.nodes[skill + '.' + id]) s.nodes[skill + '.' + id] = 1;
       }
-      for (const r of s.recipes) if (!CM.cheesery.isCooking(s, r) && !s.zones[q.zoneOfBase(CM.cheesery.parseKey(r.key).base)].cookRecipe) CM.cheesery.assign(s, r.id);
     },
     // Sube un rango todos los nudos de la rama POWER (para ver los aspectos de los edificios).
     powerUp(s, ranks) {

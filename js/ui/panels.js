@@ -191,7 +191,7 @@
     }
 
     if (!s.recipes.length) return h + '<p class="hint">No recipes yet. Combine four parts in NEW RECIPE.</p>';
-    h += '<p class="hint">' + (hasCook ? 'Your Cheesemaker cooks one recipe for each cheese, all at once. Pick them with COOK THIS.' : 'Each cheese is cooked on its own line, at the same time. Tip: hire the Cheesemaker Mouse in the tree to cook automatically.') + '</p>';
+    h += '<p class="hint">' + (hasCook ? 'Your Cheesemaker cooks the most valuable recipe of each cheese on its own. Pin a different one with ALWAYS COOK THIS.' : 'Each cheese is cooked on its own line, at the same time. Tip: hire the Cheesemaker Mouse in the tree to cook automatically.') + '</p>';
     const sorted = s.recipes.slice().sort((a, b) => CM.cheesery.valueOf(s, b) - CM.cheesery.valueOf(s, a));
     for (const r of sorted) {
       const combo = C.parseKey(r.key);
@@ -199,14 +199,15 @@
       const max = C.maxLots(s, r);
       const job = laneOf(combo.base).cookJob;
       const cooking = hasCook && C.isCooking(s, r);
+      const autoPick = hasCook && !cooking && !laneOf(combo.base).cookRecipe && C.laneRecipe(s, q.zoneOfBase(combo.base)) === r;
       const m = C.masteryLevel(r);
       const nextAt = B.cheesery.masteryAt[m];
       const syn = C.formula(combo).synergies;
       h +=
-        '<div class="recipe' + (cooking ? ' cooking' : '') + '"><div class="rhead">' + I.img('lot', combo.base, 'big') + '<b>' + esc(r.name) + '</b>' + btn('rename:' + r.id, 'RENAME', { cls: 'mini' }) + '</div><small>' + comboLine(combo) + (syn.length ? ' · ' + syn.join(', ') : '') + '</small><div>' + valueTag(s, r) + '<span class="stat">Mastery ' + m + (nextAt ? ' · ' + (r.made || 0) + '/' + nextAt : ' MAX') + '</span></div>' +
+        '<div class="recipe' + (cooking || autoPick ? ' cooking' : '') + '"><div class="rhead">' + I.img('lot', combo.base, 'big') + '<b>' + esc(r.name) + '</b>' + btn('rename:' + r.id, 'RENAME', { cls: 'mini' }) + '</div><small>' + comboLine(combo) + (syn.length ? ' · ' + syn.join(', ') : '') + '</small><div>' + valueTag(s, r) + '<span class="stat">Mastery ' + m + (nextAt ? ' · ' + (r.made || 0) + '/' + nextAt : ' MAX') + '</span></div>' +
         '<div class="rfoot"><span>Have ' + (s.lots[r.id] || 0) + ' · ' + B.cheesery.lotBase + ' Base' + (coins ? ' + ' + coins + 'c' : '') + ' each · ' + secs(C.jobTime(s, combo, r)) + '</span><span>' +
         btn('make:' + r.id + ':1', 'MAKE 1', { off: job || max < 1, cls: 'buy' }) + btn('make:' + r.id + ':' + Math.max(1, max), 'MAKE ' + (max > 1 ? max : 'MAX'), { off: job || max < 2, cls: 'buy' }) + '</span></div>' +
-        (hasCook ? btn(cooking ? 'uncook:' + q.zoneOfBase(combo.base) : 'cook:' + r.id, cooking ? 'COOKING THIS ' + B.bases[combo.base].name.toUpperCase() + ' · TAP TO STOP' : 'COOK THIS ' + B.bases[combo.base].name.toUpperCase(), { cls: 'wide ' + (cooking ? 'on' : '') }) : '') + '</div>';
+        (hasCook ? btn(cooking ? 'uncook:' + q.zoneOfBase(combo.base) : 'cook:' + r.id, cooking ? 'PINNED · TAP TO GO BACK TO AUTO' : autoPick ? 'COOKING THIS (BEST) · TAP TO PIN' : 'ALWAYS COOK THIS', { cls: 'wide ' + (cooking ? 'on' : autoPick ? 'auto' : '') }) : '') + '</div>';
     }
     return h;
   }
@@ -237,7 +238,7 @@
 
   function optionsPanel(s) {
     return (
-      row('Sound', 'Synth effects', btn('sound', CM.sfx.isMuted() ? 'OFF' : 'ON', { cls: 'buy' })) +
+      row('Sound', 'Effects are ' + (CM.sfx.isMuted() ? 'muted' : 'on'), btn('sound', CM.sfx.isMuted() ? 'TURN ON' : 'MUTE', { cls: 'buy' })) +
       row('Export save', 'Save + metrics as JSON', btn('export', 'EXPORT', { cls: 'buy' })) +
       row('Import save', 'Paste an exported JSON', btn('import', 'IMPORT', { cls: 'buy' })) +
       row('Playtest tools', 'Dev menu: marks the session as assisted', btn('open:dev', 'OPEN', { cls: 'buy' })) +
