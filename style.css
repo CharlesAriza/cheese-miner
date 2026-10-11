@@ -2070,6 +2070,101 @@ button {
   width: 96px;
 }
 
+/* El marco del retrato sube con el rango */
+.pix.face.r1 {
+  border-color: #4a8fe8;
+}
+
+.pix.face.r2 {
+  border-color: #e2462f;
+}
+
+.pix.face.r3 {
+  border-color: #ffcf2e;
+  box-shadow: 0 0 6px #ffcf2e;
+}
+
+.pix.face.mini {
+  width: 34px;
+  padding: 2px;
+}
+
+.gain {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.gain .arrow {
+  font-size: 8px;
+  color: #8df09a;
+}
+
+.gain ul {
+  margin: 0 0 0 4px;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #c9c2dd;
+}
+
+.gain li.up {
+  font-weight: 700;
+  color: #8df09a;
+}
+
+.ladder > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  padding: 4px 6px;
+  font-family: var(--text);
+  font-size: 11px;
+  line-height: 1.35;
+  background: var(--panel);
+  border-radius: 4px;
+  opacity: 0.75;
+}
+
+.ladder > div.now {
+  opacity: 1;
+  outline: 2px solid #ffe55c;
+}
+
+.ladder > div.done {
+  opacity: 1;
+}
+
+.ladder span {
+  flex: 1;
+}
+
+.ladder b {
+  display: block;
+  font-size: 12px;
+}
+
+.ladder small {
+  color: #c9c2dd;
+}
+
+.ladder em {
+  flex: none;
+  max-width: 90px;
+  font-style: normal;
+  font-weight: 700;
+  text-align: right;
+  color: #ffb3bf;
+}
+
+.ladder .now em,
+.ladder .done em {
+  color: #8df09a;
+}
+
 .panel button.deliver.open.off {
   color: #2a1d2e;
   background: #ffb347;

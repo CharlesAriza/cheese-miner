@@ -240,6 +240,10 @@
         play('goal');
         scene.celebrate();
         banner(mouse.name.toUpperCase() + ' IS NOW ' + B.mice.ranks[ev.rank].name.toUpperCase() + '!');
+        if (mouse.post) {
+          const [skill, zone] = mouse.post.split(':');
+          toast(CM.mouseRate(state, Object.assign({}, mouse, { rank: ev.rank - 1 }), skill, zone) + ' > ' + CM.mouseRate(state, mouse, skill, zone) + (B.mice.ranks[ev.rank].manager ? ', and it buys upgrades on its own' : ''), true);
+        }
         dirty = true;
         break;
       }

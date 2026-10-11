@@ -57,8 +57,9 @@
 
   // SPRITE: tus ratones. Cada uno es único: su número `look` elige pelaje,
   // gorro, color de gorro, accesorio y mochila (7 x 5 x 8 x 5 x 5 = 7.000
-  // combinaciones). El rango se ve en la bufanda: sin bufanda, azul, roja o
-  // morada con borde dorado.
+  // combinaciones). El rango se ve en la ropa y se acumula: Journeyman lleva
+  // bufanda azul; Master, bufanda roja y medalla; Manager, bufanda morada,
+  // traje con corbata dorada y el ala del gorro dorada.
   const FURS = [
     ['#f1eaec', '#cfc6cc'],
     ['#b9b4bd', '#8f8994'],
@@ -97,6 +98,7 @@
     pal.G = fur[0];
     pal.E = fur[1];
     pal.B = PACKS[(n >> 12) % 5];
+    if (r >= 3) pal.h = '#ffcf2e';
     const c = makeSprite(hat.concat(MOUSE_ROWS.slice(4)), pal, '#2a1d2e');
     const g = c.getContext('2d');
     const px = (x, y, w, h, color) => {
@@ -129,6 +131,15 @@
       px(5, 9, 8, 2, scarf[0]);
       px(5, 10, 8, 1, scarf[1]);
       px(4, 10, 2, 3, scarf[0]);
+    }
+    if (r === 2) {
+      // medalla
+      px(9, 11, 2, 1, '#e2462f');
+      px(9, 12, 2, 2, '#ffcf2e');
+    } else if (r === 3) {
+      // traje y corbata
+      px(9, 11, 3, 3, '#2b2f4a');
+      px(10, 11, 1, 3, '#ffcf2e');
     }
     return (spriteCache[key] = c);
   }

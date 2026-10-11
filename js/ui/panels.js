@@ -243,7 +243,9 @@
   // ---------- RATONES ----------
   const M = B.mice;
   const traitChip = (id) => '<span class="stat ' + (M.traits[id].good ? 'tgood' : 'tquirk') + '">' + M.traits[id].name + '</span>';
-  const face = (m, cls) => '<img class="pix ' + (cls || 'face') + '" alt="" src="' + CM.mouseUrl(m) + '">';
+  const face = (m, cls) => '<img class="pix ' + (cls || 'face') + ' r' + (m.rank || 0) + '" alt="" src="' + CM.mouseUrl(m) + '">';
+  // Lo que cambia a la vista con cada rango.
+  const RANK_LOOK = ['no scarf', 'a blue scarf', 'a red scarf and a medal', 'a suit, a gold tie and a purple scarf'];
   const signed = (n) => (n < 0 ? '-' : '+') + Math.round(Math.abs(n) * 100) + '%';
   const times = (n) => 'x' + (Math.round(n * 100) / 100).toFixed(2);
   const plural = (n, word) => n + ' ' + (n === 1 ? word : word === 'mouse' ? 'mice' : word + 's');
@@ -283,16 +285,36 @@
     const pr = K.promoteInfo(s, m);
     if (pr.maxed) return '<div class="mrank top"><b>TOP RANK</b><small>' + (K.level(m) >= M.maxLevel ? 'Max level too: this mouse cannot get any better.' : 'It still gets faster with every level, up to LV ' + M.maxLevel + '.') + '</small></div>';
     const [skill, zone] = m.post ? m.post.split(':') : [];
-    const gain = pr.next.manager ? 'Buys upgrades of its job on its own' : '';
-    let after = '';
-    if (skill) after = 'Then: ' + mouseRate(s, Object.assign({}, m, { rank: m.rank + 1 }), skill, zone);
-    const what = [after, gain].filter(Boolean).join('. ');
+    const next = Object.assign({}, m, { rank: m.rank + 1 });
+    // Qué mejora: antes y después en valores reales, y cómo cambia su aspecto.
+    const gain =
+      '<div class="gain">' + face(m, 'face mini') + '<span class="arrow">&gt;</span>' + face(next, 'face mini') + '<ul>' +
+      (skill ? '<li>Now: ' + mouseRate(s, m, skill, zone) + '</li><li class="up">' + pr.next.name + ': ' + mouseRate(s, next, skill, zone) + '</li>' : '<li class="up">Works ' + times(1 + pr.next.bonus) + ' as fast, for good</li>') +
+      (pr.next.manager ? '<li class="up">Buys upgrades of its job on its own</li>' : '') +
+      '<li>New look: ' + RANK_LOOK[m.rank + 1] + '</li></ul></div>';
     if (pr.why === 'level') {
       const stuck = !m.post ? ' It only levels up while it works on a post.' : '';
       return '<div class="mrank wait"><div><b>' + pr.next.name.toUpperCase() + ' AT LV ' + pr.next.level + '</b><small>' + plural(pr.levelsLeft, 'level') + ' to go, then ' + CM.fmt(pr.cost) + ' coins.' + stuck + '</small></div></div>';
     }
-    return '<div class="mrank ' + (pr.can ? 'go' : 'wait') + '"><div><b>' + (pr.can ? 'READY FOR ' : 'SAVE UP FOR ') + pr.next.name.toUpperCase() + '</b><small>' + (pr.can ? what : 'Level is enough. You need ' + CM.fmt(pr.cost - s.coins) + ' more coins.' + (what ? ' ' + what : '')) + '</small></div>' + btn('promote:' + m.id, 'PROMOTE<br>' + coin(pr.cost), { off: !pr.can, cls: 'buy', cost: pr.cost }) + '</div>';
+    return '<div class="mrank ' + (pr.can ? 'go' : 'wait') + '"><div><b>' + (pr.can ? 'READY FOR ' : 'SAVE UP FOR ') + pr.next.name.toUpperCase() + '</b><small>' + (pr.can ? 'A promotion makes it faster for good.' : 'Level is enough. You need ' + CM.fmt(pr.cost - s.coins) + ' more coins.') + '</small>' + gain + '</div>' + btn('promote:' + m.id, 'PROMOTE<br>' + coin(pr.cost), { off: !pr.can, cls: 'buy', cost: pr.cost }) + '</div>';
   }
+  // La escalera de rangos de un ratón: qué da cada uno y cómo se ve.
+  function rankLadder(s, m) {
+    const [skill, zone] = m.post ? m.post.split(':') : [];
+    return (
+      '<div class="ladder">' +
+      M.ranks
+        .map((r, i) => {
+          const as = Object.assign({}, m, { rank: i });
+          const state = i < m.rank ? 'done' : i === m.rank ? 'now' : '';
+          const need = i <= m.rank ? (i === m.rank ? 'current rank' : 'done') : 'LV ' + r.level + ' + ' + CM.fmt(r.cost) + ' coins';
+          return '<div class="' + state + '">' + face(as, 'face mini') + '<span><b>' + r.name + '</b><small>' + (skill ? mouseRate(s, as, skill, zone) : 'works ' + times(1 + r.bonus) + ' as fast') + (r.manager ? ' · buys upgrades on its own' : '') + '</small></span><em>' + need + '</em></div>';
+        })
+        .join('') +
+      '</div>'
+    );
+  }
+  CM.mouseRate = mouseRate;
 
   function micePanel(s, ui) {
     const K = CM.mice;
@@ -362,6 +384,7 @@
           h += '<p class="hint">Works ' + times(K.speed(m, skill)) + ' as fast as you by hand' + (parts.length ? ': ' + parts.join(', ') : '') + '.' + (m.fav && m.fav !== skill ? ' It would be faster on a ' + B.skills[m.fav].name + ' post.' : '') + '</p>';
         }
         if (!p.maxed) h += '<p class="hint">' + (m.post ? (p.need - p.cur) + ' more jobs to reach LV ' + (p.level + 1) + '. Each level makes it ' + Math.round(M.perLevel * 100) + '% faster.' : 'It does not level up while it is in the house.') + '</p>';
+        h += '<h4>RANKS</h4><p class="hint">Each rank makes it faster for good and changes its outfit.</p>' + rankLadder(s, m);
         // Elegir puesto: cada opción dice cuánto rendiría ahí y a quién desplazaría.
         h += '<h4>MOVE TO</h4><div class="posts">';
         for (const post of posts) {
