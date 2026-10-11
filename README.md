@@ -19,15 +19,19 @@ La pantalla se organiza en torno a la **cadena de producción**: cinco casillas 
 
 | Acción | Cómo |
 | --- | --- |
-| Elegir estación | Tocar su casilla, tocar el edificio o teclas `1`–`5` |
-| Acción de la estación (picar, taladrar, refinar, acelerar) | Botón grande, tocar otra vez el edificio o barra espaciadora |
+| Elegir estación | Tocar su casilla o teclas `1`–`5` |
+| Acción de la estación (picar, taladrar, refinar, acelerar) | Tocar el edificio en la escena, el botón grande o la barra espaciadora |
 | Repetir sin machacar | Mantener pulsado el botón grande |
 | Mejorar la máquina o contratar a su trabajador | Botones a la derecha del botón grande |
 | Recetas, experimentos y cocinero | Estación CHEESE → botón grande |
 | Atender clientes y regatear | Estación SHOP → botón grande, elegir queso y luego precio |
+| Atender a todos de golpe | **SERVE ALL** en la tienda: precio justo y el queso que más paga |
 | Zonas, almacén, Mouse House y todos los trabajadores | **COLONY** |
 | Moverse por la colonia | Arrastrar la escena hacia los lados |
-| Sonido, exportar, importar, reiniciar, dev tools | **OPTIONS** |
+| Silenciar | **SOUND** |
+| Exportar, importar, reiniciar, dev tools | **MENU** |
+
+Bajo cada contador del HUD se ve el ingreso neto por minuto. Los botones de compra que aún no puedes pagar se van llenando según te acercas. Cada objetivo cumplido da monedas.
 
 La casilla que pide el objetivo actual parpadea. Las etiquetas de las casillas avisan de `BUILD`, `UP!` (hay una mejora o contratación que ya puedes pagar), `AUTO` (tiene trabajador) y ventas listas.
 

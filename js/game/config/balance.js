@@ -6,7 +6,11 @@ window.CM = window.CM || {};
 CM.BALANCE = {
   start: { coins: 0 }, // PLAYTEST_DEFAULT: se empieza sin monedas
 
-  sim: { stepMs: 100 }, // paso fijo de simulación (no depende de los frames)
+  sim: { stepMs: 100 },
+
+  // Monedas que se regalan una sola vez al cumplir cada objetivo. Revelar la
+  // primera veta no da nada, para no confundir con «picar da monedas».
+  goalRewards: { vein: 0, drill: 5, raw: 5, refinery: 10, base: 10, cheesery: 15, recipe: 15, market: 20, sale: 20, markup: 25, house: 30, worker: 30, allRoles: 60, rep3: 50, deposit2: 100, cook: 60, depleted: 150 }, // paso fijo de simulación (no depende de los frames)
 
   mining: {
     pickPowerBase: 1, // progreso de búsqueda por golpe

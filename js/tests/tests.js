@@ -266,8 +266,11 @@
     eq(quote.unit, Math.round(stats.value * B.merchant.buyers.neighbor.priceMult * (quote.bonus ? 1.25 : 1)), 'price');
     eq(quote.chance, 1, 'a fair price is always accepted');
     eq(CM.merchant.deliver(s, order.id, 'nope').reason, 'unknown-recipe', 'unknown lot');
+    const coins0 = s.coins;
+    eq(CM.merchant.bestFor(s, order).id, recipe.id, 'best cheese for the customer');
     eq(CM.merchant.deliver(s, order.id, recipe.id).ok, true, 'deliver');
-    eq(s.coins, quote.total, 'coins');
+    eq(s.coins, coins0 + quote.total, 'coins');
+    eq(CM.merchant.bestFor(s, order), null, 'nothing left to offer');
     eq(s.lots[recipe.id], 0, 'lot consumed');
     run(s, B.merchant.cooldownMs + STEP);
     eq(CM.merchant.deliver(s, s.orders[0].id, recipe.id).reason, 'no-lots', 'no lots left');
@@ -499,6 +502,21 @@
     truthy(CM.cheesery.statsOf(recipe).value > value, 'mastery adds value');
     truthy(CM.cheesery.jobTime(s, COMBO, recipe) < CM.cheesery.jobTime(s, COMBO, null), 'mastery is faster');
     eq(CM.storage.parse(JSON.stringify(s), 1).recipes[0].made, recipe.made, 'mastery persists');
+  });
+
+  test('goal rewards are paid exactly once, and never for mining', () => {
+    const s = fresh();
+    reveal(s);
+    run(s, 1000);
+    eq(s.coins, 0, 'finding a vein pays nothing');
+    CM.construction.build(s, 'drill');
+    run(s, STEP);
+    eq(s.coins, B.goalRewards.drill, 'reward for building the drill');
+    run(s, 60000);
+    const loaded = CM.storage.parse(JSON.stringify(s), 1);
+    run(loaded, 60000);
+    eq(loaded.coins, B.goalRewards.drill, 'not paid again after time or reload');
+    eq(loaded.totals.goalCoins, B.goalRewards.drill, 'tracked');
   });
 
   test('softlock guard: with nothing left to extract or sell, the next deposit is affordable', () => {

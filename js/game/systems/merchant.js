@@ -79,6 +79,20 @@
       if (order.req.maturation && combo.maturation !== order.req.maturation) return false;
       return STATS.every((k) => order.req[k] === undefined || stats[k] >= order.req[k]);
     },
+    // El queso en stock que más paga a precio justo para ese cliente (o null).
+    bestFor(s, order) {
+      let best = null;
+      let top = -1;
+      for (const r of s.recipes) {
+        if ((s.lots[r.id] || 0) < order.qty || !this.matches(order, r)) continue;
+        const total = this.quote(s, order, r, 'fair').total;
+        if (total > top) {
+          top = total;
+          best = r;
+        }
+      }
+      return best;
+    },
     // Oferta para un cliente: precio por unidad, total y probabilidad de que acepte.
     // La probabilidad sube si el queso supera lo que pide y con la reputación.
     quote(s, order, recipe, stanceId) {

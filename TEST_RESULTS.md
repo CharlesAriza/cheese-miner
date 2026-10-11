@@ -4,7 +4,7 @@
 
 ## Pruebas automáticas
 
-Ejecutadas abriendo `tests.html` en el navegador. **22 de 22 pasan.**
+Ejecutadas abriendo `tests.html` en el navegador. **23 de 23 pasan.**
 
 | Caso del contrato | Prueba | Resultado |
 | --- | --- | --- |
@@ -27,6 +27,7 @@ Ejecutadas abriendo `tests.html` en el navegador. **22 de 22 pasan.**
 | — | Regateo: un sobreprecio rechazado pierde al cliente pero nunca el queso ni monedas | pasa |
 | — | Los clientes se van al agotar la paciencia; la reputación desbloquea compradores | pasa |
 | — | La mejora de la Cheesery y la maestría aceleran los lotes; la maestría sube el valor | pasa |
+| — | Las recompensas por objetivo se pagan una sola vez, y nunca por picar | pasa |
 | — | Salvaguarda anti-bloqueo del siguiente yacimiento | pasa |
 | — | La fórmula de stats coincide con la documentada, con sinergias | pasa |
 | — | Las dev tools marcan la partida y no rompen invariantes | pasa |
@@ -55,7 +56,7 @@ Hechas sobre el juego real, pulsando los controles de la interfaz:
 ## Lo que NO está probado
 
 - **Dispositivos reales.** Solo se probó en el navegador de escritorio con vista móvil emulada. Falta probar en un teléfono: tacto, vibración, barra de direcciones, rendimiento.
-- **Sonido.** Se generó sin poder escucharlo; puede ser molesto o estar mal de volumen.
+- **Sonido.** Todo el sonido se rehízo (golpes con ruido, notas que suben en racha, campana de cliente, caja registradora) sin poder escucharlo; puede ser molesto o estar mal de volumen.
 - **Arrastre de la escena y mantener pulsado.** La lógica funciona, pero los gestos con el dedo no se probaron.
 - **Animaciones.** Los iconos que vuelan, el confeti y los contadores solo se revisaron en capturas sueltas, no en movimiento.
 - **Importar una partida** desde la interfaz. El lector de guardados sí está cubierto por los tests.

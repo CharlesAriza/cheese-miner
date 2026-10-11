@@ -110,6 +110,26 @@ button {
   color: #ff7a8f;
 }
 
+.res em {
+  display: block;
+  min-height: 9px;
+  margin-top: 3px;
+  font-family: var(--text);
+  font-style: normal;
+  font-size: 9px;
+  font-weight: 700;
+  color: #8df09a;
+  white-space: nowrap;
+}
+
+.res em.neg {
+  color: #ff8a9c;
+}
+
+.res.bump b {
+  animation: gain 0.4s;
+}
+
 .res.full {
   border-color: #ff5a7a;
 }
@@ -173,7 +193,9 @@ button {
   display: block;
   height: 100%;
   width: 0;
-  background: linear-gradient(#ffe55c, #f5ab12);
+  background: linear-gradient(100deg, #f5ab12 0 40%, #fff3a0 50%, #f5ab12 60% 100%);
+  background-size: 200% 100%;
+  animation: shine 1.6s linear infinite;
   transition: width 0.12s;
 }
 
@@ -246,9 +268,33 @@ button {
   font-size: 10px;
 }
 
+#combo i {
+  display: block;
+  height: 5px;
+  margin-top: 5px;
+  background: #0c0910aa;
+  border: 1px solid var(--ink);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+#combo i i {
+  height: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: #ffe55c;
+}
+
+#scene.punch {
+  animation: punch 0.22s ease-out;
+}
+
 #combo {
   top: 10px;
   right: 10px;
+  min-width: 96px;
+  text-align: right;
   font-size: 12px;
   color: #ffe55c;
   text-shadow: 2px 2px var(--ink), -2px 0 var(--ink), 0 -2px var(--ink);
@@ -514,6 +560,12 @@ button {
   color: #a79fc0;
 }
 
+#dock-side button.off[data-cost],
+.panel button.off[data-cost] {
+  background: linear-gradient(90deg, #58704e var(--p, 0%), #4a4458 var(--p, 0%));
+  color: #d5cfe6;
+}
+
 #dock-side button:active {
   transform: translateY(2px);
   box-shadow: 0 1px 0 var(--ink);
@@ -630,7 +682,7 @@ button {
 }
 
 .tools button.gear {
-  flex: 0.32;
+  flex: 0.3;
 }
 
 .tools button.goal {
@@ -1123,18 +1175,40 @@ button {
 @keyframes floatUp {
   0% {
     opacity: 0;
-    transform: translate(-50%, -20%) scale(0.6);
+    transform: translate(-50%, -20%) scale(0.4) rotate(var(--r, 0deg));
   }
-  15% {
+  12% {
     opacity: 1;
-    transform: translate(-50%, -70%) scale(1.25);
+    transform: translate(-50%, -80%) scale(1.45) rotate(var(--r, 0deg));
   }
-  30% {
-    transform: translate(-50%, -110%) scale(1);
+  28% {
+    transform: translate(-50%, -120%) scale(1) rotate(var(--r, 0deg));
+  }
+  75% {
+    opacity: 1;
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -330%) scale(1);
+    transform: translate(-50%, -340%) scale(0.9) rotate(0deg);
+  }
+}
+
+@keyframes punch {
+  35% {
+    transform: scale(1.045);
+  }
+}
+
+@keyframes gain {
+  40% {
+    color: #8df09a;
+    transform: scale(1.25);
+  }
+}
+
+@keyframes shine {
+  to {
+    background-position: 200% 0;
   }
 }
 
@@ -1304,6 +1378,10 @@ button {
   background: #ff5a7a;
 }
 
+.panel button.serveall {
+  margin-bottom: 8px;
+}
+
 .panel button.deliver.open {
   background: #ff9a1f;
 }
@@ -1389,7 +1467,9 @@ button {
   .act.hot,
   .dot,
   .tile.goal,
-  .bubble {
+  .bubble,
+  .bar i,
+  #scene.punch {
     animation: none;
   }
 }

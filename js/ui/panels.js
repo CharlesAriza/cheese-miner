@@ -7,11 +7,12 @@
 
   const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const secs = (ms) => (Math.round(ms / 100) / 10).toString().replace(/\.0$/, '') + 's';
-  const coin = (n) => '<span class="coin-txt">' + I.img('coin') + n + '</span>';
+  const coin = (n) => '<span class="coin-txt">' + I.img('coin') + CM.fmt(n) + '</span>';
   const cost = (n) => (n > 0 ? coin(n) : 'FREE');
   const btn = (act, label, opts) => {
     const o = opts || {};
-    return '<button data-act="' + act + '" class="' + (o.cls || '') + (o.off ? ' off' : '') + '">' + label + '</button>';
+    // data-cost permite pintar en el botón cuánto falta para poder pagarlo.
+    return '<button data-act="' + act + '"' + (o.cost ? ' data-cost="' + o.cost + '"' : '') + ' class="' + (o.cls || '') + (o.off ? ' off' : '') + '">' + label + '</button>';
   };
   const row = (title, sub, right, cls) =>
     '<div class="rowc ' + (cls || '') + '"><div class="info"><b>' + title + '</b><small>' + sub + '</small></div><div class="side">' + right + '</div></div>';
@@ -62,7 +63,7 @@
   function upgradeBtn(s, id) {
     const u = CM.construction.upgradeInfo(s, id);
     if (u.maxed) return '<span class="tag">MAX</span>';
-    return btn('upgrade:' + id, 'UPGRADE<br>' + coin(u.cost), { off: !u.canUpgrade, cls: 'buy' });
+    return btn('upgrade:' + id, 'UPGRADE<br>' + coin(u.cost), { off: !u.canUpgrade, cls: 'buy', cost: u.cost });
   }
 
   // ---------- COLONY: zonas, almacén, casa y trabajadores ----------
@@ -78,7 +79,7 @@
       } else if (!d.unlocked) {
         const c = CM.deposits.unlockCost(s, def.id);
         const total = def.veins.reduce((a, v) => a + v.capacity, 0);
-        h += '<div class="zone">' + icon + '<div class="info"><b>' + def.name + '</b><small>New cheese: ' + B.bases[def.base].name + ' · ' + def.veins.length + ' veins · ' + total + ' Raw · new recipes</small></div><div class="side">' + btn('unlock:' + def.id, 'OPEN ZONE<br>' + cost(c), { off: s.coins < c, cls: 'buy' }) + '</div></div>';
+        h += '<div class="zone">' + icon + '<div class="info"><b>' + def.name + '</b><small>New cheese: ' + B.bases[def.base].name + ' · ' + def.veins.length + ' veins · ' + total + ' Raw · new recipes</small></div><div class="side">' + btn('unlock:' + def.id, 'OPEN ZONE<br>' + cost(c), { off: s.coins < c, cls: 'buy', cost: c }) + '</div></div>';
       } else {
         const here = s.activeDeposit === def.id;
         const text = phase === 'depleted' ? 'Exhausted' : phase === 'vein_revealed' ? d.veinRemaining + ' Raw left in this vein' : 'Searching ' + d.discover + '/' + q.veinDef(s, def.id).hits;
@@ -93,14 +94,14 @@
     if (s.built.storage) h += row('Storage LV ' + (s.levels.storage + 1), capLine, upgradeBtn(s, 'storage'));
     else {
       const info = CM.construction.buildInfo(s, 'storage');
-      h += row('Storage', capLine + '<br>Building it more than doubles every limit', btn('build:storage', 'BUILD<br>' + cost(info.cost), { off: !info.canBuild, cls: 'buy' }));
+      h += row('Storage', capLine + '<br>Building it more than doubles every limit', btn('build:storage', 'BUILD<br>' + cost(info.cost), { off: !info.canBuild, cls: 'buy', cost: info.cost }));
     }
 
     h += '<h3>MOUSE HOUSE &amp; WORKERS</h3>';
     if (!s.built.house) {
       const info = CM.construction.buildInfo(s, 'house');
       h += '<p class="hint">Workers keep a stage running with no taps, even while you are away. They need beds.</p>';
-      h += row('Mouse House', '2 beds for workers', btn('build:house', 'BUILD<br>' + cost(info.cost), { off: !info.canBuild, cls: 'buy' }));
+      h += row('Mouse House', '2 beds for workers', btn('build:house', 'BUILD<br>' + cost(info.cost), { off: !info.canBuild, cls: 'buy', cost: info.cost }));
     } else {
       h += row('Mouse House LV ' + (s.levels.house + 1), 'Beds ' + q.workersTotal(s) + '/' + q.slots(s), upgradeBtn(s, 'house'));
     }
@@ -108,7 +109,7 @@
       const def = B.workers[role];
       const info = CM.workers.hireInfo(s, role);
       const st = workerStatus(role, CM.workers.status(s, role));
-      const right = info.maxed ? '<span class="tag">HIRED</span>' : btn('hire:' + role, 'HIRE<br>' + coin(info.cost), { off: !info.canHire, cls: 'buy' });
+      const right = info.maxed ? '<span class="tag">HIRED</span>' : btn('hire:' + role, 'HIRE<br>' + coin(info.cost), { off: !info.canHire, cls: 'buy', cost: s.built.house && !info.full ? info.cost : 0 });
       h += row(def.name + ' ' + s.workers[role] + '/' + def.max, def.does + '<br><span class="st ' + st[1] + '">' + st[0] + '</span>', right, s.built.house ? '' : 'locked');
     }
     return h;
@@ -200,6 +201,8 @@
     let h =
       '<div class="rep"><div class="rhead"><b>Reputation LV ' + rep.level + '</b><span>' + (rep.maxed ? 'MAX' : rep.cur + '/' + rep.need) + '</span></div><div class="bar"><i style="width:' + Math.round((rep.cur / rep.need) * 100) + '%"></i></div><small>Prices +' + Math.round(M.repPricePerLevel * (rep.level - 1) * 100) + '%' +
       (nextBuyer ? ' · LV ' + (rep.level + 1) + ' brings the ' + M.buyers[nextBuyer].name : '') + ' · fair deals and discounts build reputation fastest</small></div>';
+    const ready = s.orders.filter((o) => o && o.id && CM.merchant.bestFor(s, o)).length;
+    h += btn('serveAll', ready ? 'SERVE ALL AT FAIR PRICE (' + ready + ')' : 'NO ONE YOU CAN SERVE YET', { off: !ready, cls: 'buy wide serveall' });
     for (let i = 0; i < M.slots; i++) {
       const order = s.orders[i];
       if (!order || !order.id) {

@@ -13,6 +13,15 @@
     return ev;
   };
 
+  // Números compactos: 12.3K, 4.5M.
+  CM.fmt = function (n) {
+    const v = Math.floor(n);
+    if (Math.abs(v) < 10000) return String(v);
+    if (Math.abs(v) < 1e6) return (v / 1e3).toFixed(Math.abs(v) < 1e5 ? 1 : 0) + 'K';
+    if (Math.abs(v) < 1e9) return (v / 1e6).toFixed(Math.abs(v) < 1e8 ? 1 : 0) + 'M';
+    return (v / 1e9).toFixed(1) + 'B';
+  };
+
   CM.ok = (extra) => Object.assign({ ok: true }, extra || {});
   CM.fail = (reason) => ({ ok: false, reason });
 
@@ -63,6 +72,7 @@
         walkouts: 0,
         coinsEarned: 0,
         coinsSpent: 0,
+        goalCoins: 0,
         recipes: 0,
         workersHired: 0,
         depositsUnlocked: 1,

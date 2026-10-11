@@ -85,7 +85,11 @@
     for (const g of GOALS) {
       if (s.goalsDone[g.id] === undefined && g.done(s)) {
         s.goalsDone[g.id] = s.clock;
-        CM.emit(s, 'goal', { id: g.id, text: g.text });
+        const reward = B.goalRewards[g.id] || 0;
+        s.coins += reward;
+        s.totals.coinsEarned += reward;
+        s.totals.goalCoins += reward;
+        CM.emit(s, 'goal', { id: g.id, text: g.text, reward });
       }
     }
   }
@@ -114,7 +118,7 @@
       const goal = GOALS.find((g) => s.goalsDone[g.id] === undefined);
       if (!goal) return { text: 'Alpha goals complete. Optimise your colony!', cur: 1, max: 1, done: true };
       const p = goal.prog ? goal.prog(s) : [0, 1];
-      return { id: goal.id, text: goal.text, cur: Math.min(p[0], p[1]), max: p[1], hasBar: !!goal.prog };
+      return { id: goal.id, text: goal.text, cur: Math.min(p[0], p[1]), max: p[1], hasBar: !!goal.prog, reward: B.goalRewards[goal.id] || 0 };
     },
 
     // Progreso offline: se simula el tiempo real transcurrido desde el último

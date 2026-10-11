@@ -174,6 +174,7 @@
       cam: WORLD - W,
       camTarget: WORLD - W,
       popAt: {},
+      pulseAt: {},
       selected: 'rock',
       zone: 'cheddar',
     };
@@ -240,6 +241,7 @@
           if (ev.type === 'drillBoost') burst(rx + 6, ry + 26, 4, ['#ffffff', '#ffe55c'], 80, 30);
           break;
         case 'drillDone':
+          fx.pulseAt.drill = now;
           burst(rx + 14, ry + 20, 12, YELLOWS, 110, 70);
           break;
         case 'veinDepleted':
@@ -252,14 +254,21 @@
           if (ev.type === 'refineBoost') burst(POS.refinery + 30, groundY - 16, 3, ORANGES, 60, 30);
           break;
         case 'refineDone':
+          fx.pulseAt.refinery = now;
           burst(POS.refinery + 36, groundY - 12, 12, ORANGES, 100, 70);
           break;
         case 'lotDone':
+          fx.pulseAt.cheesery = now;
           burst(center('cheesery'), groundY - 30, 16, YELLOWS, 100, 70);
           break;
         case 'sale':
+          fx.pulseAt.market = now;
           burst(center('market'), groundY - 24, ev.stance === 'premium' ? 44 : 24, COINS, 120, 90);
           if (ev.stance === 'premium' || ev.stance === 'markup') fx.shake = Math.max(fx.shake, 3);
+          break;
+        case 'upgraded':
+        case 'hired':
+          fx.pulseAt[ev.id || { driller: 'drill', refiner: 'refinery', cheesemaker: 'cheesery' }[ev.role] || 'house'] = now;
           break;
         case 'built':
           fx.popAt[ev.id] = now;
@@ -577,6 +586,14 @@
       if (hitT < 1) x += Math.round((1 - hitT) * 2);
       if (job) x += ((now / 45) | 0) % 2;
       ctx.drawImage(rockCache.img, Math.round(x), Math.round(y));
+      // Destello blanco al recibir un golpe.
+      if (hitT < 0.6) {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 0.55 * (1 - hitT / 0.6);
+        ctx.drawImage(rockCache.img, Math.round(x), Math.round(y));
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
+      }
 
       if (d.veinRevealed) {
         const n = Math.floor(now / 260);
@@ -614,6 +631,7 @@
     }
     const swing = (t, idle) => (t < 1 ? (t < 0.45 ? -1.9 + (t / 0.45) * 2.5 : 0.6 - ((t - 0.45) / 0.55) * 1.75) : idle);
 
+    let blinking = false;
     function drawMouseSprite(img, x, y, faceLeft, pickAngle) {
       ctx.save();
       if (faceLeft) {
@@ -621,6 +639,13 @@
         ctx.scale(-1, 1);
       } else ctx.translate(Math.round(x), Math.round(y));
       ctx.drawImage(img, 0, 0);
+      // Parpadeo.
+      if (blinking) {
+        ctx.fillStyle = '#f1eaec';
+        ctx.fillRect(12, 6, 1, 2);
+        ctx.fillStyle = '#2a1d2e';
+        ctx.fillRect(12, 7, 1, 1);
+      }
       if (pickAngle !== null) {
         ctx.translate(14, 12);
         drawPick(pickAngle);
@@ -659,12 +684,41 @@
       const gap = target - fx.mouseX;
       fx.mouseX += gap * Math.min(1, dt * 10);
       const walking = Math.abs(gap) > 1;
+      if (walking && Math.random() < 0.3) puff(fx.mouseX + 8, groundY - 1, '#d9c9a8');
       const working = (station === 'drill' && state.jobs.drill) || (station === 'refine' && state.jobs.refinery);
       const bob = walking ? -Math.abs(Math.sin(now / 55)) * 3 : working ? ((now / 80) | 0) % 2 : Math.round(Math.sin(now / 450) * 0.6);
       const faceLeft = walking ? gap < 0 : station === 'refine';
       const mining = station === 'mine' && !walking;
       const angle = mining ? swing((now - fx.swingAt) / 170, -1.15 + Math.sin(now / 420) * 0.05) : null;
       drawMouseSprite(MICE.player, fx.mouseX, groundY - MOUSE_H + 2 + bob, faceLeft, angle);
+    }
+
+    // Rebote elástico de un edificio cuando produce, se mejora o recibe a su trabajador.
+    function pulsed(id, now, drawFn) {
+      const t = (now - (fx.pulseAt[id] || far)) / 260;
+      if (t >= 1 || t < 0) return drawFn();
+      const k = Math.sin(t * Math.PI) * 0.12;
+      const cx = center(id);
+      ctx.save();
+      ctx.translate(cx, groundY);
+      ctx.scale(1 - k * 0.6, 1 + k);
+      ctx.translate(-cx, -groundY);
+      drawFn();
+      ctx.restore();
+    }
+
+    // Vida de fondo: mariposas que revolotean sobre la hierba.
+    function drawAmbient(now) {
+      for (let i = 0; i < 3; i++) {
+        const t = now / 1000 + i * 7.3;
+        const x = 60 + i * 95 + Math.sin(t * 0.7) * 26;
+        const y = groundY - 16 - Math.abs(Math.sin(t * 1.3)) * 14;
+        const flap = ((now / 110 + i) | 0) % 2;
+        const color = ['#ff9ab5', '#fff3a0', '#8ff3ff'][i];
+        R(x, y, 1, 2, '#2a1d2e');
+        R(x - (flap ? 2 : 1), y - (flap ? 1 : 0), flap ? 2 : 1, 2, color);
+        R(x + 1, y - (flap ? 1 : 0), flap ? 2 : 1, 2, color);
+      }
     }
 
     // Flecha que marca la estación seleccionada.
@@ -712,6 +766,7 @@
       fx.flash = Math.max(0, fx.flash - dt * 2.2);
       fx.cam += (fx.camTarget - fx.cam) * Math.min(1, dt * 8);
       fx.zone = q.depDef(state.activeDeposit).base;
+      blinking = now % 3400 < 130;
       drawBackground(now);
       drawGround();
       const sx = fx.shake > 0.3 ? Math.round((Math.random() - 0.5) * 2 * fx.shake) : 0;
@@ -719,11 +774,12 @@
       ctx.setTransform(1, 0, 0, 1, sx - Math.round(fx.cam), sy);
       for (const id of Object.keys(BUILDINGS)) {
         if (id === 'drill') continue;
-        if (state.built[id]) BUILDINGS[id](state, now);
+        if (state.built[id]) pulsed(id, now, () => BUILDINGS[id](state, now));
         else drawPlot(id, state, now);
       }
+      drawAmbient(now);
       drawRock(state, now);
-      if (state.built.drill) drawDrill(state, now);
+      if (state.built.drill) pulsed('drill', now, () => drawDrill(state, now));
       else if (CM.construction.buildInfo(state, 'drill').condOk) drawPlot('drill', state, now);
       drawWorkers(state, now);
       drawPlayer(state, now, dt);

@@ -12,10 +12,10 @@
   <body>
     <div id="app">
       <header class="hud">
-        <div class="res" id="res-coins"><img class="pix" id="ic-coins" alt="" /><div><span>COINS</span><b id="coins">0</b></div></div>
-        <div class="res" id="res-raw"><img class="pix" id="ic-raw" alt="" /><div><span>RAW</span><b id="raw">0</b></div></div>
-        <div class="res" id="res-base"><img class="pix" id="ic-base" alt="" /><div><span>BASE</span><b id="base">0</b></div></div>
-        <div class="res" id="res-lots"><img class="pix" id="ic-lots" alt="" /><div><span>CHEESE</span><b id="lots">0</b></div></div>
+        <div class="res" id="res-coins"><img class="pix" id="ic-coins" alt="" /><div><span>COINS</span><b id="coins">0</b><em id="rate-coins"></em></div></div>
+        <div class="res" id="res-raw"><img class="pix" id="ic-raw" alt="" /><div><span>RAW</span><b id="raw">0</b><em id="rate-raw"></em></div></div>
+        <div class="res" id="res-base"><img class="pix" id="ic-base" alt="" /><div><span>BASE</span><b id="base">0</b><em id="rate-base"></em></div></div>
+        <div class="res" id="res-lots"><img class="pix" id="ic-lots" alt="" /><div><span>CHEESE</span><b id="lots">0</b><em id="rate-lots"></em></div></div>
       </header>
 
       <section class="objective" id="objective">
@@ -27,7 +27,7 @@
         <canvas id="scene"></canvas>
         <div id="bubbles"></div>
         <div id="floaters"></div>
-        <div id="combo"></div>
+        <div id="combo"><span></span><i><i></i></i></div>
         <div id="devflag"></div>
         <div id="banner"></div>
         <div id="toast"></div>
@@ -50,8 +50,9 @@
           </div>
         </section>
         <nav class="tools">
-          <button data-panel="colony" id="nav-colony">COLONY · zones, workers, storage<i class="dot"></i></button>
-          <button data-panel="options" class="gear">OPTIONS</button>
+          <button data-panel="colony" id="nav-colony">COLONY · zones, workers<i class="dot"></i></button>
+          <button id="btn-mute" class="gear">SOUND</button>
+          <button data-panel="options" class="gear">MENU</button>
         </nav>
       </footer>
 

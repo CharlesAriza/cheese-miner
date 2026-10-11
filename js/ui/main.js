@@ -44,6 +44,7 @@
     const el = document.createElement('div');
     el.className = 'float ' + cls;
     el.innerHTML = text;
+    el.style.setProperty('--r', (Math.random() * 16 - 8).toFixed(1) + 'deg');
     el.style.left = (at[0] + (Math.random() - 0.5) * 0.22) * 100 + '%';
     el.style.top = (at[1] + 0.03 + Math.random() * 0.06) * 100 + '%';
     els.floaters.appendChild(el);
@@ -67,6 +68,7 @@
   };
   // Los trabajadores producen sin parar: se limita cada sonido para no saturar.
   const lastPlayed = {};
+  let lastBell = 0;
   function play(name, arg) {
     const t = performance.now();
     if (t - (lastPlayed[name] || 0) < 350 && name !== 'hit' && name !== 'boost') return;
@@ -120,6 +122,8 @@
     }
   }
   const bump = (id) => retrigger($(id), 'bump');
+  // Golpe de zoom en la escena para los momentos gordos.
+  const punch = () => retrigger($('scene'), 'punch');
   const tileBump = (st) => retrigger(tiles[st], 'bump');
   const baseOfActive = () => q.depDef(state.activeDeposit).base;
 
@@ -133,6 +137,7 @@
         play('hit', ev.combo);
         buzz(ev.crit ? 25 : 8);
         if (ev.crit) {
+          punch();
           play('crit');
           float('CRIT!', 'rock', 'crit big');
         }
@@ -141,6 +146,7 @@
       case 'reveal':
         play('reveal');
         buzz([30, 40, 80]);
+        punch();
         banner('CHEESE VEIN FOUND!');
         float(ev.capacity + ' RAW INSIDE', 'rock', 'info');
         if (ui.station === 'rock') select('drill');
@@ -176,7 +182,7 @@
       case 'lotDone': {
         const recipe = CM.cheesery.recipe(state, ev.recipeId);
         const base = recipe ? CM.cheesery.parseKey(recipe.key).base : 'cheddar';
-        play('base');
+        play('lot');
         float(I.img('lot', base) + '+1 CHEESE', 'cheesery', 'lot');
         fly(I.url('lot', base), 'cheesery', $('res-lots'), 1, () => bump('res-lots'));
         tileBump('cheesery');
@@ -190,7 +196,7 @@
       case 'sale': {
         const recipe = CM.cheesery.recipe(state, ev.recipeId);
         const base = recipe ? CM.cheesery.parseKey(recipe.key).base : 'cheddar';
-        play('coin');
+        play(ev.stance === 'premium' || ev.stance === 'markup' ? 'jackpot' : 'coin');
         buzz(20);
         fly(I.url('lot', base), $('res-lots'), 'market', ev.qty);
         fly(I.url('coin'), 'market', $('res-coins'), 6, () => bump('res-coins'));
@@ -198,13 +204,21 @@
         if (ev.stance === 'premium' || ev.stance === 'markup') {
           toast('Deal! They paid ' + ev.coins + ' coins', true);
           scene.celebrate();
+          punch();
         }
         tileBump('market');
         dirty = true;
         break;
       }
+      case 'orderArrived':
+        if (performance.now() - lastBell > 9000) {
+          lastBell = performance.now();
+          play('bell');
+        }
+        tileBump('market');
+        break;
       case 'haggleFail':
-        play('denied');
+        play('walkout');
         float('NO DEAL!', 'market', 'crit');
         toast('Too expensive: the ' + B.merchant.buyers[ev.buyer].name + ' walked out. You kept the cheese');
         break;
@@ -236,7 +250,8 @@
         }
         break;
       case 'built':
-        play('upgrade');
+        punch();
+        play('build');
         banner(B.buildings[ev.id].name.toUpperCase() + ' BUILT!');
         scene.focus(ev.id);
         scene.celebrate();
@@ -283,10 +298,11 @@
         setIcons();
         break;
       case 'goal':
-        play('crit');
+        play('goal');
         scene.celebrate();
         retrigger($('objective'), 'done');
-        toast('Goal complete: ' + ev.text, true);
+        toast('Goal complete: ' + ev.text + (ev.reward ? '  +' + ev.reward + ' coins' : ''), true);
+        if (ev.reward) fly(I.url('coin'), $('objective'), $('res-coins'), Math.min(6, 2 + Math.floor(ev.reward / 15)), () => bump('res-coins'));
         break;
     }
   }
@@ -410,7 +426,7 @@
     if (up && (st === 'rock' || state.built[st])) {
       const u = CM.construction.upgradeInfo(state, up);
       const word = st === 'rock' ? 'PICK' : st === 'cheesery' ? 'FASTER' : 'UPGRADE';
-      h += u.maxed ? '<span class="tag">' + (st === 'rock' ? 'PICK' : 'LEVEL') + ' MAX</span>' : P.btn('upgrade:' + up, word + ' LV' + (u.level + 2) + '<br>' + P.coin(u.cost), { off: !u.canUpgrade, cls: 'buy' });
+      h += u.maxed ? '<span class="tag">' + (st === 'rock' ? 'PICK' : 'LEVEL') + ' MAX</span>' : P.btn('upgrade:' + up, word + ' LV' + (u.level + 2) + '<br>' + P.coin(u.cost), { off: !u.canUpgrade, cls: 'buy', cost: u.cost });
     }
     const role = WORKER[st];
     if (role && (st === 'rock' || state.built[st])) {
@@ -418,7 +434,7 @@
       const name = B.workers[role].name.toUpperCase();
       if (info.maxed) h += '<span class="tag">' + name + ' ON DUTY</span>';
       else if (!state.built.house) h += P.btn('open:colony', name + '<br>needs Mouse House', { off: true, cls: 'buy' });
-      else h += P.btn('hire:' + role, 'HIRE ' + name + '<br>' + P.coin(info.cost), { off: !info.canHire, cls: 'buy' });
+      else h += P.btn('hire:' + role, 'HIRE ' + name + '<br>' + P.coin(info.cost), { off: !info.canHire, cls: 'buy', cost: info.full ? 0 : info.cost });
     }
     return h;
   }
@@ -547,6 +563,7 @@
     if (m.side !== ui.dockHtml) {
       ui.dockHtml = m.side;
       $('dock-side').innerHTML = m.side;
+      updateAfford();
     }
   }
 
@@ -611,11 +628,12 @@
     const id = scene.hitTest(logical(e.clientX - stage.getBoundingClientRect().left));
     if (!id) return;
     if (id === 'house' || id === 'storage') return openPanel('colony');
-    // Tocar la estación ya seleccionada hace su acción; tocar otra la selecciona.
-    if (ui.station === id) {
-      updateDock();
-      mainAction();
-    } else select(id, true);
+    // Tocar un edificio lo selecciona y, si su acción es de las de pulsar (picar,
+    // taladrar, refinar, acelerar), la hace en el mismo toque: es un clicker.
+    const same = ui.station === id;
+    if (!same) select(id, true);
+    updateDock();
+    if (same || REPEATABLE[ui.dockKind]) mainAction();
   });
   stage.addEventListener('pointercancel', () => (drag = null));
 
@@ -643,10 +661,22 @@
     if (html !== ui.lastHtml) {
       ui.lastHtml = html;
       $('sheet-body').innerHTML = html;
+      updateAfford();
     }
     const rep = $('dev-report');
     if (rep) rep.textContent = CM.dev.report(state);
   }
+  const muteLabel = () => ($('btn-mute').textContent = sfx.isMuted() ? 'MUTED' : 'SOUND');
+  $('btn-mute').addEventListener('click', () => {
+    sfx.toggleMute();
+    muteLabel();
+  });
+  muteLabel();
+  // Clic suave en cualquier botón que no sea el de acción principal (ese ya suena por sí mismo).
+  document.addEventListener('pointerdown', (e) => {
+    const b = e.target.closest('button');
+    if (b && b !== els.main) sfx.click();
+  });
   document.querySelectorAll('.tools [data-panel]').forEach((b) => b.addEventListener('click', () => openPanel(b.dataset.panel)));
 
   const ACTS = {
@@ -674,8 +704,20 @@
       return CM.merchant.deliver(state, orderId, recipeId, stance);
     },
     decline: (orderId) => CM.merchant.decline(state, orderId),
+    // Atiende a todos los que se pueda, a precio justo y con el queso que más paga.
+    serveAll: () => {
+      let served = 0;
+      for (const o of state.orders.slice()) {
+        const best = o && o.id ? CM.merchant.bestFor(state, o) : null;
+        if (best && CM.merchant.deliver(state, o.id, best.id, 'fair').ok) served += 1;
+      }
+      return served ? CM.ok() : CM.fail('no-match');
+    },
     open: (name) => void openPanel(name),
-    sound: () => void sfx.toggleMute(),
+    sound: () => {
+      sfx.toggleMute();
+      muteLabel();
+    },
     export: exportSave,
     import: importSave,
     reset: confirmReset,
@@ -887,7 +929,7 @@
 
   function updateHUD() {
     const caps = q.caps(state);
-    set($('coins'), 'text', String(roll('coins', state.coins)));
+    set($('coins'), 'text', CM.fmt(roll('coins', state.coins)));
     set($('raw'), 'text', roll('raw', q.rawTotal(state)) + '/' + caps.raw);
     set($('base'), 'text', roll('base', q.baseTotal(state)) + '/' + caps.base);
     set($('lots'), 'text', roll('lots', q.lotsTotal(state)) + '/' + caps.lots);
@@ -896,13 +938,17 @@
     set($('res-lots'), 'full', q.lotsTotal(state) >= caps.lots);
 
     const obj = CM.sim.objective(state);
-    set($('obj-text'), 'text', (obj.done ? '' : 'GOAL: ') + obj.text);
+    set($('obj-text'), 'text', (obj.done ? '' : 'GOAL: ') + obj.text + (obj.reward ? '  (+' + obj.reward + ' coins)' : ''));
     set($('obj-num'), 'text', obj.hasBar ? obj.cur + '/' + obj.max : '');
     set($('obj-fill'), 'width', (obj.hasBar ? Math.round((obj.cur / obj.max) * 100) : obj.done ? 100 : 0) + '%');
 
     const comboOn = CM.mining.status(state) === 'ready' && state.combo >= 3 && state.clock - state.lastHitAt <= B.mining.comboWindowMs;
     set(els.combo, 'on', comboOn);
-    if (comboOn) set(els.combo, 'text', 'COMBO x' + state.combo + (state.combo % B.mining.critEvery === B.mining.critEvery - 1 ? '  CRIT NEXT!' : ''));
+    if (comboOn) {
+      set(els.combo.firstElementChild, 'text', 'COMBO x' + state.combo + (state.combo % B.mining.critEvery === B.mining.critEvery - 1 ? '  CRIT NEXT!' : ''));
+      // La barra se vacía con el tiempo que queda para mantener el combo.
+      els.combo.lastElementChild.firstElementChild.style.width = Math.max(0, 100 - ((state.clock - state.lastHitAt) / B.mining.comboWindowMs) * 100) + '%';
+    }
     set($('devflag'), 'text', CM.dev.paused ? 'PAUSED' : CM.dev.speed > 1 ? 'SPEED x' + CM.dev.speed : '');
 
     updateChain();
@@ -913,6 +959,26 @@
       const left = o ? o.patience / o.patienceMax : 0;
       el.style.width = Math.round(left * 100) + '%';
       el.classList.toggle('low', left < 0.25);
+    });
+  }
+
+  // Ingresos por minuto bajo cada contador: lo que hace que un idle se sienta vivo.
+  function updateRates() {
+    const r = CM.telemetry.rates(state);
+    const show = (id, value) => {
+      const v = Math.round(value);
+      set($(id), 'text', v ? (v > 0 ? '+' : '') + CM.fmt(v) + '/min' : '');
+      set($(id), 'neg', v < 0);
+    };
+    show('rate-coins', r.coins);
+    show('rate-raw', r.raw - r.rawUsed);
+    show('rate-base', r.base - r.baseUsed);
+    show('rate-lots', r.lots);
+  }
+  // Los botones de compra se van llenando según te acercas a poder pagarlos.
+  function updateAfford() {
+    document.querySelectorAll('[data-cost]').forEach((el) => {
+      el.style.setProperty('--p', Math.round(Math.min(1, state.coins / Number(el.dataset.cost)) * 100) + '%');
     });
   }
 
@@ -953,6 +1019,8 @@
       updateDots();
       renderPanel();
       CM.telemetry.sample(state);
+      updateRates();
+      updateAfford();
     }
     saveTick += real;
     if (dirty || saveTick > 5000) {

@@ -17,6 +17,10 @@ Se empieza con 0 monedas. Para que el circuito sea jugable desde cero, los cuatr
 
 El primer ingrediente (Herbs) también es gratis, y el vecino compra cualquier queso, así que la primera venta nunca exige una inversión previa.
 
+## Recompensas por objetivo
+
+Cada objetivo cumplido da monedas una sola vez: entre 5 (construir el taladro) y 150 (agotar una zona). Revelar la primera veta no da nada, para no contradecir que picar no da monedas. La lista completa está en `goalRewards`.
+
 ## Minería y yacimientos
 
 - Fuerza del pico: 1 por golpe, +1 por nivel.
