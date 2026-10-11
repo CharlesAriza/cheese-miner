@@ -80,7 +80,6 @@
     if (s.jobs.cheesery) return CM.fail('busy');
     if (s.inv.base[combo.base] < baseCost) return CM.fail('no-base');
     if (s.coins < coinCost) return CM.fail('no-coins');
-    if (q.lotsSpace(s) < lots) return CM.fail('storage-full');
     // Los inputs se consumen aquí, una sola vez; los quesos se entregan uno a uno al completarse.
     s.inv.base[combo.base] -= baseCost;
     s.totals.baseConsumed += baseCost;
@@ -129,7 +128,7 @@
     maxLots(s, recipe) {
       const combo = parseKey(recipe.key);
       const coin = B.ingredients[combo.ingredient].coinCost;
-      return Math.max(0, Math.min(B.cheesery.maxQueue, Math.floor(s.inv.base[combo.base] / B.cheesery.lotBase), q.lotsSpace(s), coin ? Math.floor(s.coins / coin) : 99));
+      return Math.max(0, Math.min(B.cheesery.maxQueue, Math.floor(s.inv.base[combo.base] / B.cheesery.lotBase), coin ? Math.floor(s.coins / coin) : 99));
     },
 
     // --- Cheesemaker: cocina de uno en uno la receta asignada ---
@@ -144,7 +143,7 @@
       if (!recipe) return CM.fail('no-recipe');
       return startJob(s, 'produce', parseKey(recipe.key), recipe, 1, B.cheesery.lotBase, 'worker');
     },
-    // Estado: not-built, running, no-recipe, no-base, no-coins, storage-full, ready, idle.
+    // Estado: not-built, running, no-recipe, no-base, no-coins, ready, idle.
     status(s) {
       if (!s.built.cheesery) return 'not-built';
       if (s.jobs.cheesery) return 'running';
@@ -154,7 +153,6 @@
       const combo = parseKey(recipe.key);
       if (s.inv.base[combo.base] < B.cheesery.lotBase) return 'no-base';
       if (s.coins < B.ingredients[combo.ingredient].coinCost) return 'no-coins';
-      if (q.lotsSpace(s) < 1) return 'storage-full';
       return 'ready';
     },
     tap(s) {

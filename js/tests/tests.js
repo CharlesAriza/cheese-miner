@@ -113,20 +113,17 @@
     valid(s);
   });
 
-  test('full storage stops production without losing or duplicating anything', () => {
+  test('no storage caps: stock piles up per cheese type and nothing ever stops for space', () => {
     const s = withChain();
-    s.inv.raw.cheddar = q.caps(s).raw;
-    const vein = s.zones.cheddar.veinRemaining;
-    eq(CM.drilling.tap(s, 'cheddar').reason, 'storage-full', 'drill blocked');
-    eq(s.zones.cheddar.veinRemaining, vein, 'vein untouched');
-    s.inv.base.cheddar = q.caps(s).base;
-    const raw = q.rawTotal(s);
-    eq(CM.refining.tap(s).reason, 'storage-full', 'refinery blocked');
-    eq(q.rawTotal(s), raw, 'raw untouched');
-    s.inv.raw.cheddar -= 1;
-    CM.drilling.tap(s, 'cheddar');
-    eq(s.zones.cheddar.drillJob.amount, 1, 'cycle shrinks to the free space');
-    run(s, q.drillDuration(s));
+    s.coins = B.zones[1].unlockCost;
+    CM.zones.unlock(s, 'gouda');
+    node(s, 'mining.miner', 4);
+    node(s, 'drilling.driller', 1);
+    run(s, 30 * 60 * 1000);
+    truthy(s.inv.raw.cheddar > 100, 'cheddar raw keeps piling up (' + s.inv.raw.cheddar + ')');
+    truthy(s.inv.raw.gouda > 0, 'gouda raw is tracked on its own (' + s.inv.raw.gouda + ')');
+    eq(s.inv.raw.cheddar + s.inv.raw.gouda + s.totals.rawConsumed, s.totals.rawProduced, 'every raw cheese is accounted for');
+    truthy(['running', 'ready', 'no-vein'].indexOf(CM.drilling.status(s, 'cheddar')) >= 0, 'the drill only ever waits for a vein');
     valid(s);
   });
 
@@ -161,7 +158,6 @@
     eq(s.zones.cheddar.unlocked, true, 'cheddar is still there');
     node(s, 'mining.miner', 3);
     node(s, 'drilling.driller', 1);
-    node(s, 'colony.silo', 20);
     run(s, 10 * 60 * 1000);
     truthy(s.inv.raw.cheddar > 0 && s.inv.raw.gouda > 0, 'both rocks produced raw');
     truthy(s.zones.gouda.depth > 0 || s.zones.gouda.veinRevealed || s.zones.gouda.discover > 0, 'gouda progressed on its own');
@@ -335,10 +331,10 @@
     run(s, CM.cheesery.jobTime(s, COMBO, recipe) * 2 + 1000);
     eq(s.lots[recipe.id], 3, 'two cheeses cooked with 4 of the 5 base');
     eq(CM.cheesery.status(s), 'no-base', 'stops without base');
-    s.inv.base.cheddar = q.caps(s).base;
-    run(s, 10 * 60 * 1000);
-    eq(q.lotsTotal(s), q.caps(s).lots, 'stops exactly at cheese capacity');
-    eq(CM.cheesery.status(s), 'storage-full', 'status when full');
+    s.inv.base.cheddar = 41;
+    run(s, 30 * 60 * 1000);
+    eq(s.lots[recipe.id], 3 + 20, 'cooks every pair of base it has, with no cheese cap');
+    eq(s.inv.base.cheddar, 1, 'only the odd base is left');
     eq(s.totals.lotsSold, 0, 'the cheesemaker never sells');
     node(s, 'trading.keeper', 1);
     const coins = s.coins;
@@ -349,16 +345,14 @@
     valid(s);
   });
 
-  test('automation stops at bottlenecks and never overflows storage', () => {
+  test('automation waits only for what it is missing, never for space', () => {
     const s = withChain();
-    node(s, 'drilling.driller', 1);
     node(s, 'refining.refiner', 1);
-    node(s, 'mining.miner', 2);
-    s.inv.base.cheddar = q.caps(s).base;
-    run(s, 15 * 60 * 1000);
-    eq(CM.refining.status(s), 'storage-full', 'refinery');
-    eq(q.rawTotal(s), q.caps(s).raw, 'raw stops exactly at capacity');
-    truthy(['storage-full', 'no-vein'].indexOf(CM.drilling.status(s, 'cheddar')) >= 0, 'drill is stopped');
+    s.inv.raw.cheddar = 9;
+    run(s, 10 * 60 * 1000);
+    eq(s.inv.raw.cheddar, 1, 'refined every pair of raw');
+    eq(CM.refining.status(s), 'no-raw', 'then waits for raw');
+    eq(s.totals.baseProduced, s.inv.base.cheddar, 'all the base is in stock');
     valid(s);
   });
 
@@ -379,8 +373,15 @@
     truthy(CM.storage.load(1).recovered, 'corrupt save recovers');
     localStorage.setItem(CM.storage.KEY, '{"version":2,"coins":9}');
     eq(CM.storage.load(1).state.coins, 0, 'old schema starts fresh');
-    localStorage.setItem(CM.storage.KEY, JSON.stringify({ version: 3, coins: -50, inv: { raw: { cheddar: 9999 } }, nodes: { 'mining.pick': 9999, 'fake.node': 3 }, lots: { ghost: 5 }, zones: { gouda: { depth: 7 } }, skills: { mining: { xp: -4 } } }));
+    localStorage.setItem(CM.storage.KEY, JSON.stringify({ version: 3, coins: -50, inv: { raw: { cheddar: -7 } }, nodes: { 'mining.pick': 9999, 'fake.node': 3 }, lots: { ghost: 5 }, zones: { gouda: { depth: 7 } }, skills: { mining: { xp: -4 } } }));
     valid(CM.storage.load(1).state);
+    // Los nudos de almacén ya no existen: una partida que los tenía recupera sus monedas.
+    localStorage.setItem(CM.storage.KEY, JSON.stringify({ version: 3, coins: 10, nodes: { 'colony.silo': 2, 'colony.lamp': 1 } }));
+    const refunded = CM.storage.load(1).state;
+    eq(refunded.coins, 10 + 40 + Math.round(40 * 1.55), 'retired storage upgrades are refunded');
+    eq(refunded.nodes['colony.silo'], undefined, 'retired node removed');
+    eq(refunded.nodes['colony.lamp'], 1, 'other nodes kept');
+    valid(refunded);
     CM.storage.clear();
   });
 
@@ -405,7 +406,6 @@
     CM.dev.hireAll(s);
     CM.dev.powerUp(s, 500);
     CM.dev.unlockZones(s);
-    CM.dev.forceStorageFull(s);
     eq(s.devUsed, true, 'devUsed');
     eq(q.level(s, 'mining'), 11, 'levels added');
     valid(s);

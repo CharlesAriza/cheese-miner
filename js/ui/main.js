@@ -330,7 +330,7 @@
 
   const progress = (job) => (job ? 1 - job.remaining / job.total : 0);
   const canCook = () =>
-    !state.jobs.cheesery && q.lotsSpace(state) > 0 && CM.cheesery.unlockedBases(state).some((b) => state.inv.base[b] >= (state.recipes.length ? B.cheesery.lotBase : B.cheesery.experimentBase));
+    !state.jobs.cheesery && CM.cheesery.unlockedBases(state).some((b) => state.inv.base[b] >= (state.recipes.length ? B.cheesery.lotBase : B.cheesery.experimentBase));
 
   // Estado resumido de una estación: locked, build, ready, working, waiting o blocked.
   function stationInfo(st) {
@@ -351,7 +351,7 @@
     if (st === 'cheesery') {
       const ms = CM.cheesery.status(state);
       if (ms === 'running') return { state: 'working', progress: progress(state.jobs.cheesery), reason: ms };
-      if (ms === 'storage-full' || ms === 'no-recipe') return { state: 'blocked', progress: 0, reason: ms };
+      if (ms === 'no-recipe') return { state: 'blocked', progress: 0, reason: ms };
       return { state: ms === 'ready' || canCook() ? 'ready' : 'waiting', progress: 0, reason: ms };
     }
     const ms = CM.shop.status(state);
@@ -361,7 +361,7 @@
   // Qué estación pide el objetivo actual.
   const GOAL_AT = { vein: 'rock', drill: 'drill', raw: 'drill', refinery: 'refinery', base: 'refinery', cheesery: 'cheesery', recipe: 'cheesery', shop: 'shop', sale: 'shop', recipes8: 'cheesery', zone2: 'colony', zone3: 'colony', depth3: 'rock' };
 
-  const BUBBLE = { 'storage-full': 'FULL!', 'no-raw': 'NO RAW', 'no-recipe': 'NO RECIPE', 'no-base': 'NO BASE', 'no-cheese': 'NO CHEESE' };
+  const BUBBLE = { 'no-raw': 'NO RAW', 'no-recipe': 'NO RECIPE', 'no-base': 'NO BASE', 'no-cheese': 'NO CHEESE' };
   const bubbles = {};
   function bubble(id, text, cls) {
     let el = bubbles[id];
@@ -462,7 +462,7 @@
         m.sub = 'Tap to start';
         m.mode = 'hot';
       } else {
-        m.status = { 'no-vein': 'Waiting: no vein exposed in ' + def.name + '. Mine the rock', 'storage-full': isDrill ? 'Stopped: Raw storage is full. Refine it or expand storage in COLONY' : 'Stopped: Base storage is full. Make cheese or expand storage in COLONY', 'no-raw': 'Waiting: needs ' + B.refinery.rawPerBase + ' Raw Cheese from a drill' }[info.reason];
+        m.status = { 'no-vein': 'Waiting: no vein exposed in ' + def.name + '. Mine the rock', 'no-raw': 'Waiting: needs ' + B.refinery.rawPerBase + ' Raw Cheese from a drill' }[info.reason];
         m.tone = info.state === 'blocked' ? 'bad' : 'warn';
         m.sub = BUBBLE[info.reason] || 'Waiting';
         m.mode = info.state === 'blocked' ? 'blocked' : 'idle';
@@ -484,7 +484,7 @@
       } else {
         m.kind = 'open:cheese';
         m.label = state.recipes.length ? 'RECIPES' : 'NEW RECIPE';
-        const text = { 'no-recipe': 'Your Cheesemaker has no recipe. Pick one', 'no-base': 'Cheesemaker waiting for Cheese Base', 'no-coins': 'Cheesemaker has no coins for the ingredient', 'storage-full': 'Stopped: cheese storage is full. Sell or expand it' }[info.reason];
+        const text = { 'no-recipe': 'Your Cheesemaker has no recipe. Pick one', 'no-base': 'Cheesemaker waiting for Cheese Base', 'no-coins': 'Cheesemaker has no coins for the ingredient' }[info.reason];
         m.status = text || (info.state === 'ready' ? 'Ready: you have Cheese Base to use' : 'Needs Cheese Base from the Refinery');
         m.tone = info.state === 'blocked' ? 'bad' : info.state === 'ready' ? 'good' : 'warn';
         m.sub = recipe && auto ? 'Cooking: ' + recipe.name : state.recipes.length ? state.recipes.length + '/' + CM.cheesery.totalCombos() + ' discovered' : 'Discover your first recipe';
@@ -619,7 +619,7 @@
     if (wasDrag) return;
     const id = scene.hitTest(logical(e.clientX - stage.getBoundingClientRect().left));
     if (!id) return;
-    if (id === 'storage') return openTree('colony');
+    if (id === 'storage') return openPanel('stock');
     const same = ui.station === id;
     if (!same) select(id, true);
     updateDock();
@@ -661,6 +661,9 @@
     if (rep) rep.textContent = CM.dev.report(state);
   }
   $('nav-colony').addEventListener('click', () => openTree('colony'));
+  $('nav-stock').addEventListener('click', () => openPanel('stock'));
+  // Tocar un contador de recurso abre la despensa.
+  for (const id of ['res-raw', 'res-base', 'res-lots']) $(id).addEventListener('click', () => openPanel('stock'));
   $('nav-menu').addEventListener('click', () => openPanel('options'));
   const muteLabel = () => ($('btn-mute').textContent = sfx.isMuted() ? 'MUTED' : 'SOUND');
   $('btn-mute').addEventListener('click', () => {
@@ -789,7 +792,7 @@
     // Sin nada automatizado ni producido no hay nada que contar.
     if (!lines.length && (!sum.automated || sum.simulatedMs < 60000)) return;
     showModal(
-      '<h2>WELCOME BACK</h2><p class="hint">Away ' + (mins < 1 ? 'under a minute' : mins >= 120 ? Math.round(mins / 60) + ' h' : mins + ' min') + (sum.capped ? ' (your mice work up to ' + Math.round(sum.capMs / 3600000) + ' h alone; extend it in COLONY)' : '') + '</p>' +
+      '<h2>WELCOME BACK</h2><p class="hint">Away ' + (mins < 1 ? 'under a minute' : mins >= 120 ? Math.round(mins / 60) + ' h' : mins + ' min') + (sum.capped ? ' (your mice work up to ' + Math.round(sum.capMs / 3600000) + ' h alone; the Night Lamp in COLONY extends it)' : '') + '</p>' +
         (lines.length ? '<ul class="list plain">' + lines.map((l) => '<li>' + l + '</li>').join('') + '</ul>' : '<p class="hint">Your mice had nothing they could do. Check what is stopped.</p>') + '<div class="row"><button class="buy" data-m="ok">NICE</button></div>',
       { ok() {} }
     );
@@ -861,7 +864,6 @@
       buildings: () => D.unlockBuildings(state),
       zones: () => D.unlockZones(state),
       hire: () => D.hireAll(state),
-      full: () => D.forceStorageFull(state),
       noraw: () => D.forceNoRaw(state),
       pause: () => (D.paused = !D.paused),
     };
@@ -909,14 +911,10 @@
   }
 
   function updateHUD() {
-    const caps = q.caps(state);
     set($('coins'), 'text', CM.fmt(roll('coins', state.coins)));
-    set($('raw'), 'text', CM.fmt(roll('raw', q.rawTotal(state))) + '/' + CM.fmt(caps.raw));
-    set($('base'), 'text', CM.fmt(roll('base', q.baseTotal(state))) + '/' + CM.fmt(caps.base));
-    set($('lots'), 'text', CM.fmt(roll('lots', q.lotsTotal(state))) + '/' + CM.fmt(caps.lots));
-    set($('res-raw'), 'full', q.rawTotal(state) >= caps.raw);
-    set($('res-base'), 'full', q.baseTotal(state) >= caps.base);
-    set($('res-lots'), 'full', q.lotsTotal(state) >= caps.lots);
+    set($('raw'), 'text', CM.fmt(roll('raw', q.rawTotal(state))));
+    set($('base'), 'text', CM.fmt(roll('base', q.baseTotal(state))));
+    set($('lots'), 'text', CM.fmt(roll('lots', q.lotsTotal(state))));
 
     const obj = CM.sim.objective(state);
     set($('obj-text'), 'text', (obj.done ? '' : 'GOAL: ') + obj.text + (obj.reward ? '  (+' + CM.fmt(obj.reward) + ' coins)' : ''));
@@ -959,7 +957,7 @@
   // Aviso en COLONY cuando hay algo que comprar ahí.
   function updateDots() {
     const next = CM.zones.next(state);
-    const colony = CM.tree.affordable(state, 'colony') > 0 || (next && state.coins >= next.unlockCost);
+    const colony = next && state.coins >= next.unlockCost;
     $('nav-colony').querySelector('.dot').classList.toggle('on', !!colony);
   }
 

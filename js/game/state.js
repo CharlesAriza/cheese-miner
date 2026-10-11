@@ -134,21 +134,11 @@
     veinHits: (s, id) => Math.round(q.zoneDef(id).hits * Math.pow(B.depth.hitsGrowth, s.zones[id].depth)),
     veinCapacity: (s, id) => Math.round(q.zoneDef(id).capacity * Math.pow(B.depth.capacityGrowth, s.zones[id].depth) * (1 + mods(s)('veinCap'))),
 
-    caps(s) {
-      const m = mods(s);
-      return {
-        raw: Math.round(B.storage.raw * (1 + m('capRaw'))),
-        base: Math.round(B.storage.base * (1 + m('capBase'))),
-        lots: Math.round(B.storage.lots * (1 + m('capLots'))),
-      };
-    },
     rawTotal: (s) => sum(s.inv.raw),
     baseTotal: (s) => sum(s.inv.base),
     lotsTotal: (s) => sum(s.lots),
-    // Espacio libre descontando lo que ya está reservado por ciclos en marcha.
-    rawSpace: (s) => q.caps(s).raw - q.rawTotal(s) - B.zones.reduce((a, z) => a + (s.zones[z.id].drillJob ? s.zones[z.id].drillJob.amount : 0), 0),
-    baseSpace: (s) => q.caps(s).base - q.baseTotal(s) - (s.jobs.refinery ? s.jobs.refinery.amount : 0),
-    lotsSpace: (s) => q.caps(s).lots - q.lotsTotal(s) - (s.jobs.cheesery ? s.jobs.cheesery.lotsLeft : 0),
+    // Todo lo guardado, para el aspecto del almacén (crece con lo que tienes).
+    stockTotal: (s) => q.rawTotal(s) + q.baseTotal(s) + q.lotsTotal(s),
 
     pickPower: (s) => (B.mining.pickPower + mods(s)('pickPower')) * q.skillMult(s, 'mining'),
     critMult: (s) => B.mining.critMultiplier + mods(s)('critMult'),
@@ -192,14 +182,10 @@
   // Devuelve la lista de invariantes rotos (vacía si todo está bien).
   CM.validate = function (s) {
     const bad = [];
-    const caps = q.caps(s);
     if (!(s.coins >= 0)) bad.push('coins < 0');
     for (const kind of ['raw', 'base']) {
       for (const k of Object.keys(s.inv[kind])) if (!(s.inv[kind][k] >= 0)) bad.push(kind + '.' + k + ' < 0');
     }
-    if (q.rawTotal(s) > caps.raw) bad.push('raw over capacity');
-    if (q.baseTotal(s) > caps.base) bad.push('base over capacity');
-    if (q.lotsTotal(s) > caps.lots) bad.push('cheese over capacity');
     for (const id of Object.keys(s.lots)) {
       if (!(s.lots[id] >= 0)) bad.push('lots.' + id + ' < 0');
       if (!s.recipes.some((r) => r.id === id)) bad.push('cheese of unknown recipe ' + id);

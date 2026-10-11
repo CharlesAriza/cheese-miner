@@ -24,13 +24,16 @@ La pantalla es el cuartel general. Abajo está la **cadena**: MINE → DRILL →
 | Mejorar o contratar al ratón de una etapa | Botón **UPGRADES** de su panel |
 | Comprar todo lo que alcance en un árbol | **BUY EVERYTHING I CAN AFFORD** |
 | Descubrir y cocinar recetas | Etapa CHEESE → botón grande |
-| Abrir rocas nuevas y ampliar el almacén | **COLONY** |
+| Abrir rocas nuevas y ampliar las horas offline | **COLONY** |
+| Ver todo lo que tienes, tipo por tipo | **PANTRY**, o tocar un contador de arriba |
 | Ver otra roca en la escena | Las fichas de roca del panel de MINE o DRILL |
 | Moverse por la colonia | Arrastrar la escena |
 | Silenciar | **SOUND** |
 | Exportar, importar, reiniciar, dev tools | **MENU** |
 
 Etiquetas de las casillas: `BUILD` (se puede construir), `UP! 3` (tres mejoras que ya puedes pagar), `AUTO` (tiene ratón). La casilla que pide el objetivo actual parpadea.
+
+No hay almacén con tope: todo se acumula sin límite en la despensa, cada queso por separado.
 
 Todas las rocas abiertas trabajan a la vez. Una roca nunca se agota: al vaciar su veta baja un nivel de profundidad, y más hondo el queso es más rico.
 

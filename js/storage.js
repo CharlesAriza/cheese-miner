@@ -44,6 +44,11 @@
     for (const kind of ['raw', 'base']) for (const k of Object.keys(s.inv[kind])) s.inv[kind][k] = nat(s.inv[kind][k]);
     for (const k of Object.keys(s.skills)) s.skills[k].xp = pos(s.skills[k].xp);
 
+    // Nudos retirados del juego: se devuelve lo que costaron.
+    for (const key of Object.keys(B.retiredNodes)) {
+      const old = B.retiredNodes[key];
+      for (let r = 0; r < Math.min(200, nat(s.nodes[key])); r++) s.coins += Math.round(old.cost * Math.pow(old.growth, r));
+    }
     // Nudos: solo los que existen, sin pasar de su rango máximo.
     const nodes = {};
     for (const key of Object.keys(s.nodes)) {
@@ -84,23 +89,6 @@
     if (cj && (!CM.cheesery.parseKey(cj.key) || !(cj.lotsLeft > 0) || (cj.kind === 'produce' && !CM.cheesery.recipe(s, cj.recipeId)))) s.jobs.cheesery = null;
     s.jobs.shop = cleanJob(s.jobs.shop, ['coins', 'count', 'xp']);
     if (s.jobs.shop && !(s.jobs.shop.coins >= 0 && s.jobs.shop.count > 0)) s.jobs.shop = null;
-
-    // Si algo quedó por encima de la capacidad, se recorta al máximo.
-    const caps = CM.q.caps(s);
-    for (const [kind, cap] of [['raw', caps.raw], ['base', caps.base]]) {
-      let over = Object.values(s.inv[kind]).reduce((a, b) => a + b, 0) - cap;
-      for (const k of Object.keys(s.inv[kind])) {
-        const cut = Math.min(Math.max(0, over), s.inv[kind][k]);
-        s.inv[kind][k] -= cut;
-        over -= cut;
-      }
-    }
-    let overLots = CM.q.lotsTotal(s) - caps.lots;
-    for (const id of Object.keys(s.lots)) {
-      const cut = Math.min(Math.max(0, overLots), s.lots[id]);
-      s.lots[id] -= cut;
-      overLots -= cut;
-    }
 
     const fresh = CM.telemetry.create();
     for (const k of Object.keys(fresh)) if (typeof s.metrics[k] !== typeof fresh[k]) s.metrics[k] = fresh[k];

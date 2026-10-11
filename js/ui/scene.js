@@ -529,55 +529,38 @@
       }
     }
 
-    // SPRITE: Storage. Las tres barras muestran el llenado real de raw, base y quesos.
+    // SPRITE: Storage. Es una despensa sin tope: fuera se apilan cajas de lo que
+    // guardas (Raw, Base y quesos), más altas cuanto más tienes. El edificio
+    // nunca cambia de tamaño, así que no pisa a los vecinos.
     function drawStorage(state, now) {
-      const t = q.visualTier(state, 'colony');
       const x = POS.storage;
       const y = groundY - 30;
-      const caps = q.caps(state);
-      const wall = t >= 5 ? '#d9a514' : t >= 3 ? '#b9836a' : '#a9713a';
-      if (t >= 3) {
-        // Silo.
-        R(x + 30, y - 18, 12, 48, '#2b1d12');
-        R(x + 31, y - 17, 10, 46, '#aab0c0');
-        R(x + 31, y - 17, 3, 46, '#c9d0df');
-        for (let i = 0; i < 4; i++) R(x + 31, y - 10 + i * 10, 10, 1, '#656a7b');
-        R(x + 32, y - 21, 8, 4, '#656a7b');
-      }
-      if (t >= 2) {
-        // Segundo piso.
-        R(x + 3, y - 10, 28, 12, '#2b1d12');
-        R(x + 4, y - 9, 26, 11, wall);
-        R(x + 8, y - 6, 5, 5, '#5a6a8a');
-        R(x + 19, y - 6, 5, 5, '#5a6a8a');
-        for (let i = 0; i < 5; i++) R(x + 2 + i * 2, y - 11 - i, 30 - i * 4, 1, '#6b4a2b');
-      } else for (let i = 0; i < 6; i++) R(x - 1 + i * 2, y + 6 - i, 40 - i * 4, 1, '#6b4a2b');
+      for (let i = 0; i < 6; i++) R(x - 1 + i * 2, y + 6 - i, 40 - i * 4, 1, '#6b4a2b');
       R(x - 1, y + 6, 40, 2, '#2b1d12');
       R(x + 1, y + 8, 36, 22, '#2b1d12');
-      R(x + 2, y + 9, 34, 20, wall);
+      R(x + 2, y + 9, 34, 20, '#a9713a');
       for (let i = 0; i < 5; i++) R(x + 2 + i * 7, y + 9, 1, 20, '#8b5a2b');
       R(x + 2, y + 9, 34, 2, '#c9975a');
-      const bars = [
-        [q.rawTotal(state) / caps.raw, '#ffcf2e'],
-        [q.baseTotal(state) / caps.base, '#ff9a2e'],
-        [q.lotsTotal(state) / caps.lots, '#d93a4f'],
+      // Puerta abierta, oscura por dentro.
+      R(x + 12, y + 14, 14, 16, '#2b1d12');
+      R(x + 13, y + 15, 12, 15, '#3a2a1c');
+      // Tres pilas: Raw, Base y quesos. Una caja más por cada orden de magnitud.
+      const base = q.zoneDef(fx.zoneId || B.zones[0].id).base;
+      const T = CM.icons.TONES[base] || CM.icons.TONES.cheddar;
+      const piles = [
+        [q.rawTotal(state), T.M, T.H, x + 2],
+        [q.baseTotal(state), T.D, T.L, x + 14],
+        [q.lotsTotal(state), '#d93a4f', '#ffffff', x + 26],
       ];
-      bars.forEach((bar, i) => {
-        const bx = x + 6 + i * 10;
-        R(bx, y + 13, 7, 14, '#2b1d12');
-        R(bx + 1, y + 14, 5, 12, '#3a2a1c');
-        const h = Math.round(Math.min(1, bar[0]) * 12);
-        R(bx + 1, y + 26 - h, 5, h, bar[0] >= 1 && ((now / 300) | 0) % 2 ? '#ffffff' : bar[1]);
-      });
-      if (t >= 1) {
-        // Barriles.
-        for (let i = 0; i < Math.min(3, t); i++) {
-          R(x - 7, y + 22 - i * 7, 7, 8, '#2b1d12');
-          R(x - 6, y + 23 - i * 7, 5, 6, '#8b5a2b');
-          R(x - 6, y + 25 - i * 7, 5, 1, '#c9d0df');
+      for (const [amount, color, mark, px] of piles) {
+        const crates = amount <= 0 ? 0 : Math.min(6, 1 + Math.floor(Math.log10(amount + 1) * 1.6));
+        for (let c = 0; c < crates; c++) {
+          const cy = groundY - 5 - c * 5;
+          R(px, cy, 10, 5, '#2b1d12');
+          R(px + 1, cy + 1, 8, 3, color);
+          R(px + 4, cy + 2, 2, 1, mark);
         }
       }
-      if (t >= 4) flag(x + 16, y - (t >= 2 ? 24 : 8), '#ffcf2e', now);
     }
 
     // SPRITE: Refinery
@@ -881,6 +864,7 @@
       fx.flash = Math.max(0, fx.flash - dt * 2.2);
       fx.cam += (fx.camTarget - fx.cam) * Math.min(1, dt * 8);
       fx.zone = q.zoneDef(zoneId).base;
+      fx.zoneId = zoneId;
       blinking = now % 3400 < 130;
       drawBackground(state, now);
       drawGround(state, zoneId);

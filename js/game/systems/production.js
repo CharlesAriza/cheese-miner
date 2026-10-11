@@ -50,7 +50,6 @@
       if (!z || !z.unlocked) return 'locked';
       if (z.drillJob) return 'running';
       if (!z.veinRevealed || z.veinRemaining <= 0) return 'no-vein';
-      if (q.rawSpace(s) <= 0) return 'storage-full';
       return 'ready';
     },
     // El queso se reserva de la veta al empezar y se entrega una sola vez al completar.
@@ -60,7 +59,7 @@
       const z = s.zones[zoneId];
       // El rendimiento puede tener decimales: lo que sobra se guarda para el siguiente ciclo.
       const wanted = q.drillYield(s, zoneId) + z.carry;
-      const amount = Math.max(1, Math.min(Math.floor(wanted), z.veinRemaining, q.rawSpace(s)));
+      const amount = Math.max(1, Math.min(Math.floor(wanted), z.veinRemaining));
       z.carry = Math.max(0, Math.min(1, wanted - Math.floor(wanted)));
       const total = q.drillDuration(s);
       z.veinRemaining -= amount;
@@ -107,24 +106,18 @@
       }
       return best;
     },
-    // Plan del siguiente ciclo: cuántas tandas caben y cuánta base sale.
+    // Plan del siguiente ciclo: cuántas tandas entran y cuánta base sale.
     plan(s) {
       const base = this.pickBase(s);
       if (!base) return null;
-      const mult = q.refineMult(s);
-      const space = q.baseSpace(s);
-      let batches = Math.min(q.refineBatch(s), Math.floor(s.inv.raw[base] / B.refinery.rawPerBase));
-      while (batches > 0 && Math.floor(batches * mult + s.refCarry) > space) batches -= 1;
-      if (batches < 1) return { base, batches: 0 };
-      const wanted = batches * mult + s.refCarry;
+      const batches = Math.min(q.refineBatch(s), Math.floor(s.inv.raw[base] / B.refinery.rawPerBase));
+      const wanted = batches * q.refineMult(s) + s.refCarry;
       return { base, batches, amount: Math.floor(wanted), carry: wanted - Math.floor(wanted) };
     },
     status(s) {
       if (!s.built.refinery) return 'not-built';
       if (s.jobs.refinery) return 'running';
-      const plan = this.plan(s);
-      if (!plan) return 'no-raw';
-      return plan.batches < 1 ? 'storage-full' : 'ready';
+      return this.plan(s) ? 'ready' : 'no-raw';
     },
     // El Raw Cheese se consume al empezar; la Cheese Base se entrega una sola vez al completar.
     start(s, source) {

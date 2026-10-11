@@ -682,7 +682,7 @@ button {
 }
 
 .tools button.gear {
-  flex: 0.3;
+  flex: 0.8;
 }
 
 .tools button.goal {
@@ -1551,6 +1551,35 @@ button {
 
 .stats {
   text-align: center;
+}
+
+/* ---------- Despensa ---------- */
+.res {
+  cursor: pointer;
+}
+
+.stockrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 5px;
+  padding: 7px 8px;
+  background: var(--bg);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+}
+
+.stockrow.empty {
+  opacity: 0.5;
+}
+
+.stockrow .info b {
+  margin-bottom: 0;
+}
+
+.stockrow .qty {
+  font-size: 12px;
+  color: #ffe55c;
 }
 
 @keyframes spend {

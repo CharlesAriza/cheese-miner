@@ -58,7 +58,6 @@ CM.BALANCE = {
   // ---------- MÁQUINAS ----------
   drill: { yield: 2, durationMs: 6000, boostMs: 250 },
   refinery: { rawPerBase: 2, batch: 2, durationMs: 6000, boostMs: 250 },
-  storage: { raw: 30, base: 20, lots: 10 }, // capacidades iniciales
 
   // ---------- QUESERÍA ----------
   // BASE + INGREDIENTE + TRATAMIENTO + MADURACIÓN = QUESO.
@@ -169,17 +168,17 @@ CM.BALANCE = {
       { id: 'quick', branch: 'auto', name: 'Quick Sales', desc: 'Sales are 10% faster', level: 5, max: 40, cost: 100, growth: 1.4, eff: { sellSpeed: 0.1 } },
       { id: 'sign', branch: 'special', name: 'Fancy Sign', desc: 'Another 10% on every price', level: 15, max: 40, cost: 900, growth: 1.55, eff: { price: 0.1 } },
     ],
-    // La colonia no tiene nivel: sus nudos solo cuestan monedas.
+    // La colonia no tiene nivel: sus nudos solo cuestan monedas. No hay almacén
+    // con tope: todo se acumula sin límite en la despensa, como un banco.
     colony: [
-      { id: 'silo', branch: 'power', name: 'Raw Silo', desc: '+50% Raw Cheese storage', level: 0, max: 40, cost: 40, growth: 1.55, eff: { capRaw: 0.5 } },
-      { id: 'racks', branch: 'power', name: 'Base Racks', desc: '+50% Cheese Base storage', level: 0, max: 40, cost: 40, growth: 1.55, eff: { capBase: 0.5 } },
-      { id: 'shelves', branch: 'power', name: 'Cheese Shelves', desc: '+50% cheese storage', level: 0, max: 40, cost: 40, growth: 1.55, eff: { capLots: 0.5 } },
-      { id: 'lamp', branch: 'special', name: 'Night Lamp', desc: '+2 hours of offline progress', level: 0, max: 10, cost: 500, growth: 2.2, eff: { offlineHours: 2 } },
+      { id: 'lamp', branch: 'special', name: 'Night Lamp', desc: 'Your mice keep working 2 more hours while you are away', level: 0, max: 10, cost: 500, growth: 2.2, eff: { offlineHours: 2 } },
     ],
   },
 
   // Cuántos rangos de la rama POWER hacen falta para cada aspecto del edificio.
   visualTiers: [0, 3, 8, 16, 30, 50],
+  // Nudos que existieron y ya no: al cargar una partida se devuelven sus monedas.
+  retiredNodes: { 'colony.silo': { cost: 40, growth: 1.55 }, 'colony.racks': { cost: 40, growth: 1.55 }, 'colony.shelves': { cost: 40, growth: 1.55 } },
 
   // Monedas que se regalan una sola vez al cumplir cada objetivo.
   goalRewards: { vein: 0, drill: 5, raw: 5, refinery: 10, base: 10, cheesery: 15, recipe: 15, shop: 20, sale: 20, node: 30, mouse: 60, level5: 80, allAuto: 400, zone2: 1000, depth3: 300, recipes8: 1500, level25: 5000, zone3: 20000 },

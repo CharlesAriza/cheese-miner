@@ -26,7 +26,10 @@ Por cada nivel de profundidad: búsqueda ×1,22, veta ×1,15 y +8 % de Raw Chees
 | Refinería | 4 Raw → 2 Base cada 6 s |
 | Quesería | 8 s por queso, más tratamiento y maduración |
 | Tienda | 1 queso cada 4 s |
-| Almacén | 30 Raw, 20 Base, 10 quesos |
+
+## Despensa
+
+No hay almacén con tope. Raw Cheese, Cheese Base y quesos se acumulan sin límite, cada tipo por separado, hasta que la etapa siguiente los usa. Lo único que limita la ausencia es la Night Lamp.
 
 ## Árboles
 
@@ -58,7 +61,6 @@ Coste de un nudo: `coste × crecimiento ^ rango`. El nivel indicado es el de la 
 | Trading | Shopkeeper Mouse | ratones | 3 | 1 | 200 | — | vende solo |
 | Trading | Quick Sales | ratones | 5 | 40 | 100 | 1,4 | +10 % velocidad |
 | Trading | Fancy Sign | especial | 15 | 40 | 900 | 1,55 | +10 % precio |
-| Colonia | Raw Silo / Base Racks / Cheese Shelves | almacén | — | 40 | 40 | 1,55 | +50 % de esa capacidad |
 | Colonia | Night Lamp | especial | — | 10 | 500 | 2,2 | +2 horas offline |
 
 El aspecto de cada edificio cambia al sumar 3, 8, 16, 30 y 50 rangos en la rama de potencia de su árbol.
@@ -102,8 +104,8 @@ Un bot que juega sin pausas y sin dev tools, comprando siempre lo más barato:
 | --- | --- | --- |
 | Primera venta | 0,8 min | 1,4 min |
 | Primer ratón | 1,4 min | 2 min |
+| Profundidad 3 | 3,3 min | 4,2 min |
 | Las cinco etapas automatizadas | 4,7 min | 5,3 min |
-| Profundidad 3 | 7,5 min | 8,1 min |
-| Segunda roca y nivel 25 | 31 min | 31,5 min |
+| Segunda roca y nivel 25 | 6,6 min | 7,4 min |
 
-Al llegar a la segunda roca el bot rápido tenía niveles 11/19/22/25/24 y 8 recetas. Una persona tardará más. El tramo posterior a la segunda roca no está medido.
+**Aviso:** al quitar los topes del almacén el principio se ha acelerado mucho. Con topes, la segunda roca llegaba a los 31 minutos; ahora a los 7. Los costes están pendientes de reajuste. El tramo posterior a la segunda roca no está medido.

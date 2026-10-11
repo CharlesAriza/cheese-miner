@@ -11,7 +11,7 @@ Ejecutadas abriendo `tests.html` en el navegador. **19 de 19 pasan.**
 | Picar revela vetas y nunca da queso ni monedas | pasa |
 | El taladro necesita veta; un ciclo da Raw Cheese una vez y consume veta | pasa |
 | La refinería necesita Raw Cheese; consume y produce una vez | pasa |
-| El almacén lleno detiene la producción sin pérdida ni duplicación | pasa |
+| Sin topes: lo guardado se acumula por tipo de queso y nada se para por falta de espacio | pasa |
 | Las rocas no se agotan: la veta vacía baja de profundidad, más dura y más rica | pasa |
 | Las zonas se suman: todas las rocas abiertas se pican y taladran a la vez | pasa |
 | Mejorar no automatiza; el ratón automatiza pero no acelera | pasa |
@@ -21,7 +21,7 @@ Ejecutadas abriendo `tests.html` en el navegador. **19 de 19 pasan.**
 | Recetas: descubrir, componentes bloqueados por nivel, renombrar, fabricar, persistir | pasa |
 | Valor del queso: fórmula, sinergias, maestría, bodega y nivel de Trading | pasa |
 | Cheesemaker y Shopkeeper llevan solos el final de la cadena, dentro de sus límites | pasa |
-| La automatización para ante cuellos de botella y nunca desborda el almacén | pasa |
+| La automatización solo espera por lo que le falta, nunca por espacio | pasa |
 | Guardar y cargar mantiene el estado; guardados dañados o antiguos empiezan limpios | pasa |
 | Las recompensas por objetivo se pagan una vez, y nunca por picar | pasa |
 | Las dev tools marcan la partida y no rompen invariantes | pasa |
@@ -41,6 +41,9 @@ Hechas sobre el juego real, pulsando los controles:
 - Abrir la segunda roca: explicación, fichas de roca en el panel y cambio de paisaje.
 - Aspectos de edificios: con la rama de potencia subida cambian taladro, refinería, almacén, quesería y tienda; aparece el pozo de la roca y crece el pueblo del fondo.
 - Claridad de animaciones: taladrando a mano no aparece ningún ratón acarreando; con los ratones contratados, cada uno sale de su puesto con el producto y vuelve.
+- Despensa: una fila por tipo de Raw, de Base y por receta, con sus cantidades; se abre desde PANTRY o tocando un contador.
+- Árboles: cada nudo enseña el valor actual y el siguiente en unidades reales.
+- El edificio del almacén ya no cambia de tamaño ni pisa a los vecinos; apila cajas según lo guardado.
 - Reiniciar deja la partida a cero.
 - Sin desbordamiento horizontal a 320×640 y 375×812.
 - Sin errores en la consola durante todo lo anterior.
@@ -52,6 +55,7 @@ Hechas sobre el juego real, pulsando los controles:
 - **Animaciones en movimiento.** Ratones acarreando, confeti e iconos que vuelan se revisaron solo en capturas.
 - **Gestos táctiles:** arrastrar la escena y mantener pulsado.
 - **Importar una partida** desde la interfaz.
+- **Balance tras quitar los topes.** El principio va mucho más rápido que antes y no está reajustado.
 - **Juego largo.** Nada más allá de la segunda roca está medido ni jugado: no sé cómo se comporta el balance a partir de ahí.
 - **Rendimiento** con muchas horas de partida y números muy grandes.
 

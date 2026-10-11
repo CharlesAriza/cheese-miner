@@ -5,9 +5,7 @@
   const q = CM.q;
 
   function fill(s, kind, amount) {
-    const base = q.openZones(s)[0].base;
-    const room = kind === 'raw' ? q.rawSpace(s) : q.baseSpace(s);
-    s.inv[kind][base] += Math.max(0, Math.min(amount, room));
+    for (const z of q.openZones(s)) s.inv[kind][z.base] += amount;
   }
 
   CM.dev = {
@@ -71,11 +69,6 @@
         s.totals.veinsFound += 1;
       }
     },
-    forceStorageFull(s) {
-      s.devUsed = true;
-      fill(s, 'raw', Infinity);
-      fill(s, 'base', Infinity);
-    },
     forceNoRaw(s) {
       s.devUsed = true;
       Object.keys(s.inv.raw).forEach((k) => (s.inv.raw[k] = 0));
@@ -94,7 +87,6 @@
     },
     // Texto con tasas, capacidades, bloqueos y totales.
     report(s) {
-      const caps = q.caps(s);
       const r = CM.telemetry.rates(s);
       const f = (n) => (Math.round(n * 10) / 10).toFixed(1);
       const mins = (ms) => f(ms / 60000) + 'm';
@@ -104,7 +96,7 @@
         'per min (last 60s):',
         '  raw +' + f(r.raw) + ' / -' + f(r.rawUsed) + '   base +' + f(r.base) + ' / -' + f(r.baseUsed),
         '  cheese +' + f(r.lots) + '   coins +' + f(r.coins),
-        'storage: raw ' + q.rawTotal(s) + '/' + caps.raw + '  base ' + q.baseTotal(s) + '/' + caps.base + '  cheese ' + q.lotsTotal(s) + '/' + caps.lots,
+        'stock: raw ' + JSON.stringify(s.inv.raw) + '  base ' + JSON.stringify(s.inv.base) + '  cheese ' + q.lotsTotal(s),
         'zones: ' + q.openZones(s).map((d) => d.id + ' d' + s.zones[d.id].depth + ' mine=' + CM.mining.status(s, d.id) + ' drill=' + CM.drilling.status(s, d.id)).join(' | '),
         'refinery=' + CM.refining.status(s) + '  cheesery=' + CM.cheesery.status(s) + '  shop=' + CM.shop.status(s),
         'taps: ' + JSON.stringify(s.metrics.taps),

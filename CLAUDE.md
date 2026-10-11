@@ -39,14 +39,15 @@ Shop Titans deja de ser referencia.
 Hecho:
 
 - Cinco habilidades (Mining, Drilling, Refining, Cheesemaking, Trading) con nivel 1–99.
-- Un árbol por habilidad con tres ramas (potencia, ratones, especial) y uno de colonia (almacén, horas offline).
+- Un árbol por habilidad con tres ramas (potencia, ratones, especial) y uno de colonia (horas offline).
+- Despensa sin tope, estilo banco de Melvor: cada recurso y cada receta en su fila.
 - Rocas con profundidad sin fin y tres zonas (Cheddar, Gouda, Blue) que producen a la vez.
 - Recetas de cuatro componentes con un único valor, rango y maestría; 108 combinaciones.
 - Venta por ciclos; el nivel de Trading trae mejores compradores.
 - Edificios con seis aspectos según sus mejoras, pozo de la roca, pueblo que crece y ratones que acarrean.
 - Progreso offline con la misma simulación.
 
-Quitado respecto a la Alpha: regateo, clientes con paciencia, Taste/Funk/Aroma, reputación, viajar entre zonas, rocas que se agotan y Mouse House con camas.
+Quitado respecto a la Alpha: almacén con capacidad, regateo, clientes con paciencia, Taste/Funk/Aroma, reputación, viajar entre zonas, rocas que se agotan y Mouse House con camas.
 
 ## Siguientes entregas (acordadas, sin construir)
 

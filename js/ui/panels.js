@@ -22,7 +22,6 @@
     'vein-exposed': 'Vein exposed: use the DRILL',
     'no-vein': 'No vein exposed: mine the rock first',
     'not-built': 'Build it first',
-    'storage-full': 'Storage is full. Upgrade it in COLONY',
     'no-raw': 'Not enough Raw Cheese (need ' + B.refinery.rawPerBase + ')',
     'no-base': 'Not enough Cheese Base',
     'no-cheese': 'No cheese to sell. Make some in the Cheesery',
@@ -38,14 +37,45 @@
     idle: 'Nothing is being made',
   };
 
-  // Efecto actual y siguiente de un nudo, en texto corto.
-  const PCT = { critMult: 0, pickPower: 0, miners: 0, drillYield: 0, refBatch: 0, sellCount: 0, offlineHours: 0, drillAuto: 0, refAuto: 0, cheeseAuto: 0, sellAuto: 0 };
-  function effectText(node, rank) {
-    const key = Object.keys(node.eff)[0];
-    const per = node.eff[key];
+  // Efecto de un nudo en valores reales: lo que tienes ahora y lo que tendrás
+  // con un rango más («2 Raw > 3 Raw»), nunca un porcentaje suelto.
+  const round1 = (n) => Math.round(n * 10) / 10;
+  const SHOW = {
+    pickPower: (s) => round1(q.pickPower(s)) + ' search per hit',
+    critMult: (s) => 'crits hit x' + round1(q.critMult(s)),
+    miners: (s) => q.miners(s) + (q.miners(s) === 1 ? ' mouse' : ' mice') + ' mining',
+    minerSpeed: (s) => 'a swing every ' + secs(q.minerInterval(s)),
+    veinCap: (s) => CM.fmt(q.veinCapacity(s, B.zones[0].id)) + ' Raw in a ' + B.zones[0].name + ' vein',
+    richDepth: (s) => '+' + Math.round((B.depth.richness + q.mods(s)('richDepth')) * 100) + '% Raw for each depth level',
+    drillYield: (s) => round1(q.drillYield(s, B.zones[0].id)) + ' Raw per cycle',
+    drillRich: (s) => round1(q.drillYield(s, B.zones[0].id)) + ' Raw per cycle',
+    drillSpeed: (s) => 'a cycle every ' + secs(q.drillDuration(s)),
+    refBatch: (s) => round1(q.refineBatch(s) * q.refineMult(s)) + ' Base per cycle',
+    refBonus: (s) => round1(q.refineBatch(s) * q.refineMult(s)) + ' Base from ' + q.refineBatch(s) * B.refinery.rawPerBase + ' Raw',
+    refSpeed: (s) => 'a cycle every ' + secs(q.refineDuration(s)),
+    cheeseSpeed: (s) => 'a plain cheese in ' + secs(B.cheesery.baseTimeMs / (1 + q.mods(s)('cheeseSpeed'))),
+    cheeseValue: (s) => 'a plain Cheddar is worth ' + round1(B.bases.cheddar.value * (1 + q.mods(s)('cheeseValue')) * q.skillMult(s, 'cheesemaking')),
+    price: (s) => 'customers pay x' + Math.round(q.priceMult(s) * 100) / 100,
+    sellCount: (s) => q.sellCount(s) + ' cheese per sale',
+    sellSpeed: (s) => 'a sale every ' + secs(q.sellDuration(s)),
+    offlineHours: (s) => Math.round(q.offlineCapMs(s) / 3600000) + ' hours away',
+  };
+  // Calcula el texto como si el nudo tuviera otro rango, sin tocar la partida.
+  function atRank(s, key, rank, fn) {
+    const had = s.nodes[key];
+    if (rank > 0) s.nodes[key] = rank;
+    else delete s.nodes[key];
+    const out = fn(s);
+    if (had === undefined) delete s.nodes[key];
+    else s.nodes[key] = had;
+    return out;
+  }
+  function effectText(s, skill, node, rank) {
     if (node.max === 1) return rank ? 'Working for you' : 'Not hired yet';
-    const show = (r) => (key in PCT ? '+' + Math.round(per * r * 10) / 10 : '+' + Math.round(per * r * 100) + '%');
-    return rank >= node.max ? show(rank) : show(rank) + ' > ' + show(rank + 1);
+    const show = SHOW[Object.keys(node.eff)[0]];
+    const key = skill + '.' + node.id;
+    const now = atRank(s, key, rank, show);
+    return rank >= node.max ? now : 'Now: ' + now + '<br>Next: ' + atRank(s, key, rank + 1, show);
   }
 
   const BRANCHES = [
@@ -69,11 +99,11 @@
     for (const br of BRANCHES) {
       const nodes = B.trees[skill].filter((x) => x.branch === br[0]);
       if (!nodes.length) continue;
-      h += '<h3>' + (skill === 'colony' && br[0] === 'power' ? 'STORAGE' : br[1]) + '</h3><p class="hint">' + (skill === 'colony' && br[0] === 'power' ? 'More room for each resource. The storage building grows with it' : br[2]) + '</p>';
+      h += '<h3>' + (skill === 'colony' ? 'WHILE YOU ARE AWAY' : br[1]) + '</h3><p class="hint">' + (skill === 'colony' ? 'Only stages with a mouse keep going when the game is closed' : br[2]) + '</p>';
       for (const node of nodes) {
         const info = CM.tree.info(s, skill, node.id);
         const title = node.name + (node.max > 1 ? ' <span class="rank">' + info.rank + '/' + node.max + '</span>' : '');
-        const sub = node.desc + '<br><span class="st ' + (info.rank ? 'good' : 'dim') + '">' + effectText(node, info.rank) + '</span>';
+        const sub = node.desc + '<br><span class="st ' + (info.rank ? 'good' : 'dim') + '">' + effectText(s, skill, node, info.rank) + '</span>';
         let right;
         if (info.maxed) right = '<span class="tag">' + (node.max === 1 ? 'HIRED' : 'MAX') + '</span>';
         else if (info.locked) right = '<span class="tag lock">Needs ' + B.skills[skill].name + '<br>LV ' + node.level + '</span>';
@@ -123,7 +153,7 @@
       const label = job.kind === 'experiment' && !r ? 'Experimenting...' : 'Making ' + esc(r ? r.name : 'cheese') + (job.lotsLeft > 1 ? ' (' + job.lotsLeft + ' left)' : '');
       h += '<div class="jobbar"><span>' + label + '</span><div class="bar"><i data-job="cheesery"></i></div>' + btn('cheeseTap', 'SPEED UP', { cls: 'buy' }) + '</div>';
     }
-    h += '<p class="hint stock">' + C.unlockedBases(s).map((b) => I.img('base', b) + B.bases[b].name + ' Base ' + s.inv.base[b]).join(' &nbsp; ') + ' &nbsp; ' + I.img('lot', 'cheddar') + 'Cheese ' + q.lotsTotal(s) + '/' + q.caps(s).lots + '</p>';
+    h += '<p class="hint stock">' + C.unlockedBases(s).map((b) => I.img('base', b) + B.bases[b].name + ' Base ' + CM.fmt(s.inv.base[b])).join(' &nbsp; ') + '</p>';
     h += '<div class="tabs">' + btn('tab:experiment', 'NEW RECIPE', { cls: ui.cheeseTab === 'experiment' ? 'on' : '' }) + btn('tab:book', 'RECIPE BOOK ' + s.recipes.length + '/' + C.totalCombos(), { cls: ui.cheeseTab === 'book' ? 'on' : '' }) + '</div>';
 
     if (ui.cheeseTab === 'experiment') {
@@ -149,7 +179,7 @@
       if (known) {
         h += '<div class="result">' + I.img('lot', combo.base, 'big') + '<div><b>' + esc(known.name) + '</b><div>' + valueTag(s, known) + '</div><small>Already in your Recipe Book</small></div></div>';
       } else {
-        const can = !job && s.inv.base[combo.base] >= B.cheesery.experimentBase && s.coins >= coins && q.lotsSpace(s) >= 1;
+        const can = !job && s.inv.base[combo.base] >= B.cheesery.experimentBase && s.coins >= coins;
         const syn = C.formula(combo).synergies;
         h += '<div class="result"><div><b>Undiscovered cheese</b><small>' + (syn.length ? 'These go well together! ' : '') + 'Costs ' + B.cheesery.experimentBase + ' ' + B.bases[combo.base].name + ' Base' + (coins ? ' + ' + coins + ' coins' : '') + ' · ' + secs(C.jobTime(s, combo, null)) + ' · you get the recipe and 1 cheese</small></div></div>';
         h += btn('experiment', 'DISCOVER IT', { off: !can, cls: 'buy wide' });
@@ -177,6 +207,30 @@
     return h;
   }
 
+  // ---------- DESPENSA ----------
+  // Todo lo que tienes, una fila por cosa, como un banco. No hay tope.
+  function stockPanel(s) {
+    const cell = (icon, name, amount, sub) => '<div class="stockrow' + (amount ? '' : ' empty') + '">' + icon + '<div class="info"><b>' + name + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</div><span class="qty">' + CM.fmt(amount) + '</span></div>';
+    const bases = CM.cheesery.unlockedBases(s);
+    let h = '<p class="hint">Everything you own. There is no limit: it just piles up until the next stage uses it.</p>';
+    h += '<h3>RAW CHEESE · from the drills, used by the Refinery</h3>';
+    for (const b of bases) h += cell(I.img('raw', b, 'big'), 'Raw ' + B.bases[b].name, s.inv.raw[b]);
+    h += '<h3>CHEESE BASE · from the Refinery, used by the Cheesery</h3>';
+    for (const b of bases) h += cell(I.img('base', b, 'big'), B.bases[b].name + ' Base', s.inv.base[b]);
+    h += '<h3>CHEESE · from the Cheesery, sold in the Shop</h3>';
+    const stocked = s.recipes.slice().sort((a, b) => CM.shop.price(s, b) - CM.shop.price(s, a));
+    if (!stocked.length) h += '<p class="hint">No recipes yet.</p>';
+    let worth = 0;
+    for (const r of stocked) {
+      const n = s.lots[r.id] || 0;
+      const price = CM.shop.price(s, r);
+      worth += n * price;
+      h += cell(I.img('lot', CM.cheesery.parseKey(r.key).base, 'big'), esc(r.name), n, 'sells for ' + CM.fmt(price) + ' each');
+    }
+    if (worth) h += '<p class="hint">Your cheese is worth ' + CM.fmt(worth) + ' coins in total.</p>';
+    return h;
+  }
+
   function optionsPanel(s) {
     return (
       row('Sound', 'Synth effects', btn('sound', CM.sfx.isMuted() ? 'OFF' : 'ON', { cls: 'buy' })) +
@@ -195,7 +249,7 @@
       '<h3>TIME</h3>' + g([['speed:1', 'x1', D.speed === 1], ['speed:2', 'x2', D.speed === 2], ['speed:10', 'x10', D.speed === 10], ['pause', D.paused ? 'RESUME' : 'PAUSE', D.paused]]) +
       '<h3>GIVE</h3>' + g([['coins:1000', '+1K coins'], ['coins:1000000', '+1M coins'], ['raw', '+10 raw'], ['base', '+10 base'], ['levels', '+5 levels'], ['reveal', 'reveal veins']]) +
       '<h3>UNLOCK</h3>' + g([['buildings', 'all buildings'], ['zones', 'all rocks'], ['hire', 'all mice'], ['power:3', 'power +3'], ['power:10', 'power +10']]) +
-      '<h3>FORCE</h3>' + g([['full', 'storage full'], ['noraw', 'no raw']]) +
+      '<h3>FORCE</h3>' + g([['noraw', 'no raw']]) +
       '<h3>SCENARIO</h3>' + g([['scn:chain', 'chain ready'], ['scn:fresh', 'new game']]) +
       '<h3>REPORT</h3><pre class="report" id="dev-report"></pre>' + btn('export', 'EXPORT JSON', { cls: 'buy wide' })
     );
@@ -209,10 +263,10 @@
     comboLine,
     title(name, ui) {
       if (name === 'tree') return ui.tree === 'colony' ? 'COLONY' : B.skills[ui.tree].name.toUpperCase() + ' UPGRADES';
-      return { cheese: 'CHEESERY', options: 'MENU', dev: 'PLAYTEST TOOLS' }[name];
+      return { cheese: 'CHEESERY', stock: 'PANTRY', options: 'MENU', dev: 'PLAYTEST TOOLS' }[name];
     },
     render(name, s, ui) {
-      return { tree: treePanel, cheese: cheesePanel, options: optionsPanel, dev: devPanel }[name](s, ui);
+      return { tree: treePanel, cheese: cheesePanel, stock: stockPanel, options: optionsPanel, dev: devPanel }[name](s, ui);
     },
   };
 })();
