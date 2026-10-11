@@ -1,23 +1,23 @@
 // MINING, DRILLING y REFINING.
 // Regla fija: picar solo revela vetas; nunca da Raw Cheese, Cheese Base ni monedas.
+// Cada zona abierta tiene su roca y su taladro, y todas trabajan a la vez.
 (function () {
   const B = CM.BALANCE;
   const q = CM.q;
 
   // ---------- MINING ----------
   CM.mining = {
-    status(s) {
-      const phase = q.depPhase(s, s.activeDeposit);
-      if (phase === 'depleted') return 'depleted';
-      if (phase === 'vein_revealed') return 'vein-exposed';
-      return 'ready';
+    status(s, zoneId) {
+      const z = s.zones[zoneId];
+      if (!z || !z.unlocked) return 'locked';
+      return z.veinRevealed ? 'vein-exposed' : 'ready';
     },
     // source: 'manual' (con combo y críticos) o 'worker'
-    hit(s, source) {
-      const st = this.status(s);
+    hit(s, zoneId, source) {
+      const st = this.status(s, zoneId);
       if (st !== 'ready') return CM.fail(st);
-      const d = q.dep(s);
-      const vein = q.veinDef(s, s.activeDeposit);
+      const z = s.zones[zoneId];
+      const need = q.veinHits(s, zoneId);
       let crit = false;
       if (source === 'manual') {
         s.combo = s.clock - s.lastHitAt <= B.mining.comboWindowMs ? s.combo + 1 : 1;
@@ -25,16 +25,18 @@
         crit = s.combo % B.mining.critEvery === 0;
         s.metrics.taps.mine += 1;
       }
-      const amount = q.pickPower(s) * (crit ? B.mining.critMultiplier : 1);
-      d.discover = Math.min(vein.hits, d.discover + amount);
+      const amount = Math.min(need - z.discover, q.pickPower(s) * (crit ? q.critMult(s) : 1));
+      z.discover += amount;
       s.totals.hits += 1;
-      CM.emit(s, 'hit', { source, crit, amount, combo: source === 'manual' ? s.combo : 0 });
-      if (d.discover >= vein.hits) {
-        d.veinRevealed = true;
-        d.veinRemaining = vein.capacity;
+      CM.skills.addXp(s, 'mining', amount * B.xp.perSearch);
+      CM.emit(s, 'hit', { zone: zoneId, source, crit, amount, combo: source === 'manual' ? s.combo : 0 });
+      if (z.discover >= need - 1e-6) {
+        z.discover = need;
+        z.veinRevealed = true;
+        z.veinRemaining = q.veinCapacity(s, zoneId);
         s.combo = 0;
         s.totals.veinsFound += 1;
-        CM.emit(s, 'reveal', { deposit: s.activeDeposit, capacity: vein.capacity });
+        CM.emit(s, 'reveal', { zone: zoneId, capacity: z.veinRemaining });
       }
       return CM.ok({ crit });
     },
@@ -42,53 +44,55 @@
 
   // ---------- DRILLING ----------
   CM.drilling = {
-    status(s) {
+    status(s, zoneId) {
+      const z = s.zones[zoneId];
       if (!s.built.drill) return 'not-built';
-      if (s.jobs.drill) return 'running';
-      const phase = q.depPhase(s, s.activeDeposit);
-      if (phase === 'depleted') return 'depleted';
-      if (phase !== 'vein_revealed' || q.dep(s).veinRemaining <= 0) return 'no-vein';
+      if (!z || !z.unlocked) return 'locked';
+      if (z.drillJob) return 'running';
+      if (!z.veinRevealed || z.veinRemaining <= 0) return 'no-vein';
       if (q.rawSpace(s) <= 0) return 'storage-full';
       return 'ready';
     },
     // El queso se reserva de la veta al empezar y se entrega una sola vez al completar.
-    start(s, source) {
-      const st = this.status(s);
+    start(s, zoneId, source) {
+      const st = this.status(s, zoneId);
       if (st !== 'ready') return CM.fail(st);
-      const d = q.dep(s);
-      const amount = Math.min(q.drillYield(s), d.veinRemaining, q.rawSpace(s));
+      const z = s.zones[zoneId];
+      // El rendimiento puede tener decimales: lo que sobra se guarda para el siguiente ciclo.
+      const wanted = q.drillYield(s, zoneId) + z.carry;
+      const amount = Math.max(1, Math.min(Math.floor(wanted), z.veinRemaining, q.rawSpace(s)));
+      z.carry = Math.max(0, Math.min(1, wanted - Math.floor(wanted)));
       const total = q.drillDuration(s);
-      d.veinRemaining -= amount;
-      s.jobs.drill = { remaining: total, total, amount, deposit: s.activeDeposit, source };
-      CM.emit(s, 'drillStart', { source });
+      z.veinRemaining -= amount;
+      z.drillJob = { remaining: total, total, amount, source };
+      CM.emit(s, 'drillStart', { zone: zoneId, source });
       return CM.ok();
     },
-    // Tap manual: arranca un ciclo o acelera el que está en marcha (sea manual o de un Driller).
-    tap(s) {
+    // Tap manual: arranca un ciclo o acelera el que está en marcha.
+    tap(s, zoneId) {
       s.metrics.taps.drill += 1;
-      const job = s.jobs.drill;
-      if (!job) return this.start(s, 'manual');
-      job.remaining = Math.max(0, job.remaining - B.drill.boostMs);
-      CM.emit(s, 'drillBoost');
+      const z = s.zones[zoneId];
+      if (!z || !z.drillJob) return this.start(s, zoneId, 'manual');
+      z.drillJob.remaining = Math.max(0, z.drillJob.remaining - B.drill.boostMs);
+      CM.emit(s, 'drillBoost', { zone: zoneId });
       return CM.ok({ boosted: true });
     },
-    complete(s) {
-      const job = s.jobs.drill;
-      const def = q.depDef(job.deposit);
-      const d = s.deposits[job.deposit];
-      s.jobs.drill = null;
-      s.inv.raw[def.base] += job.amount;
+    complete(s, zoneId) {
+      const z = s.zones[zoneId];
+      const job = z.drillJob;
+      const base = q.zoneDef(zoneId).base;
+      z.drillJob = null;
+      s.inv.raw[base] += job.amount;
       s.totals.rawProduced += job.amount;
-      CM.emit(s, 'drillDone', { amount: job.amount, base: def.base });
-      if (d.veinRevealed && d.veinRemaining <= 0) {
-        d.veinRevealed = false;
-        d.veinIndex += 1;
-        d.discover = 0;
-        CM.emit(s, 'veinDepleted', { deposit: job.deposit });
-        if (!q.veinDef(s, job.deposit)) {
-          s.totals.depositsDepleted += 1;
-          CM.emit(s, 'depositDepleted', { deposit: job.deposit });
-        }
+      CM.skills.addXp(s, 'drilling', job.amount * B.xp.perRaw);
+      CM.emit(s, 'drillDone', { zone: zoneId, amount: job.amount, base, source: job.source });
+      // Veta vacía: la roca no se agota, baja un nivel y hay que volver a buscar.
+      if (z.veinRevealed && z.veinRemaining <= 0) {
+        z.veinRevealed = false;
+        z.veinRemaining = 0;
+        z.discover = 0;
+        z.depth += 1;
+        CM.emit(s, 'deeper', { zone: zoneId, depth: z.depth });
       }
     },
   };
@@ -103,25 +107,37 @@
       }
       return best;
     },
+    // Plan del siguiente ciclo: cuántas tandas caben y cuánta base sale.
+    plan(s) {
+      const base = this.pickBase(s);
+      if (!base) return null;
+      const mult = q.refineMult(s);
+      const space = q.baseSpace(s);
+      let batches = Math.min(q.refineBatch(s), Math.floor(s.inv.raw[base] / B.refinery.rawPerBase));
+      while (batches > 0 && Math.floor(batches * mult + s.refCarry) > space) batches -= 1;
+      if (batches < 1) return { base, batches: 0 };
+      const wanted = batches * mult + s.refCarry;
+      return { base, batches, amount: Math.floor(wanted), carry: wanted - Math.floor(wanted) };
+    },
     status(s) {
       if (!s.built.refinery) return 'not-built';
       if (s.jobs.refinery) return 'running';
-      if (!this.pickBase(s)) return 'no-raw';
-      if (q.baseSpace(s) <= 0) return 'storage-full';
-      return 'ready';
+      const plan = this.plan(s);
+      if (!plan) return 'no-raw';
+      return plan.batches < 1 ? 'storage-full' : 'ready';
     },
     // El Raw Cheese se consume al empezar; la Cheese Base se entrega una sola vez al completar.
     start(s, source) {
       const st = this.status(s);
       if (st !== 'ready') return CM.fail(st);
-      const base = this.pickBase(s);
-      const ratio = B.refinery.rawPerBase;
-      const amount = Math.min(q.refineBatch(s), Math.floor(s.inv.raw[base] / ratio), q.baseSpace(s));
+      const plan = this.plan(s);
+      const used = plan.batches * B.refinery.rawPerBase;
       const total = q.refineDuration(s);
-      s.inv.raw[base] -= amount * ratio;
-      s.totals.rawConsumed += amount * ratio;
-      s.jobs.refinery = { remaining: total, total, amount, base, source };
-      CM.emit(s, 'refineStart', { source, used: amount * ratio, base });
+      s.inv.raw[plan.base] -= used;
+      s.totals.rawConsumed += used;
+      s.refCarry = plan.carry;
+      s.jobs.refinery = { remaining: total, total, amount: plan.amount, base: plan.base, used, source };
+      CM.emit(s, 'refineStart', { source, used, base: plan.base });
       return CM.ok();
     },
     tap(s) {
@@ -137,7 +153,8 @@
       s.jobs.refinery = null;
       s.inv.base[job.base] += job.amount;
       s.totals.baseProduced += job.amount;
-      CM.emit(s, 'refineDone', { amount: job.amount, base: job.base });
+      CM.skills.addXp(s, 'refining', job.amount * B.xp.perBase);
+      CM.emit(s, 'refineDone', { amount: job.amount, base: job.base, source: job.source });
     },
   };
 })();

@@ -1,5 +1,5 @@
-// CHEESERY y RECIPE BOOK: BASE + INGREDIENTE + TRATAMIENTO + MADURACIÓN = QUESO.
-// Experimentar descubre una receta (y da 1 lote de muestra); fabricar usa recetas ya conocidas.
+// CHEESERY, RECIPE BOOK y CHEESE SHOP.
+// BASE + INGREDIENTE + TRATAMIENTO + MADURACIÓN = QUESO, con un único número: su valor.
 (function () {
   const B = CM.BALANCE;
   const q = CM.q;
@@ -15,31 +15,23 @@
     return PARTS.every((p) => B[TABLES[p]][combo[p]]) ? combo : null;
   }
 
-  // Fórmula de stats, reproducible: suma de componentes + sinergias; Value sale de los pesos.
-  function computeStats(combo) {
-    const st = { taste: 0, funk: 0, aroma: 0 };
+  // Valor de fórmula de una combinación, antes de maestría y mejoras.
+  function formula(combo) {
+    let value = B.bases[combo.base].value * B.ingredients[combo.ingredient].mult * B.treatments[combo.treatment].mult * B.maturations[combo.maturation].mult;
     const synergies = [];
-    for (const p of PARTS) {
-      const part = B[TABLES[p]][combo[p]].stats;
-      for (const k of Object.keys(st)) st[k] += part[k];
-    }
     for (const syn of B.synergies) {
       if (Object.keys(syn.when).every((p) => combo[p] === syn.when[p])) {
-        for (const k of Object.keys(syn.add)) st[k] += syn.add[k];
+        value *= syn.mult;
         synergies.push(syn.label);
       }
     }
-    const w = B.valueWeights;
-    const raw = st.taste * w.taste + st.funk * w.funk + st.aroma * w.aroma;
-    st.value = Math.round(raw * B.maturations[combo.maturation].valueMult);
-    st.synergies = synergies;
-    return st;
+    return { value: Math.round(value), synergies };
   }
 
-  const lotTime = (combo) =>
-    B.cheesery.baseTimeMs + B.treatments[combo.treatment].timeMs + B.maturations[combo.maturation].timeMs;
+  const tierOf = (value) => B.tiers.reduce((best, t) => (value >= t.min ? t : best), B.tiers[0]).name;
+  const lotTime = (combo) => B.cheesery.baseTimeMs + B.treatments[combo.treatment].timeMs + B.maturations[combo.maturation].timeMs;
 
-  // Maestría de una receta (1..n) según los lotes fabricados.
+  // Maestría de una receta (1..n) según los quesos fabricados.
   function masteryLevel(recipe) {
     const made = (recipe && recipe.made) || 0;
     let level = 1;
@@ -48,21 +40,30 @@
     });
     return level;
   }
-  // Tiempo real por lote: receta, nivel de la Cheesery y maestría.
+  // Tiempo real por queso: receta, mejoras de velocidad y maestría.
   function jobTime(s, combo, recipe) {
-    const speed = Math.pow(B.cheesery.durationFactorPerLevel, s.levels.cheesery);
-    const mastery = 1 - B.cheesery.masteryTime * (masteryLevel(recipe) - 1);
-    return Math.max(500, Math.round(lotTime(combo) * speed * mastery));
+    const mastery = Math.max(0.3, 1 - B.cheesery.masteryTime * (masteryLevel(recipe) - 1));
+    return Math.max(300, Math.round((lotTime(combo) / (1 + q.mods(s)('cheeseSpeed'))) * mastery));
+  }
+  // Valor de un queso del libro: fórmula x maestría x mejoras x nivel de Cheesemaking.
+  function valueOf(s, recipe) {
+    const f = formula(parseKey(recipe.key));
+    const mastery = 1 + B.cheesery.masteryValue * (masteryLevel(recipe) - 1);
+    return Math.max(1, Math.round(f.value * mastery * (1 + q.mods(s)('cheeseValue')) * q.skillMult(s, 'cheesemaking')));
   }
 
   function defaultName(combo) {
-    return [B.maturations[combo.maturation].adj, B.treatments[combo.treatment].adj, B.ingredients[combo.ingredient].adj, B.bases[combo.base].name]
-      .filter(Boolean)
-      .join(' ');
+    return [B.maturations[combo.maturation].adj, B.treatments[combo.treatment].adj, B.ingredients[combo.ingredient].adj, B.bases[combo.base].name].filter(Boolean).join(' ');
   }
 
-  // Bases disponibles: las de yacimientos ya abiertos.
-  const unlockedBases = (s) => B.deposits.filter((d) => s.deposits[d.id].unlocked).map((d) => d.base);
+  // Bases disponibles: las de zonas abiertas.
+  const unlockedBases = (s) => q.openZones(s).map((z) => z.base);
+  // Un componente está bloqueado si pide más nivel de Cheesemaking (o una zona sin abrir).
+  function partLocked(s, part, id) {
+    if (part === 'base') return unlockedBases(s).indexOf(id) < 0;
+    return q.level(s, 'cheesemaking') < B[TABLES[part]][id].level;
+  }
+  const comboLocked = (s, combo) => PARTS.some((p) => partLocked(s, p, combo[p]));
 
   function allCombos(bases) {
     const out = [];
@@ -73,22 +74,22 @@
     return out;
   }
 
-  function startJob(s, kind, combo, recipeId, lots, baseCost, source) {
+  function startJob(s, kind, combo, recipe, lots, baseCost, source) {
     const coinCost = B.ingredients[combo.ingredient].coinCost * lots;
     if (!s.built.cheesery) return CM.fail('not-built');
     if (s.jobs.cheesery) return CM.fail('busy');
     if (s.inv.base[combo.base] < baseCost) return CM.fail('no-base');
     if (s.coins < coinCost) return CM.fail('no-coins');
     if (q.lotsSpace(s) < lots) return CM.fail('storage-full');
-    // Los inputs se consumen aquí, una sola vez; los lotes se entregan uno a uno al completarse.
+    // Los inputs se consumen aquí, una sola vez; los quesos se entregan uno a uno al completarse.
     s.inv.base[combo.base] -= baseCost;
     s.totals.baseConsumed += baseCost;
     if (coinCost > 0) {
       s.coins -= coinCost;
       s.totals.coinsSpent += coinCost;
     }
-    const total = jobTime(s, combo, recipeId ? CM.cheesery.recipe(s, recipeId) : null);
-    s.jobs.cheesery = { kind, key: keyOf(combo), recipeId, lotsLeft: lots, remaining: total, total };
+    const total = jobTime(s, combo, recipe);
+    s.jobs.cheesery = { kind, key: keyOf(combo), recipeId: recipe ? recipe.id : null, lotsLeft: lots, remaining: total, total, source: source || 'manual' };
     CM.emit(s, 'cheeseStart', { kind, lots, source: source || 'manual', used: baseCost, base: combo.base });
     return CM.ok();
   }
@@ -98,35 +99,37 @@
     TABLES,
     keyOf,
     parseKey,
-    computeStats,
+    formula,
+    tierOf,
     lotTime,
     jobTime,
     masteryLevel,
+    valueOf,
     defaultName,
     unlockedBases,
+    partLocked,
     allCombos,
+    totalCombos: () => allCombos(Object.keys(B.bases)).length,
     recipe: (s, id) => s.recipes.find((r) => r.id === id) || null,
     recipeByKey: (s, key) => s.recipes.find((r) => r.key === key) || null,
-    // Stats de una receta del libro: las de la fórmula más el extra de Value por maestría.
-    statsOf(recipe) {
-      const st = computeStats(parseKey(recipe.key));
-      st.mastery = masteryLevel(recipe);
-      st.value = Math.round(st.value * (1 + B.cheesery.masteryValue * (st.mastery - 1)));
-      return st;
-    },
 
     experiment(s, combo) {
       if (!parseKey(keyOf(combo))) return CM.fail('invalid');
-      if (unlockedBases(s).indexOf(combo.base) < 0) return CM.fail('base-locked');
+      if (comboLocked(s, combo)) return CM.fail('part-locked');
       if (this.recipeByKey(s, keyOf(combo))) return CM.fail('known');
       return startJob(s, 'experiment', combo, null, 1, B.cheesery.experimentBase);
     },
-
     produce(s, recipeId, lots) {
       const recipe = this.recipe(s, recipeId);
       if (!recipe) return CM.fail('unknown-recipe');
       const n = Math.max(1, Math.min(B.cheesery.maxQueue, Math.floor(lots) || 1));
-      return startJob(s, 'produce', parseKey(recipe.key), recipeId, n, B.cheesery.lotBase * n);
+      return startJob(s, 'produce', parseKey(recipe.key), recipe, n, B.cheesery.lotBase * n);
+    },
+    // Cuántos quesos de una receta se pueden encargar ahora mismo.
+    maxLots(s, recipe) {
+      const combo = parseKey(recipe.key);
+      const coin = B.ingredients[combo.ingredient].coinCost;
+      return Math.max(0, Math.min(B.cheesery.maxQueue, Math.floor(s.inv.base[combo.base] / B.cheesery.lotBase), q.lotsSpace(s), coin ? Math.floor(s.coins / coin) : 99));
     },
 
     // --- Cheesemaker: cocina de uno en uno la receta asignada ---
@@ -136,29 +139,24 @@
       CM.emit(s, 'cookAssigned', { recipeId: s.cookRecipe });
       return CM.ok();
     },
-    // Llamado por la simulación cuando hay Cheesemaker y la Cheesery está libre.
     start(s) {
       const recipe = this.recipe(s, s.cookRecipe);
       if (!recipe) return CM.fail('no-recipe');
-      return startJob(s, 'produce', parseKey(recipe.key), recipe.id, 1, B.cheesery.lotBase, 'worker');
+      return startJob(s, 'produce', parseKey(recipe.key), recipe, 1, B.cheesery.lotBase, 'worker');
     },
-    autoStatus(s) {
-      if (!s.built.cheesery) return 'no-work';
-      if (s.jobs.cheesery) return 'active';
+    // Estado: not-built, running, no-recipe, no-base, no-coins, storage-full, ready, idle.
+    status(s) {
+      if (!s.built.cheesery) return 'not-built';
+      if (s.jobs.cheesery) return 'running';
+      if (!q.isAutomated(s, 'cheesemaking')) return 'idle';
       const recipe = this.recipe(s, s.cookRecipe);
       if (!recipe) return 'no-recipe';
       const combo = parseKey(recipe.key);
-      if (s.inv.base[combo.base] < B.cheesery.lotBase) return 'no-material';
+      if (s.inv.base[combo.base] < B.cheesery.lotBase) return 'no-base';
       if (s.coins < B.ingredients[combo.ingredient].coinCost) return 'no-coins';
       if (q.lotsSpace(s) < 1) return 'storage-full';
-      return 'active';
+      return 'ready';
     },
-
-    status(s) {
-      if (!s.built.cheesery) return 'not-built';
-      return s.jobs.cheesery ? 'running' : 'idle';
-    },
-
     tap(s) {
       const job = s.jobs.cheesery;
       if (!job) return CM.fail('idle');
@@ -167,8 +165,7 @@
       CM.emit(s, 'cheeseBoost');
       return CM.ok();
     },
-
-    // Completa UN lote del encargo en curso.
+    // Completa UN queso del encargo en curso.
     complete(s) {
       const job = s.jobs.cheesery;
       let recipe = job.recipeId ? this.recipe(s, job.recipeId) : null;
@@ -184,20 +181,72 @@
       s.lots[recipe.id] = (s.lots[recipe.id] || 0) + 1;
       s.totals.lotsProduced += 1;
       job.lotsLeft -= 1;
-      CM.emit(s, 'lotDone', { recipeId: recipe.id });
+      CM.skills.addXp(s, 'cheesemaking', B.xp.perCheese + Math.sqrt(formula(parseKey(recipe.key)).value));
+      CM.emit(s, 'lotDone', { recipeId: recipe.id, source: job.source });
       if (masteryLevel(recipe) > before) CM.emit(s, 'masteryUp', { recipeId: recipe.id, level: masteryLevel(recipe) });
       if (job.lotsLeft > 0) job.remaining = job.total = jobTime(s, parseKey(job.key), recipe);
       else s.jobs.cheesery = null;
     },
-
     rename(s, recipeId, name) {
       const recipe = this.recipe(s, recipeId);
       const clean = String(name || '').replace(/\s+/g, ' ').trim().slice(0, 24);
       if (!recipe) return CM.fail('unknown-recipe');
       if (!clean) return CM.fail('empty-name');
       recipe.name = clean;
-      CM.emit(s, 'recipeRenamed', { recipeId });
       return CM.ok();
+    },
+  };
+
+  // ---------- CHEESE SHOP ----------
+  // Vender es un ciclo más: se retiran los quesos al empezar y se cobra una sola vez al terminar.
+  CM.shop = {
+    price: (s, recipe) => Math.max(1, Math.round(valueOf(s, recipe) * q.priceMult(s))),
+    status(s) {
+      if (!s.built.shop) return 'not-built';
+      if (s.jobs.shop) return 'running';
+      return q.lotsTotal(s) > 0 ? 'ready' : 'no-cheese';
+    },
+    start(s, source) {
+      const st = this.status(s);
+      if (st !== 'ready') return CM.fail(st);
+      // Se venden primero los quesos más caros.
+      const stock = s.recipes.filter((r) => (s.lots[r.id] || 0) > 0).sort((a, b) => this.price(s, b) - this.price(s, a));
+      let left = q.sellCount(s);
+      let coins = 0;
+      let count = 0;
+      let top = stock[0].id;
+      let xp = 0;
+      for (const r of stock) {
+        const n = Math.min(left, s.lots[r.id]);
+        if (n <= 0) break;
+        const price = this.price(s, r);
+        s.lots[r.id] -= n;
+        coins += price * n;
+        xp += n * (B.xp.perSale + Math.sqrt(price));
+        count += n;
+        left -= n;
+      }
+      const total = q.sellDuration(s);
+      s.jobs.shop = { remaining: total, total, coins, count, xp, recipeId: top, source };
+      CM.emit(s, 'sellStart', { source, count, recipeId: top });
+      return CM.ok();
+    },
+    tap(s) {
+      s.metrics.taps.sell += 1;
+      const job = s.jobs.shop;
+      if (!job) return this.start(s, 'manual');
+      job.remaining = Math.max(0, job.remaining - B.shop.boostMs);
+      CM.emit(s, 'sellBoost');
+      return CM.ok({ boosted: true });
+    },
+    complete(s) {
+      const job = s.jobs.shop;
+      s.jobs.shop = null;
+      s.coins += job.coins;
+      s.totals.lotsSold += job.count;
+      s.totals.coinsEarned += job.coins;
+      CM.skills.addXp(s, 'trading', job.xp);
+      CM.emit(s, 'sale', { coins: job.coins, count: job.count, recipeId: job.recipeId, source: job.source });
     },
   };
 })();

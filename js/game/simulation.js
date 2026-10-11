@@ -1,84 +1,67 @@
-// Reloj de simulación, hitos y progreso offline.
+// Reloj de simulación, automatización, objetivos y progreso offline.
 // La economía avanza por pasos de tiempo fijos; nunca depende de frames ni de efectos visuales.
 (function () {
   const B = CM.BALANCE;
   const q = CM.q;
 
-  const MACHINES = {
-    drill: { sys: () => CM.drilling, role: 'driller' },
-    refinery: { sys: () => CM.refining, role: 'refiner' },
-    cheesery: { sys: () => CM.cheesery, role: 'cheesemaker' },
-  };
-
-  // Avanza una máquina `dt` ms. Si hay trabajador, encadena ciclos mientras pueda.
-  function runMachine(s, key, dt) {
-    const m = MACHINES[key];
-    const sys = m.sys();
+  // Avanza un ciclo `dt` ms. Si la etapa está automatizada, encadena ciclos mientras pueda.
+  function runJob(dt, getJob, auto, start, complete) {
     let left = dt;
-    let guard = 0;
-    while (guard++ < 200) {
-      let job = s.jobs[key];
+    for (let guard = 0; guard < 200; guard++) {
+      let job = getJob();
       if (!job) {
-        if (!m.role || !q.isAutomated(s, m.role) || !sys.start(s, 'worker').ok) break;
-        job = s.jobs[key];
+        if (!auto || !start().ok) return;
+        job = getJob();
       }
       const used = Math.min(left, job.remaining);
       job.remaining -= used;
       left -= used;
-      if (job.remaining > 0) break;
-      sys.complete(s);
+      if (job.remaining > 0) return;
+      complete();
     }
-    const st = sys.status(s);
-    const bucket = s.metrics.machineMs[key];
-    bucket[st] = (bucket[st] || 0) + dt;
   }
 
-  function runMiners(s, dt) {
-    if (s.workers.miner <= 0) return;
-    if (CM.mining.status(s) !== 'ready') {
-      s.minerAcc = 0;
+  function runMiners(s, zoneId, dt) {
+    const z = s.zones[zoneId];
+    const miners = q.miners(s);
+    if (miners <= 0 || CM.mining.status(s, zoneId) !== 'ready') {
+      z.minerAcc = 0;
       return;
     }
-    s.minerAcc += dt * s.workers.miner;
-    let guard = 0;
-    while (s.minerAcc >= B.mining.minerIntervalMs && guard++ < 200) {
-      s.minerAcc -= B.mining.minerIntervalMs;
-      if (!CM.mining.hit(s, 'worker').ok) {
-        s.minerAcc = 0;
+    const interval = q.minerInterval(s);
+    z.minerAcc += dt * miners;
+    for (let guard = 0; z.minerAcc >= interval && guard < 500; guard++) {
+      z.minerAcc -= interval;
+      if (!CM.mining.hit(s, zoneId, 'worker').ok) {
+        z.minerAcc = 0;
         break;
       }
     }
   }
 
-  // ---------- HITOS ----------
-  const depProgress = (s) => {
-    const vein = q.veinDef(s, s.activeDeposit);
-    return vein ? [q.dep(s).discover, vein.hits] : [0, 1];
-  };
-  const CORE_ROLES = ['miner', 'driller', 'refiner'];
+  // ---------- OBJETIVOS ----------
+  const AUTO = ['mining', 'drilling', 'refining', 'cheesemaking', 'trading'];
+  const maxLevel = (s) => Math.max(...CM.skills.list.map((k) => q.level(s, k)));
+  const maxDepth = (s) => Math.max(...B.zones.map((z) => s.zones[z.id].depth));
   const GOALS = [
-    { id: 'vein', text: 'Find a cheese vein', done: (s) => s.totals.veinsFound >= 1, prog: depProgress },
+    { id: 'vein', text: 'Find a cheese vein', done: (s) => s.totals.veinsFound >= 1, prog: (s) => [Math.floor(s.zones.cheddar.discover), q.veinHits(s, 'cheddar')] },
     { id: 'drill', text: 'Build the Cheese Drill', done: (s) => s.built.drill },
     { id: 'raw', text: 'Drill 4 Raw Cheese', done: (s) => s.totals.rawProduced >= 4, prog: (s) => [s.totals.rawProduced, 4] },
     { id: 'refinery', text: 'Build the Refinery', done: (s) => s.built.refinery },
     { id: 'base', text: 'Refine 3 Cheese Base', done: (s) => s.totals.baseProduced >= 3, prog: (s) => [s.totals.baseProduced, 3] },
     { id: 'cheesery', text: 'Build the Cheesery', done: (s) => s.built.cheesery },
     { id: 'recipe', text: 'Discover a recipe', done: (s) => s.totals.recipes >= 1 },
-    { id: 'market', text: 'Build your Cheese Shop', done: (s) => s.built.market },
-    { id: 'sale', text: 'Sell a cheese to a customer', done: (s) => s.totals.lotsSold >= 1 },
-    { id: 'markup', text: 'Haggle: sell a cheese with a markup', done: (s) => s.totals.markupSales >= 1 },
-    { id: 'house', text: 'Build the Mouse House', done: (s) => s.built.house },
-    { id: 'worker', text: 'Hire your first worker', done: (s) => s.totals.workersHired >= 1 },
-    {
-      id: 'allRoles',
-      text: 'Hire a Miner, Driller and Refiner',
-      done: (s) => CORE_ROLES.every((r) => s.workers[r] > 0),
-      prog: (s) => [CORE_ROLES.filter((r) => s.workers[r] > 0).length, 3],
-    },
-    { id: 'rep3', text: 'Reach shop reputation 3', done: (s) => CM.merchant.repLevel(s) >= 3, prog: (s) => [Math.min(s.rep, B.merchant.repLevels[2]), B.merchant.repLevels[2]] },
-    { id: 'deposit2', text: 'Open a second zone', done: (s) => s.totals.depositsUnlocked >= 2 },
-    { id: 'cook', text: 'Hire a Cheesemaker and give it a recipe', done: (s) => s.workers.cheesemaker > 0 && !!CM.cheesery.recipe(s, s.cookRecipe) },
-    { id: 'depleted', text: 'Exhaust a whole zone', done: (s) => s.totals.depositsDepleted >= 1 },
+    { id: 'shop', text: 'Build your Cheese Shop', done: (s) => s.built.shop },
+    { id: 'sale', text: 'Sell a cheese', done: (s) => s.totals.lotsSold >= 1 },
+    { id: 'node', text: 'Buy an upgrade in any skill tree', done: (s) => s.totals.nodesBought >= 1 },
+    { id: 'mouse', text: 'Hire a mouse: buy an AUTO upgrade', done: (s) => AUTO.some((k) => q.isAutomated(s, k)) },
+    { id: 'level5', text: 'Reach level 5 in any skill', done: (s) => maxLevel(s) >= 5, prog: (s) => [maxLevel(s), 5] },
+    { id: 'allAuto', text: 'Automate all five stages', done: (s) => AUTO.every((k) => q.isAutomated(s, k)), prog: (s) => [AUTO.filter((k) => q.isAutomated(s, k)).length, 5] },
+    { id: 'depth3', text: 'Dig a rock down to depth 3', done: (s) => maxDepth(s) >= 3, prog: (s) => [maxDepth(s), 3] },
+    { id: 'zone2', text: 'Open a second rock', done: (s) => s.totals.zonesUnlocked >= 2, prog: (s) => [Math.min(s.coins, B.zones[1].unlockCost), B.zones[1].unlockCost] },
+    { id: 'recipes8', text: 'Discover 8 recipes', done: (s) => s.totals.recipes >= 8, prog: (s) => [s.totals.recipes, 8] },
+    { id: 'level25', text: 'Reach level 25 in any skill', done: (s) => maxLevel(s) >= 25, prog: (s) => [maxLevel(s), 25] },
+    { id: 'zone3', text: 'Open a third rock', done: (s) => s.totals.zonesUnlocked >= 3, prog: (s) => [Math.min(s.coins, B.zones[2].unlockCost), B.zones[2].unlockCost] },
   ];
 
   function updateGoals(s) {
@@ -96,14 +79,19 @@
 
   CM.sim = {
     GOALS,
-    // Un paso de simulación. Orden fijo: minería, taladro, refinería, cheesery, mercado.
+    // Un paso de simulación. Orden fijo: zonas (minería y taladro), refinería, cheesery, tienda.
     step(s, dt) {
       s.clock += dt;
-      runMiners(s, dt);
-      runMachine(s, 'drill', dt);
-      runMachine(s, 'refinery', dt);
-      runMachine(s, 'cheesery', dt);
-      CM.merchant.tick(s, dt);
+      const drillAuto = q.isAutomated(s, 'drilling');
+      for (const def of B.zones) {
+        const z = s.zones[def.id];
+        if (!z.unlocked) continue;
+        runMiners(s, def.id, dt);
+        runJob(dt, () => z.drillJob, drillAuto, () => CM.drilling.start(s, def.id, 'worker'), () => CM.drilling.complete(s, def.id));
+      }
+      runJob(dt, () => s.jobs.refinery, q.isAutomated(s, 'refining'), () => CM.refining.start(s, 'worker'), () => CM.refining.complete(s));
+      runJob(dt, () => s.jobs.cheesery, q.isAutomated(s, 'cheesemaking'), () => CM.cheesery.start(s), () => CM.cheesery.complete(s));
+      runJob(dt, () => s.jobs.shop, q.isAutomated(s, 'trading'), () => CM.shop.start(s, 'worker'), () => CM.shop.complete(s));
       updateGoals(s);
     },
     advance(s, ms, stepMs) {
@@ -116,7 +104,7 @@
     },
     objective(s) {
       const goal = GOALS.find((g) => s.goalsDone[g.id] === undefined);
-      if (!goal) return { text: 'Alpha goals complete. Optimise your colony!', cur: 1, max: 1, done: true };
+      if (!goal) return { text: 'All goals complete. Keep growing your empire!', cur: 1, max: 1, done: true, reward: 0 };
       const p = goal.prog ? goal.prog(s) : [0, 1];
       return { id: goal.id, text: goal.text, cur: Math.min(p[0], p[1]), max: p[1], hasBar: !!goal.prog, reward: B.goalRewards[goal.id] || 0 };
     },
@@ -128,8 +116,12 @@
       const away = now - s.lastSavedAt;
       s.lastSavedAt = now; // se consume aquí: recargar no vuelve a contar el mismo tramo
       if (!(away >= B.offline.minMs)) return null;
-      const simulated = Math.min(away, B.offline.capMs);
+      const cap = q.offlineCapMs(s);
+      const simulated = Math.min(away, cap);
       const before = Object.assign({}, s.totals);
+      const coins = s.coins;
+      const levels = {};
+      CM.skills.list.forEach((k) => (levels[k] = q.level(s, k)));
       const wasMuted = CM.muted;
       CM.muted = true;
       this.advance(s, simulated, B.offline.stepMs);
@@ -138,16 +130,9 @@
       s.metrics.offlineReturns += 1;
       const delta = {};
       for (const k of Object.keys(before)) delta[k] = s.totals[k] - before[k];
-      const summary = {
-        awayMs: away,
-        simulatedMs: simulated,
-        capped: away > B.offline.capMs,
-        delta,
-        automated: q.workersTotal(s) > 0,
-        workers: CM.workers.roles.filter((r) => s.workers[r] > 0).map((r) => ({ role: r, status: CM.workers.status(s, r) })),
-      };
+      const levelUps = CM.skills.list.filter((k) => q.level(s, k) > levels[k]).map((k) => ({ skill: k, from: levels[k], to: q.level(s, k) }));
       CM.emit(s, 'offlineApplied', { simulatedMs: simulated });
-      return summary;
+      return { awayMs: away, simulatedMs: simulated, capped: away > cap, capMs: cap, delta, coins: s.coins - coins, levelUps, automated: AUTO.some((k) => q.isAutomated(s, k)) };
     },
   };
 })();

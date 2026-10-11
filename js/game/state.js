@@ -2,7 +2,7 @@
 (function () {
   const B = CM.BALANCE;
 
-  CM.SAVE_VERSION = 2;
+  CM.SAVE_VERSION = 3;
   CM.events = []; // cola que consume la UI para dar feedback
   CM.muted = false; // true durante la simulación offline: no hay feedback visual
 
@@ -13,52 +13,52 @@
     return ev;
   };
 
-  // Números compactos: 12.3K, 4.5M.
+  // Números compactos: 12.3K, 4.5M, 7.8B, 1.2T...
+  const UNITS = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
   CM.fmt = function (n) {
     const v = Math.floor(n);
     if (Math.abs(v) < 10000) return String(v);
-    if (Math.abs(v) < 1e6) return (v / 1e3).toFixed(Math.abs(v) < 1e5 ? 1 : 0) + 'K';
-    if (Math.abs(v) < 1e9) return (v / 1e6).toFixed(Math.abs(v) < 1e8 ? 1 : 0) + 'M';
-    return (v / 1e9).toFixed(1) + 'B';
+    const tier = Math.min(UNITS.length - 1, Math.floor(Math.log10(Math.abs(v)) / 3));
+    const scaled = v / Math.pow(10, tier * 3);
+    return scaled.toFixed(scaled < 100 ? 1 : 0) + UNITS[tier];
   };
 
   CM.ok = (extra) => Object.assign({ ok: true }, extra || {});
   CM.fail = (reason) => ({ ok: false, reason });
 
+  const perBase = () => {
+    const o = {};
+    Object.keys(B.bases).forEach((k) => (o[k] = 0));
+    return o;
+  };
+
   CM.createState = function (now) {
-    const deposits = {};
-    B.deposits.forEach((d, i) => {
-      deposits[d.id] = { unlocked: i === 0, veinIndex: 0, discover: 0, veinRevealed: false, veinRemaining: 0 };
+    const zones = {};
+    B.zones.forEach((z, i) => {
+      zones[z.id] = { unlocked: i === 0, depth: 0, discover: 0, veinRevealed: false, veinRemaining: 0, drillJob: null, minerAcc: 0, carry: 0 };
     });
-    const perBase = () => {
-      const o = {};
-      Object.keys(B.bases).forEach((k) => (o[k] = 0));
-      return o;
-    };
+    const skills = {};
+    Object.keys(B.skills).forEach((k) => (skills[k] = { xp: 0 }));
     return {
       version: CM.SAVE_VERSION,
       createdAt: now,
       lastSavedAt: now,
       clock: 0, // ms de simulación jugados
-      seed: (now >>> 0) || 1,
       nextId: 1,
       devUsed: false,
-      coins: B.start.coins,
-      activeDeposit: B.deposits[0].id,
-      deposits,
+      coins: 0,
+      zones,
+      skills,
+      nodes: {}, // 'habilidad.nudo' -> rango comprado
       inv: { raw: perBase(), base: perBase() },
-      lots: {}, // recipeId -> lotes en almacén
-      built: { drill: false, refinery: false, storage: false, house: false, cheesery: false, market: false },
-      levels: { pickaxe: 0, drill: 0, refinery: 0, cheesery: 0, storage: 0, house: 0 }, // machineLevel
-      workers: { miner: 0, driller: 0, refiner: 0, cheesemaker: 0 }, // workerCount
-      cookRecipe: '', // id de la receta asignada al Cheesemaker
-      jobs: { drill: null, refinery: null, cheesery: null },
-      minerAcc: 0,
+      lots: {}, // recipeId -> quesos en almacén
+      built: { drill: false, refinery: false, cheesery: false, shop: false },
+      jobs: { refinery: null, cheesery: null, shop: null },
+      refCarry: 0, // fracción de Cheese Base pendiente del bonus de refinado
+      cookRecipe: '', // receta que cocina el Cheesemaker
+      recipes: [], // { id, key, name, at, made }
       combo: 0,
       lastHitAt: -1e9,
-      recipes: [], // { id, key, name, at, made }
-      rep: 0, // puntos de reputación de la tienda
-      orders: [],
       totals: {
         hits: 0,
         veinsFound: 0,
@@ -68,15 +68,12 @@
         baseConsumed: 0,
         lotsProduced: 0,
         lotsSold: 0,
-        markupSales: 0,
-        walkouts: 0,
         coinsEarned: 0,
         coinsSpent: 0,
         goalCoins: 0,
         recipes: 0,
-        workersHired: 0,
-        depositsUnlocked: 1,
-        depositsDepleted: 0,
+        nodesBought: 0,
+        zonesUnlocked: 1,
       },
       goalsDone: {}, // id -> clock en que se cumplió
       metrics: CM.telemetry.create(),
@@ -84,46 +81,113 @@
   };
 
   const sum = (obj) => Object.values(obj).reduce((a, b) => a + b, 0);
+
+  // ---------- Efectos de los árboles ----------
+  // Suma lo que aportan todos los nudos comprados. Se recalcula solo cuando
+  // cambian los nudos.
+  let modsCache = { src: null, stamp: -1, get: null };
+  function mods(s) {
+    let stamp = 0;
+    for (const k in s.nodes) stamp = stamp * 31 + s.nodes[k] + k.length;
+    if (modsCache.src === s.nodes && modsCache.stamp === stamp) return modsCache.get;
+    const m = {};
+    for (const skill of Object.keys(B.trees)) {
+      for (const node of B.trees[skill]) {
+        const rank = s.nodes[skill + '.' + node.id] || 0;
+        if (!rank) continue;
+        for (const k of Object.keys(node.eff)) m[k] = (m[k] || 0) + node.eff[k] * rank;
+      }
+    }
+    const get = (k) => m[k] || 0;
+    modsCache = { src: s.nodes, stamp, get };
+    return get;
+  }
+
+  // ---------- Niveles ----------
+  // Experiencia total necesaria para ALCANZAR un nivel.
+  const xpForLevel = (level) => (B.xp.base * (Math.pow(B.xp.growth, level - 1) - 1)) / (B.xp.growth - 1);
+  function levelOf(s, skill) {
+    const xp = s.skills[skill].xp;
+    const raw = Math.floor(Math.log((xp * (B.xp.growth - 1)) / B.xp.base + 1) / Math.log(B.xp.growth) + 1e-9) + 1;
+    return Math.max(1, Math.min(B.xp.maxLevel, raw));
+  }
+
+  const AUTO_KEY = { mining: 'miners', drilling: 'drillAuto', refining: 'refAuto', cheesemaking: 'cheeseAuto', trading: 'sellAuto' };
+
   const q = {
-    depDef: (id) => B.deposits.find((d) => d.id === id),
-    dep: (s) => s.deposits[s.activeDeposit],
-    veinDef: (s, id) => q.depDef(id).veins[s.deposits[id].veinIndex] || null,
-    // intact -> searching -> vein_revealed -> (siguiente veta) ... -> depleted
-    depPhase(s, id) {
-      const d = s.deposits[id];
-      if (!q.veinDef(s, id)) return 'depleted';
-      if (d.veinRevealed) return 'vein_revealed';
-      return d.discover > 0 ? 'searching' : 'intact';
+    mods,
+    xpForLevel,
+    level: levelOf,
+    // Progreso dentro del nivel actual: { level, cur, need, maxed }.
+    xpProgress(s, skill) {
+      const level = levelOf(s, skill);
+      if (level >= B.xp.maxLevel) return { level, cur: 1, need: 1, maxed: true };
+      const from = xpForLevel(level);
+      return { level, cur: Math.floor(s.skills[skill].xp - from), need: Math.ceil(xpForLevel(level + 1) - from), maxed: false };
     },
-    caps: (s) => B.storage.levels[s.built.storage ? 1 + s.levels.storage : 0],
+    // Multiplicador por nivel de habilidad.
+    skillMult: (s, skill) => 1 + B.xp.bonusPerLevel * (levelOf(s, skill) - 1),
+    totalLevel: (s) => Object.keys(B.skills).reduce((a, k) => a + levelOf(s, k), 0),
+
+    zoneDef: (id) => B.zones.find((z) => z.id === id),
+    openZones: (s) => B.zones.filter((z) => s.zones[z.id].unlocked),
+    veinHits: (s, id) => Math.round(q.zoneDef(id).hits * Math.pow(B.depth.hitsGrowth, s.zones[id].depth)),
+    veinCapacity: (s, id) => Math.round(q.zoneDef(id).capacity * Math.pow(B.depth.capacityGrowth, s.zones[id].depth) * (1 + mods(s)('veinCap'))),
+
+    caps(s) {
+      const m = mods(s);
+      return {
+        raw: Math.round(B.storage.raw * (1 + m('capRaw'))),
+        base: Math.round(B.storage.base * (1 + m('capBase'))),
+        lots: Math.round(B.storage.lots * (1 + m('capLots'))),
+      };
+    },
     rawTotal: (s) => sum(s.inv.raw),
     baseTotal: (s) => sum(s.inv.base),
     lotsTotal: (s) => sum(s.lots),
-    // Espacio libre descontando lo que ya está reservado por un ciclo en marcha.
-    rawSpace: (s) => q.caps(s).raw - q.rawTotal(s) - (s.jobs.drill ? s.jobs.drill.amount : 0),
+    // Espacio libre descontando lo que ya está reservado por ciclos en marcha.
+    rawSpace: (s) => q.caps(s).raw - q.rawTotal(s) - B.zones.reduce((a, z) => a + (s.zones[z.id].drillJob ? s.zones[z.id].drillJob.amount : 0), 0),
     baseSpace: (s) => q.caps(s).base - q.baseTotal(s) - (s.jobs.refinery ? s.jobs.refinery.amount : 0),
     lotsSpace: (s) => q.caps(s).lots - q.lotsTotal(s) - (s.jobs.cheesery ? s.jobs.cheesery.lotsLeft : 0),
-    slots: (s) => B.house.slots[s.built.house ? 1 + s.levels.house : 0],
-    workersTotal: (s) => sum(s.workers),
-    pickPower: (s) => B.mining.pickPowerBase + B.mining.pickPowerPerLevel * s.levels.pickaxe,
-    // machineThroughput: depende solo del nivel de la máquina, nunca de los trabajadores.
-    drillYield: (s) => B.drill.yieldBase + B.drill.yieldPerLevel * s.levels.drill,
-    drillDuration: (s) => Math.round(B.drill.durationMs * Math.pow(B.drill.durationFactorPerLevel, s.levels.drill)),
-    refineBatch: (s) => B.refinery.batchBase + B.refinery.batchPerLevel * s.levels.refinery,
-    refineDuration: (s) =>
-      Math.round(B.refinery.durationMs * Math.pow(B.refinery.durationFactorPerLevel, s.levels.refinery)),
-    isAutomated: (s, role) => s.workers[role] > 0,
+
+    pickPower: (s) => (B.mining.pickPower + mods(s)('pickPower')) * q.skillMult(s, 'mining'),
+    critMult: (s) => B.mining.critMultiplier + mods(s)('critMult'),
+    miners: (s) => mods(s)('miners'),
+    minerInterval: (s) => B.mining.minerIntervalMs / (1 + mods(s)('minerSpeed')),
+    // Raw Cheese por ciclo en una zona (puede tener decimales; se acumulan).
+    drillYield(s, id) {
+      const m = mods(s);
+      const depthBonus = 1 + s.zones[id].depth * (B.depth.richness + m('richDepth'));
+      return (B.drill.yield + m('drillYield')) * depthBonus * (1 + m('drillRich')) * q.skillMult(s, 'drilling');
+    },
+    drillDuration: (s) => Math.max(300, Math.round(B.drill.durationMs / (1 + mods(s)('drillSpeed')))),
+    refineBatch: (s) => B.refinery.batch + mods(s)('refBatch'),
+    refineMult: (s) => (1 + mods(s)('refBonus')) * q.skillMult(s, 'refining'),
+    refineDuration: (s) => Math.max(300, Math.round(B.refinery.durationMs / (1 + mods(s)('refSpeed')))),
+    sellCount: (s) => B.shop.perSale + mods(s)('sellCount'),
+    sellDuration: (s) => Math.max(300, Math.round(B.shop.durationMs / (1 + mods(s)('sellSpeed')))),
+    buyer(s) {
+      const level = levelOf(s, 'trading');
+      let best = B.shop.buyers[0];
+      for (const b of B.shop.buyers) if (level >= b.level) best = b;
+      return best;
+    },
+    priceMult: (s) => q.buyer(s).mult * (1 + mods(s)('price')) * q.skillMult(s, 'trading'),
+    offlineCapMs: (s) => (B.offline.baseHours + mods(s)('offlineHours')) * 3600000,
+    // Automatización: depende solo de haber comprado el nudo del ratón.
+    isAutomated: (s, skill) => mods(s)(AUTO_KEY[skill]) > 0,
+    // Aspecto del edificio (0..n) según los rangos comprados en su rama POWER.
+    visualTier(s, skill) {
+      let ranks = 0;
+      for (const node of B.trees[skill]) if (node.branch === 'power') ranks += s.nodes[skill + '.' + node.id] || 0;
+      let tier = 0;
+      B.visualTiers.forEach((need, i) => {
+        if (ranks >= need) tier = i;
+      });
+      return tier;
+    },
   };
   CM.q = q;
-
-  // Generador determinista guardado en el estado (pedidos reproducibles).
-  CM.rand = function (s) {
-    s.seed = (s.seed + 0x6d2b79f5) >>> 0;
-    let t = s.seed;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
 
   // Devuelve la lista de invariantes rotos (vacía si todo está bien).
   CM.validate = function (s) {
@@ -135,22 +199,24 @@
     }
     if (q.rawTotal(s) > caps.raw) bad.push('raw over capacity');
     if (q.baseTotal(s) > caps.base) bad.push('base over capacity');
-    if (q.lotsTotal(s) > caps.lots) bad.push('lots over capacity');
+    if (q.lotsTotal(s) > caps.lots) bad.push('cheese over capacity');
     for (const id of Object.keys(s.lots)) {
       if (!(s.lots[id] >= 0)) bad.push('lots.' + id + ' < 0');
-      if (!s.recipes.some((r) => r.id === id)) bad.push('lots of unknown recipe ' + id);
+      if (!s.recipes.some((r) => r.id === id)) bad.push('cheese of unknown recipe ' + id);
     }
-    for (const def of B.deposits) {
-      const d = s.deposits[def.id];
-      const vein = q.veinDef(s, def.id);
-      if (d.veinRemaining < 0) bad.push(def.id + ' vein < 0');
-      if (vein && d.veinRemaining > vein.capacity) bad.push(def.id + ' vein over capacity');
-      if (!vein && d.veinRemaining !== 0) bad.push(def.id + ' depleted but has cheese');
+    for (const def of B.zones) {
+      const z = s.zones[def.id];
+      if (z.veinRemaining < 0) bad.push(def.id + ' vein < 0');
+      if (!z.veinRevealed && z.veinRemaining !== 0) bad.push(def.id + ' hidden vein has cheese');
+      if (!z.unlocked && (z.depth > 0 || z.discover > 0)) bad.push(def.id + ' locked but progressed');
     }
-    if (q.workersTotal(s) > q.slots(s)) bad.push('more workers than beds');
-    for (const role of Object.keys(s.workers)) {
-      if (s.workers[role] > B.workers[role].max) bad.push('too many ' + role);
+    for (const key of Object.keys(s.nodes)) {
+      const [skill, id] = key.split('.');
+      const node = (B.trees[skill] || []).find((n) => n.id === id);
+      if (!node) bad.push('unknown node ' + key);
+      else if (s.nodes[key] > node.max) bad.push(key + ' over max rank');
     }
+    for (const k of Object.keys(s.skills)) if (!(s.skills[k].xp >= 0)) bad.push(k + ' xp < 0');
     return bad;
   };
 })();

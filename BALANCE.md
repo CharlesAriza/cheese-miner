@@ -1,145 +1,109 @@
 # Balance provisional
 
-Todas las cifras están en `js/game/config/balance.js` y son `PLAYTEST_DEFAULT`: valores para poder probar, no decisiones de producto. Se cambian en ese archivo y se recarga la página.
+Todas las cifras están en `js/game/config/balance.js` y son provisionales. Se cambian en ese archivo y se recarga la página.
 
-## Arranque sin monedas
+## Habilidades
 
-Se empieza con 0 monedas. Para que el circuito sea jugable desde cero, los cuatro edificios de la cadena principal son **gratis** y se desbloquean por hitos:
+- Niveles 1 a 99. Pasar del 1 al 2 pide 25 de experiencia; cada nivel pide un 10 % más.
+- Cada nivel da +2 % de rendimiento en esa habilidad.
+- Experiencia: 1 por punto de búsqueda (Mining), 2 por Raw Cheese (Drilling), 5 por Cheese Base (Refining), 12 más la raíz del valor por queso (Cheesemaking), 6 más la raíz del precio por queso vendido (Trading).
 
-| Edificio | Coste | Condición |
-| --- | --- | --- |
-| Cheese Drill | gratis | revelar una veta |
-| Refinery | gratis | haber extraído 4 Raw Cheese |
-| Cheesery | gratis | haber refinado 3 Cheese Base |
-| Cheese Shop | gratis | haber descubierto una receta |
-| Storage | 90 | ninguna |
-| Mouse House | 120 | ninguna |
+## Zonas y profundidad
 
-El primer ingrediente (Herbs) también es gratis, y el vecino compra cualquier queso, así que la primera venta nunca exige una inversión previa.
-
-## Recompensas por objetivo
-
-Cada objetivo cumplido da monedas una sola vez: entre 5 (construir el taladro) y 150 (agotar una zona). Revelar la primera veta no da nada, para no contradecir que picar no da monedas. La lista completa está en `goalRewards`.
-
-## Minería y yacimientos
-
-- Fuerza del pico: 1 por golpe, +1 por nivel.
-- Combo manual: golpes con menos de 0,65 s entre sí; cada 5.º golpe es crítico (×3).
-- Miner: un golpe cada 1,5 s, sin combo.
-
-| Yacimiento | Coste | Vetas (progreso → Raw Cheese) | Total |
-| --- | --- | --- | --- |
-| Cheddar Rock | inicial | 30 → 50, 90 → 100, 150 → 150 | 300 |
-| Gouda Rock | 900 | 120 → 100, 200 → 160, 280 → 220 | 480 |
-| Blue Rock | — | preparado en datos, fuera de la Alpha | — |
-
-Salvaguarda anti-bloqueo: si no queda nada que extraer, procesar ni vender, el siguiente yacimiento cuesta lo que el jugador tenga.
-
-## Máquinas
-
-| Máquina | Nivel 1 | Por nivel | Tap manual |
-| --- | --- | --- | --- |
-| Cheese Drill | 2 Raw cada 8 s | +1 Raw, duración ×0,88 | −0,25 s |
-| Refinery | 4 Raw → 2 Base cada 8 s | +1 Base por ciclo, duración ×0,88 | −0,25 s |
-
-Coste de mejora: `base × crecimiento ^ nivel`.
-
-| Mejora | Base | Crecimiento | Nivel máximo |
-| --- | --- | --- | --- |
-| Pickaxe | 60 | 1,8 | 6 |
-| Cheese Drill | 80 | 1,8 | 6 |
-| Refinery | 80 | 1,8 | 6 |
-| Cheesery (solo velocidad: tiempo por lote ×0,85 por nivel) | 100 | 1,8 | 6 |
-| Storage | 200 | 2,2 | 3 |
-| Mouse House | 200 | 2 | 3 |
-
-## Almacén y camas
-
-| Storage | Raw | Base | Lotes |
-| --- | --- | --- | --- |
-| Sin edificio | 20 | 12 | 6 |
-| Nivel 1 | 50 | 30 | 12 |
-| Nivel 2 | 100 | 60 | 20 |
-| Nivel 3 | 200 | 120 | 32 |
-
-Mouse House: 2, 4 y 5 camas en los niveles 1, 2 y 3.
-
-## Trabajadores
-
-Automatizan su etapa; no la aceleran. No hay salario en la Alpha.
-
-| Rol | Coste | Máximo |
-| --- | --- | --- |
-| Miner | 100 | 2 |
-| Driller | 180 | 1 |
-| Refiner | 180 | 1 |
-| Cheesemaker | 220 | 1 |
-
-El Cheesemaker fabrica de uno en uno lotes de la receta asignada mientras haya Cheese Base, monedas para el ingrediente y hueco para lotes. No vende.
-
-## Cheesery
-
-- Experimento: 3 Cheese Base, da la receta y 1 lote de muestra.
-- Lote de receta conocida: 2 Cheese Base. Hasta 5 lotes por encargo.
-- Tiempo por lote: 10 s + tratamiento + maduración, reducido por el nivel de la Cheesery y por la maestría.
-- Maestría de receta: niveles 2, 3, 4 y 5 al fabricar 3, 8, 15 y 25 lotes. Cada nivel da +8 % de Value y −6 % de tiempo.
-
-| Componente | Taste | Funk | Aroma | Extra |
+| Roca | Coste | Búsqueda inicial | Veta inicial | Valor de la base |
 | --- | --- | --- | --- | --- |
-| Base Cheddar | 3 | 1 | 1 | |
-| Base Gouda | 2 | 1 | 4 | |
-| Herbs | 1 | 0 | 2 | gratis |
-| Pepper | 2 | 1 | 0 | 3 monedas por lote |
-| Washed | 0 | 3 | 1 | sin tiempo extra |
-| Smoked | 1 | 1 | 2 | +6 s |
-| Fresh | 1 | 0 | 1 | Value ×1 |
-| Aged | 2 | 2 | 1 | +20 s, Value ×1,5 |
+| Cheddar | gratis | 30 | 60 | 10 |
+| Gouda | 2.500 | 150 | 120 | 24 |
+| Blue | 80.000 | 800 | 240 | 60 |
 
-Sinergias: Cheddar + Smoked (+2 Taste), Gouda + Herbs (+2 Aroma), Washed + Aged (+2 Funk), Pepper + Smoked (+1 Taste, +1 Aroma).
+Por cada nivel de profundidad: búsqueda ×1,22, veta ×1,15 y +8 % de Raw Cheese por ciclo.
 
-**Value = (Taste × 3 + Funk × 2 + Aroma × 2) × multiplicador de maduración**, redondeado.
+## Máquinas de partida
 
-## Cheese Shop
+| Etapa | Valor inicial |
+| --- | --- |
+| Taladro | 2 Raw cada 6 s |
+| Refinería | 4 Raw → 2 Base cada 6 s |
+| Quesería | 8 s por queso, más tratamiento y maduración |
+| Tienda | 1 queso cada 4 s |
+| Almacén | 30 Raw, 20 Base, 10 quesos |
 
-Hasta tres clientes a la vez; el primero siempre es un vecino. Cada uno espera un tiempo y se va si no se le atiende. Tras una venta, un rechazo o una marcha, el hueco tarda 15 s en traer otro cliente (1 s menos por nivel de reputación, mínimo 7 s). Cada petición exigente se genera a partir de una receta que existe con las bases abiertas (con 1 punto de margen), así que siempre es alcanzable.
+## Árboles
 
-| Cliente | Reputación | Precio | Quesos | Paciencia | Exige |
-| --- | --- | --- | --- | --- | --- |
-| Neighbor | LV 1 | ×0,8 (×1,25 extra si Taste ≥ 8) | 1 | 90 s | nada |
-| Restaurant | LV 2 | ×1,3 | 2–3 | 120 s | Taste y Aroma mínimos |
-| Collector | LV 3 | ×1,6 | 1 | 150 s | Funk mínimo, solo Aged |
-| Premium Client | LV 4 | ×2 | 1–2 | 150 s | Taste, Aroma y Value mínimos, solo Aged |
+Coste de un nudo: `coste × crecimiento ^ rango`. El nivel indicado es el de la habilidad que hace falta.
 
-**Regateo.** Al elegir un queso se ofrecen cuatro precios:
+| Árbol | Nudo | Rama | Nivel | Rangos | Coste inicial | Crecimiento | Efecto por rango |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Mining | Sharper Pick | potencia | 1 | 80 | 12 | 1,3 | +1 búsqueda por golpe |
+| Mining | Heavy Swing | potencia | 6 | 30 | 150 | 1,45 | críticos +0,5× |
+| Mining | Miner Mouse | ratones | 2 | 15 | 60 | 2 | +1 ratón minero en cada roca |
+| Mining | Quick Paws | ratones | 10 | 30 | 300 | 1,42 | mineros +10 % rápidos |
+| Mining | Vein Sense | especial | 8 | 40 | 200 | 1,4 | vetas +10 % |
+| Mining | Deep Riches | especial | 20 | 25 | 2.000 | 1,6 | +2 % de Raw por nivel de profundidad |
+| Drilling | Bigger Bit | potencia | 1 | 100 | 18 | 1,28 | +1 Raw por ciclo |
+| Drilling | Turbo Motor | potencia | 4 | 40 | 70 | 1,4 | +8 % velocidad |
+| Drilling | Driller Mouse | ratones | 3 | 1 | 150 | — | automatiza todos los taladros |
+| Drilling | Night Shift | ratones | 12 | 30 | 400 | 1,45 | +10 % velocidad |
+| Drilling | Rich Extraction | especial | 9 | 50 | 250 | 1,38 | +6 % Raw |
+| Refining | Bigger Vat | potencia | 1 | 100 | 18 | 1,28 | +1 Base por ciclo |
+| Refining | Hot Furnace | potencia | 4 | 40 | 70 | 1,4 | +8 % velocidad |
+| Refining | Refiner Mouse | ratones | 3 | 1 | 150 | — | automatiza la refinería |
+| Refining | Twin Burners | ratones | 12 | 30 | 400 | 1,45 | +10 % velocidad |
+| Refining | Double Press | especial | 9 | 50 | 250 | 1,38 | +5 % Base con el mismo Raw |
+| Cheesemaking | Faster Curds | potencia | 1 | 60 | 30 | 1,33 | +8 % velocidad |
+| Cheesemaking | Cheesemaker Mouse | ratones | 3 | 1 | 250 | — | cocina sola la receta elegida |
+| Cheesemaking | Cheese Cellar | especial | 5 | 80 | 150 | 1,38 | +8 % valor |
+| Trading | Better Prices | potencia | 1 | 80 | 40 | 1,36 | +6 % precio |
+| Trading | Bigger Counter | potencia | 2 | 40 | 50 | 1,5 | +1 queso por venta |
+| Trading | Shopkeeper Mouse | ratones | 3 | 1 | 200 | — | vende solo |
+| Trading | Quick Sales | ratones | 5 | 40 | 100 | 1,4 | +10 % velocidad |
+| Trading | Fancy Sign | especial | 15 | 40 | 900 | 1,55 | +10 % precio |
+| Colonia | Raw Silo / Base Racks / Cheese Shelves | almacén | — | 40 | 40 | 1,55 | +50 % de esa capacidad |
+| Colonia | Night Lamp | especial | — | 10 | 500 | 2,2 | +2 horas offline |
 
-| Oferta | Precio | Probabilidad base | Reputación por queso |
+El aspecto de cada edificio cambia al sumar 3, 8, 16, 30 y 50 rangos en la rama de potencia de su árbol.
+
+## Recetas
+
+**Valor = valor de la base × ingrediente × tratamiento × maduración × sinergias.** Después se aplican maestría, Cheese Cellar y nivel de Cheesemaking.
+
+| Componente | Multiplicador | Extra | Nivel de Cheesemaking |
 | --- | --- | --- | --- |
-| Discount | ×0,8 | siempre acepta | +3 |
-| Fair price | ×1 | siempre acepta | +2 |
-| Markup | ×1,25 | 55 % | +1 |
-| Big markup | ×1,5 | 25 % | +1 |
+| Herbs | ×1 | gratis | 1 |
+| Pepper | ×1,3 | 2 monedas | 4 |
+| Honey | ×1,7 | 10 monedas | 12 |
+| Truffle | ×2,6 | 60 monedas | 25 |
+| Washed | ×1 | — | 1 |
+| Smoked | ×1,35 | +4 s | 3 |
+| Brined | ×1,8 | +9 s | 16 |
+| Fresh | ×1 | — | 1 |
+| Aged | ×1,6 | +12 s | 8 |
+| Vintage | ×2,8 | +45 s | 30 |
 
-A la probabilidad se suman +5 % por cada punto de Taste, Funk o Aroma por encima de lo pedido (hasta +30 %), +15 % si el queso cumple la preferencia del cliente y +3 % por nivel de reputación, con tope del 95 %. Si rechaza, se va: no se cobra y el queso se conserva. No hay barra de energía.
+Sinergias: Cheddar + Smoked ×1,2; Gouda + Honey ×1,25; Blue + Brined ×1,3; Pepper + Smoked ×1,15; Truffle + Vintage ×1,4.
 
-**Reputación.** Puntos para los niveles 1 a 8: 0, 6, 16, 32, 55, 85, 125, 180. Cada nivel sube los precios un 3 %.
+- Descubrir una receta cuesta 3 Cheese Base y da un queso. Fabricar una conocida cuesta 2.
+- Maestría: niveles al fabricar 5, 15, 40, 100, 250, 600 y 1.500 quesos. Cada nivel da +10 % de valor y −5 % de tiempo.
+- Rangos por valor: Common, Fine (30), Rare (120), Epic (500), Legendary (2.500).
+
+## Compradores
+
+El nivel de Trading multiplica el precio de todo: Neighbors ×1 (nivel 1), Restaurants ×1,5 (10), Collectors ×2,5 (25), Royal Court ×4 (45), Moon Embassy ×7 (70).
 
 ## Offline
 
-- Se simula el tiempo real desde el último guardado, con tope de 4 horas.
-- Ausencias de menos de 15 s no cuentan.
-- Usa la misma simulación que el juego en vivo: solo producen las etapas con trabajador, y respetan vetas, materia prima y almacén.
-- Un ciclo que ya estaba en marcha al salir (manual o un encargo de la Cheesery) se completa, porque sus inputs ya se consumieron.
+Se simula el tiempo real desde el último guardado, con tope de 4 horas (ampliable con Night Lamp). Usa la misma simulación: solo producen las etapas con ratón.
 
 ## Ritmo medido
 
-Un bot que juega sin pausas y sin dev tools (ver `tests.html`):
+Un bot que juega sin pausas y sin dev tools, comprando siempre lo más barato:
 
 | Hito | Bot rápido (1 tap / 0,4 s) | Bot lento (1 tap / 1,5 s) |
 | --- | --- | --- |
-| Primera venta | 1,5 min | 2,6 min |
-| Primer trabajador | 5,7 min | 10 min |
-| Segundo yacimiento | 13,2 min | 16,6 min |
-| Primer yacimiento agotado | 18 min | 21,4 min |
-| Los tres roles contratados | 20,3 min | 23,7 min |
+| Primera venta | 0,8 min | 1,4 min |
+| Primer ratón | 1,4 min | 2 min |
+| Las cinco etapas automatizadas | 4,7 min | 5,3 min |
+| Profundidad 3 | 7,5 min | 8,1 min |
+| Segunda roca y nivel 25 | 31 min | 31,5 min |
 
-El bot siempre vende a precio justo y no usa al Cheesemaker ni la mejora de la Cheesery. No lee menús ni duda. Una persona tardará más: la estimación de 30–60 minutos está sin confirmar hasta hacer playtests reales.
+Al llegar a la segunda roca el bot rápido tenía niveles 11/19/22/25/24 y 8 recetas. Una persona tardará más. El tramo posterior a la segunda roca no está medido.

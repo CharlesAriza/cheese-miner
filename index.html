@@ -36,23 +36,28 @@
       <footer class="controls">
         <!-- La cadena de producción: cada casilla es una estación que se puede tocar. -->
         <nav class="chain" id="chain">
-          <button class="tile" data-st="rock"><img class="pix" alt="" /><b>ROCK</b><i class="mini"><i></i></i><em></em></button>
-          <button class="tile" data-st="drill"><img class="pix" alt="" /><b>DRILL</b><i class="mini"><i></i></i><em></em></button>
-          <button class="tile" data-st="refinery"><img class="pix" alt="" /><b>REFINE</b><i class="mini"><i></i></i><em></em></button>
-          <button class="tile" data-st="cheesery"><img class="pix" alt="" /><b>CHEESE</b><i class="mini"><i></i></i><em></em></button>
-          <button class="tile" data-st="market"><img class="pix" alt="" /><b>SHOP</b><i class="mini"><i></i></i><em></em></button>
+          <button class="tile" data-st="rock"><img class="pix" alt="" /><b>MINE</b><u></u><i class="mini"><i></i></i><em></em></button>
+          <button class="tile" data-st="drill"><img class="pix" alt="" /><b>DRILL</b><u></u><i class="mini"><i></i></i><em></em></button>
+          <button class="tile" data-st="refinery"><img class="pix" alt="" /><b>REFINE</b><u></u><i class="mini"><i></i></i><em></em></button>
+          <button class="tile" data-st="cheesery"><img class="pix" alt="" /><b>CHEESE</b><u></u><i class="mini"><i></i></i><em></em></button>
+          <button class="tile" data-st="shop"><img class="pix" alt="" /><b>SELL</b><u></u><i class="mini"><i></i></i><em></em></button>
         </nav>
         <section class="dock">
-          <div class="dhead"><b id="dock-title"></b><small id="dock-status"></small></div>
+          <div class="dhead">
+            <div class="dtitle"><b id="dock-title"></b><span id="dock-xpnum"></span></div>
+            <div class="bar xp"><i id="dock-xp"></i></div>
+            <small id="dock-status"></small>
+          </div>
+          <div id="dock-zones"></div>
           <div class="drow">
             <button class="act big" id="dock-main"><i class="fill"></i><b></b><small></small></button>
             <div id="dock-side"></div>
           </div>
         </section>
         <nav class="tools">
-          <button data-panel="colony" id="nav-colony">COLONY · zones, workers<i class="dot"></i></button>
+          <button id="nav-colony">COLONY · rocks, storage<i class="dot"></i></button>
           <button id="btn-mute" class="gear">SOUND</button>
-          <button data-panel="options" class="gear">MENU</button>
+          <button id="nav-menu" class="gear">MENU</button>
         </nav>
       </footer>
 
@@ -76,10 +81,9 @@
     <script src="js/game/config/balance.js"></script>
     <script src="js/playtest/telemetry.js"></script>
     <script src="js/game/state.js"></script>
+    <script src="js/game/systems/skills.js"></script>
     <script src="js/game/systems/production.js"></script>
-    <script src="js/game/systems/colony.js"></script>
     <script src="js/game/systems/cheesery.js"></script>
-    <script src="js/game/systems/merchant.js"></script>
     <script src="js/game/simulation.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/playtest/devtools.js"></script>

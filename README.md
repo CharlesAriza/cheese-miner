@@ -1,79 +1,67 @@
-# Cheese Miner · Internal Playtest Alpha
+# Cheese Miner
 
-Juego web de gestión con ratones: picar revela vetas, el Cheese Drill extrae Raw Cheese, la Refinery lo convierte en Cheese Base, la Cheesery hace quesos y tú los vendes en tu propia tienda, regateando con cada cliente. Con las monedas se construye, se mejora, se contrata y se abren yacimientos.
+Clicker idle incremental de ratones queseros. Picas la roca para encontrar vetas, las taladras, refinas el queso, cocinas recetas y las vendes. Cada etapa es una habilidad que sube de nivel y tiene su árbol de mejoras; cada una acaba teniendo un ratón que la lleva sola.
 
-El contrato del proyecto está en [CLAUDE.md](CLAUDE.md).
+La visión y las reglas del proyecto están en [CLAUDE.md](CLAUDE.md).
 
 ## Cómo abrirlo
 
 No hay nada que instalar ni compilar.
 
+- **Enlace:** https://charlesariza.github.io/cheese-miner/
 - **En tu equipo:** doble clic en `index.html`.
-- **Como enlace:** la carpeta es un sitio estático, así que se puede publicar tal cual en GitHub Pages (rama principal, carpeta raíz).
 
 La interfaz está en inglés; la documentación, en español.
 
-## Controles
+## Cómo se juega
 
-La pantalla se organiza en torno a la **cadena de producción**: cinco casillas (ROCK → DRILL → REFINE → CHEESE → SHOP) que muestran el estado de cada estación. Al tocar una, el panel de debajo enseña qué hace, por qué está parada si lo está, su botón de acción, su mejora y su trabajador.
+La pantalla es el cuartel general. Abajo está la **cadena**: MINE → DRILL → REFINE → CHEESE → SELL. Cada casilla muestra el nivel de esa habilidad y su estado. Al tocar una, el panel de debajo enseña qué hace, su barra de experiencia, su botón de acción y el acceso a su árbol.
 
 | Acción | Cómo |
 | --- | --- |
-| Elegir estación | Tocar su casilla o teclas `1`–`5` |
-| Acción de la estación (picar, taladrar, refinar, acelerar) | Tocar el edificio en la escena, el botón grande o la barra espaciadora |
+| Hacer la acción de una etapa | Tocar su edificio en la escena, o el botón grande |
 | Repetir sin machacar | Mantener pulsado el botón grande |
-| Mejorar la máquina o contratar a su trabajador | Botones a la derecha del botón grande |
-| Recetas, experimentos y cocinero | Estación CHEESE → botón grande |
-| Atender clientes y regatear | Estación SHOP → botón grande, elegir queso y luego precio |
-| Atender a todos de golpe | **SERVE ALL** en la tienda: precio justo y el queso que más paga |
-| Zonas, almacén, Mouse House y todos los trabajadores | **COLONY** |
-| Moverse por la colonia | Arrastrar la escena hacia los lados |
+| Mejorar o contratar al ratón de una etapa | Botón **UPGRADES** de su panel |
+| Comprar todo lo que alcance en un árbol | **BUY EVERYTHING I CAN AFFORD** |
+| Descubrir y cocinar recetas | Etapa CHEESE → botón grande |
+| Abrir rocas nuevas y ampliar el almacén | **COLONY** |
+| Ver otra roca en la escena | Las fichas de roca del panel de MINE o DRILL |
+| Moverse por la colonia | Arrastrar la escena |
 | Silenciar | **SOUND** |
 | Exportar, importar, reiniciar, dev tools | **MENU** |
 
-Bajo cada contador del HUD se ve el ingreso neto por minuto. Los botones de compra que aún no puedes pagar se van llenando según te acercas. Cada objetivo cumplido da monedas.
+Etiquetas de las casillas: `BUILD` (se puede construir), `UP! 3` (tres mejoras que ya puedes pagar), `AUTO` (tiene ratón). La casilla que pide el objetivo actual parpadea.
 
-La casilla que pide el objetivo actual parpadea. Las etiquetas de las casillas avisan de `BUILD`, `UP!` (hay una mejora o contratación que ya puedes pagar), `AUTO` (tiene trabajador) y ventas listas.
-
-Cada recurso tiene siempre la misma forma: Raw Cheese es un trozo irregular, Cheese Base un bloque liso, el queso terminado una rueda con etiqueta y la moneda un disco. El color indica la base (Cheddar amarillo, Gouda naranja). Cuando algo se produce o se gasta, su icono vuela entre el edificio y el contador.
+Todas las rocas abiertas trabajan a la vez. Una roca nunca se agota: al vaciar su veta baja un nivel de profundidad, y más hondo el queso es más rico.
 
 ## Arquitectura
 
 La simulación avanza en pasos fijos de 100 ms y no depende del render. La interfaz solo lee el estado y llama a acciones.
 
-| Carpeta o archivo | Responsabilidad |
+| Archivo | Responsabilidad |
 | --- | --- |
-| `js/game/config/balance.js` | Todos los valores de balance y definiciones (provisionales) |
-| `js/game/state.js` | Modelo único de datos, consultas derivadas, validación de invariantes |
+| `js/game/config/balance.js` | Todos los valores de balance, árboles y definiciones |
+| `js/game/state.js` | Modelo de datos, niveles, efectos de los árboles, invariantes |
+| `js/game/systems/skills.js` | Experiencia, compra de nudos, edificios, zonas |
 | `js/game/systems/production.js` | Mining, Drilling, Refining |
-| `js/game/systems/colony.js` | Construcción, mejoras, trabajadores, yacimientos |
-| `js/game/systems/cheesery.js` | Fórmula de recetas, experimentos, lotes, Recipe Book, maestría, Cheesemaker |
-| `js/game/systems/merchant.js` | Tienda: clientes, paciencia, regateo, reputación |
-| `js/game/simulation.js` | Reloj, automatización, hitos, progreso offline |
+| `js/game/systems/cheesery.js` | Recetas, maestría, Cheesemaker y tienda |
+| `js/game/simulation.js` | Reloj, automatización, objetivos, progreso offline |
 | `js/storage.js` | Guardado versionado, exportar e importar |
 | `js/playtest/` | Telemetría local y herramientas de desarrollo |
-| `js/ui/` | Escena, iconos de recursos, paneles, cadena y panel de estación, sonido |
-| `js/tests/tests.js` + `tests.html` | Pruebas automáticas (se ejecutan en el navegador) |
-
-Diferencias con el contrato:
-
-- Hay un cuarto trabajador, el **Cheesemaker**, que cocina sin parar la receta que se le asigne. El contrato solo definía Miner, Driller y Refiner; se añadió a petición del propietario. Vender sigue siendo manual.
-- El Merchant es ahora una **tienda propia**: los clientes entran, esperan con paciencia limitada y se regatea el precio. La reputación sustituye al número de ventas para desbloquear compradores.
-- Las recetas tienen **maestría** y la Cheesery tiene mejora de velocidad.
-- Se pedía TypeScript + Vite, pero el equipo de desarrollo no tiene Node. Se usó JavaScript sin compilación, con la misma separación de responsabilidades. Migrar a TypeScript más adelante no cambia el diseño.
+| `js/ui/scene.js` | Escena: edificios por tramos, roca, pueblo, ratones |
+| `js/ui/icons.js` | Iconos de recursos |
+| `js/ui/panels.js`, `js/ui/main.js` | Paneles, cadena, HUD, feedback |
+| `js/ui/sfx.js` | Sonido sintetizado |
+| `js/tests/tests.js` + `tests.html` | Pruebas (se ejecutan en el navegador) |
 
 ## Sustituir los gráficos
 
-Todo el arte es un placeholder dibujado por código en `js/ui/scene.js` (escena) y `js/ui/icons.js` (iconos de recursos). Cada pieza está marcada con un comentario `SPRITE:`: ratón, Cheese Rock, Cheese Drill, Refinery, Storage, Mouse House, Cheesery y Market.
+Todo el arte es un placeholder dibujado por código. Cada pieza está marcada con un comentario `SPRITE:` en `js/ui/scene.js` (ratón, roca, taladro, refinería, almacén, quesería, tienda) y en `js/ui/icons.js` (recursos).
 
-Para usar un PNG: carga la imagen y cambia el cuerpo de esa función por un `ctx.drawImage(...)` en la misma posición. La escena mide 160 píxeles lógicos de ancho; el ratón actual ocupa 22×19 y los edificios unos 38×34. Las posiciones de cada parcela están en la constante `POS`.
-
-## Pruebas
-
-Abre `tests.html`. Ejecuta los casos de la sección 11 del contrato, incluido un bot que juega una partida completa sin dev tools. Usa una clave de guardado propia y no toca tu partida. Los resultados de la última ejecución están en [TEST_RESULTS.md](TEST_RESULTS.md).
+Cada edificio recibe un `tier` de 0 a 5 según sus mejoras. Para usar PNG, hace falta una imagen por tramo y cambiar el cuerpo de la función por un `ctx.drawImage(...)`. La escena mide 160 píxeles lógicos de ancho; el ratón ocupa 22×19 y los edificios unos 38×34. Las posiciones están en la constante `POS`.
 
 ## Más documentación
 
-- [BALANCE.md](BALANCE.md): cifras provisionales y dónde editarlas.
-- [PLAYTEST.md](PLAYTEST.md): guía de sesión de 45 minutos y preguntas para testers.
-- [TEST_RESULTS.md](TEST_RESULTS.md): pruebas ejecutadas, limitaciones y pendientes.
+- [BALANCE.md](BALANCE.md): cifras provisionales.
+- [PLAYTEST.md](PLAYTEST.md): cómo probarlo y qué mirar.
+- [TEST_RESULTS.md](TEST_RESULTS.md): pruebas ejecutadas y limitaciones.

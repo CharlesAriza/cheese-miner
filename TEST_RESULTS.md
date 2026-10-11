@@ -1,82 +1,65 @@
 # Resultados de pruebas
 
-Última ejecución: 11 de octubre de 2026.
+Última ejecución: 11 de octubre de 2026, sobre la primera entrega del rediseño.
 
 ## Pruebas automáticas
 
-Ejecutadas abriendo `tests.html` en el navegador. **23 de 23 pasan.**
+Ejecutadas abriendo `tests.html` en el navegador. **19 de 19 pasan.**
 
-| Caso del contrato | Prueba | Resultado |
-| --- | --- | --- |
-| 1 | Picar revela vetas y nunca da queso ni monedas | pasa |
-| 2 | El taladro necesita veta; un ciclo da Raw Cheese una vez y consume veta | pasa |
-| 3 | La refinería necesita Raw Cheese; consume y produce una vez | pasa |
-| 4 | El almacén lleno detiene la producción sin pérdida ni duplicación | pasa |
-| 5 | Veta agotada bloquea; yacimiento agotado lleva al siguiente | pasa |
-| 6 | Mejorar el taladro no lo automatiza; contratar no lo acelera | pasa |
-| 7 | Exploración offline solo con Miner, respetando el tope | pasa |
-| 8 | Taps rápidos, recarga a mitad de ciclo y doble clic en venta no duplican | pasa |
-| 9 | Receta descubierta y renombrada persiste; fabricar consume y da un lote | pasa |
-| 10 | Un pedido válido consume el lote, paga bien y no se entrega dos veces | pasa |
-| 10 (extra) | Todo pedido generado lo cumple alguna receta de la Alpha | pasa |
-| 11 | Los trabajadores paran ante cuellos de botella, vetas vacías y almacén lleno | pasa |
-| 12 | Guardar y cargar mantiene el estado; el retorno offline cuenta una vez | pasa |
-| 13 | De partida nueva a primera venta, tres roles y segundo yacimiento, sin dev tools | pasa |
-| 13 (extra) | Un jugador lento también completa el circuito | pasa |
-| — | El Cheesemaker cocina solo la receta asignada, de uno en uno, y para sin base o sin hueco | pasa |
-| — | Regateo: un sobreprecio rechazado pierde al cliente pero nunca el queso ni monedas | pasa |
-| — | Los clientes se van al agotar la paciencia; la reputación desbloquea compradores | pasa |
-| — | La mejora de la Cheesery y la maestría aceleran los lotes; la maestría sube el valor | pasa |
-| — | Las recompensas por objetivo se pagan una sola vez, y nunca por picar | pasa |
-| — | Salvaguarda anti-bloqueo del siguiente yacimiento | pasa |
-| — | La fórmula de stats coincide con la documentada, con sinergias | pasa |
-| — | Las dev tools marcan la partida y no rompen invariantes | pasa |
+| Prueba | Resultado |
+| --- | --- |
+| Picar revela vetas y nunca da queso ni monedas | pasa |
+| El taladro necesita veta; un ciclo da Raw Cheese una vez y consume veta | pasa |
+| La refinería necesita Raw Cheese; consume y produce una vez | pasa |
+| El almacén lleno detiene la producción sin pérdida ni duplicación | pasa |
+| Las rocas no se agotan: la veta vacía baja de profundidad, más dura y más rica | pasa |
+| Las zonas se suman: todas las rocas abiertas se pican y taladran a la vez | pasa |
+| Mejorar no automatiza; el ratón automatiza pero no acelera | pasa |
+| Niveles: curva de experiencia, bloqueo por nivel y comprar todo | pasa |
+| Offline: solo progresa lo automatizado, con tope y una sola vez | pasa |
+| Taps rápidos, recarga a mitad de ciclo y venta doble no duplican | pasa |
+| Recetas: descubrir, componentes bloqueados por nivel, renombrar, fabricar, persistir | pasa |
+| Valor del queso: fórmula, sinergias, maestría, bodega y nivel de Trading | pasa |
+| Cheesemaker y Shopkeeper llevan solos el final de la cadena, dentro de sus límites | pasa |
+| La automatización para ante cuellos de botella y nunca desborda el almacén | pasa |
+| Guardar y cargar mantiene el estado; guardados dañados o antiguos empiezan limpios | pasa |
+| Las recompensas por objetivo se pagan una vez, y nunca por picar | pasa |
+| Las dev tools marcan la partida y no rompen invariantes | pasa |
+| Una partida nueva llega a automatización total, profundidad 3 y segunda roca sin dev tools | pasa |
+| Un jugador lento también llega | pasa |
 
-El caso 13 lo juega un bot que solo usa las acciones del jugador y comprueba los invariantes cada 5 segundos de simulación (saldos no negativos, inventarios dentro de capacidad, vetas dentro de rango, trabajadores dentro de camas).
+Las dos últimas las juega un bot que solo usa las acciones del jugador y comprueba los invariantes cada 5 segundos de simulación.
 
 ## Comprobaciones manuales en el navegador
 
-Hechas sobre el juego real, pulsando los controles de la interfaz:
+Hechas sobre el juego real, pulsando los controles:
 
-- Flujo completo desde cero con la interfaz de cadena y panel de estación: veta → taladro → refinería → Cheesery → receta con nombre → Market → venta.
-- Contratar al Cheesemaker abre el Recipe Book; al asignarle una receta fabrica lotes solo hasta llenar el almacén.
-- Abrir una zona muestra la explicación de qué se ha comprado y permite viajar; el paisaje y los iconos cambian de color.
-- Tienda: elegir queso muestra los cuatro precios con su probabilidad; una venta con sobreprecio cobró lo anunciado, consumió el queso y sumó reputación.
-- Doble clic en una venta: se cobró una sola vez.
-- Contratar sin camas libres: se rechaza con mensaje.
-- Recarga de la página: se conservan monedas, receta renombrada y trabajadores.
-- Retorno tras 10 minutos simulados: aparece el resumen; una segunda llamada no produce nada.
-- Almacén lleno: los botones lo indican y el toque explica el motivo.
-- Abrir y cambiar al segundo yacimiento.
-- Exportar: el JSON incluye partida, hitos, totales e indicador de dev tools.
-- Reiniciar: cancelar conserva la partida; confirmar la borra.
-- Caso 14: sin desbordamiento horizontal a 320×640, 375×812 y ventana de escritorio.
+- Desde cero: veta → construir taladro → Raw → refinería → Base → quesería → descubrir receta → tienda → venta.
+- Árbol de Refining: se abre desde el panel, compra un nudo y descuenta las monedas.
+- Contratar a los cinco ratones y asignar receta: la cadena produce y vende sola.
+- Subidas de nivel: aviso, confeti y mensaje de lo desbloqueado.
+- Abrir la segunda roca: explicación, fichas de roca en el panel y cambio de paisaje.
+- Aspectos de edificios: con la rama de potencia subida cambian taladro, refinería, almacén, quesería y tienda; aparece el pozo de la roca y crece el pueblo del fondo.
+- Reiniciar deja la partida a cero.
+- Sin desbordamiento horizontal a 320×640 y 375×812.
 - Sin errores en la consola durante todo lo anterior.
 
 ## Lo que NO está probado
 
-- **Dispositivos reales.** Solo se probó en el navegador de escritorio con vista móvil emulada. Falta probar en un teléfono: tacto, vibración, barra de direcciones, rendimiento.
-- **Sonido.** Todo el sonido se rehízo (golpes con ruido, notas que suben en racha, campana de cliente, caja registradora) sin poder escucharlo; puede ser molesto o estar mal de volumen.
-- **Arrastre de la escena y mantener pulsado.** La lógica funciona, pero los gestos con el dedo no se probaron.
-- **Animaciones.** Los iconos que vuelan, el confeti y los contadores solo se revisaron en capturas sueltas, no en movimiento.
-- **Importar una partida** desde la interfaz. El lector de guardados sí está cubierto por los tests.
-- **Sesión humana de 45 minutos.** El ritmo solo está medido con un bot (ver BALANCE.md).
-- **Test end-to-end automatizado** de la interfaz: no hay; el recorrido de interfaz se hizo a mano.
+- **Dispositivo real.** Solo navegador de escritorio con vista móvil emulada.
+- **Sonido.** Generado sin poder escucharlo.
+- **Animaciones en movimiento.** Ratones acarreando, confeti e iconos que vuelan se revisaron solo en capturas.
+- **Gestos táctiles:** arrastrar la escena y mantener pulsado.
+- **Importar una partida** desde la interfaz.
+- **Juego largo.** Nada más allá de la segunda roca está medido ni jugado: no sé cómo se comporta el balance a partir de ahí.
+- **Rendimiento** con muchas horas de partida y números muy grandes.
 
 ## Limitaciones conocidas
 
-- **Arte placeholder.** Todo está dibujado por código. Es coherente y legible, pero queda lejos de la referencia aprobada. Necesita sprites reales (ver README).
-- **Sin TypeScript ni Vite**, por no haber Node en el equipo de desarrollo.
-- **Un solo guardado por navegador.** No hay sincronización entre dispositivos.
-- **Los primeros clientes son todos vecinos**, porque los demás aparecen al subir la reputación.
-- **La tienda no tiene mostrador ni vista interior propia**: los clientes se ven en la escena delante del puesto y en el panel.
+- **Las partidas anteriores no se conservan:** el modelo de datos es nuevo.
+- **Arte placeholder.** Los tramos de edificio se distinguen, pero el acabado sigue siendo el de dibujo por código.
+- **Los ratones aún no son personajes:** hoy un ratón es un nudo comprado en el árbol. Los rasgos, niveles y ascensos son la segunda entrega.
+- **Todos los mineros pican en todas las rocas a la vez;** no se asignan.
+- **La escena enseña una roca cada vez,** aunque todas trabajan. Las demás se ven en las fichas del panel.
+- **La tienda vende siempre primero el queso más caro;** no se puede reservar stock.
 - **Fuente pixel desde Google Fonts.** Sin conexión se usa una monoespaciada del sistema.
-
-## Pendiente
-
-- Publicar en GitHub Pages (requiere la cuenta del propietario).
-- Sustituir placeholders por sprites finales.
-- Ajustar el balance con datos de playtests reales.
-- Decidir si Blue entra como tercera zona.
-- Volver a medir el ritmo: el bot de las pruebas no usa al Cheesemaker, el regateo ni la mejora de la Cheesery.
-- Siguiente paso acordado: zonas con profundidad y puestos en paralelo.

@@ -606,7 +606,7 @@ button {
   background: #d9a514;
 }
 
-.act.st-market {
+.act.st-shop {
   background: #3fa860;
 }
 
@@ -1421,6 +1421,136 @@ button {
   display: block;
   margin-top: 4px;
   color: #ffe55c !important;
+}
+
+/* ---------- Niveles, árboles y zonas ---------- */
+.tile u {
+  font-size: 5px;
+  text-decoration: none;
+  color: #ffe55c;
+}
+
+.dtitle {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.dtitle span {
+  font-family: var(--text);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.bar.xp {
+  height: 6px;
+  margin: 0 0 5px;
+}
+
+.bar.xp i {
+  background: linear-gradient(100deg, #4a8fe8 0 40%, #bfe0ff 50%, #4a8fe8 60% 100%);
+  background-size: 200% 100%;
+}
+
+#dock-zones {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 6px;
+}
+
+#dock-zones:empty {
+  display: none;
+}
+
+.zchip {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 5px;
+  font-size: 6px;
+  background: var(--panel-2);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+}
+
+.zchip .pix {
+  width: 14px;
+}
+
+.zchip.on {
+  border-color: #ffe55c;
+  background: #5a4f7a;
+}
+
+.zchip i {
+  flex: 1 0 100%;
+  height: 4px;
+  background: var(--ink);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.zchip i i {
+  display: block;
+  height: 100%;
+  background: #aab0c0;
+}
+
+.zchip.vein i i {
+  background: #ffcf2e;
+}
+
+#dock-side button.calm {
+  background: var(--panel-2);
+}
+
+#dock-side button.ready {
+  animation: hot 0.9s ease-in-out infinite;
+}
+
+.rank {
+  font-family: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffe55c;
+}
+
+.stat.tier {
+  background: #4a4458;
+}
+
+.stat.tier.fine {
+  background: #2f6a8a;
+}
+
+.stat.tier.rare {
+  background: #6a3f9a;
+}
+
+.stat.tier.epic {
+  background: #b0452a;
+}
+
+.stat.tier.legendary {
+  background: #b8860b;
+}
+
+.stat .coin-txt .pix {
+  width: 11px;
+}
+
+.panel button.lockedchip {
+  opacity: 0.55;
+}
+
+.stats {
+  text-align: center;
 }
 
 @keyframes spend {

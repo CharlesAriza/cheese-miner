@@ -9,10 +9,8 @@
   CM.telemetry = {
     create() {
       return {
-        taps: { mine: 0, drill: 0, refine: 0, cheesery: 0 },
+        taps: { mine: 0, drill: 0, refine: 0, cheesery: 0, sell: 0 },
         purchases: [], // { t, what, cost }
-        sales: [], // { t, buyer, qty, coins }
-        machineMs: { drill: {}, refinery: {}, cheesery: {} }, // ms en cada estado
         offlineMs: 0,
         offlineReturns: 0,
         sessions: 0,
@@ -22,9 +20,11 @@
     },
     onEvent(s, ev) {
       const m = s.metrics;
-      if (ev.type === 'purchase') m.purchases.push({ t: s.clock, what: ev.what, cost: ev.cost });
-      if (ev.type === 'sale') m.sales.push({ t: s.clock, buyer: ev.buyer, qty: ev.qty, coins: ev.coins });
-      const noisy = ev.type === 'hit' || ev.type.endsWith('Boost') || ev.type.endsWith('Start') || ev.type === 'orderArrived';
+      if (ev.type === 'purchase') {
+        m.purchases.push({ t: s.clock, what: ev.what, cost: ev.cost });
+        if (m.purchases.length > 300) m.purchases.shift();
+      }
+      const noisy = ev.type === 'hit' || ev.type.endsWith('Boost') || ev.type.endsWith('Start') || ev.type.endsWith('Done') || ev.type === 'sale';
       if (!noisy) {
         m.log.push(Object.assign({ t: s.clock }, ev));
         if (m.log.length > LOG_MAX) m.log.splice(0, m.log.length - LOG_MAX);

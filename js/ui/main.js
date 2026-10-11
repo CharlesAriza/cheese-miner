@@ -1,4 +1,4 @@
-// Conecta simulación, escena, HUD, cadena de estaciones, paneles, sonido y guardado.
+// Conecta simulación, escena, HUD, cadena de estaciones, árboles, sonido y guardado.
 (function () {
   const B = CM.BALANCE;
   const q = CM.q;
@@ -12,17 +12,20 @@
   let state = loaded.state;
   state.metrics.sessions += 1;
   const scene = CM.createScene($('scene'));
-  const STATIONS = ['rock', 'drill', 'refinery', 'cheesery', 'market'];
+  const STATIONS = ['rock', 'drill', 'refinery', 'cheesery', 'shop'];
+  const SKILL = { rock: 'mining', drill: 'drilling', refinery: 'refining', cheesery: 'cheesemaking', shop: 'trading' };
   const ui = {
     panel: null,
+    tree: 'mining',
     station: 'rock',
+    zone: B.zones[0].id, // roca que se ve en la escena
     cheeseTab: 'experiment',
-    offer: null,
     combo: { base: 'cheddar', ingredient: 'herbs', treatment: 'washed', maturation: 'fresh' },
     lastHtml: '',
-    dockHtml: '',
+    dockHtml: null,
+    zonesHtml: null,
     dockKind: 'mine',
-    shown: { coins: state.coins, raw: q.rawTotal(state), base: q.baseTotal(state), lots: q.lotsTotal(state) },
+    shown: {},
   };
   const els = { floaters: $('floaters'), banner: $('banner'), toast: $('toast'), combo: $('combo'), main: $('dock-main'), flyers: $('flyers'), bubbles: $('bubbles') };
   const tiles = {};
@@ -40,7 +43,7 @@
   // Texto que sube desde un edificio. Solo se usa para eventos reales.
   function float(text, id, cls) {
     const at = scene.anchor(id);
-    if (at[0] < 0.03 || at[0] > 0.97) return;
+    if (at[0] < 0.03 || at[0] > 0.97 || els.floaters.childElementCount > 26) return;
     const el = document.createElement('div');
     el.className = 'float ' + cls;
     el.innerHTML = text;
@@ -66,9 +69,8 @@
     const active = navigator.userActivation ? navigator.userActivation.hasBeenActive : true;
     if (navigator.vibrate && active) navigator.vibrate(pattern);
   };
-  // Los trabajadores producen sin parar: se limita cada sonido para no saturar.
+  // Los ratones producen sin parar: se limita cada sonido para no saturar.
   const lastPlayed = {};
-  let lastBell = 0;
   function play(name, arg) {
     const t = performance.now();
     if (t - (lastPlayed[name] || 0) < 350 && name !== 'hit' && name !== 'boost') return;
@@ -92,10 +94,10 @@
   }
   // Iconos que vuelan de un sitio a otro: enseñan de dónde sale y a dónde va cada recurso.
   function fly(src, from, to, count, onArrive) {
+    if (els.flyers.childElementCount > 30) return onArrive && onArrive();
     const a = pointOf(from);
     const b = pointOf(to);
-    const n = Math.max(1, Math.min(count, 6));
-    if (els.flyers.childElementCount > 40) return onArrive && onArrive();
+    const n = Math.max(1, Math.min(count, 5));
     for (let i = 0; i < n; i++) {
       const el = document.createElement('img');
       el.className = 'pix flyer';
@@ -122,17 +124,22 @@
     }
   }
   const bump = (id) => retrigger($(id), 'bump');
-  // Golpe de zoom en la escena para los momentos gordos.
-  const punch = () => retrigger($('scene'), 'punch');
   const tileBump = (st) => retrigger(tiles[st], 'bump');
-  const baseOfActive = () => q.depDef(state.activeDeposit).base;
+  const punch = () => retrigger($('scene'), 'punch');
+  const baseOfZone = () => q.zoneDef(ui.zone).base;
+  const recipeBase = (id) => {
+    const r = CM.cheesery.recipe(state, id);
+    return r ? CM.cheesery.parseKey(r.key).base : 'cheddar';
+  };
 
   function feedback(ev, now) {
-    scene.onEvent(ev, state, now);
+    scene.onEvent(ev, state, now, ui.zone);
+    const here = !ev.zone || ev.zone === ui.zone;
     switch (ev.type) {
       case 'hit':
+        if (!here) break;
         // El número del golpe es progreso de búsqueda, no un recurso.
-        float('+' + ev.amount, 'rock', ev.crit ? 'crit' : ev.source === 'manual' ? 'search' : 'search dim');
+        float('+' + CM.fmt(Math.max(1, Math.round(ev.amount))), 'rock', ev.crit ? 'crit' : ev.source === 'manual' ? 'search' : 'search dim');
         if (ev.source !== 'manual') break;
         play('hit', ev.combo);
         buzz(ev.crit ? 25 : 8);
@@ -144,46 +151,65 @@
         if (ev.combo >= 3) retrigger(els.combo, 'pop');
         break;
       case 'reveal':
+        if (!here) {
+          tileBump('rock');
+          break;
+        }
         play('reveal');
         buzz([30, 40, 80]);
         punch();
         banner('CHEESE VEIN FOUND!');
-        float(ev.capacity + ' RAW INSIDE', 'rock', 'info');
-        if (ui.station === 'rock') select('drill');
+        float(CM.fmt(ev.capacity) + ' RAW INSIDE', 'rock', 'info');
+        if (ui.station === 'rock' && !q.isAutomated(state, 'drilling')) select('drill');
         break;
       case 'drillStart':
-        if (ev.source === 'manual') play('start');
+        if (here && ev.source === 'manual') play('start');
         break;
       case 'refineStart':
         if (ev.source === 'manual') play('start');
-        fly(I.url('raw', ev.base), $('res-raw'), 'refinery', Math.ceil(ev.used / 2));
+        fly(I.url('raw', ev.base), $('res-raw'), 'refinery', 2);
         break;
       case 'cheeseStart':
-        fly(I.url('base', ev.base), $('res-base'), 'cheesery', Math.ceil(ev.used / 2));
+        fly(I.url('base', ev.base), $('res-base'), 'cheesery', 2);
+        break;
+      case 'sellStart':
+        if (ev.source === 'manual') play('start');
+        fly(I.url('lot', recipeBase(ev.recipeId)), $('res-lots'), 'shop', Math.min(3, ev.count));
         break;
       case 'drillBoost':
       case 'refineBoost':
       case 'cheeseBoost':
+      case 'sellBoost':
         play('boost');
         buzz(5);
         break;
       case 'drillDone':
         play('raw');
-        float(I.img('raw', ev.base) + '+' + ev.amount, 'rock', 'raw');
-        fly(I.url('raw', ev.base), 'rock', $('res-raw'), ev.amount, () => bump('res-raw'));
+        if (here) float(I.img('raw', ev.base) + '+' + CM.fmt(ev.amount), 'rock', 'raw');
+        fly(I.url('raw', ev.base), here ? 'rock' : tiles.drill, $('res-raw'), Math.min(4, ev.amount), () => bump('res-raw'));
         tileBump('drill');
+        break;
+      case 'deeper':
+        if (here) {
+          play('newRock');
+          banner(q.zoneDef(ev.zone).name.toUpperCase() + ' · DEPTH ' + ev.depth);
+          float('DEEPER! RICHER CHEESE', 'rock', 'lot');
+          if (ui.station === 'drill' && !q.miners(state)) {
+            select('rock');
+            toast('Vein used up. The rock goes deeper: mine to find the next vein');
+          }
+        } else toast(q.zoneDef(ev.zone).name + ' reached depth ' + ev.depth, true);
         break;
       case 'refineDone':
         play('base');
-        float(I.img('base', ev.base) + '+' + ev.amount, 'refinery', 'base');
-        fly(I.url('base', ev.base), 'refinery', $('res-base'), ev.amount, () => bump('res-base'));
+        float(I.img('base', ev.base) + '+' + CM.fmt(ev.amount), 'refinery', 'base');
+        fly(I.url('base', ev.base), 'refinery', $('res-base'), Math.min(4, ev.amount), () => bump('res-base'));
         tileBump('refinery');
         break;
       case 'lotDone': {
-        const recipe = CM.cheesery.recipe(state, ev.recipeId);
-        const base = recipe ? CM.cheesery.parseKey(recipe.key).base : 'cheddar';
+        const base = recipeBase(ev.recipeId);
         play('lot');
-        float(I.img('lot', base) + '+1 CHEESE', 'cheesery', 'lot');
+        float(I.img('lot', base) + '+1', 'cheesery', 'lot');
         fly(I.url('lot', base), 'cheesery', $('res-lots'), 1, () => bump('res-lots'));
         tileBump('cheesery');
         break;
@@ -193,62 +219,61 @@
         scene.celebrate();
         askRecipeName(ev.recipeId, true);
         break;
-      case 'sale': {
-        const recipe = CM.cheesery.recipe(state, ev.recipeId);
-        const base = recipe ? CM.cheesery.parseKey(recipe.key).base : 'cheddar';
-        play(ev.stance === 'premium' || ev.stance === 'markup' ? 'jackpot' : 'coin');
-        buzz(20);
-        fly(I.url('lot', base), $('res-lots'), 'market', ev.qty);
-        fly(I.url('coin'), 'market', $('res-coins'), 6, () => bump('res-coins'));
-        float(I.img('coin') + '+' + ev.coins + (ev.stance === 'premium' ? ' JACKPOT!' : ev.stance === 'markup' ? ' NICE DEAL!' : ev.bonus ? ' LOVED IT!' : ''), 'market', 'coins' + (ev.stance === 'premium' || ev.stance === 'markup' ? ' big' : ''));
-        if (ev.stance === 'premium' || ev.stance === 'markup') {
-          toast('Deal! They paid ' + ev.coins + ' coins', true);
-          scene.celebrate();
-          punch();
-        }
-        tileBump('market');
-        dirty = true;
-        break;
-      }
-      case 'orderArrived':
-        if (performance.now() - lastBell > 9000) {
-          lastBell = performance.now();
-          play('bell');
-        }
-        tileBump('market');
-        break;
-      case 'haggleFail':
-        play('walkout');
-        float('NO DEAL!', 'market', 'crit');
-        toast('Too expensive: the ' + B.merchant.buyers[ev.buyer].name + ' walked out. You kept the cheese');
-        break;
-      case 'customerLeft':
-        float('left...', 'market', 'search dim');
-        break;
-      case 'repUp': {
-        const newcomer = Object.keys(B.merchant.buyers).find((id) => B.merchant.buyers[id].unlockRep === ev.level);
-        play('reveal');
-        scene.celebrate();
-        banner('SHOP REPUTATION LV ' + ev.level + '!');
-        toast(newcomer ? 'New customers: the ' + B.merchant.buyers[newcomer].name + ' will visit your shop' : 'Customers now pay more', true);
-        break;
-      }
       case 'masteryUp': {
         const recipe = CM.cheesery.recipe(state, ev.recipeId);
         play('crit');
-        float('MASTERY LV ' + ev.level + '!', 'cheesery', 'lot');
-        toast((recipe ? recipe.name : 'Recipe') + ' mastered to LV ' + ev.level + ': worth more, cooks faster', true);
+        float('MASTERY ' + ev.level + '!', 'cheesery', 'lot');
+        toast((recipe ? recipe.name : 'Recipe') + ' mastery ' + ev.level + ': worth more, cooks faster', true);
+        break;
+      }
+      case 'sale':
+        play('coin');
+        buzz(15);
+        fly(I.url('coin'), 'shop', $('res-coins'), Math.min(5, 2 + ev.count), () => bump('res-coins'));
+        float(I.img('coin') + '+' + CM.fmt(ev.coins), 'shop', 'coins');
+        tileBump('shop');
+        break;
+      case 'levelUp': {
+        const st = B.skills[ev.skill].station;
+        play('goal');
+        scene.celebrate();
+        punch();
+        banner(B.skills[ev.skill].name.toUpperCase() + ' LEVEL ' + ev.level + '!');
+        float('LEVEL UP!', st, 'lot big');
+        tileBump(st);
+        // Avisa de lo que desbloquea ese nivel.
+        const unlocked = B.trees[ev.skill].filter((n) => n.level === ev.level).map((n) => n.name);
+        const buyer = ev.skill === 'trading' ? B.shop.buyers.find((b) => b.level === ev.level) : null;
+        const parts = ev.skill === 'cheesemaking' ? ['ingredients', 'treatments', 'maturations'].flatMap((t) => Object.values(B[t]).filter((x) => x.level === ev.level).map((x) => x.name)) : [];
+        const news = unlocked.concat(parts);
+        if (buyer) toast('New customers: ' + buyer.name + ' pay x' + buyer.mult, true);
+        else if (news.length) toast('Unlocked: ' + news.join(', '), true);
+        dirty = true;
         break;
       }
       case 'purchase':
         if (ev.cost > 0) {
           const el = document.createElement('div');
           el.className = 'spend';
-          el.textContent = '-' + ev.cost;
+          el.textContent = '-' + CM.fmt(ev.cost);
           $('res-coins').appendChild(el);
           el.addEventListener('animationend', () => el.remove());
         }
         break;
+      case 'nodeBought': {
+        const node = CM.tree.node(ev.skill, ev.id);
+        play(ev.auto && node.max === 1 ? 'build' : 'upgrade');
+        if (ev.auto && node.max === 1) {
+          banner(node.name.toUpperCase() + ' HIRED!');
+          scene.celebrate();
+        }
+        if (ev.skill === 'cheesemaking' && ev.id === 'maker' && state.recipes.length) {
+          ui.cheeseTab = 'book';
+          openPanel('cheese');
+        }
+        dirty = true;
+        break;
+      }
       case 'built':
         punch();
         play('build');
@@ -257,52 +282,18 @@
         scene.celebrate();
         dirty = true;
         break;
-      case 'upgraded':
-        play('upgrade');
-        float('LEVEL UP!', ev.id === 'pickaxe' ? 'rock' : ev.id, 'lot');
-        toast(B.upgrades[ev.id].name + ' is now LV ' + (ev.level + 1), true);
-        dirty = true;
-        break;
-      case 'hired':
-        play('upgrade');
-        banner(B.workers[ev.role].name.toUpperCase() + ' HIRED!');
-        toast(B.workers[ev.role].name + ': ' + B.workers[ev.role].does.toLowerCase(), true);
-        if (ev.role === 'cheesemaker' && state.recipes.length) {
-          ui.cheeseTab = 'book';
-          openPanel('cheese');
-        }
-        dirty = true;
-        break;
-      case 'veinDepleted':
-        float('VEIN EMPTY', 'rock', 'info');
-        if (ui.station === 'drill' && q.depPhase(state, state.activeDeposit) !== 'depleted') {
-          select('rock');
-          toast('Vein used up. Mine the rock to find the next one');
-        }
-        break;
-      case 'depositDepleted':
-        banner('ZONE EXHAUSTED');
-        select('rock');
-        toast('This rock has no cheese left. Travel to another zone in COLONY');
-        break;
-      case 'depositUnlocked':
+      case 'zoneUnlocked':
         play('reveal');
         scene.celebrate();
         zoneOpened(ev.id);
         dirty = true;
         break;
-      case 'depositSwitched':
-        play('newRock');
-        select('rock');
-        banner('WELCOME TO ' + q.depDef(ev.id).name.toUpperCase());
-        setIcons();
-        break;
       case 'goal':
         play('goal');
         scene.celebrate();
         retrigger($('objective'), 'done');
-        toast('Goal complete: ' + ev.text + (ev.reward ? '  +' + ev.reward + ' coins' : ''), true);
-        if (ev.reward) fly(I.url('coin'), $('objective'), $('res-coins'), Math.min(6, 2 + Math.floor(ev.reward / 15)), () => bump('res-coins'));
+        toast('Goal complete: ' + ev.text + (ev.reward ? '  +' + CM.fmt(ev.reward) + ' coins' : ''), true);
+        if (ev.reward) fly(I.url('coin'), $('objective'), $('res-coins'), Math.min(5, 2 + Math.floor(ev.reward / 15)), () => bump('res-coins'));
         break;
     }
   }
@@ -325,59 +316,55 @@
   }
 
   // ---------- Cadena de estaciones ----------
-  const BUILDING = { drill: 'drill', refinery: 'refinery', cheesery: 'cheesery', market: 'market' };
-  const WORKER = { rock: 'miner', drill: 'driller', refinery: 'refiner', cheesery: 'cheesemaker' };
-  const UPGRADE = { rock: 'pickaxe', drill: 'drill', refinery: 'refinery', cheesery: 'cheesery' };
-
   function select(st, quiet) {
     ui.station = st;
     scene.select(st);
     if (!quiet) scene.focus(st);
     ui.dockHtml = null;
   }
+  // Cambia la roca que se ve en la escena. Todas siguen trabajando.
+  function focusZone(id) {
+    if (ui.zone === id || !state.zones[id].unlocked) return;
+    ui.zone = id;
+    scene.onEvent({ type: 'zoneFocus' }, state, Date.now(), id);
+    setIcons();
+    ui.dockHtml = null;
+  }
 
-  const deliverable = () => state.orders.filter((o) => o && o.id && state.recipes.some((r) => (state.lots[r.id] || 0) >= o.qty && CM.merchant.matches(o, r))).length;
+  const progress = (job) => (job ? 1 - job.remaining / job.total : 0);
   const canCook = () =>
     !state.jobs.cheesery && q.lotsSpace(state) > 0 && CM.cheesery.unlockedBases(state).some((b) => state.inv.base[b] >= (state.recipes.length ? B.cheesery.lotBase : B.cheesery.experimentBase));
-  const progress = (job) => (job ? 1 - job.remaining / job.total : 0);
 
   // Estado resumido de una estación: locked, build, ready, working, waiting o blocked.
   function stationInfo(st) {
-    const d = q.dep(state);
-    const vein = q.veinDef(state, state.activeDeposit);
-    if (BUILDING[st] && !state.built[st]) return { state: CM.construction.buildInfo(state, st).condOk ? 'build' : 'locked', progress: 0 };
+    if (st !== 'rock' && !state.built[st]) return { state: CM.construction.buildInfo(state, st).condOk ? 'build' : 'locked', progress: 0 };
+    const z = state.zones[ui.zone];
     if (st === 'rock') {
-      const ms = CM.mining.status(state);
-      if (ms === 'ready') return { state: state.workers.miner ? 'working' : 'ready', progress: d.discover / vein.hits };
-      if (ms === 'vein-exposed') return { state: 'waiting', progress: d.veinRemaining / vein.capacity, vein: true };
-      return { state: 'blocked', progress: 0 };
+      if (!z.veinRevealed) return { state: q.miners(state) ? 'working' : 'ready', progress: z.discover / q.veinHits(state, ui.zone) };
+      return { state: 'waiting', progress: z.veinRemaining / q.veinCapacity(state, ui.zone), vein: true };
     }
-    if (st === 'drill' || st === 'refinery') {
-      const ms = st === 'drill' ? CM.drilling.status(state) : CM.refining.status(state);
-      const map = { running: 'working', ready: 'ready', 'no-vein': 'waiting', 'no-raw': 'waiting' };
-      return { state: map[ms] || 'blocked', progress: progress(state.jobs[st]), reason: ms };
+    if (st === 'drill') {
+      const ms = CM.drilling.status(state, ui.zone);
+      return { state: { running: 'working', ready: 'ready', 'no-vein': 'waiting' }[ms] || 'blocked', progress: progress(z.drillJob), reason: ms };
+    }
+    if (st === 'refinery') {
+      const ms = CM.refining.status(state);
+      return { state: { running: 'working', ready: 'ready', 'no-raw': 'waiting' }[ms] || 'blocked', progress: progress(state.jobs.refinery), reason: ms };
     }
     if (st === 'cheesery') {
-      if (state.jobs.cheesery) return { state: 'working', progress: progress(state.jobs.cheesery) };
-      const cook = state.workers.cheesemaker ? CM.cheesery.autoStatus(state) : '';
-      if (cook === 'storage-full' || cook === 'no-recipe') return { state: 'blocked', progress: 0, reason: cook };
-      return { state: canCook() ? 'ready' : 'waiting', progress: 0, reason: cook };
+      const ms = CM.cheesery.status(state);
+      if (ms === 'running') return { state: 'working', progress: progress(state.jobs.cheesery), reason: ms };
+      if (ms === 'storage-full' || ms === 'no-recipe') return { state: 'blocked', progress: 0, reason: ms };
+      return { state: ms === 'ready' || canCook() ? 'ready' : 'waiting', progress: 0, reason: ms };
     }
-    const n = deliverable();
-    return { state: n ? 'ready' : 'waiting', progress: 0, ready: n };
-  }
-
-  // Si esa estación tiene una mejora o contratación que ya se puede pagar.
-  function canInvest(st) {
-    const up = UPGRADE[st];
-    if (up && CM.construction.upgradeInfo(state, up).canUpgrade) return true;
-    return !!WORKER[st] && (st === 'rock' || state.built[st]) && CM.workers.hireInfo(state, WORKER[st]).canHire;
+    const ms = CM.shop.status(state);
+    return { state: { running: 'working', ready: 'ready' }[ms] || 'waiting', progress: progress(state.jobs.shop), reason: ms };
   }
 
   // Qué estación pide el objetivo actual.
-  const GOAL_AT = { markup: 'market', rep3: 'market', vein: 'rock', drill: 'drill', raw: 'drill', refinery: 'refinery', base: 'refinery', cheesery: 'cheesery', recipe: 'cheesery', market: 'market', sale: 'market', house: 'colony', worker: 'colony', allRoles: 'colony', deposit2: 'colony', cook: 'colony' };
+  const GOAL_AT = { vein: 'rock', drill: 'drill', raw: 'drill', refinery: 'refinery', base: 'refinery', cheesery: 'cheesery', recipe: 'cheesery', shop: 'shop', sale: 'shop', recipes8: 'cheesery', zone2: 'colony', zone3: 'colony', depth3: 'rock' };
 
-  const BUBBLE = { 'storage-full': 'FULL!', 'no-vein': 'NO VEIN', depleted: 'EMPTY', 'no-raw': 'NO RAW', 'no-recipe': 'NO RECIPE', 'no-material': 'NO BASE' };
+  const BUBBLE = { 'storage-full': 'FULL!', 'no-raw': 'NO RAW', 'no-recipe': 'NO RECIPE', 'no-base': 'NO BASE', 'no-cheese': 'NO CHEESE' };
   const bubbles = {};
   function bubble(id, text, cls) {
     let el = bubbles[id];
@@ -401,85 +388,63 @@
     for (const st of STATIONS) {
       const info = stationInfo(st);
       const tile = tiles[st];
+      const skill = SKILL[st];
       for (const cls of ['locked', 'build', 'ready', 'working', 'waiting', 'blocked']) set(tile, cls, info.state === cls);
       set(tile, 'sel', ui.station === st);
       set(tile, 'goal', goalAt === st && ui.station !== st);
       set(tile.querySelector('.mini > i'), 'width', Math.round(info.progress * 100) + '%');
-      const auto = WORKER[st] && state.workers[WORKER[st]] > 0;
-      set(tile.querySelector('em'), 'text', info.state === 'locked' ? 'LOCK' : info.state === 'build' ? 'BUILD' : st === 'market' && info.ready ? info.ready + ' HERE' : canInvest(st) ? 'UP!' : auto ? 'AUTO' : '');
+      set(tile.querySelector('u'), 'text', 'LV ' + q.level(state, skill));
+      const auto = q.isAutomated(state, skill);
+      const ups = info.state !== 'locked' && info.state !== 'build' ? CM.tree.affordable(state, skill) : 0;
+      set(tile.querySelector('em'), 'text', info.state === 'locked' ? 'LOCK' : info.state === 'build' ? 'BUILD' : ups ? 'UP! ' + ups : auto ? 'AUTO' : '');
       // Aviso sobre el edificio solo cuando está parado por algo.
-      const reason = info.reason !== 'no-vein' && (info.state === 'blocked' || (auto && info.state === 'waiting')) ? BUBBLE[info.reason] : '';
-      if (st !== 'rock') bubble(st, st === 'market' && info.ready ? 'CUSTOMER!' : reason || '', st === 'market' && info.ready ? 'good' : 'bad');
+      const reason = info.state === 'blocked' || (auto && info.state === 'waiting') ? BUBBLE[info.reason] : '';
+      if (st !== 'rock') bubble(st, reason || '', 'bad');
     }
-    const def = q.depDef(state.activeDeposit);
-    const d = q.dep(state);
-    bubble('rock', q.depPhase(state, def.id) === 'depleted' ? def.name.toUpperCase() + ' · EMPTY' : def.name.toUpperCase() + ' · VEIN ' + Math.min(d.veinIndex + 1, def.veins.length) + '/' + def.veins.length, 'name');
+    const def = q.zoneDef(ui.zone);
+    bubble('rock', def.name.toUpperCase() + ' · DEPTH ' + state.zones[ui.zone].depth, 'name');
     set($('nav-colony'), 'goal', goalAt === 'colony');
   }
 
-  // ---------- Dock: la estación seleccionada, con su acción, mejora y trabajador ----------
-  const perMin = (amount, ms) => Math.round((amount * 600000) / ms) / 10;
-
-  function investButtons(st) {
-    let h = '';
-    const up = UPGRADE[st];
-    if (up && (st === 'rock' || state.built[st])) {
-      const u = CM.construction.upgradeInfo(state, up);
-      const word = st === 'rock' ? 'PICK' : st === 'cheesery' ? 'FASTER' : 'UPGRADE';
-      h += u.maxed ? '<span class="tag">' + (st === 'rock' ? 'PICK' : 'LEVEL') + ' MAX</span>' : P.btn('upgrade:' + up, word + ' LV' + (u.level + 2) + '<br>' + P.coin(u.cost), { off: !u.canUpgrade, cls: 'buy', cost: u.cost });
-    }
-    const role = WORKER[st];
-    if (role && (st === 'rock' || state.built[st])) {
-      const info = CM.workers.hireInfo(state, role);
-      const name = B.workers[role].name.toUpperCase();
-      if (info.maxed) h += '<span class="tag">' + name + ' ON DUTY</span>';
-      else if (!state.built.house) h += P.btn('open:colony', name + '<br>needs Mouse House', { off: true, cls: 'buy' });
-      else h += P.btn('hire:' + role, 'HIRE ' + name + '<br>' + P.coin(info.cost), { off: !info.canHire, cls: 'buy', cost: info.full ? 0 : info.cost });
-    }
-    return h;
-  }
+  // ---------- Dock: la estación seleccionada ----------
+  const perMin = (amount, ms) => CM.fmt(Math.round((amount * 60000) / ms));
+  const round1 = (n) => Math.round(n * 10) / 10;
 
   function dockModel(st) {
     const info = stationInfo(st);
-    const d = q.dep(state);
-    const def = q.depDef(state.activeDeposit);
-    const m = { title: '', status: '', tone: '', kind: 'none', label: '', sub: '', fill: 0, mode: 'idle', side: investButtons(st) };
+    const skill = SKILL[st];
+    const z = state.zones[ui.zone];
+    const def = q.zoneDef(ui.zone);
+    const auto = q.isAutomated(state, skill);
+    const m = { title: B.skills[skill].name, status: '', tone: '', kind: 'none', label: '', sub: '', fill: 0, mode: 'idle', tree: true };
 
-    if (BUILDING[st] && !state.built[st]) {
+    if (st !== 'rock' && !state.built[st]) {
       const b = CM.construction.buildInfo(state, st);
       m.title = B.buildings[st].name;
-      m.status = { drill: 'Extracts Raw Cheese from an exposed vein', refinery: 'Turns Raw Cheese into Cheese Base', cheesery: 'Turns Cheese Base into cheese you can sell', market: 'Sells your cheese for coins' }[st];
+      m.status = { drill: 'Extracts Raw Cheese from an exposed vein', refinery: 'Turns Raw Cheese into Cheese Base', cheesery: 'Turns Cheese Base into cheese you can sell', shop: 'Sells your cheese for coins' }[st];
       m.kind = 'build:' + st;
       m.label = 'BUILD';
-      m.sub = b.condOk ? (b.cost ? b.cost + ' coins' : 'FREE') : b.condText;
+      m.sub = b.condOk ? 'FREE' : b.condText;
       m.mode = b.canBuild ? 'hot' : 'locked';
-      m.side = '';
+      m.tree = false;
       return m;
     }
 
     if (st === 'rock') {
-      const vein = q.veinDef(state, def.id);
-      m.title = def.name + ' · vein ' + Math.min(d.veinIndex + 1, def.veins.length) + '/' + def.veins.length;
       m.kind = 'mine';
       m.label = 'MINE';
-      if (info.state === 'blocked') {
-        m.status = 'No cheese left in this zone';
-        m.tone = 'bad';
-        m.kind = 'open:colony';
-        m.label = 'ZONES';
-        m.sub = 'Travel to another rock';
-        m.mode = 'hot';
-      } else if (info.vein) {
-        m.status = 'Vein exposed: ' + d.veinRemaining + ' Raw Cheese inside';
+      if (info.vein) {
+        m.status = def.name + ': vein exposed, ' + CM.fmt(z.veinRemaining) + ' Raw Cheese inside';
         m.tone = 'good';
         m.kind = 'goto:drill';
         m.label = 'GO DRILL';
         m.sub = 'Mining is done here';
-        m.mode = state.workers.driller ? 'idle' : 'hot';
+        m.mode = q.isAutomated(state, 'drilling') ? 'idle' : 'hot';
       } else {
-        m.status = 'Mining finds the vein. It gives no cheese · power ' + q.pickPower(state) + (state.workers.miner ? ' · Miner searching' : '');
-        m.sub = 'Search ' + d.discover + '/' + vein.hits;
-        m.fill = d.discover / vein.hits;
+        const need = q.veinHits(state, ui.zone);
+        m.status = 'Mining finds the vein; it gives no cheese · power ' + round1(q.pickPower(state)) + (auto ? ' · ' + q.miners(state) + (q.miners(state) === 1 ? ' mouse' : ' mice') + ' mining' : '');
+        m.sub = 'Search ' + CM.fmt(Math.floor(z.discover)) + '/' + CM.fmt(need);
+        m.fill = z.discover / need;
         m.mode = 'hot';
       }
       return m;
@@ -487,13 +452,11 @@
 
     if (st === 'drill' || st === 'refinery') {
       const isDrill = st === 'drill';
-      const auto = state.workers[WORKER[st]] > 0;
-      const rate = isDrill ? perMin(q.drillYield(state), q.drillDuration(state)) : perMin(q.refineBatch(state), q.refineDuration(state));
-      m.title = B.buildings[st].name + ' LV ' + (state.levels[st] + 1);
       m.kind = isDrill ? 'drill' : 'refine';
       m.label = isDrill ? 'DRILL' : 'REFINE';
-      const what = isDrill ? '+' + q.drillYield(state) + ' Raw / ' + P.secs(q.drillDuration(state)) : q.refineBatch(state) * B.refinery.rawPerBase + ' Raw > ' + q.refineBatch(state) + ' Base / ' + P.secs(q.refineDuration(state));
-      m.status = what + ' · up to ' + rate + '/min' + (auto ? ' · automated' : '');
+      const y = isDrill ? q.drillYield(state, ui.zone) : q.refineBatch(state) * q.refineMult(state);
+      const d = isDrill ? q.drillDuration(state) : q.refineDuration(state);
+      m.status = (isDrill ? '+' + round1(y) + ' Raw' : q.refineBatch(state) * B.refinery.rawPerBase + ' Raw > ' + round1(y) + ' Base') + ' / ' + P.secs(d) + ' · ' + perMin(y, d) + '/min' + (auto ? ' · automated' : '');
       if (info.state === 'working') {
         m.sub = auto ? 'Auto · hold to boost' : 'HOLD TO BOOST!';
         m.fill = info.progress;
@@ -502,9 +465,9 @@
         m.sub = 'Tap to start';
         m.mode = 'hot';
       } else {
-        m.status = { 'no-vein': 'Waiting: no vein exposed. Mine the rock', depleted: 'This zone has no cheese left', 'storage-full': isDrill ? 'Stopped: Raw storage is full. Refine it or build Storage' : 'Stopped: Base storage is full. Make cheese or build Storage', 'no-raw': 'Waiting: needs ' + B.refinery.rawPerBase + ' Raw Cheese from the drill' }[info.reason];
+        m.status = { 'no-vein': 'Waiting: no vein exposed in ' + def.name + '. Mine the rock', 'storage-full': isDrill ? 'Stopped: Raw storage is full. Refine it or expand storage in COLONY' : 'Stopped: Base storage is full. Make cheese or expand storage in COLONY', 'no-raw': 'Waiting: needs ' + B.refinery.rawPerBase + ' Raw Cheese from a drill' }[info.reason];
         m.tone = info.state === 'blocked' ? 'bad' : 'warn';
-        m.sub = BUBBLE[info.reason] || '';
+        m.sub = BUBBLE[info.reason] || 'Waiting';
         m.mode = info.state === 'blocked' ? 'blocked' : 'idle';
       }
       return m;
@@ -512,12 +475,10 @@
 
     if (st === 'cheesery') {
       const job = state.jobs.cheesery;
-      const cook = state.workers.cheesemaker > 0;
       const recipe = CM.cheesery.recipe(state, state.cookRecipe);
-      m.title = 'Cheesery LV ' + (state.levels.cheesery + 1) + ' · ' + state.recipes.length + ' recipe' + (state.recipes.length === 1 ? '' : 's');
       if (job) {
         const r = job.recipeId ? CM.cheesery.recipe(state, job.recipeId) : null;
-        m.status = (job.kind === 'experiment' && !r ? 'Experimenting with a new combination' : 'Making ' + (r ? r.name : 'cheese')) + (cook ? ' · automated' : '');
+        m.status = (job.kind === 'experiment' && !r ? 'Experimenting with a new combination' : 'Making ' + (r ? r.name : 'cheese')) + (auto ? ' · automated' : '');
         m.kind = 'cheeseBoost';
         m.label = 'SPEED UP';
         m.sub = 'Hold to boost';
@@ -525,56 +486,90 @@
         m.mode = '';
       } else {
         m.kind = 'open:cheese';
-        m.label = state.recipes.length ? 'MAKE CHEESE' : 'EXPERIMENT';
-        const st2 = cook ? P.workerStatus('cheesemaker', CM.cheesery.autoStatus(state)) : null;
-        m.status = cook ? 'Cheesemaker: ' + st2[0] + (recipe ? ' · ' + recipe.name : '') : info.state === 'ready' ? 'Ready: you have Cheese Base to use' : 'Needs Cheese Base from the Refinery';
-        m.tone = cook ? st2[1] : info.state === 'ready' ? 'good' : 'warn';
-        m.sub = state.recipes.length ? 'Open the Recipe Book' : 'Discover your first recipe';
-        m.mode = info.state === 'ready' ? 'hot' : '';
+        m.label = state.recipes.length ? 'RECIPES' : 'NEW RECIPE';
+        const text = { 'no-recipe': 'Your Cheesemaker has no recipe. Pick one', 'no-base': 'Cheesemaker waiting for Cheese Base', 'no-coins': 'Cheesemaker has no coins for the ingredient', 'storage-full': 'Stopped: cheese storage is full. Sell or expand it' }[info.reason];
+        m.status = text || (info.state === 'ready' ? 'Ready: you have Cheese Base to use' : 'Needs Cheese Base from the Refinery');
+        m.tone = info.state === 'blocked' ? 'bad' : info.state === 'ready' ? 'good' : 'warn';
+        m.sub = recipe && auto ? 'Cooking: ' + recipe.name : state.recipes.length ? state.recipes.length + '/' + CM.cheesery.totalCombos() + ' discovered' : 'Discover your first recipe';
+        m.mode = info.state === 'ready' || info.reason === 'no-recipe' ? 'hot' : '';
       }
-      if (job || cook) m.side = P.btn('open:cheese', (cook ? 'COOK: ' + (recipe ? P.esc(recipe.name) : 'choose') : 'RECIPE BOOK') + '<br>open', { cls: 'buy' }) + m.side;
+      m.book = !!job;
       return m;
     }
 
-    const n = info.ready || 0;
-    const waiting = state.orders.filter((o) => o && o.id).length;
-    m.title = 'Cheese Shop · reputation LV ' + CM.merchant.repLevel(state);
-    m.status = waiting + ' customer' + (waiting === 1 ? '' : 's') + ' inside · ' + (n ? n + ' you can serve right now' : q.lotsTotal(state) ? 'none of your cheese fits what they want' : 'you have no cheese to sell yet');
-    m.tone = n ? 'good' : 'warn';
-    m.kind = 'open:market';
-    m.label = 'SERVE';
-    m.sub = n ? n + ' waiting for you!' : 'See your customers';
-    m.mode = n ? 'hot' : '';
-    m.side = '';
+    const buyer = q.buyer(state);
+    m.kind = 'sell';
+    m.label = 'SELL';
+    m.status = 'Customers: ' + buyer.name + ' (x' + buyer.mult + ') · ' + q.sellCount(state) + ' per sale / ' + P.secs(q.sellDuration(state)) + (auto ? ' · automated' : '');
+    if (info.state === 'working') {
+      m.sub = (auto ? 'Auto · ' : '') + 'selling for ' + CM.fmt(state.jobs.shop.coins);
+      m.fill = info.progress;
+      m.mode = '';
+    } else if (info.state === 'ready') {
+      m.sub = q.lotsTotal(state) + ' cheese to sell';
+      m.mode = 'hot';
+    } else {
+      m.status = 'No cheese to sell yet. Make some in the Cheesery';
+      m.tone = 'warn';
+      m.sub = 'NO CHEESE';
+    }
     return m;
   }
 
   function updateDock() {
-    const m = dockModel(ui.station);
+    const st = ui.station;
+    const skill = SKILL[st];
+    const m = dockModel(st);
+    const p = q.xpProgress(state, skill);
     ui.dockKind = m.kind;
-    set($('dock-title'), 'text', m.title);
+    set($('dock-title'), 'text', m.title + (m.tree ? ' · LV ' + p.level : ''));
+    set($('dock-xp'), 'width', (m.tree ? Math.round((p.cur / p.need) * 100) : 0) + '%');
+    set($('dock-xpnum'), 'text', m.tree ? (p.maxed ? 'MAX' : CM.fmt(p.cur) + '/' + CM.fmt(p.need) + ' xp') : '');
     set($('dock-status'), 'text', m.status);
     set($('dock-status'), 'cls', m.tone);
     set(els.main.querySelector('b'), 'text', m.label);
     set(els.main.querySelector('small'), 'text', m.sub);
     set(els.main.querySelector('.fill'), 'width', Math.round(m.fill * 100) + '%');
     for (const cls of ['hot', 'locked', 'idle', 'blocked']) set(els.main, cls, m.mode === cls);
-    for (const st of STATIONS) set(els.main, 'st-' + st, st === ui.station);
-    if (m.side !== ui.dockHtml) {
-      ui.dockHtml = m.side;
-      $('dock-side').innerHTML = m.side;
-      updateAfford();
+    for (const s2 of STATIONS) set(els.main, 'st-' + s2, s2 === st);
+
+    // Botón del árbol de esta habilidad y, si procede, del libro de recetas.
+    let side = '';
+    if (m.tree) {
+      const n = CM.tree.affordable(state, skill);
+      side += P.btn('tree:' + skill, 'UPGRADES<br>' + (n ? n + ' you can buy!' : 'see the tree'), { cls: 'buy' + (n ? ' ready' : ' calm') });
+      if (m.book) side += P.btn('open:cheese', 'RECIPES<br>open book', { cls: 'buy calm' });
+    }
+    if (side !== ui.dockHtml) {
+      ui.dockHtml = side;
+      $('dock-side').innerHTML = side;
+    }
+
+    // Una fila por roca: todas trabajan a la vez; tocar una la enseña en la escena.
+    let zones = '';
+    const open = q.openZones(state);
+    if ((st === 'rock' || st === 'drill') && open.length > 1) {
+      for (const def of open) {
+        const z = state.zones[def.id];
+        const pct = Math.round((z.veinRevealed ? z.veinRemaining / q.veinCapacity(state, def.id) : z.discover / q.veinHits(state, def.id)) * 100);
+        zones += '<button data-act="zone:' + def.id + '" class="zchip' + (ui.zone === def.id ? ' on' : '') + (z.veinRevealed ? ' vein' : '') + '">' + I.img('raw', def.base) + '<span>' + B.bases[def.base].name + ' D' + z.depth + '</span><i><i style="width:' + pct + '%"></i></i></button>';
+      }
+    }
+    if (zones !== ui.zonesHtml) {
+      ui.zonesHtml = zones;
+      $('dock-zones').innerHTML = zones;
     }
   }
 
   // Acción del botón grande según la estación.
-  const REPEATABLE = { mine: 1, drill: 1, refine: 1, cheeseBoost: 1 };
+  const REPEATABLE = { mine: 1, drill: 1, refine: 1, cheeseBoost: 1, sell: 1 };
   function mainAction() {
     const kind = ui.dockKind;
-    if (kind === 'mine') return report(CM.mining.hit(state, 'manual'), els.main);
-    if (kind === 'drill') return report(CM.drilling.tap(state), els.main);
+    if (kind === 'mine') return report(CM.mining.hit(state, ui.zone, 'manual'), els.main);
+    if (kind === 'drill') return report(CM.drilling.tap(state, ui.zone), els.main);
     if (kind === 'refine') return report(CM.refining.tap(state), els.main);
     if (kind === 'cheeseBoost') return report(CM.cheesery.tap(state), els.main);
+    if (kind === 'sell') return report(CM.shop.tap(state), els.main);
     if (kind.startsWith('goto:')) return select(kind.slice(5));
     if (kind.startsWith('open:')) return openPanel(kind.slice(5));
     if (kind.startsWith('build:')) {
@@ -607,7 +602,7 @@
     }
   });
 
-  // Escena: arrastrar para desplazar la colonia, tocar un edificio para seleccionarlo o usarlo.
+  // Escena: arrastrar para desplazar; tocar un edificio lo selecciona y hace su acción.
   const stage = $('scene');
   let drag = null;
   const logical = (px) => (px / stage.getBoundingClientRect().width) * scene.W;
@@ -627,9 +622,7 @@
     if (wasDrag) return;
     const id = scene.hitTest(logical(e.clientX - stage.getBoundingClientRect().left));
     if (!id) return;
-    if (id === 'house' || id === 'storage') return openPanel('colony');
-    // Tocar un edificio lo selecciona y, si su acción es de las de pulsar (picar,
-    // taladrar, refinar, acelerar), la hace en el mismo toque: es un clicker.
+    if (id === 'storage') return openTree('colony');
     const same = ui.station === id;
     if (!same) select(id, true);
     updateDock();
@@ -638,17 +631,21 @@
   stage.addEventListener('pointercancel', () => (drag = null));
 
   // ---------- Paneles ----------
-  const FOCUS = { cheese: 'cheesery', market: 'market', colony: 'house' };
   function openPanel(name) {
-    if ((name === 'cheese' && !state.built.cheesery) || (name === 'market' && !state.built.market)) return select(name === 'cheese' ? 'cheesery' : 'market');
+    if (name === 'cheese' && !state.built.cheesery) return select('cheesery');
     if (name === 'cheese' && !state.recipes.length) ui.cheeseTab = 'experiment';
     ui.panel = name;
     ui.lastHtml = '';
-    $('sheet-title').textContent = P.TITLES[name];
+    $('sheet-title').textContent = P.title(name, ui);
     $('sheet').hidden = false;
     $('sheet-body').scrollTop = 0;
-    if (FOCUS[name] && state.built[FOCUS[name]]) scene.focus(FOCUS[name]);
+    if (name === 'cheese') scene.focus('cheesery');
     renderPanel();
+  }
+  function openTree(skill) {
+    ui.tree = skill;
+    openPanel('tree');
+    scene.focus(skill === 'colony' ? 'storage' : B.skills[skill].station);
   }
   function closePanel() {
     ui.panel = null;
@@ -666,6 +663,8 @@
     const rep = $('dev-report');
     if (rep) rep.textContent = CM.dev.report(state);
   }
+  $('nav-colony').addEventListener('click', () => openTree('colony'));
+  $('nav-menu').addEventListener('click', () => openPanel('options'));
   const muteLabel = () => ($('btn-mute').textContent = sfx.isMuted() ? 'MUTED' : 'SOUND');
   $('btn-mute').addEventListener('click', () => {
     sfx.toggleMute();
@@ -677,19 +676,17 @@
     const b = e.target.closest('button');
     if (b && b !== els.main) sfx.click();
   });
-  document.querySelectorAll('.tools [data-panel]').forEach((b) => b.addEventListener('click', () => openPanel(b.dataset.panel)));
 
   const ACTS = {
     close: closePanel,
-    build: (id) => CM.construction.build(state, id),
-    upgrade: (id) => CM.construction.upgrade(state, id),
-    unlock: (id) => CM.deposits.unlock(state, id),
-    switch: (id) => {
-      const r = CM.deposits.setActive(state, id);
-      if (r.ok) closePanel();
-      return r;
+    noop: () => {},
+    tree: (skill) => void openTree(skill),
+    node: (skill, id) => CM.tree.buy(state, skill, id),
+    buyAll: (skill) => CM.tree.buyAll(state, skill),
+    zone: (id) => {
+      if (state.zones[id].unlocked) return void focusZone(id);
+      return CM.zones.unlock(state, id);
     },
-    hire: (role) => CM.workers.hire(state, role),
     tab: (name) => void (ui.cheeseTab = name),
     pick: (part, value) => void (ui.combo[part] = value),
     experiment: () => CM.cheesery.experiment(state, ui.combo),
@@ -697,22 +694,6 @@
     cook: (id) => CM.cheesery.assign(state, id || ''),
     cheeseTap: () => CM.cheesery.tap(state),
     rename: (id) => void askRecipeName(id, false),
-    // Elegir queso abre los precios; elegir precio hace la oferta.
-    offer: (orderId, recipeId) => void (ui.offer = ui.offer && ui.offer.order === orderId && ui.offer.recipe === recipeId ? null : { order: orderId, recipe: recipeId }),
-    sell: (orderId, recipeId, stance) => {
-      ui.offer = null;
-      return CM.merchant.deliver(state, orderId, recipeId, stance);
-    },
-    decline: (orderId) => CM.merchant.decline(state, orderId),
-    // Atiende a todos los que se pueda, a precio justo y con el queso que más paga.
-    serveAll: () => {
-      let served = 0;
-      for (const o of state.orders.slice()) {
-        const best = o && o.id ? CM.merchant.bestFor(state, o) : null;
-        if (best && CM.merchant.deliver(state, o.id, best.id, 'fair').ok) served += 1;
-      }
-      return served ? CM.ok() : CM.fail('no-match');
-    },
     open: (name) => void openPanel(name),
     sound: () => {
       sfx.toggleMute();
@@ -733,10 +714,12 @@
     drainEvents();
     renderPanel();
     ui.dockHtml = null;
+    ui.zonesHtml = null;
     dirty = true;
   }
   $('sheet').addEventListener('click', onAct);
   $('dock-side').addEventListener('click', onAct);
+  $('dock-zones').addEventListener('click', onAct);
   $('sheet').addEventListener('click', (e) => {
     if (e.target === $('sheet')) closePanel();
   });
@@ -764,9 +747,10 @@
     const recipe = CM.cheesery.recipe(state, recipeId);
     if (!recipe) return;
     const combo = CM.cheesery.parseKey(recipe.key);
+    const value = CM.cheesery.valueOf(state, recipe);
     showModal(
-      '<h2>' + (isNew ? 'NEW RECIPE!' : 'RENAME RECIPE') + '</h2><div class="hero">' + I.img('lot', combo.base, 'huge') + '</div><p class="hint">' + P.comboLine(combo) + '</p><div class="stats">' + P.statLine(CM.cheesery.statsOf(recipe)) +
-        '</div><input id="name-input" maxlength="24" autocomplete="off" value="' + P.esc(recipe.name) + '" /><p class="hint">' + (isNew ? 'It is in your Recipe Book now, with 1 cheese ready to sell. Give it a name:' : 'Pick a new name:') + '</p><div class="row"><button class="buy" data-m="ok">SAVE</button></div>',
+      '<h2>' + (isNew ? 'NEW RECIPE!' : 'RENAME RECIPE') + '</h2><div class="hero">' + I.img('lot', combo.base, 'huge') + '</div><p class="hint">' + P.comboLine(combo) + '</p><div class="stats"><span class="stat v">' + P.coin(CM.shop.price(state, recipe)) + '</span><span class="stat tier ' + CM.cheesery.tierOf(value).toLowerCase() + '">' + CM.cheesery.tierOf(value) + '</span></div><input id="name-input" maxlength="24" autocomplete="off" value="' + P.esc(recipe.name) + '" /><p class="hint">' +
+        (isNew ? 'It is in your Recipe Book now, with 1 cheese ready to sell. Give it a name:' : 'Pick a new name:') + '</p><div class="row"><button class="buy" data-m="ok">SAVE</button></div>',
       {
         ok() {
           const r = CM.cheesery.rename(state, recipeId, $('name-input').value);
@@ -778,18 +762,16 @@
     if (isNew) banner('NEW RECIPE DISCOVERED!');
   }
 
-  // Explica qué se acaba de comprar al abrir una zona.
+  // Explica qué se acaba de comprar al abrir una roca.
   function zoneOpened(id) {
-    const def = q.depDef(id);
-    const total = def.veins.reduce((a, v) => a + v.capacity, 0);
-    const recipes = Object.keys(B.ingredients).length * Object.keys(B.treatments).length * Object.keys(B.maturations).length;
+    const def = q.zoneDef(id);
     showModal(
-      '<h2>NEW ZONE OPENED!</h2><div class="hero">' + I.img('raw', def.base, 'huge') + I.img('base', def.base, 'huge') + I.img('lot', def.base, 'huge') + '</div><p class="hint"><b>' + def.name + '</b> is a new rock with ' + def.veins.length + ' veins and ' + total + ' Raw Cheese in total.</p><ul class="list"><li>It gives ' + B.bases[def.base].name + ', a new cheese base.</li><li>' + recipes + ' new recipes to discover in the Cheesery.</li><li>Your buildings, workers and stock come with you.</li><li>You can travel between zones any time in COLONY.</li></ul><div class="row"><button class="close" data-m="no">LATER</button><button class="buy" data-m="ok">TRAVEL NOW</button></div>',
+      '<h2>NEW ROCK OPENED!</h2><div class="hero">' + I.img('raw', def.base, 'huge') + I.img('base', def.base, 'huge') + I.img('lot', def.base, 'huge') + '</div><p class="hint"><b>' + def.name + '</b> is now part of your colony.</p><ul class="list"><li>It gives ' + B.bases[def.base].name + ', worth ' + B.bases[def.base].value + ' per cheese (Cheddar is ' + B.bases.cheddar.value + ').</li><li>' + CM.cheesery.allCombos([def.base]).length + ' new recipes to discover.</li><li>Your other rocks keep working at the same time.</li><li>Your mice mine and drill here too.</li></ul><div class="row"><button class="buy" data-m="ok">SHOW ME</button></div>',
       {
-        no() {},
         ok() {
-          CM.deposits.setActive(state, id);
           closePanel();
+          select('rock');
+          focusZone(id);
         },
       }
     );
@@ -799,21 +781,22 @@
     if (!sum) return;
     const d = sum.delta;
     const mins = Math.round(sum.simulatedMs / 60000);
-    const base = baseOfActive();
+    const base = baseOfZone();
     const lines = [];
+    if (sum.coins > 0) lines.push(I.img('coin') + 'Coins earned: +' + CM.fmt(sum.coins));
+    if (d.lotsProduced) lines.push(I.img('lot', base) + 'Cheese made: +' + CM.fmt(d.lotsProduced) + ' (sold ' + CM.fmt(d.lotsSold) + ')');
+    if (d.baseProduced) lines.push(I.img('base', base) + 'Cheese Base refined: +' + CM.fmt(d.baseProduced));
+    if (d.rawProduced) lines.push(I.img('raw', base) + 'Raw Cheese drilled: +' + CM.fmt(d.rawProduced));
     if (d.veinsFound) lines.push('Veins found: ' + d.veinsFound);
-    if (d.rawProduced) lines.push(I.img('raw', base) + 'Raw Cheese drilled: +' + d.rawProduced);
-    if (d.baseProduced) lines.push(I.img('base', base) + 'Cheese Base refined: +' + d.baseProduced + ' (used ' + d.rawConsumed + ' Raw)');
-    if (d.lotsProduced) lines.push(I.img('lot', base) + 'Cheese made: +' + d.lotsProduced);
-    const stops = sum.workers.map((w) => B.workers[w.role].name + ': ' + P.workerStatus(w.role, w.status)[0].toLowerCase());
+    for (const up of sum.levelUps) lines.push(B.skills[up.skill].name + ': level ' + up.from + ' > ' + up.to);
     // Sin nada automatizado ni producido no hay nada que contar.
     if (!lines.length && (!sum.automated || sum.simulatedMs < 60000)) return;
     showModal(
-      '<h2>WELCOME BACK</h2><p class="hint">Away ' + (mins < 1 ? 'under a minute' : mins + ' min') + (sum.capped ? ' (only the first ' + Math.round(B.offline.capMs / 3600000) + ' h count)' : '') + '</p>' +
-        (lines.length ? '<ul class="list plain">' + lines.map((l) => '<li>' + l + '</li>').join('') + '</ul>' : '<p class="hint">' + (sum.automated ? 'Your workers had nothing they could do.' : 'Nothing was produced: no stage is automated yet. Hire workers to keep the colony running.') + '</p>') +
-        (stops.length ? '<p class="hint">Now: ' + stops.join(' · ') + '</p>' : '') + '<div class="row"><button class="buy" data-m="ok">OK</button></div>',
+      '<h2>WELCOME BACK</h2><p class="hint">Away ' + (mins < 1 ? 'under a minute' : mins >= 120 ? Math.round(mins / 60) + ' h' : mins + ' min') + (sum.capped ? ' (your mice work up to ' + Math.round(sum.capMs / 3600000) + ' h alone; extend it in COLONY)' : '') + '</p>' +
+        (lines.length ? '<ul class="list plain">' + lines.map((l) => '<li>' + l + '</li>').join('') + '</ul>' : '<p class="hint">Your mice had nothing they could do. Check what is stopped.</p>') + '<div class="row"><button class="buy" data-m="ok">NICE</button></div>',
       { ok() {} }
     );
+    if (lines.length) scene.celebrate();
   }
 
   function exportSave() {
@@ -821,7 +804,7 @@
     try {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-      a.download = 'cheese-miner-playtest.json';
+      a.download = 'cheese-miner-save.json';
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     } catch (e) {}
@@ -836,6 +819,7 @@
     CM.events.length = 0;
     CM.telemetry.resetSamples();
     scene.reset();
+    ui.zone = B.zones[0].id;
     select('rock');
     setIcons();
     syncShown();
@@ -858,7 +842,7 @@
   }
 
   function confirmReset() {
-    showModal('<h2>RESET GAME?</h2><p class="hint">All progress and metrics will be lost.</p><div class="row"><button class="close" data-m="no">CANCEL</button><button class="danger" data-m="ok">RESET</button></div>', {
+    showModal('<h2>RESET GAME?</h2><p class="hint">All progress will be lost.</p><div class="row"><button class="close" data-m="no">CANCEL</button><button class="danger" data-m="ok">RESET</button></div>', {
       no() {},
       ok() {
         CM.storage.clear();
@@ -873,22 +857,22 @@
   function devAction(name, arg) {
     const D = CM.dev;
     const simple = {
-      coins: () => D.addCoins(state, 200),
       raw: () => D.addRaw(state, 10),
       base: () => D.addBase(state, 10),
-      reveal: () => D.revealVein(state),
+      levels: () => D.addLevels(state, 5),
+      reveal: () => D.revealVeins(state),
       buildings: () => D.unlockBuildings(state),
-      deposits: () => D.unlockDeposits(state),
+      zones: () => D.unlockZones(state),
       hire: () => D.hireAll(state),
       full: () => D.forceStorageFull(state),
-      veinout: () => D.forceVeinDepleted(state),
       noraw: () => D.forceNoRaw(state),
       pause: () => (D.paused = !D.paused),
     };
     if (simple[name]) simple[name]();
+    else if (name === 'coins') D.addCoins(state, Number(arg));
+    else if (name === 'power') D.powerUp(state, Number(arg));
     else if (name === 'speed') D.speed = Number(arg);
-    else if (name === 'lvl') D.levelUp(state, arg);
-    else if (name === 'scn') replaceState(arg === 'fresh' ? CM.createState(Date.now()) : D.scenario(arg, Date.now()));
+    else if (name === 'scn') replaceState(arg === 'fresh' ? CM.createState(Date.now()) : D.scenario(Date.now()));
     state.devUsed = !(name === 'scn' && arg === 'fresh');
     ui.lastHtml = '';
   }
@@ -907,7 +891,7 @@
   }
 
   function setIcons() {
-    const base = baseOfActive();
+    const base = baseOfZone();
     $('ic-coins').src = I.url('coin');
     $('ic-raw').src = I.url('raw', base);
     $('ic-base').src = I.url('base', base);
@@ -916,13 +900,13 @@
     tiles.drill.querySelector('img').src = I.url('raw', base);
     tiles.refinery.querySelector('img').src = I.url('base', base);
     tiles.cheesery.querySelector('img').src = I.url('lot', base);
-    tiles.market.querySelector('img').src = I.url('coin');
+    tiles.shop.querySelector('img').src = I.url('coin');
   }
 
   // Los contadores ruedan hacia su valor real en vez de saltar.
   function roll(key, target) {
     const cur = ui.shown[key];
-    if (cur === target) return target;
+    if (cur === target || cur === undefined) return (ui.shown[key] = target);
     const step = Math.max(1, Math.ceil(Math.abs(target - cur) * 0.18));
     return (ui.shown[key] = cur < target ? Math.min(target, cur + step) : Math.max(target, cur - step));
   }
@@ -930,19 +914,19 @@
   function updateHUD() {
     const caps = q.caps(state);
     set($('coins'), 'text', CM.fmt(roll('coins', state.coins)));
-    set($('raw'), 'text', roll('raw', q.rawTotal(state)) + '/' + caps.raw);
-    set($('base'), 'text', roll('base', q.baseTotal(state)) + '/' + caps.base);
-    set($('lots'), 'text', roll('lots', q.lotsTotal(state)) + '/' + caps.lots);
+    set($('raw'), 'text', CM.fmt(roll('raw', q.rawTotal(state))) + '/' + CM.fmt(caps.raw));
+    set($('base'), 'text', CM.fmt(roll('base', q.baseTotal(state))) + '/' + CM.fmt(caps.base));
+    set($('lots'), 'text', CM.fmt(roll('lots', q.lotsTotal(state))) + '/' + CM.fmt(caps.lots));
     set($('res-raw'), 'full', q.rawTotal(state) >= caps.raw);
     set($('res-base'), 'full', q.baseTotal(state) >= caps.base);
     set($('res-lots'), 'full', q.lotsTotal(state) >= caps.lots);
 
     const obj = CM.sim.objective(state);
-    set($('obj-text'), 'text', (obj.done ? '' : 'GOAL: ') + obj.text + (obj.reward ? '  (+' + obj.reward + ' coins)' : ''));
-    set($('obj-num'), 'text', obj.hasBar ? obj.cur + '/' + obj.max : '');
+    set($('obj-text'), 'text', (obj.done ? '' : 'GOAL: ') + obj.text + (obj.reward ? '  (+' + CM.fmt(obj.reward) + ' coins)' : ''));
+    set($('obj-num'), 'text', obj.hasBar ? CM.fmt(obj.cur) + '/' + CM.fmt(obj.max) : '');
     set($('obj-fill'), 'width', (obj.hasBar ? Math.round((obj.cur / obj.max) * 100) : obj.done ? 100 : 0) + '%');
 
-    const comboOn = CM.mining.status(state) === 'ready' && state.combo >= 3 && state.clock - state.lastHitAt <= B.mining.comboWindowMs;
+    const comboOn = !state.zones[ui.zone].veinRevealed && state.combo >= 3 && state.clock - state.lastHitAt <= B.mining.comboWindowMs;
     set(els.combo, 'on', comboOn);
     if (comboOn) {
       set(els.combo.firstElementChild, 'text', 'COMBO x' + state.combo + (state.combo % B.mining.critEvery === B.mining.critEvery - 1 ? '  CRIT NEXT!' : ''));
@@ -954,12 +938,6 @@
     updateChain();
     updateDock();
     document.querySelectorAll('[data-job]').forEach((el) => (el.style.width = Math.round(progress(state.jobs[el.dataset.job]) * 100) + '%'));
-    document.querySelectorAll('[data-patience]').forEach((el) => {
-      const o = state.orders.find((x) => x && x.id === el.dataset.patience);
-      const left = o ? o.patience / o.patienceMax : 0;
-      el.style.width = Math.round(left * 100) + '%';
-      el.classList.toggle('low', left < 0.25);
-    });
   }
 
   // Ingresos por minuto bajo cada contador: lo que hace que un idle se sienta vivo.
@@ -981,15 +959,11 @@
       el.style.setProperty('--p', Math.round(Math.min(1, state.coins / Number(el.dataset.cost)) * 100) + '%');
     });
   }
-
-  // Aviso en COLONY: solo cuando hay algo nuevo que se puede comprar ahí.
+  // Aviso en COLONY cuando hay algo que comprar ahí.
   function updateDots() {
-    const C = CM.construction;
-    const colony =
-      ['storage', 'house'].some((id) => C.buildInfo(state, id).canBuild || (state.built[id] && C.upgradeInfo(state, id).canUpgrade)) ||
-      B.deposits.some((d) => d.inAlpha !== false && !state.deposits[d.id].unlocked && state.coins >= CM.deposits.unlockCost(state, d.id)) ||
-      CM.workers.roles.some((r) => CM.workers.hireInfo(state, r).canHire);
-    $('nav-colony').querySelector('.dot').classList.toggle('on', colony);
+    const next = CM.zones.next(state);
+    const colony = CM.tree.affordable(state, 'colony') > 0 || (next && state.coins >= next.unlockCost);
+    $('nav-colony').querySelector('.dot').classList.toggle('on', !!colony);
   }
 
   // ---------- Bucle ----------
@@ -1011,7 +985,7 @@
       if (steps >= 300) acc = 0;
     }
     drainEvents();
-    scene.draw(state, Date.now(), real / 1000);
+    scene.draw(state, Date.now(), real / 1000, ui.zone);
     updateHUD();
     slowTick += real;
     if (slowTick > 400) {
@@ -1048,6 +1022,7 @@
   window.addEventListener('pagehide', () => CM.storage.save(state, Date.now()));
 
   setIcons();
+  syncShown();
   // Al volver, se abre la estación que pide el objetivo actual.
   const startAt = GOAL_AT[CM.sim.objective(state).id];
   select(STATIONS.indexOf(startAt) >= 0 ? startAt : 'rock');
@@ -1061,6 +1036,7 @@
     },
     comeBack,
     select,
+    focusZone,
   };
   requestAnimationFrame(frame);
 })();
