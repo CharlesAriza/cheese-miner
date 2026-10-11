@@ -32,6 +32,10 @@ Por cada nivel de profundidad: búsqueda ×1,22, veta ×1,15 y +8 % de Raw Chees
 
 Cada roca abierta es una línea completa: se pica, se taladra, se refina y se cocina por separado y a la vez que las demás. Solo la tienda es común. El Cheesemaker lleva una receta por cada queso. Las mejoras de los árboles valen para todas las líneas.
 
+## Primeros pasos
+
+Los cuatro edificios de la cadena son gratis y los construye el jugador desde una tarjeta explicativa: el taladro al encontrar la primera veta, la refinería tras sacar 10 Raw Cheese, la quesería tras refinar 6 Cheese Base y la tienda tras descubrir la primera receta. Con el bot, la primera venta llega a 1,2 minutos (1,8 con el bot lento).
+
 ## Despensa
 
 No hay almacén con tope. Raw Cheese, Cheese Base y quesos se acumulan sin límite, cada tipo por separado, hasta que la etapa siguiente los usa. Lo único que limita la ausencia es la Night Lamp.

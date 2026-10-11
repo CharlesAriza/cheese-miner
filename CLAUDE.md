@@ -45,7 +45,7 @@ Hecho:
 - Recetas de cuatro componentes con un único valor, rango y maestría; 108 combinaciones.
 - Venta por ciclos; el nivel de Trading trae mejores compradores.
 - Edificios con seis aspectos según sus mejoras, subsuelo que baja con la profundidad de la roca (capas, pozo, carteles, montacargas), pueblo que crece y ratones que acarrean.
-- Edificios de la cadena que se construyen solos, compra rápida de mejoras desde cada etapa, «BUY ALL» global y Cheesemaker que elige la mejor receta.
+- Primeros pasos a fuego lento: cada edificio de la cadena llega con una tarjeta que explica por qué aparece y lo construye el jugador. Compra rápida de mejoras desde cada etapa, «BUY ALL» global y Cheesemaker que elige la mejor receta.
 - Progreso offline con la misma simulación.
 
 Quitado respecto a la Alpha: almacén con capacidad, regateo, clientes con paciencia, Taste/Funk/Aroma, reputación, viajar entre zonas, rocas que se agotan y Mouse House con camas.

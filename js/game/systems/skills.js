@@ -84,9 +84,9 @@
       CM.emit(s, 'built', { id });
       return CM.ok();
     },
-    // Son gratis: se levantan solos en cuanto se cumple su condición.
-    autoBuild(s) {
-      for (const id of this.order) if (!s.built[id] && this.buildInfo(s, id).condOk) this.build(s, id);
+    // El siguiente edificio que ya se puede construir (o null).
+    nextReady(s) {
+      return this.order.find((id) => this.buildInfo(s, id).canBuild) || null;
     },
   };
 

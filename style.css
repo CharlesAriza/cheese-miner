@@ -1811,6 +1811,33 @@ button {
   background: #58704e;
 }
 
+/* ---------- Tarjetas de primeros pasos ---------- */
+.lead {
+  margin: 0 0 8px;
+  font-family: var(--text);
+  font-size: 15px;
+  line-height: 1.4;
+  color: #fff;
+}
+
+.lead b,
+.list b {
+  color: #ffe55c;
+}
+
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.harrow {
+  border: 9px solid transparent;
+  border-left: 12px solid #ffe55c;
+  margin-left: 8px;
+}
+
 @keyframes spend {
   0% {
     opacity: 0;

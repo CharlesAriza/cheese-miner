@@ -42,11 +42,11 @@
     const s = fresh();
     reveal(s);
     CM.construction.build(s, 'drill');
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 6; i++) {
       CM.drilling.tap(s, 'cheddar');
       run(s, q.drillDuration(s));
     }
-    CM.construction.build(s, 'refinery');
+    truthy(CM.construction.build(s, 'refinery').ok, 'refinery builds after enough raw');
     return s;
   }
   const COMBO = { base: 'cheddar', ingredient: 'herbs', treatment: 'washed', maturation: 'fresh' };
@@ -58,7 +58,7 @@
     eq(CM.construction.build(s, 'cheesery').ok, true, 'build cheesery');
     eq(CM.cheesery.experiment(s, COMBO).ok, true, 'experiment');
     run(s, CM.cheesery.jobTime(s, COMBO, null));
-    truthy(s.built.shop, 'the shop opens on its own once a recipe exists');
+    eq(CM.construction.build(s, 'shop').ok, true, 'build shop');
     run(s, STEP);
     return s;
   }
@@ -328,12 +328,21 @@
     valid(s);
   });
 
-  test('chain buildings unlock on their own; the cheesemaker picks the most valuable recipe', () => {
+  test('chain buildings wait for the player, in order; the cheesemaker picks the most valuable recipe', () => {
     const s = fresh();
-    eq(s.built.drill, false, 'nothing built at the start');
+    eq(CM.construction.nextReady(s), null, 'nothing to build at the start');
     reveal(s);
-    truthy(s.built.drill, 'drill appears once a vein is found');
-    eq(s.built.refinery, false, 'refinery still needs raw cheese');
+    run(s, 60000);
+    eq(s.built.drill, false, 'nothing is built on its own');
+    eq(CM.construction.nextReady(s), 'drill', 'the drill is offered once a vein is found');
+    CM.construction.build(s, 'drill');
+    eq(CM.construction.nextReady(s), null, 'the refinery waits for raw cheese');
+    while (s.totals.rawProduced < B.buildings.refinery.requires.min) {
+      if (CM.mining.status(s, 'cheddar') === 'ready') reveal(s);
+      CM.drilling.tap(s, 'cheddar');
+      run(s, q.drillDuration(s));
+    }
+    eq(CM.construction.nextReady(s), 'refinery', 'then the refinery is offered');
     const t = withCheese();
     truthy(t.built.cheesery && t.built.shop, 'cheesery and shop built');
     t.skills.cheesemaking.xp = q.xpForLevel(3);
@@ -455,11 +464,12 @@
 
   test('goal rewards are paid exactly once, and never for mining', () => {
     const s = fresh();
-    eq(B.goalRewards.vein, 0, 'finding a vein pays nothing');
     reveal(s);
     run(s, 1000);
-    truthy(s.built.drill, 'the drill unlocks on its own');
-    eq(s.coins, B.goalRewards.drill, 'only the drill unlock pays');
+    eq(s.coins, 0, 'finding a vein pays nothing');
+    CM.construction.build(s, 'drill');
+    run(s, STEP);
+    eq(s.coins, B.goalRewards.drill, 'reward for building the drill');
     const loaded = CM.storage.parse(JSON.stringify(s), 1);
     run(loaded, 60000);
     eq(loaded.coins, B.goalRewards.drill, 'not paid again after time or reload');

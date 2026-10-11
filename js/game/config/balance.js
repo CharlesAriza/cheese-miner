@@ -128,10 +128,12 @@ CM.BALANCE = {
   },
 
   // Edificios de la cadena: gratis, se desbloquean por hitos (son el tutorial).
+  // No se construyen solos: al cumplir la condición el juego para, explica para
+  // qué sirve el edificio y el jugador lo construye. A fuego lento.
   buildings: {
     drill: { name: 'Cheese Drill', requires: { total: 'veinsFound', min: 1, text: 'Reveal a cheese vein first' } },
-    refinery: { name: 'Refinery', requires: { total: 'rawProduced', min: 4, text: 'Drill 4 Raw Cheese first' } },
-    cheesery: { name: 'Cheesery', requires: { total: 'baseProduced', min: 3, text: 'Refine 3 Cheese Base first' } },
+    refinery: { name: 'Refinery', requires: { total: 'rawProduced', min: 10, text: 'Drill 10 Raw Cheese first' } },
+    cheesery: { name: 'Cheesery', requires: { total: 'baseProduced', min: 6, text: 'Refine 6 Cheese Base first' } },
     shop: { name: 'Cheese Shop', requires: { total: 'recipes', min: 1, text: 'Discover a recipe first' } },
   },
 

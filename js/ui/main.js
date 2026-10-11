@@ -278,7 +278,6 @@
       case 'built':
         punch();
         play('build');
-        banner(B.buildings[ev.id].name.toUpperCase() + ' BUILT!');
         scene.focus(ev.id);
         scene.celebrate();
         dirty = true;
@@ -290,10 +289,18 @@
         dirty = true;
         break;
       case 'goal':
-        play('goal');
-        scene.celebrate();
         retrigger($('objective'), 'done');
-        toast('Goal complete: ' + ev.text + (ev.reward ? '  +' + CM.fmt(ev.reward) + ' coins' : ''), true);
+        // Los primeros pasos ya tienen su propia tarjeta explicativa: sin más avisos encima.
+        if (UNLOCK[ev.id] || ev.id === 'vein') {
+          play('upgrade');
+        } else if (ev.id === 'sale') {
+          play('goal');
+          firstSaleCard();
+        } else {
+          play('goal');
+          scene.celebrate();
+          toast('Goal complete: ' + ev.text + (ev.reward ? '  +' + CM.fmt(ev.reward) + ' coins' : ''), true);
+        }
         if (ev.reward) fly(I.url('coin'), $('objective'), $('res-coins'), Math.min(5, 2 + Math.floor(ev.reward / 15)), () => bump('res-coins'));
         break;
     }
@@ -428,7 +435,7 @@
       // Se construye solo y gratis en cuanto se cumple la condición.
       m.kind = 'locked:' + st;
       m.label = 'LOCKED';
-      m.sub = b.condText;
+      m.sub = b.condOk ? 'Ready to build' : b.condText;
       m.mode = 'locked';
       m.tree = false;
       return m;
@@ -844,6 +851,48 @@
     if (isNew) banner('NEW RECIPE DISCOVERED!');
   }
 
+  // ---------- Primeros pasos, a fuego lento ----------
+  // Cada edificio de la cadena llega con una tarjeta que para el juego un
+  // momento, dice por qué aparece y para qué sirve, y lo construye el jugador.
+  // Nada aparece solo: así se entiende qué hace qué.
+  const UNLOCK = {
+    drill: { title: 'YOU FOUND A VEIN!', from: ['pick'], to: ['raw'], text: 'Picking the rock only <b>finds</b> the cheese. To get it out you need a drill.', then: 'Next: tap DRILL to pull Raw Cheese out of the vein.', button: 'BUILD THE CHEESE DRILL' },
+    refinery: { title: 'RAW CHEESE IS PILING UP', from: ['raw'], to: ['base'], text: 'Raw Cheese is not ready to use yet. The Refinery presses <b>2 Raw into 1 Cheese Base</b>.', then: 'Next: tap REFINE.', button: 'BUILD THE REFINERY' },
+    cheesery: { title: 'YOU HAVE CHEESE BASE', from: ['base'], to: ['lot'], text: 'Base is the main ingredient. In the Cheesery you mix it with three more things to make a <b>real cheese</b>.', then: 'Next: discover your first recipe.', button: 'BUILD THE CHEESERY' },
+    shop: { title: 'YOUR FIRST CHEESE!', from: ['lot'], to: ['coin'], text: 'Now it needs a place to be sold. A shop turns cheese into <b>coins</b>.', then: 'Next: tap SELL.', button: 'OPEN THE CHEESE SHOP' },
+  };
+  let unlockSeenAt = 0;
+  function checkUnlocks() {
+    const id = CM.construction.nextReady(state);
+    if (!id) return void (unlockSeenAt = 0);
+    if (!$('modal').hidden) return;
+    // Un respiro para que se vea lo que acaba de pasar antes de la tarjeta.
+    if (!unlockSeenAt) return void (unlockSeenAt = performance.now());
+    if (performance.now() - unlockSeenAt < 1300) return;
+    unlockSeenAt = 0;
+    const u = UNLOCK[id];
+    const base = baseOfZone();
+    closePanel();
+    play('reveal');
+    showModal(
+      '<h2>' + u.title + '</h2><div class="hero">' + I.img(u.from[0], base, 'huge') + '<span class="harrow"></span>' + I.img(u.to[0], base, 'huge') + '</div><p class="lead">' + u.text + '</p><p class="hint">' + u.then + '</p><div class="row"><button class="buy" data-m="ok">' + u.button + '</button></div>',
+      {
+        ok() {
+          report(CM.construction.build(state, id));
+          select(id);
+          dirty = true;
+        },
+      }
+    );
+  }
+  // Tras la primera venta: para qué sirven las monedas.
+  function firstSaleCard() {
+    showModal(
+      '<h2>YOUR FIRST COINS!</h2><div class="hero">' + I.img('coin', '', 'huge') + '</div><p class="lead">That is the whole chain: <b>mine, drill, refine, make cheese, sell</b>.</p><ul class="list"><li>Coins buy <b>upgrades</b>: the green button next to each action.</li><li>Each stage has a <b>mouse</b> you can hire to do it for you.</li><li>Every action gives experience. Levels unlock better upgrades.</li></ul><div class="row"><button class="buy" data-m="ok">GOT IT</button></div>',
+      { ok() {} }
+    );
+  }
+
   // Explica qué se acaba de comprar al abrir una roca.
   function zoneOpened(id) {
     const def = q.zoneDef(id);
@@ -1093,6 +1142,7 @@
       CM.telemetry.sample(state);
       updateRates();
       updateAfford();
+      checkUnlocks();
     }
     saveTick += real;
     if (dirty || saveTick > 5000) {

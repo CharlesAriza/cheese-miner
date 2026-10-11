@@ -20,7 +20,7 @@ Ejecutadas abriendo `tests.html` en el navegador. **22 de 22 pasan.**
 | Taps rápidos, recarga a mitad de ciclo y venta doble no duplican | pasa |
 | Recetas: descubrir, componentes bloqueados por nivel, renombrar, fabricar, persistir | pasa |
 | Líneas en paralelo: un queso escaso se refina y se cocina aunque otro tenga mucho más Raw | pasa |
-| Los edificios de la cadena se desbloquean solos; el Cheesemaker elige la receta más valiosa | pasa |
+| Los edificios de la cadena esperan al jugador, en orden; el Cheesemaker elige la receta más valiosa | pasa |
 | Valor del queso: fórmula, sinergias, maestría, bodega y nivel de Trading | pasa |
 | Cheesemaker y Shopkeeper llevan solos el final de la cadena, dentro de sus límites | pasa |
 | La automatización solo espera por lo que le falta, nunca por espacio | pasa |
@@ -47,7 +47,7 @@ Hechas sobre el juego real, pulsando los controles:
 - Árboles: cada nudo enseña el valor actual y el siguiente en unidades reales.
 - El edificio del almacén ya no cambia de tamaño ni pisa a los vecinos; apila cajas según lo guardado.
 - Líneas: con tres rocas abiertas el Blue se refina aunque haya 900 de Raw de Cheddar; cada fila enseña sus cantidades, sus barras y por qué está parada («No Blue recipe chosen»); al tocar una fila cambian escena y contadores.
-- Repaso de interfaz: el taladro se construye solo al encontrar la veta; la compra rápida y BUY ALL compran y descuentan; descubrir una receta no abre ventana; con la veta a la vista el botón de la roca taladra.
+- Repaso de interfaz: al encontrar la veta aparece la tarjeta del taladro y, al construirlo, las de refinería, quesería, tienda y primera venta, cada una a su tiempo; la compra rápida y BUY ALL compran y descuentan; descubrir una receta no abre ventana; con la veta a la vista el botón de la roca taladra.
 - Subsuelo: a profundidad 13 y 27 cambian las capas, el pozo llega al fondo con su cartel y aparece el montacargas.
 - Reiniciar deja la partida a cero.
 - Sin desbordamiento horizontal a 320×640 y 375×812.
