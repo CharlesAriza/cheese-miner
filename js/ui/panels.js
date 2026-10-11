@@ -3,24 +3,25 @@
 (function () {
   const B = CM.BALANCE;
   const q = CM.q;
+  const I = CM.icons;
 
   const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const secs = (ms) => (Math.round(ms / 100) / 10).toString().replace(/\.0$/, '') + 's';
-  const coin = (n) => '<span class="coin-txt"><i class="ico coin"></i>' + n + '</span>';
+  const coin = (n) => '<span class="coin-txt">' + I.img('coin') + n + '</span>';
+  const cost = (n) => (n > 0 ? coin(n) : 'FREE');
   const btn = (act, label, opts) => {
     const o = opts || {};
     return '<button data-act="' + act + '" class="' + (o.cls || '') + (o.off ? ' off' : '') + '">' + label + '</button>';
   };
   const row = (title, sub, right, cls) =>
     '<div class="rowc ' + (cls || '') + '"><div class="info"><b>' + title + '</b><small>' + sub + '</small></div><div class="side">' + right + '</div></div>';
-  const cost = (n) => (n > 0 ? coin(n) : 'FREE');
 
   // Explicación legible de por qué algo no se puede hacer.
   CM.REASONS = {
     'vein-exposed': 'Vein exposed: use the DRILL',
-    depleted: 'This deposit is exhausted. Open or switch deposits in BUILD',
+    depleted: 'This zone is exhausted. Open COLONY to travel',
     'no-vein': 'No vein exposed: mine the rock first',
-    'not-built': 'Build it first in BUILD',
+    'not-built': 'Build it first',
     'storage-full': 'Storage is full',
     'no-raw': 'Not enough Raw Cheese (need ' + B.refinery.rawPerBase + ')',
     'no-base': 'Not enough Cheese Base',
@@ -28,13 +29,13 @@
     locked: 'Not unlocked yet',
     'already-built': 'Already built',
     'max-level': 'Already at max level',
-    'no-house': 'Build the Mouse House first',
-    'no-beds': 'No free beds: upgrade the Mouse House',
+    'no-house': 'Build the Mouse House first (COLONY)',
+    'no-beds': 'No free beds: upgrade the Mouse House (COLONY)',
     'role-full': 'No more workers of that role in the alpha',
     busy: 'The Cheesery is busy',
     known: 'That recipe is already in your Recipe Book',
-    'base-locked': 'You have not opened that deposit yet',
-    'no-lots': 'Not enough lots of that cheese',
+    'base-locked': 'You have not opened that zone yet',
+    'no-lots': 'Not enough of that cheese',
     'no-match': 'That cheese does not meet the order',
     'order-gone': 'That order is gone',
     'not-in-alpha': 'Not available in the alpha',
@@ -42,34 +43,21 @@
     idle: 'Nothing is being made',
   };
 
-  const STATUS = {
-    active: ['Working', 'good'],
-    'vein-exposed': ['Waiting: vein exposed', 'warn'],
-    'waiting-vein': ['Waiting for a vein', 'warn'],
-    'no-material': ['No Raw Cheese', 'warn'],
-    'storage-full': ['Storage full', 'bad'],
-    'no-work': ['No work', 'bad'],
-    none: ['Not hired', 'dim'],
-  };
-
-  function machineLine(s, id) {
-    const caps = q.caps(s);
-    if (id === 'drill') return '+' + q.drillYield(s) + ' Raw / ' + secs(q.drillDuration(s));
-    if (id === 'refinery') return q.refineBatch(s) * B.refinery.rawPerBase + ' Raw > ' + q.refineBatch(s) + ' Base / ' + secs(q.refineDuration(s));
-    if (id === 'storage') return 'Raw ' + caps.raw + ' · Base ' + caps.base + ' · Lots ' + caps.lots;
-    if (id === 'house') return q.slots(s) + ' beds';
-    if (id === 'cheesery') return 'Discover recipes, make lots';
-    if (id === 'market') return 'Sell lots to buyers';
-    return '';
+  // Texto y tono del estado de un trabajador.
+  function workerStatus(role, st) {
+    const map = {
+      active: ['Working', 'good'],
+      'vein-exposed': ['Waiting: vein exposed', 'warn'],
+      'waiting-vein': ['Waiting for a vein', 'warn'],
+      'no-material': [role === 'cheesemaker' ? 'No Cheese Base' : 'No Raw Cheese', 'warn'],
+      'no-recipe': ['No recipe assigned', 'bad'],
+      'no-coins': ['No coins for the ingredient', 'bad'],
+      'storage-full': ['Storage full', 'bad'],
+      'no-work': ['No work', 'bad'],
+      none: ['Not hired', 'dim'],
+    };
+    return map[st] || map.none;
   }
-  const PITCH = {
-    drill: 'Extracts Raw Cheese from an exposed vein',
-    refinery: 'Turns Raw Cheese into Cheese Base',
-    cheesery: 'Turns Cheese Base into cheese lots',
-    market: 'Sells lots for coins',
-    storage: 'More room for Raw, Base and lots',
-    house: 'Beds for workers that automate stages',
-  };
 
   function upgradeBtn(s, id) {
     const u = CM.construction.upgradeInfo(s, id);
@@ -77,58 +65,52 @@
     return btn('upgrade:' + id, 'UPGRADE<br>' + coin(u.cost), { off: !u.canUpgrade, cls: 'buy' });
   }
 
-  function buildPanel(s) {
-    let h = '<h3>BUILDINGS</h3>';
-    for (const id of CM.construction.order) {
-      const def = B.buildings[id];
-      const info = CM.construction.buildInfo(s, id);
-      if (info.built) {
-        const lvl = B.upgrades[id] ? ' LV ' + (s.levels[id] + 1) : '';
-        h += row(def.name + lvl, machineLine(s, id), B.upgrades[id] ? upgradeBtn(s, id) : '<span class="tag">BUILT</span>');
-      } else if (!info.condOk) {
-        h += row(def.name, PITCH[id], '<span class="tag lock">' + esc(info.condText) + '</span>', 'locked');
-      } else {
-        h += row(def.name, PITCH[id], btn('build:' + id, 'BUILD<br>' + cost(info.cost), { off: !info.canBuild, cls: 'buy' }));
-      }
-    }
-    h += '<h3>TOOLS</h3>';
-    h += row('Pickaxe LV ' + (s.levels.pickaxe + 1), 'Search power ' + q.pickPower(s) + ' per hit', upgradeBtn(s, 'pickaxe'));
-    h += '<h3>DEPOSITS</h3>';
+  // ---------- COLONY: zonas, almacén, casa y trabajadores ----------
+  function colonyPanel(s) {
+    let h = '<h3>ZONES</h3><p class="hint">Each zone is a rock with its own cheese. Your colony and stock travel with you.</p>';
     for (const def of B.deposits) {
       const d = s.deposits[def.id];
       const phase = q.depPhase(s, def.id);
-      const veins = 'Veins ' + Math.min(d.veinIndex + (d.veinRevealed ? 1 : 0), def.veins.length) + '/' + def.veins.length;
+      const icon = I.img('raw', def.base, 'big');
+      const done = Math.min(d.veinIndex + (d.veinRevealed ? 1 : 0), def.veins.length);
       if (def.inAlpha === false) {
-        h += row(def.name, 'Not in this alpha', '<span class="tag lock">SOON</span>', 'locked');
+        h += '<div class="zone locked">' + icon + '<div class="info"><b>' + def.name + '</b><small>Coming after the alpha</small></div><div class="side"><span class="tag lock">SOON</span></div></div>';
       } else if (!d.unlocked) {
         const c = CM.deposits.unlockCost(s, def.id);
-        h += row(def.name, 'New base: ' + B.bases[def.base].name + '. Bigger veins', btn('unlock:' + def.id, 'OPEN<br>' + cost(c), { off: s.coins < c, cls: 'buy' }));
+        const total = def.veins.reduce((a, v) => a + v.capacity, 0);
+        h += '<div class="zone">' + icon + '<div class="info"><b>' + def.name + '</b><small>New cheese: ' + B.bases[def.base].name + ' · ' + def.veins.length + ' veins · ' + total + ' Raw · new recipes</small></div><div class="side">' + btn('unlock:' + def.id, 'OPEN ZONE<br>' + cost(c), { off: s.coins < c, cls: 'buy' }) + '</div></div>';
       } else {
-        const state = phase === 'depleted' ? 'Exhausted' : phase === 'vein_revealed' ? d.veinRemaining + ' Raw left in vein' : 'Searching ' + d.discover + '/' + q.veinDef(s, def.id).hits;
-        const right = s.activeDeposit === def.id ? '<span class="tag">ACTIVE</span>' : btn('switch:' + def.id, 'GO', { cls: 'buy' });
-        h += row(def.name, veins + ' · ' + state, right, phase === 'depleted' ? 'locked' : '');
+        const here = s.activeDeposit === def.id;
+        const text = phase === 'depleted' ? 'Exhausted' : phase === 'vein_revealed' ? d.veinRemaining + ' Raw left in this vein' : 'Searching ' + d.discover + '/' + q.veinDef(s, def.id).hits;
+        const right = here ? '<span class="tag here">YOU ARE<br>HERE</span>' : phase === 'depleted' ? '<span class="tag lock">EMPTY</span>' : btn('switch:' + def.id, 'TRAVEL', { cls: 'buy' });
+        h += '<div class="zone' + (here ? ' active' : '') + (phase === 'depleted' ? ' locked' : '') + '">' + icon + '<div class="info"><b>' + def.name + '</b><small>Vein ' + done + '/' + def.veins.length + ' · ' + text + '</small></div><div class="side">' + right + '</div></div>';
       }
     }
-    return h;
-  }
 
-  function workersPanel(s) {
+    h += '<h3>STORAGE</h3>';
+    const caps = q.caps(s);
+    const capLine = 'Raw ' + q.rawTotal(s) + '/' + caps.raw + ' · Base ' + q.baseTotal(s) + '/' + caps.base + ' · Cheese ' + q.lotsTotal(s) + '/' + caps.lots;
+    if (s.built.storage) h += row('Storage LV ' + (s.levels.storage + 1), capLine, upgradeBtn(s, 'storage'));
+    else {
+      const info = CM.construction.buildInfo(s, 'storage');
+      h += row('Storage', capLine + '<br>Building it more than doubles every limit', btn('build:storage', 'BUILD<br>' + cost(info.cost), { off: !info.canBuild, cls: 'buy' }));
+    }
+
+    h += '<h3>MOUSE HOUSE &amp; WORKERS</h3>';
     if (!s.built.house) {
       const info = CM.construction.buildInfo(s, 'house');
-      return (
-        '<p class="hint">Workers automate a stage so it keeps running without taps, even while you are away. They need beds.</p>' +
-        row('Mouse House', PITCH.house, btn('build:house', 'BUILD<br>' + cost(info.cost), { off: !info.canBuild, cls: 'buy' }))
-      );
+      h += '<p class="hint">Workers keep a stage running with no taps, even while you are away. They need beds.</p>';
+      h += row('Mouse House', '2 beds for workers', btn('build:house', 'BUILD<br>' + cost(info.cost), { off: !info.canBuild, cls: 'buy' }));
+    } else {
+      h += row('Mouse House LV ' + (s.levels.house + 1), 'Beds ' + q.workersTotal(s) + '/' + q.slots(s), upgradeBtn(s, 'house'));
     }
-    let h = '<p class="hint">Beds ' + q.workersTotal(s) + '/' + q.slots(s) + '. Workers automate; upgrades (BUILD) make machines faster.</p>';
     for (const role of CM.workers.roles) {
       const def = B.workers[role];
       const info = CM.workers.hireInfo(s, role);
-      const st = STATUS[CM.workers.status(s, role)];
+      const st = workerStatus(role, CM.workers.status(s, role));
       const right = info.maxed ? '<span class="tag">HIRED</span>' : btn('hire:' + role, 'HIRE<br>' + coin(info.cost), { off: !info.canHire, cls: 'buy' });
-      h += row(def.name + ' ' + s.workers[role] + '/' + def.max, def.does + '<br><span class="st ' + st[1] + '">' + st[0] + '</span>', right);
+      h += row(def.name + ' ' + s.workers[role] + '/' + def.max, def.does + '<br><span class="st ' + st[1] + '">' + st[0] + '</span>', right, s.built.house ? '' : 'locked');
     }
-    h += row('Mouse House LV ' + (s.levels.house + 1), q.slots(s) + ' beds', upgradeBtn(s, 'house'));
     return h;
   }
 
@@ -139,72 +121,65 @@
     return [B.bases[combo.base].name, B.ingredients[combo.ingredient].name, B.treatments[combo.treatment].name, B.maturations[combo.maturation].name].join(' + ');
   }
 
-  function baseStock(s) {
-    return CM.cheesery
-      .unlockedBases(s)
-      .map((b) => B.bases[b].name + ' Base ' + s.inv.base[b])
-      .join(' · ');
-  }
-
+  // ---------- CHEESERY ----------
   function cheesePanel(s, ui) {
-    if (!s.built.cheesery) {
-      const info = CM.construction.buildInfo(s, 'cheesery');
-      const right = info.condOk ? btn('build:cheesery', 'BUILD<br>' + cost(info.cost), { off: !info.canBuild, cls: 'buy' }) : '<span class="tag lock">' + esc(info.condText) + '</span>';
-      return row('Cheesery', PITCH.cheesery, right);
-    }
     const C = CM.cheesery;
     const job = s.jobs.cheesery;
+    const hasCook = s.workers.cheesemaker > 0;
     let h = '';
     if (job) {
       const r = job.recipeId ? C.recipe(s, job.recipeId) : null;
-      const label = job.kind === 'experiment' && !r ? 'Experimenting...' : 'Making ' + esc(r ? r.name : 'cheese') + ' (' + job.lotsLeft + ' left)';
+      const label = job.kind === 'experiment' && !r ? 'Experimenting...' : 'Making ' + esc(r ? r.name : 'cheese') + (job.lotsLeft > 1 ? ' (' + job.lotsLeft + ' left)' : '');
       h += '<div class="jobbar"><span>' + label + '</span><div class="bar"><i data-job="cheesery"></i></div>' + btn('cheeseTap', 'SPEED UP', { cls: 'buy' }) + '</div>';
     }
-    h += '<p class="hint">' + baseStock(s) + ' · Lots ' + q.lotsTotal(s) + '/' + q.caps(s).lots + '</p>';
+    h += '<p class="hint stock">' + C.unlockedBases(s).map((b) => I.img('base', b) + B.bases[b].name + ' Base ' + s.inv.base[b]).join(' &nbsp; ') + ' &nbsp; ' + I.img('lot', 'cheddar') + 'Cheese ' + q.lotsTotal(s) + '/' + q.caps(s).lots + '</p>';
     h += '<div class="tabs">' + btn('tab:experiment', 'EXPERIMENT', { cls: ui.cheeseTab === 'experiment' ? 'on' : '' }) + btn('tab:book', 'RECIPE BOOK ' + s.recipes.length, { cls: ui.cheeseTab === 'book' ? 'on' : '' }) + '</div>';
 
     if (ui.cheeseTab === 'experiment') {
       const combo = ui.combo;
       if (C.unlockedBases(s).indexOf(combo.base) < 0) combo.base = C.unlockedBases(s)[0];
       const groups = [
-        ['base', 'BASE', C.unlockedBases(s).map((k) => [k, B.bases[k].name, 'have ' + s.inv.base[k]])],
-        ['ingredient', 'INGREDIENT', Object.keys(B.ingredients).map((k) => [k, B.ingredients[k].name, B.ingredients[k].coinCost ? B.ingredients[k].coinCost + ' coins' : 'free'])],
-        ['treatment', 'TREATMENT', Object.keys(B.treatments).map((k) => [k, B.treatments[k].name, B.treatments[k].timeMs ? '+' + secs(B.treatments[k].timeMs) : 'quick'])],
-        ['maturation', 'MATURATION', Object.keys(B.maturations).map((k) => [k, B.maturations[k].name, B.maturations[k].timeMs ? '+' + secs(B.maturations[k].timeMs) : 'quick'])],
+        ['base', '1 · BASE', C.unlockedBases(s).map((k) => [k, I.img('base', k) + B.bases[k].name, 'have ' + s.inv.base[k]])],
+        ['ingredient', '2 · INGREDIENT', Object.keys(B.ingredients).map((k) => [k, B.ingredients[k].name, B.ingredients[k].coinCost ? B.ingredients[k].coinCost + ' coins' : 'free'])],
+        ['treatment', '3 · TREATMENT', Object.keys(B.treatments).map((k) => [k, B.treatments[k].name, B.treatments[k].timeMs ? '+' + secs(B.treatments[k].timeMs) : 'quick'])],
+        ['maturation', '4 · MATURATION', Object.keys(B.maturations).map((k) => [k, B.maturations[k].name, B.maturations[k].timeMs ? '+' + secs(B.maturations[k].timeMs) + ', worth more' : 'quick'])],
       ];
       for (const g of groups) {
         h += '<div class="pick"><span>' + g[1] + '</span><div>';
-        for (const o of g[2]) h += btn('pick:' + g[0] + ':' + o[0], esc(o[1]) + '<small>' + o[2] + '</small>', { cls: 'chip' + (combo[g[0]] === o[0] ? ' on' : '') });
+        for (const o of g[2]) h += btn('pick:' + g[0] + ':' + o[0], o[1] + '<small>' + o[2] + '</small>', { cls: 'chip' + (combo[g[0]] === o[0] ? ' on' : '') });
         h += '</div></div>';
       }
       const known = C.recipeByKey(s, C.keyOf(combo));
       const coins = B.ingredients[combo.ingredient].coinCost;
       if (known) {
-        h += '<div class="result"><b>' + esc(known.name) + '</b><div>' + statLine(C.statsOf(known)) + '</div><small>Already in your Recipe Book</small></div>';
+        h += '<div class="result">' + I.img('lot', combo.base, 'big') + '<div><b>' + esc(known.name) + '</b><div>' + statLine(C.statsOf(known)) + '</div><small>Already in your Recipe Book</small></div></div>';
       } else {
         const can = !job && s.inv.base[combo.base] >= B.cheesery.experimentBase && s.coins >= coins && q.lotsSpace(s) >= 1;
-        h +=
-          '<div class="result"><b>Unknown cheese</b><div><span class="stat">Taste ?</span><span class="stat">Funk ?</span><span class="stat">Aroma ?</span><span class="stat">Value ?</span></div><small>Costs ' +
-          B.cheesery.experimentBase + ' ' + B.bases[combo.base].name + ' Base' + (coins ? ' + ' + coins + ' coins' : '') + ' · ' + secs(C.lotTime(combo)) + ' · gives the recipe and 1 lot</small></div>';
+        h += '<div class="result"><div><b>Unknown cheese</b><div><span class="stat">Taste ?</span><span class="stat">Funk ?</span><span class="stat">Aroma ?</span><span class="stat">Value ?</span></div><small>Costs ' + B.cheesery.experimentBase + ' ' + B.bases[combo.base].name + ' Base' + (coins ? ' + ' + coins + ' coins' : '') + ' · ' + secs(C.lotTime(combo)) + ' · gives the recipe and 1 cheese</small></div></div>';
         h += btn('experiment', 'EXPERIMENT', { off: !can, cls: 'buy wide' });
       }
-    } else if (!s.recipes.length) {
-      h += '<p class="hint">No recipes yet. Try a combination in EXPERIMENT.</p>';
-    } else {
-      for (const r of s.recipes) {
-        const combo = C.parseKey(r.key);
-        const st = C.statsOf(r);
-        const coins = B.ingredients[combo.ingredient].coinCost;
-        const canMake = (n) => !job && s.inv.base[combo.base] >= B.cheesery.lotBase * n && s.coins >= coins * n && q.lotsSpace(s) >= n;
-        h +=
-          '<div class="recipe"><div class="rhead"><b>' + esc(r.name) + '</b>' + btn('rename:' + r.id, 'RENAME', { cls: 'mini' }) + '</div><small>' + comboLine(combo) + (st.synergies.length ? ' · Synergy: ' + st.synergies.join(', ') : '') + '</small><div>' + statLine(st) +
-          '</div><div class="rfoot"><span>In stock: ' + (s.lots[r.id] || 0) + ' · ' + B.cheesery.lotBase + ' Base' + (coins ? ' + ' + coins + 'c' : '') + ' / lot · ' + secs(C.lotTime(combo)) + '</span><span>' +
-          btn('make:' + r.id + ':1', 'MAKE 1', { off: !canMake(1), cls: 'buy' }) + btn('make:' + r.id + ':3', 'MAKE 3', { off: !canMake(3), cls: 'buy' }) + '</span></div></div>';
-      }
+      return h;
+    }
+
+    if (!s.recipes.length) return h + '<p class="hint">No recipes yet. Try a combination in EXPERIMENT.</p>';
+    if (hasCook) h += '<p class="hint">Your Cheesemaker cooks one recipe non-stop. Pick which with COOK THIS.</p>';
+    else h += '<p class="hint">Tip: hire a Cheesemaker (COLONY) to cook a recipe automatically.</p>';
+    for (const r of s.recipes) {
+      const combo = C.parseKey(r.key);
+      const st = C.statsOf(r);
+      const coins = B.ingredients[combo.ingredient].coinCost;
+      const max = Math.max(0, Math.min(B.cheesery.maxQueue, Math.floor(s.inv.base[combo.base] / B.cheesery.lotBase), q.lotsSpace(s), coins ? Math.floor(s.coins / coins) : 99));
+      const cooking = hasCook && s.cookRecipe === r.id;
+      h +=
+        '<div class="recipe' + (cooking ? ' cooking' : '') + '"><div class="rhead">' + I.img('lot', combo.base, 'big') + '<b>' + esc(r.name) + '</b>' + btn('rename:' + r.id, 'RENAME', { cls: 'mini' }) + '</div><small>' + comboLine(combo) + (st.synergies.length ? ' · Synergy: ' + st.synergies.join(', ') : '') + '</small><div>' + statLine(st) +
+        '</div><div class="rfoot"><span>In stock: ' + (s.lots[r.id] || 0) + ' · ' + B.cheesery.lotBase + ' Base' + (coins ? ' + ' + coins + 'c' : '') + ' each · ' + secs(C.lotTime(combo)) + '</span><span>' +
+        btn('make:' + r.id + ':1', 'MAKE 1', { off: job || max < 1, cls: 'buy' }) + btn('make:' + r.id + ':' + Math.max(1, max), 'MAKE ' + (max > 1 ? max : 'MAX'), { off: job || max < 2, cls: 'buy' }) + '</span></div>' +
+        (hasCook ? btn(cooking ? 'cook:' : 'cook:' + r.id, cooking ? 'COOKING THIS · TAP TO STOP' : 'COOK THIS', { cls: 'wide ' + (cooking ? 'on' : '') }) : '') + '</div>';
     }
     return h;
   }
 
+  // ---------- MARKET ----------
   function wants(order) {
     const out = [];
     const req = order.req;
@@ -217,12 +192,7 @@
   }
 
   function marketPanel(s) {
-    if (!s.built.market) {
-      const info = CM.construction.buildInfo(s, 'market');
-      const right = info.condOk ? btn('build:market', 'BUILD<br>' + cost(info.cost), { off: !info.canBuild, cls: 'buy' }) : '<span class="tag lock">' + esc(info.condText) + '</span>';
-      return row('Market', PITCH.market, right);
-    }
-    let h = '<p class="hint">Pick a lot that meets what each buyer wants. Better buyers show up as you sell.</p>';
+    let h = '<p class="hint">Give each buyer a cheese that meets what they want. Better buyers show up as you sell.</p>';
     for (let i = 0; i < B.merchant.slots; i++) {
       const order = s.orders[i];
       if (!order || !order.id) {
@@ -230,22 +200,24 @@
         continue;
       }
       const buyer = B.merchant.buyers[order.buyer];
-      h += '<div class="order"><div class="rhead"><b>' + buyer.name + ' · wants ' + order.qty + ' lot' + (order.qty > 1 ? 's' : '') + '</b>' + btn('decline:' + order.id, 'DECLINE', { cls: 'mini' }) + '</div><small>' + buyer.blurb + ' · pays x' + buyer.priceMult + '</small><div>' + wants(order) + '</div>';
-      const stocked = s.recipes.filter((r) => (s.lots[r.id] || 0) > 0);
-      if (!stocked.length) h += '<small class="none">You have no lots. Make cheese in CHEESE.</small>';
-      for (const r of stocked) {
-        const ok = CM.merchant.matches(order, r);
-        const enough = s.lots[r.id] >= order.qty;
-        const quote = CM.merchant.quote(order, r);
-        const why = !ok ? 'does not match' : !enough ? 'need ' + order.qty : coin(quote.total) + (quote.bonus ? ' bonus!' : '');
-        h += btn('deliver:' + order.id + ':' + r.id, '<span>' + esc(r.name) + ' x' + s.lots[r.id] + '</span><span>' + why + '</span>', { off: !ok || !enough, cls: 'deliver' });
-      }
+      h += '<div class="order"><div class="rhead"><b>' + buyer.name + ' · wants ' + order.qty + ' cheese' + (order.qty > 1 ? 's' : '') + '</b>' + btn('decline:' + order.id, 'DECLINE', { cls: 'mini' }) + '</div><small>' + buyer.blurb + ' · pays x' + buyer.priceMult + '</small><div>' + wants(order) + '</div>';
+      const stocked = s.recipes
+        .filter((r) => (s.lots[r.id] || 0) > 0)
+        .map((r) => ({ r, ok: CM.merchant.matches(order, r), enough: s.lots[r.id] >= order.qty, quote: CM.merchant.quote(order, r) }))
+        .sort((a, b) => (b.ok && b.enough ? b.quote.total : -1) - (a.ok && a.enough ? a.quote.total : -1));
+      if (!stocked.length) h += '<small class="none">You have no cheese to sell. Make some in the Cheesery.</small>';
+      stocked.forEach((x, n) => {
+        const good = x.ok && x.enough;
+        const why = !x.ok ? 'does not match' : !x.enough ? 'need ' + order.qty : coin(x.quote.total) + (x.quote.bonus ? ' bonus!' : '');
+        const base = CM.cheesery.parseKey(x.r.key).base;
+        h += btn('deliver:' + order.id + ':' + x.r.id, '<span>' + I.img('lot', base) + esc(x.r.name) + ' x' + s.lots[x.r.id] + (good && n === 0 && stocked.length > 1 ? ' · BEST' : '') + '</span><span>' + why + '</span>', { off: !good, cls: 'deliver' });
+      });
       h += '</div>';
     }
     return h;
   }
 
-  function optionsPanel(s, ui) {
+  function optionsPanel(s) {
     return (
       row('Sound', 'Synth effects', btn('sound', CM.sfx.isMuted() ? 'OFF' : 'ON', { cls: 'buy' })) +
       row('Export save', 'Save + metrics + events as JSON', btn('export', 'EXPORT', { cls: 'buy' })) +
@@ -256,13 +228,13 @@
     );
   }
 
-  function devPanel(s) {
+  function devPanel() {
     const D = CM.dev;
     const g = (items) => '<div class="devgrid">' + items.map((i) => btn('dev:' + i[0], i[1], { cls: 'chip' + (i[2] ? ' on' : '') })).join('') + '</div>';
     return (
       '<h3>TIME</h3>' + g([['speed:1', 'x1', D.speed === 1], ['speed:2', 'x2', D.speed === 2], ['speed:10', 'x10', D.speed === 10], ['pause', D.paused ? 'RESUME' : 'PAUSE', D.paused]]) +
       '<h3>GIVE</h3>' + g([['coins', '+200 coins'], ['raw', '+10 raw'], ['base', '+10 base'], ['reveal', 'reveal vein']]) +
-      '<h3>UNLOCK</h3>' + g([['buildings', 'all buildings'], ['deposits', 'all deposits'], ['hire', 'hire all'], ['lvl:drill', 'drill +1'], ['lvl:refinery', 'refinery +1'], ['lvl:pickaxe', 'pickaxe +1'], ['lvl:storage', 'storage +1']]) +
+      '<h3>UNLOCK</h3>' + g([['buildings', 'all buildings'], ['deposits', 'all zones'], ['hire', 'hire all'], ['lvl:drill', 'drill +1'], ['lvl:refinery', 'refinery +1'], ['lvl:pickaxe', 'pickaxe +1'], ['lvl:storage', 'storage +1']]) +
       '<h3>FORCE</h3>' + g([['full', 'storage full'], ['veinout', 'vein depleted'], ['noraw', 'no raw']]) +
       '<h3>SCENARIO</h3>' + g([['scn:chain', 'chain ready'], ['scn:colony', 'colony + coins'], ['scn:fresh', 'new game']]) +
       '<h3>REPORT</h3><pre class="report" id="dev-report"></pre>' + btn('export', 'EXPORT JSON', { cls: 'buy wide' })
@@ -271,11 +243,16 @@
 
   CM.panels = {
     esc,
+    secs,
+    coin,
+    cost,
+    btn,
     statLine,
     comboLine,
-    TITLES: { build: 'BUILD', workers: 'WORKERS', cheese: 'CHEESERY', market: 'MARKET', options: 'OPTIONS', dev: 'PLAYTEST TOOLS' },
+    workerStatus,
+    TITLES: { colony: 'COLONY', cheese: 'CHEESERY', market: 'MARKET', options: 'OPTIONS', dev: 'PLAYTEST TOOLS' },
     render(name, s, ui) {
-      return { build: buildPanel, workers: workersPanel, cheese: cheesePanel, market: marketPanel, options: optionsPanel, dev: devPanel }[name](s, ui);
+      return { colony: colonyPanel, cheese: cheesePanel, market: marketPanel, options: optionsPanel, dev: devPanel }[name](s, ui);
     },
   };
 })();

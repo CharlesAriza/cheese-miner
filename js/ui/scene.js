@@ -21,24 +21,7 @@
   }
   const h2 = (x, y, seed) => hash(x * 374761393 + y * 668265263 + seed * 982451653);
 
-  function makeSprite(rows, palette, outline) {
-    const w = Math.max(...rows.map((r) => r.length));
-    const c = document.createElement('canvas');
-    c.width = w + 2;
-    c.height = rows.length + 2;
-    const g = c.getContext('2d');
-    const at = (x, y) => (rows[y] && rows[y][x] && rows[y][x] !== '.' ? rows[y][x] : null);
-    for (let y = -1; y <= rows.length; y++) {
-      for (let x = -1; x <= w; x++) {
-        const ch = at(x, y);
-        if (ch) g.fillStyle = palette[ch];
-        else if (at(x - 1, y) || at(x + 1, y) || at(x, y - 1) || at(x, y + 1)) g.fillStyle = outline;
-        else continue;
-        g.fillRect(x + 1, y + 1, 1, 1);
-      }
-    }
-    return c;
-  }
+  const makeSprite = CM.makeSprite;
 
   // SPRITE: ratón (mira a la derecha). El casco cambia de color según el rol.
   const MOUSE_ROWS = [
@@ -81,6 +64,7 @@
     driller: makeSprite(MOUSE_ROWS, mousePalette('#e2562a', '#9c2f14', '#ffe55c'), '#2a1d2e'),
     refiner: makeSprite(MOUSE_ROWS, mousePalette('#4a8fe8', '#2b5cab', '#dff3ff'), '#2a1d2e'),
     merchant: makeSprite(MOUSE_ROWS, mousePalette('#5fcf6a', '#2f8f44', '#fff3a0'), '#2a1d2e'),
+    cheesemaker: makeSprite(MOUSE_ROWS, mousePalette('#ffffff', '#c9d0df', '#ffffff'), '#2a1d2e'),
   };
   const MOUSE_W = MICE.player.width;
   const MOUSE_H = MICE.player.height;
@@ -154,6 +138,13 @@
     return c;
   }
 
+  // Cada zona tiñe el paisaje, para que cambiar de yacimiento se note.
+  const ZONE_BG = {
+    cheddar: { sky: ['#2f8fe6', '#3ea0f0', '#55b2f6', '#74c4fa', '#98d7fc', '#bfe8fd'], mount: '#7fb4d8', far: '#5fbf9a', farTop: '#86dcb4', tree: '#2f8f55', treeHi: '#4fb873', near: '#3fa860', sun: '#fff3a0' },
+    gouda: { sky: ['#e8743a', '#f08a45', '#f6a258', '#fabb74', '#fcd398', '#fde6bf'], mount: '#b98a9a', far: '#c9903a', farTop: '#e6b35a', tree: '#b9521f', treeHi: '#e07a2a', near: '#8fa23a', sun: '#fff0c0' },
+    blue: { sky: ['#2a3f8a', '#34509f', '#4666b8', '#6384cc', '#8aa6dd', '#b8cbec'], mount: '#6f7fb0', far: '#4f8f9a', farTop: '#6fb3bd', tree: '#2a6f7a', treeHi: '#3f95a1', near: '#3f8f7a', sun: '#e6f0ff' },
+  };
+
   CM.createScene = function (canvas) {
     const ctx = canvas.getContext('2d');
     let H = 240;
@@ -174,6 +165,8 @@
       cam: WORLD - W,
       camTarget: WORLD - W,
       popAt: {},
+      selected: 'rock',
+      zone: 'cheddar',
     };
 
     const R = (x, y, w, h, color) => {
@@ -264,6 +257,7 @@
           break;
         case 'depositSwitched':
           fx.station = 'mine';
+          fx.flash = 0.8;
           fx.rockDropAt = now;
           fx.rockLanded = false;
           break;
@@ -272,14 +266,15 @@
 
     // ---------- Fondo ----------
     function drawBackground(now) {
-      const bands = ['#2f8fe6', '#3ea0f0', '#55b2f6', '#74c4fa', '#98d7fc', '#bfe8fd'];
+      const Z = ZONE_BG[fx.zone] || ZONE_BG.cheddar;
+      const bands = Z.sky;
       const horizon = groundY - 14;
       const bandH = Math.ceil(horizon / bands.length);
       bands.forEach((color, i) => R(0, i * bandH, W, bandH + 1, color));
-      R(0, horizon, W, 16, '#bfe8fd');
-      R(W - 34, 14, 12, 12, '#fff3a0');
-      R(W - 36, 16, 16, 8, '#fff3a0');
-      R(W - 32, 12, 8, 16, '#fff3a0');
+      R(0, horizon, W, 16, bands[5]);
+      R(W - 34, 14, 12, 12, Z.sun);
+      R(W - 36, 16, 16, 8, Z.sun);
+      R(W - 32, 12, 8, 16, Z.sun);
 
       for (let i = 0; i < 4; i++) {
         const x = ((i * 67 + now * (0.004 + i * 0.0012) - fx.cam * 0.05) % (W + 60) + W + 60) % (W + 60) - 40;
@@ -292,29 +287,29 @@
       for (let x = 0; x < W; x++) {
         const wx = x + fx.cam * 0.15;
         const m = 34 + Math.abs(((wx * 0.9) % 70) - 35) * -0.9 + 32 + Math.sin(wx * 0.07) * 4;
-        R(x, groundY - m, 1, m, '#7fb4d8');
+        R(x, groundY - m, 1, m, Z.mount);
         if (m > 52) R(x, groundY - m, 1, Math.min(5, m - 52), '#eef8ff');
       }
       // Colinas con arbolado (parallax medio)
       for (let x = 0; x < W; x++) {
         const wx = x + fx.cam * 0.4;
         const farH = 26 + Math.sin(wx * 0.045) * 9 + Math.sin(wx * 0.11 + 1) * 4;
-        R(x, groundY - farH, 1, farH, '#5fbf9a');
-        R(x, groundY - farH, 1, 2, '#86dcb4');
+        R(x, groundY - farH, 1, farH, Z.far);
+        R(x, groundY - farH, 1, 2, Z.farTop);
       }
       for (let i = 0; i < 9; i++) {
         const tx = Math.round(i * 44 + hash(i + 70) * 20 - fx.cam * 0.4);
         if (tx < -16 || tx > W + 4) continue;
         const ty = groundY - 20 - Math.round(hash(i + 90) * 8);
         R(tx + 5, ty + 8, 2, 12, '#6b4a2b');
-        R(tx, ty, 12, 9, '#2f8f55');
-        R(tx + 2, ty - 3, 8, 4, '#2f8f55');
-        R(tx + 1, ty + 1, 5, 3, '#4fb873');
+        R(tx, ty, 12, 9, Z.tree);
+        R(tx + 2, ty - 3, 8, 4, Z.tree);
+        R(tx + 1, ty + 1, 5, 3, Z.treeHi);
       }
       for (let x = 0; x < W; x++) {
         const wx = x + fx.cam * 0.7;
         const nearH = 9 + Math.sin(wx * 0.08 + 2) * 4 + Math.sin(wx * 0.21) * 2;
-        R(x, groundY - nearH, 1, nearH, '#3fa860');
+        R(x, groundY - nearH, 1, nearH, Z.near);
       }
     }
 
@@ -631,6 +626,10 @@
         const active = !!state.jobs.drill;
         drawMouseSprite(MICE.driller, POS.drill - 6, groundY - MOUSE_H - 8 + (active ? beat(60) : beat(700)), false, null);
       }
+      if (state.workers.cheesemaker > 0) {
+        const active = !!state.jobs.cheesery;
+        drawMouseSprite(MICE.cheesemaker, POS.cheesery + 38, groundY - MOUSE_H + 2 + (active ? beat(110) : beat(700)), true, null);
+      }
       if (state.workers.refiner > 0) {
         const active = !!state.jobs.refinery;
         drawMouseSprite(MICE.refiner, POS.refinery + 36, groundY - MOUSE_H + 2 + (active ? beat(90) : beat(700)), true, null);
@@ -650,6 +649,22 @@
       const mining = station === 'mine' && !walking;
       const angle = mining ? swing((now - fx.swingAt) / 170, -1.15 + Math.sin(now / 420) * 0.05) : null;
       drawMouseSprite(MICE.player, fx.mouseX, groundY - MOUSE_H + 2 + bob, faceLeft, angle);
+    }
+
+    // Flecha que marca la estación seleccionada.
+    function drawSelection(now) {
+      const id = fx.selected;
+      if (!POS[id]) return;
+      const x = Math.round(center(id)) - 3;
+      const y = (id === 'rock' ? rockY() - 20 : id === 'drill' ? groundY - 30 : groundY - 52) + Math.round(Math.sin(now / 180) * 2);
+      R(x - 1, y - 1, 9, 3, '#1b1622');
+      R(x, y + 2, 7, 2, '#1b1622');
+      R(x + 1, y + 4, 5, 2, '#1b1622');
+      R(x + 2, y + 6, 3, 2, '#1b1622');
+      R(x, y, 7, 2, '#ffe55c');
+      R(x + 1, y + 2, 5, 2, '#ffcf2e');
+      R(x + 2, y + 4, 3, 2, '#ffcf2e');
+      R(x + 3, y + 6, 1, 1, '#f5ab12');
     }
 
     function drawParticles(dt) {
@@ -680,6 +695,7 @@
       fx.shake *= Math.exp(-dt * 11);
       fx.flash = Math.max(0, fx.flash - dt * 2.2);
       fx.cam += (fx.camTarget - fx.cam) * Math.min(1, dt * 8);
+      fx.zone = q.depDef(state.activeDeposit).base;
       drawBackground(now);
       drawGround();
       const sx = fx.shake > 0.3 ? Math.round((Math.random() - 0.5) * 2 * fx.shake) : 0;
@@ -695,6 +711,7 @@
       else if (CM.construction.buildInfo(state, 'drill').condOk) drawPlot('drill', state, now);
       drawWorkers(state, now);
       drawPlayer(state, now, dt);
+      drawSelection(now);
       drawParticles(dt);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       if (fx.flash > 0) R(0, 0, W, H, 'rgba(255,255,255,' + fx.flash.toFixed(2) + ')');
@@ -703,7 +720,7 @@
     function reset() {
       particles.length = 0;
       rockCache = { key: '', img: null };
-      Object.assign(fx, { shake: 0, flash: 0, station: 'mine', rockDropAt: far, rockLanded: true, popAt: {}, mouseX: POS.rock - 22 });
+      Object.assign(fx, { shake: 0, flash: 0, selected: 'rock', station: 'mine', rockDropAt: far, rockLanded: true, popAt: {}, mouseX: POS.rock - 22 });
       focus('rock');
       fx.cam = fx.camTarget;
     }
@@ -719,6 +736,16 @@
       reset,
       focus(id) {
         focus(id === 'drill' ? 'rock' : id);
+      },
+      select(id) {
+        fx.selected = id;
+      },
+      // Lluvia de confeti para los hitos.
+      celebrate() {
+        const colors = ['#ffe55c', '#ff5a7a', '#5fcf6a', '#74c4fa', '#ffffff', '#ff9a2e'];
+        for (let i = 0; i < 60; i++) {
+          particles.push({ x: fx.cam + Math.random() * W, y: -4 - Math.random() * 30, vx: (Math.random() - 0.5) * 40, vy: 30 + Math.random() * 60, g: 60, life: 1.2 + Math.random() * 0.8, size: Math.random() < 0.5 ? 2 : 1, color: colors[i % colors.length] });
+        }
       },
       panBy(logicalPx) {
         fx.camTarget = Math.max(0, Math.min(WORLD - W, fx.camTarget + logicalPx));

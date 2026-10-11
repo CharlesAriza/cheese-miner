@@ -57,7 +57,7 @@
     return out;
   }
 
-  function startJob(s, kind, combo, recipeId, lots, baseCost) {
+  function startJob(s, kind, combo, recipeId, lots, baseCost, source) {
     const coinCost = B.ingredients[combo.ingredient].coinCost * lots;
     if (!s.built.cheesery) return CM.fail('not-built');
     if (s.jobs.cheesery) return CM.fail('busy');
@@ -73,7 +73,7 @@
     }
     const total = lotTime(combo);
     s.jobs.cheesery = { kind, key: keyOf(combo), recipeId, lotsLeft: lots, remaining: total, total };
-    CM.emit(s, 'cheeseStart', { kind, lots });
+    CM.emit(s, 'cheeseStart', { kind, lots, source: source || 'manual', used: baseCost, base: combo.base });
     return CM.ok();
   }
 
@@ -103,6 +103,31 @@
       if (!recipe) return CM.fail('unknown-recipe');
       const n = Math.max(1, Math.min(B.cheesery.maxQueue, Math.floor(lots) || 1));
       return startJob(s, 'produce', parseKey(recipe.key), recipeId, n, B.cheesery.lotBase * n);
+    },
+
+    // --- Cheesemaker: cocina de uno en uno la receta asignada ---
+    assign(s, recipeId) {
+      if (recipeId && !this.recipe(s, recipeId)) return CM.fail('unknown-recipe');
+      s.cookRecipe = recipeId || '';
+      CM.emit(s, 'cookAssigned', { recipeId: s.cookRecipe });
+      return CM.ok();
+    },
+    // Llamado por la simulación cuando hay Cheesemaker y la Cheesery está libre.
+    start(s) {
+      const recipe = this.recipe(s, s.cookRecipe);
+      if (!recipe) return CM.fail('no-recipe');
+      return startJob(s, 'produce', parseKey(recipe.key), recipe.id, 1, B.cheesery.lotBase, 'worker');
+    },
+    autoStatus(s) {
+      if (!s.built.cheesery) return 'no-work';
+      if (s.jobs.cheesery) return 'active';
+      const recipe = this.recipe(s, s.cookRecipe);
+      if (!recipe) return 'no-recipe';
+      const combo = parseKey(recipe.key);
+      if (s.inv.base[combo.base] < B.cheesery.lotBase) return 'no-material';
+      if (s.coins < B.ingredients[combo.ingredient].coinCost) return 'no-coins';
+      if (q.lotsSpace(s) < 1) return 'storage-full';
+      return 'active';
     },
 
     status(s) {

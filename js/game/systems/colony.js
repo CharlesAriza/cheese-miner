@@ -51,7 +51,7 @@
 
   // ---------- TRABAJADORES ----------
   CM.workers = {
-    roles: ['miner', 'driller', 'refiner'],
+    roles: ['miner', 'driller', 'refiner', 'cheesemaker'],
     hireInfo(s, role) {
       const def = B.workers[role];
       const full = q.workersTotal(s) >= q.slots(s);
@@ -70,13 +70,14 @@
       CM.emit(s, 'hired', { role });
       return CM.ok();
     },
-    // Estado legible de cada rol: active, waiting-vein, vein-exposed, no-material, storage-full, no-work.
+    // Estado legible de cada rol: active, waiting-vein, vein-exposed, no-material, storage-full, no-work, no-recipe, no-coins.
     status(s, role) {
       if (s.workers[role] <= 0) return 'none';
       if (role === 'miner') {
         const st = CM.mining.status(s);
         return st === 'ready' ? 'active' : st === 'vein-exposed' ? 'vein-exposed' : 'no-work';
       }
+      if (role === 'cheesemaker') return CM.cheesery.autoStatus(s);
       const st = role === 'driller' ? CM.drilling.status(s) : CM.refining.status(s);
       if (st === 'running' || st === 'ready') return 'active';
       if (st === 'no-vein') return 'waiting-vein';

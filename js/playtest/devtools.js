@@ -80,6 +80,7 @@
       s.built.house = true;
       s.levels.house = B.upgrades.house.maxLevel;
       for (const role of CM.workers.roles) if (s.workers[role] < 1 && q.workersTotal(s) < q.slots(s)) s.workers[role] = 1;
+      if (!s.cookRecipe && s.recipes.length) s.cookRecipe = s.recipes[0].id;
     },
     levelUp(s, id) {
       mark(s);

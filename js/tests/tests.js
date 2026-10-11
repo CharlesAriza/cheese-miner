@@ -413,6 +413,30 @@
     valid(s);
   });
 
+  test('cheesemaker cooks the assigned recipe on its own, one lot at a time, within limits', () => {
+    const s = withLot();
+    const recipe = s.recipes[0];
+    staff(s, ['cheesemaker']);
+    s.inv.base.cheddar = 5;
+    run(s, 60000);
+    eq(s.lots[recipe.id], 1, 'no recipe assigned: nothing cooked');
+    eq(CM.workers.status(s, 'cheesemaker'), 'no-recipe', 'status');
+    eq(CM.cheesery.assign(s, 'nope').reason, 'unknown-recipe', 'bad recipe');
+    eq(CM.cheesery.assign(s, recipe.id).ok, true, 'assign');
+    run(s, CM.cheesery.lotTime(COMBO) * 2 + 1000);
+    eq(s.lots[recipe.id], 3, 'two lots cooked with 4 of the 5 base');
+    eq(s.inv.base.cheddar, 1, 'base consumed once per lot');
+    eq(CM.workers.status(s, 'cheesemaker'), 'no-material', 'stops without base');
+    s.inv.base.cheddar = q.caps(s).base;
+    run(s, 10 * 60 * 1000);
+    eq(q.lotsTotal(s), q.caps(s).lots, 'stops exactly at lot capacity');
+    eq(CM.workers.status(s, 'cheesemaker'), 'storage-full', 'status when full');
+    eq(s.totals.lotsSold, 0, 'never sells on its own');
+    const loaded = CM.storage.parse(JSON.stringify(s), 1);
+    eq(loaded.cookRecipe, recipe.id, 'assignment persists');
+    valid(s);
+  });
+
   test('softlock guard: with nothing left to extract or sell, the next deposit is affordable', () => {
     const s = fresh();
     s.deposits.cheddar.veinIndex = 3;

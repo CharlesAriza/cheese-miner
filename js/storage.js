@@ -70,6 +70,8 @@
     for (const r of s.recipes) if (nat(s.lots[r.id]) > 0) lots[r.id] = nat(s.lots[r.id]);
     s.lots = lots;
 
+    if (!CM.cheesery.recipe(s, s.cookRecipe)) s.cookRecipe = '';
+
     s.jobs.drill = cleanJob(s.jobs.drill, ['amount', 'deposit']);
     if (s.jobs.drill && !s.deposits[s.jobs.drill.deposit]) s.jobs.drill = null;
     s.jobs.refinery = cleanJob(s.jobs.refinery, ['amount', 'base']);

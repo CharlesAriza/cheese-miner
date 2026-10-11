@@ -79,7 +79,7 @@ CM.BALANCE = {
   },
 
   // Camas para trabajadores. Índice 0 = sin Mouse House.
-  house: { slots: [0, 2, 3, 4] },
+  house: { slots: [0, 2, 4, 5] },
 
   // Edificios. PLAYTEST_DEFAULT: los cuatro de la cadena principal son gratis
   // (kit inicial) y se desbloquean por hitos, para que se pueda llegar a la
@@ -107,6 +107,8 @@ CM.BALANCE = {
     miner: { name: 'Miner', cost: 100, max: 2, does: 'Searches for veins on its own' },
     driller: { name: 'Driller', cost: 180, max: 1, does: 'Runs the Cheese Drill non-stop' },
     refiner: { name: 'Refiner', cost: 180, max: 1, does: 'Runs the Refinery non-stop' },
+    // Cocina sin parar la receta que se le asigne; vender sigue siendo manual.
+    cheesemaker: { name: 'Cheesemaker', cost: 220, max: 1, does: 'Cooks the recipe you assign, non-stop' },
   },
 
   cheesery: {

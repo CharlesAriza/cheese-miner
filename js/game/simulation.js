@@ -7,7 +7,7 @@
   const MACHINES = {
     drill: { sys: () => CM.drilling, role: 'driller' },
     refinery: { sys: () => CM.refining, role: 'refiner' },
-    cheesery: { sys: () => CM.cheesery, role: null },
+    cheesery: { sys: () => CM.cheesery, role: 'cheesemaker' },
   };
 
   // Avanza una máquina `dt` ms. Si hay trabajador, encadena ciclos mientras pueda.
@@ -55,6 +55,7 @@
     const vein = q.veinDef(s, s.activeDeposit);
     return vein ? [q.dep(s).discover, vein.hits] : [0, 1];
   };
+  const CORE_ROLES = ['miner', 'driller', 'refiner'];
   const GOALS = [
     { id: 'vein', text: 'Find a cheese vein', done: (s) => s.totals.veinsFound >= 1, prog: depProgress },
     { id: 'drill', text: 'Build the Cheese Drill', done: (s) => s.built.drill },
@@ -70,11 +71,12 @@
     {
       id: 'allRoles',
       text: 'Hire a Miner, Driller and Refiner',
-      done: (s) => CM.workers.roles.every((r) => s.workers[r] > 0),
-      prog: (s) => [CM.workers.roles.filter((r) => s.workers[r] > 0).length, 3],
+      done: (s) => CORE_ROLES.every((r) => s.workers[r] > 0),
+      prog: (s) => [CORE_ROLES.filter((r) => s.workers[r] > 0).length, 3],
     },
-    { id: 'deposit2', text: 'Open a second deposit', done: (s) => s.totals.depositsUnlocked >= 2 },
-    { id: 'depleted', text: 'Exhaust a whole deposit', done: (s) => s.totals.depositsDepleted >= 1 },
+    { id: 'deposit2', text: 'Open a second zone', done: (s) => s.totals.depositsUnlocked >= 2 },
+    { id: 'cook', text: 'Hire a Cheesemaker and give it a recipe', done: (s) => s.workers.cheesemaker > 0 && !!CM.cheesery.recipe(s, s.cookRecipe) },
+    { id: 'depleted', text: 'Exhaust a whole zone', done: (s) => s.totals.depositsDepleted >= 1 },
   ];
 
   function updateGoals(s) {

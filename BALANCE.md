@@ -57,7 +57,7 @@ Coste de mejora: `base × crecimiento ^ nivel`.
 | Nivel 2 | 100 | 60 | 20 |
 | Nivel 3 | 200 | 120 | 32 |
 
-Mouse House: 2, 3 y 4 camas en los niveles 1, 2 y 3.
+Mouse House: 2, 4 y 5 camas en los niveles 1, 2 y 3.
 
 ## Trabajadores
 
@@ -68,6 +68,9 @@ Automatizan su etapa; no la aceleran. No hay salario en la Alpha.
 | Miner | 100 | 2 |
 | Driller | 180 | 1 |
 | Refiner | 180 | 1 |
+| Cheesemaker | 220 | 1 |
+
+El Cheesemaker fabrica de uno en uno lotes de la receta asignada mientras haya Cheese Base, monedas para el ingrediente y hueco para lotes. No vende.
 
 ## Cheesery
 

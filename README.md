@@ -15,19 +15,23 @@ La interfaz está en inglés; la documentación, en español.
 
 ## Controles
 
+La pantalla se organiza en torno a la **cadena de producción**: cinco casillas (ROCK → DRILL → REFINE → CHEESE → SELL) que muestran el estado de cada estación. Al tocar una, el panel de debajo enseña qué hace, por qué está parada si lo está, su botón de acción, su mejora y su trabajador.
+
 | Acción | Cómo |
 | --- | --- |
-| Picar la roca | Botón **MINE**, tocar la roca o tecla `1` |
-| Arrancar o acelerar el taladro | Botón **DRILL**, tocar el taladro o tecla `2` |
-| Arrancar o acelerar la refinería | Botón **REFINE**, tocar la refinería o tecla `3` |
+| Elegir estación | Tocar su casilla, tocar el edificio o teclas `1`–`5` |
+| Acción de la estación (picar, taladrar, refinar, acelerar) | Botón grande, tocar otra vez el edificio o barra espaciadora |
+| Repetir sin machacar | Mantener pulsado el botón grande |
+| Mejorar la máquina o contratar a su trabajador | Botones a la derecha del botón grande |
+| Recetas, experimentos y cocinero | Estación CHEESE → botón grande |
+| Pedidos y ventas | Estación SELL → botón grande |
+| Zonas, almacén, Mouse House y todos los trabajadores | **COLONY** |
 | Moverse por la colonia | Arrastrar la escena hacia los lados |
-| Construir, mejorar, abrir yacimientos | **BUILD** |
-| Contratar y ver el estado de los trabajadores | **WORKERS** o tocar la Mouse House |
-| Experimentar, Recipe Book, fabricar lotes | **CHEESE** o tocar la Cheesery |
-| Pedidos y ventas | **MARKET** o tocar el puesto |
-| Sonido, exportar, importar, reiniciar, dev tools | **OPT** |
+| Sonido, exportar, importar, reiniciar, dev tools | **OPTIONS** |
 
-Un punto rojo sobre un botón de navegación indica que ahí hay algo nuevo que se puede hacer.
+La casilla que pide el objetivo actual parpadea. Las etiquetas de las casillas avisan de `BUILD`, `UP!` (hay una mejora o contratación que ya puedes pagar), `AUTO` (tiene trabajador) y ventas listas.
+
+Cada recurso tiene siempre la misma forma: Raw Cheese es un trozo irregular, Cheese Base un bloque liso, el queso terminado una rueda con etiqueta y la moneda un disco. El color indica la base (Cheddar amarillo, Gouda naranja). Cuando algo se produce o se gasta, su icono vuela entre el edificio y el contador.
 
 ## Arquitectura
 
@@ -44,14 +48,17 @@ La simulación avanza en pasos fijos de 100 ms y no depende del render. La inter
 | `js/game/simulation.js` | Reloj, automatización, hitos, progreso offline |
 | `js/storage.js` | Guardado versionado, exportar e importar |
 | `js/playtest/` | Telemetría local y herramientas de desarrollo |
-| `js/ui/` | Escena, paneles, HUD, sonido |
+| `js/ui/` | Escena, iconos de recursos, paneles, cadena y panel de estación, sonido |
 | `js/tests/tests.js` + `tests.html` | Pruebas automáticas (se ejecutan en el navegador) |
 
-Diferencia con el contrato: se pedía TypeScript + Vite, pero el equipo de desarrollo no tiene Node. Se usó JavaScript sin compilación, con la misma separación de responsabilidades. Migrar a TypeScript más adelante no cambia el diseño.
+Diferencias con el contrato:
+
+- Hay un cuarto trabajador, el **Cheesemaker**, que cocina sin parar la receta que se le asigne. El contrato solo definía Miner, Driller y Refiner; se añadió a petición del propietario. Vender sigue siendo manual.
+- Se pedía TypeScript + Vite, pero el equipo de desarrollo no tiene Node. Se usó JavaScript sin compilación, con la misma separación de responsabilidades. Migrar a TypeScript más adelante no cambia el diseño.
 
 ## Sustituir los gráficos
 
-Todo el arte es un placeholder dibujado por código en `js/ui/scene.js`. Cada pieza está marcada con un comentario `SPRITE:`: ratón, Cheese Rock, Cheese Drill, Refinery, Storage, Mouse House, Cheesery y Market.
+Todo el arte es un placeholder dibujado por código en `js/ui/scene.js` (escena) y `js/ui/icons.js` (iconos de recursos). Cada pieza está marcada con un comentario `SPRITE:`: ratón, Cheese Rock, Cheese Drill, Refinery, Storage, Mouse House, Cheesery y Market.
 
 Para usar un PNG: carga la imagen y cambia el cuerpo de esa función por un `ctx.drawImage(...)` en la misma posición. La escena mide 160 píxeles lógicos de ancho; el ratón actual ocupa 22×19 y los edificios unos 38×34. Las posiciones de cada parcela están en la constante `POS`.
 

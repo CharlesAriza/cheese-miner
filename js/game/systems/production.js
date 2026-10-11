@@ -28,7 +28,7 @@
       const amount = q.pickPower(s) * (crit ? B.mining.critMultiplier : 1);
       d.discover = Math.min(vein.hits, d.discover + amount);
       s.totals.hits += 1;
-      CM.emit(s, 'hit', { source, crit, combo: source === 'manual' ? s.combo : 0 });
+      CM.emit(s, 'hit', { source, crit, amount, combo: source === 'manual' ? s.combo : 0 });
       if (d.discover >= vein.hits) {
         d.veinRevealed = true;
         d.veinRemaining = vein.capacity;
@@ -121,7 +121,7 @@
       s.inv.raw[base] -= amount * ratio;
       s.totals.rawConsumed += amount * ratio;
       s.jobs.refinery = { remaining: total, total, amount, base, source };
-      CM.emit(s, 'refineStart', { source });
+      CM.emit(s, 'refineStart', { source, used: amount * ratio, base });
       return CM.ok();
     },
     tap(s) {

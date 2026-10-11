@@ -12,19 +12,20 @@
   <body>
     <div id="app">
       <header class="hud">
-        <div class="res" id="res-coins" title="Coins"><i class="ico coin"></i><b id="coins">0</b></div>
-        <div class="res" id="res-raw" title="Raw Cheese"><i class="ico raw"></i><b id="raw">0</b></div>
-        <div class="res" id="res-base" title="Cheese Base"><i class="ico base"></i><b id="base">0</b></div>
-        <div class="res" id="res-lots" title="Cheese lots"><i class="ico lot"></i><b id="lots">0</b></div>
+        <div class="res" id="res-coins"><img class="pix" id="ic-coins" alt="" /><div><span>COINS</span><b id="coins">0</b></div></div>
+        <div class="res" id="res-raw"><img class="pix" id="ic-raw" alt="" /><div><span>RAW</span><b id="raw">0</b></div></div>
+        <div class="res" id="res-base"><img class="pix" id="ic-base" alt="" /><div><span>BASE</span><b id="base">0</b></div></div>
+        <div class="res" id="res-lots"><img class="pix" id="ic-lots" alt="" /><div><span>CHEESE</span><b id="lots">0</b></div></div>
       </header>
 
-      <section class="objective">
+      <section class="objective" id="objective">
         <div class="obj-row"><span id="obj-text"></span><span id="obj-num"></span></div>
         <div class="bar" id="obj-bar"><i id="obj-fill"></i></div>
       </section>
 
       <main class="stage" id="stage">
         <canvas id="scene"></canvas>
+        <div id="bubbles"></div>
         <div id="floaters"></div>
         <div id="combo"></div>
         <div id="devflag"></div>
@@ -33,19 +34,28 @@
       </main>
 
       <footer class="controls">
-        <div class="actions">
-          <button class="act" id="btn-refine"><i class="fill"></i><b>REFINE</b><small></small></button>
-          <button class="act big" id="btn-mine"><i class="fill"></i><b>MINE</b><small></small></button>
-          <button class="act" id="btn-drill"><i class="fill"></i><b>DRILL</b><small></small></button>
-        </div>
+        <!-- La cadena de producción: cada casilla es una estación que se puede tocar. -->
+        <nav class="chain" id="chain">
+          <button class="tile" data-st="rock"><img class="pix" alt="" /><b>ROCK</b><i class="mini"><i></i></i><em></em></button>
+          <button class="tile" data-st="drill"><img class="pix" alt="" /><b>DRILL</b><i class="mini"><i></i></i><em></em></button>
+          <button class="tile" data-st="refinery"><img class="pix" alt="" /><b>REFINE</b><i class="mini"><i></i></i><em></em></button>
+          <button class="tile" data-st="cheesery"><img class="pix" alt="" /><b>CHEESE</b><i class="mini"><i></i></i><em></em></button>
+          <button class="tile" data-st="market"><img class="pix" alt="" /><b>SELL</b><i class="mini"><i></i></i><em></em></button>
+        </nav>
+        <section class="dock">
+          <div class="dhead"><b id="dock-title"></b><small id="dock-status"></small></div>
+          <div class="drow">
+            <button class="act big" id="dock-main"><i class="fill"></i><b></b><small></small></button>
+            <div id="dock-side"></div>
+          </div>
+        </section>
         <nav class="tools">
-          <button data-panel="build">BUILD<i class="dot"></i></button>
-          <button data-panel="workers">WORKERS<i class="dot"></i></button>
-          <button data-panel="cheese">CHEESE<i class="dot"></i></button>
-          <button data-panel="market">MARKET<i class="dot"></i></button>
-          <button data-panel="options" class="gear">OPT</button>
+          <button data-panel="colony" id="nav-colony">COLONY · zones, workers, storage<i class="dot"></i></button>
+          <button data-panel="options" class="gear">OPTIONS</button>
         </nav>
       </footer>
+
+      <div id="flyers"></div>
 
       <div class="overlay" id="sheet" hidden>
         <div class="panel">
@@ -73,6 +83,7 @@
     <script src="js/storage.js"></script>
     <script src="js/playtest/devtools.js"></script>
     <script src="js/ui/sfx.js"></script>
+    <script src="js/ui/icons.js"></script>
     <script src="js/ui/scene.js"></script>
     <script src="js/ui/panels.js"></script>
     <script src="js/ui/main.js"></script>

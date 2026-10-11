@@ -41,7 +41,8 @@
       lots: {}, // recipeId -> lotes en almacén
       built: { drill: false, refinery: false, storage: false, house: false, cheesery: false, market: false },
       levels: { pickaxe: 0, drill: 0, refinery: 0, storage: 0, house: 0 }, // machineLevel
-      workers: { miner: 0, driller: 0, refiner: 0 }, // workerCount
+      workers: { miner: 0, driller: 0, refiner: 0, cheesemaker: 0 }, // workerCount
+      cookRecipe: '', // id de la receta asignada al Cheesemaker
       jobs: { drill: null, refinery: null, cheesery: null },
       minerAcc: 0,
       combo: 0,
