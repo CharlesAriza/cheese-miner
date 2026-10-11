@@ -35,7 +35,7 @@ Shop Titans deja de ser referencia.
 - **Arte por código, sustituible.** Cada pieza dibujada está marcada con `SPRITE:` para poder cambiarla por un PNG.
 - **Sin** monetización, compras, multijugador, combate ni analítica externa.
 
-## Estado: primera entrega (cimientos)
+## Estado: hitos 1 (cimientos) y 2 (ratones)
 
 Hecho:
 
@@ -49,11 +49,18 @@ Hecho:
 - Primeros pasos a fuego lento: cada edificio de la cadena se anuncia, su casilla se marca como nueva y el jugador va a su panel a construirlo. Compra rápida de mejoras desde cada etapa, «BUY ALL» global y Cheesemaker que elige la mejor receta.
 - Progreso offline con la misma simulación.
 
+Hito 2, ratones como personajes: Mouse House, reclutar eligiendo uno de tres, rasgo bueno y manía, oficio favorito, nivel propio, cuatro rangos (el gerente compra mejoras solo), un puesto por etapa y roca, colocación automática y BEST FIT. Sustituye a los antiguos nudos de ratón de los árboles.
+
 Quitado respecto a la Alpha: almacén con capacidad, regateo, clientes con paciencia, Taste/Funk/Aroma, reputación, viajar entre zonas, rocas que se agotan y Mouse House con camas.
 
 ## Siguientes entregas (acordadas, sin construir)
 
-2. **Ratones como personajes:** nombre, rasgos, nivel propio, ascensos, asignación a estaciones. Maestría también por base.
-3. **Juego activo y largo plazo:** queso dorado, logros con porcentaje permanente y reinicio como franquicia.
+3. **Juego activo y colección:** queso dorado y logros con porcentaje permanente.
+4. **Árboles profundos:** elegir una ventaja cada 10 niveles, maestría por base y edificios disparatados al fondo de cada árbol.
+5. **Vender a lo grande:** cadena de tiendas, encargos, envíos, teletransporte, cohetes.
+6. **Zonas con mecánica propia.**
+7. **Franquicia:** reinicio con ventaja permanente.
+8. **Salud a largo plazo:** números enormes, rendimiento, copia de la partida, instalable.
+9. **Arte y sonido finales.**
 
 Ideas del propietario para más adelante: una mecánica nueva por zona (envíos al mundo, teletransporte, cohetes a la luna), edificios disparatados al fondo de cada árbol (máquina del tiempo, pacto infernal), tienda por dentro e interfaz de recetas más física.

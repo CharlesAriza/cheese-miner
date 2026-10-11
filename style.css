@@ -1848,6 +1848,79 @@ button {
   margin-left: 8px;
 }
 
+/* ---------- Plantilla de ratones ---------- */
+.mouse {
+  margin-bottom: 6px;
+  padding: 8px;
+  background: var(--bg);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+}
+
+.mouse.idle {
+  border-color: #ffd43a;
+}
+
+.mouse.cand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mhead {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.mouse .info b {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: normal;
+  font-size: 9px;
+}
+
+.mouse .bar.xp {
+  margin-bottom: 4px;
+}
+
+.mfoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.panel .mfoot button.mini {
+  padding: 9px 12px;
+  font-size: 8px;
+}
+
+.posts {
+  margin-top: 6px;
+}
+
+.stat.tgood {
+  background: #2f7a48;
+}
+
+.stat.tquirk {
+  background: #8a6a12;
+}
+
+.panel button.calmrow {
+  background: var(--panel-2);
+}
+
+#dock-side button.warn {
+  color: #ffd43a;
+}
+
+.pix.face {
+  width: 40px;
+}
+
 @keyframes spend {
   0% {
     opacity: 0;

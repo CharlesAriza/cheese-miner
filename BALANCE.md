@@ -15,7 +15,7 @@ Todas las cifras están en `js/game/config/balance.js` y son provisionales. Se c
 | --- | --- | --- | --- | --- |
 | Cheddar | gratis | 30 | 60 | 10 |
 | Gouda | 6.000 | 150 | 120 | 24 |
-| Blue | 1.000.000 | 800 | 240 | 60 |
+| Blue | 150.000.000 | 800 | 240 | 60 |
 
 Por cada nivel de profundidad: búsqueda ×1,22, veta ×1,15 y +8 % de Raw Cheese por ciclo.
 
@@ -40,6 +40,31 @@ Los cuatro edificios de la cadena son gratis y los construye el jugador desde el
 
 No hay almacén con tope. Raw Cheese, Cheese Base y quesos se acumulan sin límite, cada tipo por separado, hasta que la etapa siguiente los usa. Lo único que limita la ausencia es la Night Lamp.
 
+## Ratones
+
+- Reclutar: 150 monedas el primero, cada uno un 80 % más que el anterior. Se elige entre tres candidatos.
+- Un puesto por etapa y por roca (minería, taladro, refinado, quesería) más un tendero común: 5 con una roca, 13 con tres.
+- Velocidad en su puesto: +1 % por nivel, +15 % en su oficio favorito, más su rango y sus rasgos.
+- Nivel del ratón: 12 acciones para el nivel 2, un 15 % más cada nivel, máximo 60. Un golpe de minería cuenta un cuarto de acción.
+
+| Rango | Nivel | Coste | Velocidad extra |
+| --- | --- | --- | --- |
+| Apprentice | 1 | — | — |
+| Journeyman | 10 | 2.000 | +10 % |
+| Master | 25 | 150.000 | +20 % |
+| Manager | 40 | 20.000.000 | +35 %, y compra solo la mejora más barata de su oficio |
+
+| Rasgo | Efecto |
+| --- | --- |
+| Fast | 15 % más rápido |
+| Strong | hace un 20 % más cada vez |
+| Nocturnal | 50 % más rápido mientras no estás |
+| Scholar | su trabajo da un 30 % más de experiencia de habilidad |
+| Prodigy | sube de nivel un 50 % más rápido |
+| Glutton (manía) | se come un 8 % de lo que hace |
+| Dreamer (manía) | 8 % más lento |
+| Homebody (manía) | 30 % más lento mientras no estás |
+
 ## Árboles
 
 Coste de un nudo: `coste × crecimiento ^ rango`. El nivel indicado es el de la habilidad que hace falta.
@@ -48,27 +73,22 @@ Coste de un nudo: `coste × crecimiento ^ rango`. El nivel indicado es el de la 
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Mining | Sharper Pick | potencia | 1 | 80 | 12 | 1,3 | +1 búsqueda por golpe |
 | Mining | Heavy Swing | potencia | 6 | 30 | 150 | 1,45 | críticos +0,5× |
-| Mining | Miner Mouse | ratones | 2 | 15 | 100 | 2 | +1 ratón minero en cada roca |
-| Mining | Quick Paws | ratones | 10 | 30 | 300 | 1,42 | mineros +10 % rápidos |
+| Mining | Quick Paws | ritmo | 10 | 30 | 300 | 1,42 | mineros +10 % rápidos |
 | Mining | Vein Sense | especial | 8 | 40 | 200 | 1,4 | vetas +10 % |
 | Mining | Deep Riches | especial | 20 | 25 | 2.000 | 1,6 | +2 % de Raw por nivel de profundidad |
 | Drilling | Bigger Bit | potencia | 1 | 100 | 18 | 1,28 | +1 Raw por ciclo |
 | Drilling | Turbo Motor | potencia | 4 | 40 | 70 | 1,4 | +8 % velocidad |
-| Drilling | Driller Mouse | ratones | 3 | 1 | 200 | — | automatiza todos los taladros |
-| Drilling | Night Shift | ratones | 12 | 30 | 400 | 1,45 | +10 % velocidad |
+| Drilling | Night Shift | ritmo | 12 | 30 | 400 | 1,45 | +10 % velocidad |
 | Drilling | Rich Extraction | especial | 9 | 50 | 250 | 1,38 | +6 % Raw |
 | Refining | Bigger Vat | potencia | 1 | 100 | 18 | 1,28 | +1 Base por ciclo |
 | Refining | Hot Furnace | potencia | 4 | 40 | 70 | 1,4 | +8 % velocidad |
-| Refining | Refiner Mouse | ratones | 4 | 1 | 350 | — | automatiza la refinería |
-| Refining | Twin Burners | ratones | 12 | 30 | 400 | 1,45 | +10 % velocidad |
+| Refining | Twin Burners | ritmo | 12 | 30 | 400 | 1,45 | +10 % velocidad |
 | Refining | Double Press | especial | 9 | 50 | 250 | 1,38 | +5 % Base con el mismo Raw |
 | Cheesemaking | Faster Curds | potencia | 1 | 60 | 30 | 1,33 | +8 % velocidad |
-| Cheesemaking | Cheesemaker Mouse | ratones | 5 | 1 | 800 | — | cocina sola la receta elegida |
 | Cheesemaking | Cheese Cellar | especial | 5 | 80 | 150 | 1,38 | +8 % valor |
 | Trading | Better Prices | potencia | 1 | 80 | 40 | 1,36 | +6 % precio |
 | Trading | Bigger Counter | potencia | 2 | 40 | 50 | 1,5 | +1 queso por venta |
-| Trading | Shopkeeper Mouse | ratones | 3 | 1 | 500 | — | vende solo |
-| Trading | Quick Sales | ratones | 5 | 40 | 100 | 1,4 | +10 % velocidad |
+| Trading | Quick Sales | ritmo | 5 | 40 | 100 | 1,4 | +10 % velocidad |
 | Trading | Fancy Sign | especial | 15 | 40 | 900 | 1,55 | +10 % precio |
 | Colonia | Night Lamp | especial | — | 10 | 500 | 2,2 | +2 horas offline |
 
@@ -107,26 +127,27 @@ Se simula el tiempo real desde el último guardado, con tope de 4 horas (ampliab
 
 ## Ritmo medido
 
-Un bot que juega sin pausas y sin dev tools (1 tap cada 0,4 s), ahorrando para cada ratón y para cada roca:
+Un bot que juega sin pausas y sin dev tools (1 tap cada 0,4 s), que recluta al primer candidato, asciende cuando puede y ahorra para cada ratón y cada roca:
 
 | Hito | Objetivo | Medido |
 | --- | --- | --- |
-| Primer ratón | 2–3 min | 2,5 min |
-| Las cinco etapas automatizadas | 10–15 min | 7 min |
-| Nivel 10 en una habilidad | 10 min | 8 min |
-| Segunda roca | 30–45 min | 43 min |
-| Nivel 25 | 1 hora | 55 min |
+| Primera venta | — | 1,2 min |
+| Primer ratón | 2–3 min | 2,1 min |
+| Un ratón en las cinco etapas | 10–15 min | 12,8 min |
+| Primer ascenso | — | 19,6 min |
+| Segunda roca | 30–45 min | 41 min |
+| Nivel 25 en una habilidad | 1 hora | unos 60 min |
 
-Niveles (Mining / Drilling / Refining / Cheesemaking / Trading) a lo largo de una partida de cuatro horas:
+Niveles (Mining / Drilling / Refining / Cheesemaking / Trading) a lo largo de cuatro horas:
 
-| Tiempo | Niveles | Rocas | Monedas ganadas |
-| --- | --- | --- | --- |
-| 10 min | 3 / 11 / 11 / 10 / 8 | 1 | 3,6K |
-| 30 min | 11 / 19 / 18 / 16 / 13 | 1 | 9,3K |
-| 1 h | 21 / 26 / 23 / 21 / 18 | 2 | 28K |
-| 2 h | 33 / 34 / 28 / 26 / 23 | 2 | 62K |
-| 4 h | 44 / 41 / 32 / 31 / 28 | 2 | 194K |
+| Tiempo | Niveles | Rocas | Recetas | Monedas ganadas |
+| --- | --- | --- | --- | --- |
+| 10 min | 5 / 10 / 11 / 10 / 8 | 1 | 8 | 3,1K |
+| 30 min | 13 / 17 / 19 / 18 / 13 | 1 | 8 | 9,5K |
+| 1 h | 22 / 24 / 25 / 25 / 20 | 2 | 26 | 43K |
+| 2 h | 36 / 35 / 40 / 38 / 33 | 2 | 26 | 5,3M |
+| 4 h | 48 / 39 / 50 / 48 / 44 | 2 | 26 | 66M |
 
-Estas tablas son anteriores a las líneas en paralelo. Con ellas, la primera hora no cambia; después el bot gana bastante más (759K a las 4 horas en vez de 194K) porque el Gouda ya se refina y se cocina. Por eso la tercera roca subió a 1.000.000.
+Entre la primera y la segunda hora los ingresos se multiplican por más de cien: es cuando el Gouda y los ingredientes caros entran en juego. Por eso la tercera roca cuesta 150 millones; el bot no llega a ella en cuatro horas (estimado: unas cinco).
 
-Sin medir: la tercera roca (estimada entre 4 y 5 horas), el nivel 50 (estimado en 5–8 horas) y todo lo posterior.
+Sin medir: la tercera roca, el nivel 50 y todo lo posterior. El bot se queda con el primer candidato y no elige rasgos, así que una persona que elija bien irá algo por delante.

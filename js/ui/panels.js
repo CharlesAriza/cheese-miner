@@ -31,6 +31,9 @@
     locked: 'Not unlocked yet',
     'already-built': 'Already built',
     'max-level': 'Already at max rank',
+    'no-house': 'Build the Mouse House first',
+    'mouse-level': 'That mouse needs more levels first',
+    invalid: 'That is not possible',
     busy: 'The Cheesery is busy',
     known: 'That recipe is already in your Recipe Book',
     'empty-name': 'Type a name first',
@@ -43,7 +46,6 @@
   const SHOW = {
     pickPower: (s) => round1(q.pickPower(s)) + ' search per hit',
     critMult: (s) => 'crits hit x' + round1(q.critMult(s)),
-    miners: (s) => q.miners(s) + (q.miners(s) === 1 ? ' mouse' : ' mice') + ' mining',
     minerSpeed: (s) => 'a swing every ' + secs(q.minerInterval(s)),
     veinCap: (s) => CM.fmt(q.veinCapacity(s, B.zones[0].id)) + ' Raw in a ' + B.zones[0].name + ' vein',
     richDepth: (s) => '+' + Math.round((B.depth.richness + q.mods(s)('richDepth')) * 100) + '% Raw for each depth level',
@@ -80,7 +82,7 @@
 
   const BRANCHES = [
     ['power', 'POWER', 'More output. Each rank changes how the building looks'],
-    ['auto', 'MICE', 'Mice that do the work for you, even while you are away'],
+    ['auto', 'TEMPO', 'Faster cycles for this stage, whoever does the work'],
     ['special', 'SPECIAL', 'What makes this skill different'],
   ];
 
@@ -146,6 +148,7 @@
     const C = CM.cheesery;
     const laneOf = (base) => s.zones[q.zoneOfBase(base)];
     const hasCook = q.isAutomated(s, 'cheesemaking');
+    const cookAt = (base) => q.auto(s, 'cheesemaking', q.zoneOfBase(base));
     const level = q.level(s, 'cheesemaking');
     let h = '';
     // Cada queso se cocina en su propia línea: puede haber varios encargos a la vez.
@@ -191,15 +194,16 @@
     }
 
     if (!s.recipes.length) return h + '<p class="hint">No recipes yet. Combine four parts in NEW RECIPE.</p>';
-    h += '<p class="hint">' + (hasCook ? 'Your Cheesemaker cooks the most valuable recipe of each cheese on its own. Pin a different one with ALWAYS COOK THIS.' : 'Each cheese is cooked on its own line, at the same time. Tip: hire the Cheesemaker Mouse in the tree to cook automatically.') + '</p>';
+    h += '<p class="hint">' + (hasCook ? 'A mouse on Cheesemaking cooks the most valuable recipe of its cheese on its own. Pin a different one with ALWAYS COOK THIS.' : 'Each cheese is cooked on its own line, at the same time. Tip: put a mouse on Cheesemaking (MICE) to cook automatically.') + '</p>';
     const sorted = s.recipes.slice().sort((a, b) => CM.cheesery.valueOf(s, b) - CM.cheesery.valueOf(s, a));
     for (const r of sorted) {
       const combo = C.parseKey(r.key);
       const coins = B.ingredients[combo.ingredient].coinCost;
       const max = C.maxLots(s, r);
       const job = laneOf(combo.base).cookJob;
-      const cooking = hasCook && C.isCooking(s, r);
-      const autoPick = hasCook && !cooking && !laneOf(combo.base).cookRecipe && C.laneRecipe(s, q.zoneOfBase(combo.base)) === r;
+      const mouseHere = cookAt(combo.base);
+      const cooking = mouseHere && C.isCooking(s, r);
+      const autoPick = mouseHere && !cooking && !laneOf(combo.base).cookRecipe && C.laneRecipe(s, q.zoneOfBase(combo.base)) === r;
       const m = C.masteryLevel(r);
       const nextAt = B.cheesery.masteryAt[m];
       const syn = C.formula(combo).synergies;
@@ -207,7 +211,7 @@
         '<div class="recipe' + (cooking || autoPick ? ' cooking' : '') + '"><div class="rhead">' + I.img('lot', combo.base, 'big') + '<b>' + esc(r.name) + '</b>' + btn('rename:' + r.id, 'RENAME', { cls: 'mini' }) + '</div><small>' + comboLine(combo) + (syn.length ? ' · ' + syn.join(', ') : '') + '</small><div>' + valueTag(s, r) + '<span class="stat">Mastery ' + m + (nextAt ? ' · ' + (r.made || 0) + '/' + nextAt : ' MAX') + '</span></div>' +
         '<div class="rfoot"><span>Have ' + (s.lots[r.id] || 0) + ' · ' + B.cheesery.lotBase + ' Base' + (coins ? ' + ' + coins + 'c' : '') + ' each · ' + secs(C.jobTime(s, combo, r)) + '</span><span>' +
         btn('make:' + r.id + ':1', 'MAKE 1', { off: job || max < 1, cls: 'buy' }) + btn('make:' + r.id + ':' + Math.max(1, max), 'MAKE ' + (max > 1 ? max : 'MAX'), { off: job || max < 2, cls: 'buy' }) + '</span></div>' +
-        (hasCook ? btn(cooking ? 'uncook:' + q.zoneOfBase(combo.base) : 'cook:' + r.id, cooking ? 'PINNED · TAP TO GO BACK TO AUTO' : autoPick ? 'COOKING THIS (BEST) · TAP TO PIN' : 'ALWAYS COOK THIS', { cls: 'wide ' + (cooking ? 'on' : autoPick ? 'auto' : '') }) : '') + '</div>';
+        (mouseHere ? btn(cooking ? 'uncook:' + q.zoneOfBase(combo.base) : 'cook:' + r.id, cooking ? 'PINNED · TAP TO GO BACK TO AUTO' : autoPick ? 'COOKING THIS (BEST) · TAP TO PIN' : 'ALWAYS COOK THIS', { cls: 'wide ' + (cooking ? 'on' : autoPick ? 'auto' : '') }) : '') + '</div>';
     }
     return h;
   }
@@ -236,6 +240,66 @@
     return h;
   }
 
+  // ---------- RATONES ----------
+  const M = B.mice;
+  const traitChip = (id) => '<span class="stat ' + (M.traits[id].good ? 'tgood' : 'tquirk') + '">' + M.traits[id].name + '</span>';
+  const traitText = (ids) => ids.map((id) => M.traits[id].name + ': ' + M.traits[id].desc.toLowerCase()).join('. ');
+  const face = (rank, cls) => '<img class="pix ' + (cls || 'face') + '" alt="" src="' + CM.mouseUrl(rank) + '">';
+  const pct = (n) => Math.round(n * 100) + '%';
+
+  function micePanel(s, ui) {
+    const K = CM.mice;
+    if (!s.built.house) {
+      const info = CM.construction.buildInfo(s, 'house');
+      if (!info.condOk) return '<p class="hint">Mice do the work for you. First: ' + esc(info.condText.toLowerCase()) + '.</p>';
+      return (
+        '<p class="lead">A <b>mouse on a post</b> does that job on its own, even while you are away.</p><p class="hint">Each mouse has a good trait, a quirk and a favourite job. They level up as they work and never leave.</p>' +
+        btn('build:house', 'BUILD THE MOUSE HOUSE<br>It is free', { cls: 'buy wide' })
+      );
+    }
+    let h = '';
+    // Candidatos pendientes: se elige uno de tres.
+    if (s.candidates.length) {
+      h += '<h3>CHOOSE ONE</h3><p class="hint">Already paid. Pick the one you like; it goes straight to the best free post.</p>';
+      s.candidates.forEach((c, i) => {
+        h += '<div class="mouse cand">' + face(0) + '<div class="info"><b>' + esc(c.name) + '</b><div>' + c.traits.map(traitChip).join('') + '<span class="stat">Loves ' + B.skills[c.fav].name + '</span></div><small>' + traitText(c.traits) + '. ' + pct(M.favoriteBonus) + ' faster at ' + B.skills[c.fav].name + '.</small></div><div class="side">' + btn('choose:' + i, 'CHOOSE', { cls: 'buy' }) + '</div></div>';
+      });
+      return h;
+    }
+    const cost = K.recruitCost(s);
+    const free = K.posts(s).filter((p) => !s.mice.some((m) => m.post === p.key));
+    h += btn('recruit', 'RECRUIT A MOUSE<br>' + coin(cost), { off: s.coins < cost, cls: 'buy wide serveall', cost });
+    h += '<p class="hint">' + s.mice.length + ' mice · ' + (free.length ? free.length + ' post' + (free.length === 1 ? '' : 's') + ' with no mouse: ' + free.slice(0, 3).map((p) => K.postLabel(p.key)).join(', ') + (free.length > 3 ? '...' : '') : 'every post has a mouse') + '</p>';
+    if (s.mice.length > 1) h += '<div class="tabs">' + btn('bestfit', 'BEST FIT: PLACE EVERYONE FOR ME', { cls: 'buy' }) + '</div>';
+    if (s.mice.some((m) => M.ranks[m.rank].manager)) h += row('Managers buy upgrades', 'They buy the cheapest upgrade of their job on their own', btn('managers', s.settings.managersBuy ? 'ON' : 'OFF', { cls: 'buy' }));
+
+    const sorted = s.mice.slice().sort((a, b) => (a.post ? 0 : -1) - (b.post ? 0 : -1) || K.level(b) - K.level(a));
+    for (const m of sorted) {
+      const p = K.xpProgress(m);
+      const skill = m.post ? m.post.split(':')[0] : '';
+      const pr = K.promoteInfo(s, m);
+      const where = m.post ? K.postLabel(m.post) + ' · ' + pct(K.speed(m, skill)) + ' speed' : 'Resting in the house';
+      let promote = '';
+      if (!pr.maxed) promote = pr.levelOk ? btn('promote:' + m.id, 'PROMOTE<br>' + coin(pr.cost), { off: !pr.can, cls: 'buy', cost: pr.cost }) : '<span class="tag lock">' + pr.next.name + '<br>at LV ' + pr.next.level + '</span>';
+      h +=
+        '<div class="mouse' + (m.post ? '' : ' idle') + '"><div class="mhead">' + face(m.rank) + '<div class="info"><b>' + esc(m.name) + ' <span class="rank">LV ' + p.level + ' · ' + M.ranks[m.rank].name + '</span></b>' + xpBar(p) + '<div>' + m.traits.map(traitChip).join('') + (m.fav ? '<span class="stat">Loves ' + B.skills[m.fav].name + '</span>' : '') + '</div><small>' + where + '</small></div></div>' +
+        '<div class="mfoot">' + btn('move:' + m.id, ui.moving === m.id ? 'CANCEL' : 'MOVE', { cls: 'mini' }) + promote + '</div>';
+      // Elegir puesto: cada opción dice cuánto rendiría ahí y a quién desplazaría.
+      if (ui.moving === m.id) {
+        h += '<div class="posts">';
+        for (const post of K.posts(s)) {
+          const other = s.mice.find((x) => x.post === post.key && x !== m);
+          const here = m.post === post.key;
+          h += btn(here ? 'noop' : 'post:' + m.id + ':' + post.key, '<span>' + K.postLabel(post.key) + (here ? ' (here)' : other ? ' · swaps with ' + esc(other.name) : ' · free') + '</span><span>' + pct(K.score(m, post.skill)) + (m.fav === post.skill ? ' loves it' : '') + '</span>', { cls: 'deliver' + (here ? ' open' : ''), off: here });
+        }
+        h += btn('post:' + m.id + ':', '<span>Rest in the house</span><span></span>', { cls: 'deliver calmrow' }) + '</div>';
+      }
+      h += '</div>';
+    }
+    if (!s.mice.length) h += '<p class="hint">No mice yet. Your first recruit will take over a stage so you do not have to tap it.</p>';
+    return h;
+  }
+
   function optionsPanel(s) {
     return (
       row('Sound', 'Effects are ' + (CM.sfx.isMuted() ? 'muted' : 'on'), btn('sound', CM.sfx.isMuted() ? 'TURN ON' : 'MUTE', { cls: 'buy' })) +
@@ -253,7 +317,7 @@
     return (
       '<h3>TIME</h3>' + g([['speed:1', 'x1', D.speed === 1], ['speed:2', 'x2', D.speed === 2], ['speed:10', 'x10', D.speed === 10], ['pause', D.paused ? 'RESUME' : 'PAUSE', D.paused]]) +
       '<h3>GIVE</h3>' + g([['coins:1000', '+1K coins'], ['coins:1000000', '+1M coins'], ['raw', '+10 raw'], ['base', '+10 base'], ['levels', '+5 levels'], ['reveal', 'reveal veins']]) +
-      '<h3>UNLOCK</h3>' + g([['buildings', 'all buildings'], ['zones', 'all rocks'], ['hire', 'all mice'], ['power:3', 'power +3'], ['power:10', 'power +10']]) +
+      '<h3>UNLOCK</h3>' + g([['buildings', 'all buildings'], ['zones', 'all rocks'], ['hire', 'mouse on every post'], ['micexp', 'mice +10 levels'], ['power:3', 'power +3'], ['power:10', 'power +10']]) +
       '<h3>FORCE</h3>' + g([['noraw', 'no raw']]) +
       '<h3>SCENARIO</h3>' + g([['scn:chain', 'chain ready'], ['scn:fresh', 'new game']]) +
       '<h3>REPORT</h3><pre class="report" id="dev-report"></pre>' + btn('export', 'EXPORT JSON', { cls: 'buy wide' })
@@ -268,10 +332,10 @@
     comboLine,
     title(name, ui) {
       if (name === 'tree') return ui.tree === 'colony' ? 'COLONY' : B.skills[ui.tree].name.toUpperCase() + ' UPGRADES';
-      return { cheese: 'CHEESERY', stock: 'PANTRY', options: 'MENU', dev: 'PLAYTEST TOOLS' }[name];
+      return { cheese: 'CHEESERY', stock: 'PANTRY', mice: 'MICE', options: 'MENU', dev: 'PLAYTEST TOOLS' }[name];
     },
     render(name, s, ui) {
-      return { tree: treePanel, cheese: cheesePanel, stock: stockPanel, options: optionsPanel, dev: devPanel }[name](s, ui);
+      return { tree: treePanel, cheese: cheesePanel, stock: stockPanel, mice: micePanel, options: optionsPanel, dev: devPanel }[name](s, ui);
     },
   };
 })();

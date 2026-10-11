@@ -21,21 +21,23 @@
     }
   }
 
-  function runMiners(s, zoneId, dt) {
+  // El ratón minero de una roca da golpes a su ritmo mientras no haya veta a la vista.
+  function runMiner(s, zoneId, dt) {
     const z = s.zones[zoneId];
-    const miners = q.miners(s);
-    if (miners <= 0 || CM.mining.status(s, zoneId) !== 'ready') {
+    const w = CM.mice.work(s, 'mining', zoneId);
+    if (!w || CM.mining.status(s, zoneId) !== 'ready') {
       z.minerAcc = 0;
       return;
     }
     const interval = q.minerInterval(s);
-    z.minerAcc += dt * miners;
+    z.minerAcc += dt * w.speed;
     for (let guard = 0; z.minerAcc >= interval && guard < 500; guard++) {
       z.minerAcc -= interval;
-      if (!CM.mining.hit(s, zoneId, 'worker').ok) {
+      if (!CM.mining.hit(s, zoneId, 'worker', w.yield).ok) {
         z.minerAcc = 0;
         break;
       }
+      CM.mice.reward(s, 'mining', zoneId, B.mice.xpPerHit);
     }
   }
 
@@ -56,9 +58,11 @@
     { id: 'shop', text: 'Open your Cheese Shop', done: (s) => s.built.shop },
     { id: 'sale', text: 'Sell a cheese', done: (s) => s.totals.lotsSold >= 1 },
     { id: 'node', text: 'Buy an upgrade in any skill tree', done: (s) => s.totals.nodesBought >= 1 },
-    { id: 'mouse', text: 'Hire a mouse: buy an AUTO upgrade', done: (s) => AUTO.some((k) => q.isAutomated(s, k)) },
+    { id: 'house', text: 'Build the Mouse House', done: (s) => s.built.house },
+    { id: 'mouse', text: 'Recruit your first mouse', done: (s) => s.mice.length >= 1 },
     { id: 'level5', text: 'Reach level 5 in any skill', done: (s) => maxLevel(s) >= 5, prog: (s) => [maxLevel(s), 5] },
-    { id: 'allAuto', text: 'Automate all five stages', done: (s) => AUTO.every((k) => q.isAutomated(s, k)), prog: (s) => [AUTO.filter((k) => q.isAutomated(s, k)).length, 5] },
+    { id: 'allAuto', text: 'Put a mouse on all five stages', done: (s) => AUTO.every((k) => q.isAutomated(s, k)), prog: (s) => [AUTO.filter((k) => q.isAutomated(s, k)).length, 5] },
+    { id: 'promote', text: 'Promote a mouse', done: (s) => s.mice.some((m) => m.rank >= 1) },
     { id: 'depth3', text: 'Dig a rock down to depth 3', done: (s) => maxDepth(s) >= 3, prog: (s) => [maxDepth(s), 3] },
     { id: 'zone2', text: 'Open a second rock', done: (s) => s.totals.zonesUnlocked >= 2, prog: (s) => [Math.min(s.coins, B.zones[1].unlockCost), B.zones[1].unlockCost] },
     { id: 'recipes8', text: 'Discover 8 recipes', done: (s) => s.totals.recipes >= 8, prog: (s) => [s.totals.recipes, 8] },
@@ -85,18 +89,20 @@
     // cocinado; todas a la vez. Después, la tienda, que es común.
     step(s, dt) {
       s.clock += dt;
-      const drillAuto = q.isAutomated(s, 'drilling');
-      const refAuto = q.isAutomated(s, 'refining');
-      const cookAuto = q.isAutomated(s, 'cheesemaking');
+      // Cada 2 s: los ratones sin puesto ocupan los libres y los gerentes compran.
+      if (Math.floor(s.clock / 2000) !== Math.floor((s.clock - dt) / 2000)) {
+        CM.mice.fillEmpty(s);
+        CM.mice.managersTick(s);
+      }
       for (const def of B.zones) {
         const z = s.zones[def.id];
         if (!z.unlocked) continue;
-        runMiners(s, def.id, dt);
-        runJob(dt, () => z.drillJob, drillAuto, () => CM.drilling.start(s, def.id, 'worker'), () => CM.drilling.complete(s, def.id));
-        runJob(dt, () => z.refJob, refAuto, () => CM.refining.start(s, def.id, 'worker'), () => CM.refining.complete(s, def.id));
-        runJob(dt, () => z.cookJob, cookAuto, () => CM.cheesery.start(s, def.id), () => CM.cheesery.complete(s, def.id));
+        runMiner(s, def.id, dt);
+        runJob(dt, () => z.drillJob, q.auto(s, 'drilling', def.id), () => CM.drilling.start(s, def.id, 'worker'), () => CM.drilling.complete(s, def.id));
+        runJob(dt, () => z.refJob, q.auto(s, 'refining', def.id), () => CM.refining.start(s, def.id, 'worker'), () => CM.refining.complete(s, def.id));
+        runJob(dt, () => z.cookJob, q.auto(s, 'cheesemaking', def.id), () => CM.cheesery.start(s, def.id), () => CM.cheesery.complete(s, def.id));
       }
-      runJob(dt, () => s.jobs.shop, q.isAutomated(s, 'trading'), () => CM.shop.start(s, 'worker'), () => CM.shop.complete(s));
+      runJob(dt, () => s.jobs.shop, q.auto(s, 'trading', 'all'), () => CM.shop.start(s, 'worker'), () => CM.shop.complete(s));
       updateGoals(s);
     },
     advance(s, ms, stepMs) {
@@ -129,7 +135,9 @@
       CM.skills.list.forEach((k) => (levels[k] = q.level(s, k)));
       const wasMuted = CM.muted;
       CM.muted = true;
+      CM.away = true; // los rasgos Nocturno y Casero solo cuentan aquí
       this.advance(s, simulated, B.offline.stepMs);
+      CM.away = false;
       CM.muted = wasMuted;
       s.metrics.offlineMs += simulated;
       s.metrics.offlineReturns += 1;

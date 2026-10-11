@@ -2,7 +2,7 @@
 (function () {
   const B = CM.BALANCE;
 
-  CM.SAVE_VERSION = 4;
+  CM.SAVE_VERSION = 5;
   CM.events = []; // cola que consume la UI para dar feedback
   CM.muted = false; // true durante la simulación offline: no hay feedback visual
 
@@ -21,6 +21,15 @@
     const tier = Math.min(UNITS.length - 1, Math.floor(Math.log10(Math.abs(v)) / 3));
     const scaled = v / Math.pow(10, tier * 3);
     return scaled.toFixed(scaled < 100 ? 1 : 0) + UNITS[tier];
+  };
+
+  // Generador determinista guardado en la partida.
+  CM.rand = function (s) {
+    s.seed = (s.seed + 0x6d2b79f5) >>> 0;
+    let t = s.seed;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 
   CM.ok = (extra) => Object.assign({ ok: true }, extra || {});
@@ -49,7 +58,8 @@
         refJob: null,
         refCarry: 0, // fracción de Base pendiente del bonus de refinado
         cookJob: null,
-        cookRecipe: '', // receta que el Cheesemaker cocina en esta línea
+        cookCarry: 0, // fracción de queso pendiente por el rendimiento del ratón
+        cookRecipe: '', // receta fijada para el ratón quesero de esta línea
         stats: { raw: 0, rawUsed: 0, base: 0, baseUsed: 0, lots: 0 }, // producido y gastado, para los ritmos
       };
     });
@@ -61,6 +71,7 @@
       lastSavedAt: now,
       clock: 0, // ms de simulación jugados
       nextId: 1,
+      seed: (now >>> 0) || 1, // para sorteos reproducibles (candidatos a ratón)
       devUsed: false,
       coins: 0,
       zones,
@@ -68,7 +79,10 @@
       nodes: {}, // 'habilidad.nudo' -> rango comprado
       inv: { raw: perBase(), base: perBase() },
       lots: {}, // recipeId -> quesos en almacén
-      built: { drill: false, refinery: false, cheesery: false, shop: false },
+      built: { drill: false, refinery: false, cheesery: false, shop: false, house: false },
+      mice: [], // { id, name, traits:[bueno, manía], fav, xp, rank, post, rest }
+      candidates: [], // candidatos pendientes de elegir tras pagar el reclutamiento
+      settings: { managersBuy: true },
       jobs: { shop: null },
       recipes: [], // { id, key, name, at, made }
       combo: 0,
@@ -87,6 +101,7 @@
         goalCoins: 0,
         recipes: 0,
         nodesBought: 0,
+        miceRecruited: 0,
         zonesUnlocked: 1,
       },
       goalsDone: {}, // id -> clock en que se cumplió
@@ -126,8 +141,6 @@
     return Math.max(1, Math.min(B.xp.maxLevel, raw));
   }
 
-  const AUTO_KEY = { mining: 'miners', drilling: 'drillAuto', refining: 'refAuto', cheesemaking: 'cheeseAuto', trading: 'sellAuto' };
-
   const q = {
     mods,
     xpForLevel,
@@ -163,7 +176,6 @@
 
     pickPower: (s) => (B.mining.pickPower + mods(s)('pickPower')) * q.skillMult(s, 'mining'),
     critMult: (s) => B.mining.critMultiplier + mods(s)('critMult'),
-    miners: (s) => mods(s)('miners'),
     minerInterval: (s) => B.mining.minerIntervalMs / (1 + mods(s)('minerSpeed')),
     // Raw Cheese por ciclo en una zona (puede tener decimales; se acumulan).
     drillYield(s, id) {
@@ -185,8 +197,10 @@
     },
     priceMult: (s) => q.buyer(s).mult * (1 + mods(s)('price')) * q.skillMult(s, 'trading'),
     offlineCapMs: (s) => (B.offline.baseHours + mods(s)('offlineHours')) * 3600000,
-    // Automatización: depende solo de haber comprado el nudo del ratón.
-    isAutomated: (s, skill) => mods(s)(AUTO_KEY[skill]) > 0,
+    // Automatización: un puesto trabaja solo si tiene un ratón asignado.
+    auto: (s, skill, zone) => s.mice.some((m) => m.post === skill + ':' + (skill === 'trading' ? 'all' : zone)),
+    // ¿Hay algún ratón en ese oficio, en cualquier línea?
+    isAutomated: (s, skill) => s.mice.some((m) => m.post.split(':')[0] === skill),
     // Aspecto del edificio (0..n) según los rangos comprados en su rama POWER.
     visualTier(s, skill) {
       let ranks = 0;
@@ -224,6 +238,15 @@
       else if (s.nodes[key] > node.max) bad.push(key + ' over max rank');
     }
     for (const k of Object.keys(s.skills)) if (!(s.skills[k].xp >= 0)) bad.push(k + ' xp < 0');
+    const seen = {};
+    for (const m of s.mice) {
+      if (!(m.xp >= 0)) bad.push(m.name + ' xp < 0');
+      if (!B.mice.ranks[m.rank]) bad.push(m.name + ' bad rank');
+      if (!m.post) continue;
+      if (seen[m.post]) bad.push('two mice on ' + m.post);
+      seen[m.post] = true;
+      if (!CM.mice.posts(s).some((p) => p.key === m.post)) bad.push(m.name + ' on a post that does not exist: ' + m.post);
+    }
     return bad;
   };
 })();

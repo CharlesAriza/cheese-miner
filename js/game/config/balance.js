@@ -53,7 +53,7 @@ CM.BALANCE = {
   zones: [
     { id: 'cheddar', base: 'cheddar', name: 'Cheddar Rock', unlockCost: 0, hits: 30, capacity: 60 },
     { id: 'gouda', base: 'gouda', name: 'Gouda Rock', unlockCost: 6000, hits: 150, capacity: 120 },
-    { id: 'blue', base: 'blue', name: 'Blue Rock', unlockCost: 1000000, hits: 800, capacity: 240 },
+    { id: 'blue', base: 'blue', name: 'Blue Rock', unlockCost: 150000000, hits: 800, capacity: 240 },
   ],
   depth: {
     hitsGrowth: 1.22, // búsqueda necesaria por nivel de profundidad
@@ -135,6 +135,42 @@ CM.BALANCE = {
     refinery: { name: 'Refinery', requires: { total: 'rawProduced', min: 10, text: 'Drill 10 Raw Cheese first' } },
     cheesery: { name: 'Cheesery', requires: { total: 'baseProduced', min: 6, text: 'Refine 6 Cheese Base first' } },
     shop: { name: 'Cheese Shop', requires: { total: 'recipes', min: 1, text: 'Discover a recipe first' } },
+    house: { name: 'Mouse House', requires: { total: 'nodesBought', min: 1, text: 'Buy your first upgrade' } },
+  },
+
+  // ---------- RATONES ----------
+  // Cada ratón es un personaje: un rasgo bueno, una manía, un oficio favorito,
+  // nivel propio y rango. Un puesto con ratón trabaja solo.
+  mice: {
+    recruitCost: 150, // coste del primero
+    recruitGrowth: 1.8, // cada ratón cuesta un 80 % más que el anterior
+    candidates: 3, // se elige uno de tres
+    favoriteBonus: 0.15, // +15 % de velocidad en su oficio favorito
+    xpBase: 12, // acciones para pasar del nivel 1 al 2
+    xpGrowth: 1.15,
+    maxLevel: 60,
+    perLevel: 0.01, // +1 % de velocidad por nivel del ratón
+    xpPerAction: 1, // experiencia por ciclo completado en su puesto
+    xpPerHit: 0.25, // un golpe de minería vale menos que un ciclo
+    // Rangos: nivel que piden, coste y velocidad extra. El gerente compra mejoras solo.
+    ranks: [
+      { name: 'Apprentice', level: 1, cost: 0, bonus: 0 },
+      { name: 'Journeyman', level: 10, cost: 2000, bonus: 0.1 },
+      { name: 'Master', level: 25, cost: 150000, bonus: 0.2 },
+      { name: 'Manager', level: 40, cost: 20000000, bonus: 0.35, manager: true },
+    ],
+    // `good: false` son las manías: pequeñas pegas que hacen distinto a cada ratón.
+    traits: {
+      fast: { name: 'Fast', good: true, desc: 'Works 15% faster', eff: { speed: 0.15 } },
+      strong: { name: 'Strong', good: true, desc: 'Makes 20% more each time', eff: { yield: 0.2 } },
+      nocturnal: { name: 'Nocturnal', good: true, desc: '50% faster while you are away', eff: { awaySpeed: 0.5 } },
+      scholar: { name: 'Scholar', good: true, desc: 'Its work gives 30% more skill xp', eff: { skillXp: 0.3 } },
+      prodigy: { name: 'Prodigy', good: true, desc: 'Levels up 50% faster', eff: { mouseXp: 0.5 } },
+      glutton: { name: 'Glutton', good: false, desc: 'Eats 8% of what it makes', eff: { yield: -0.08 } },
+      dreamer: { name: 'Dreamer', good: false, desc: 'Works 8% slower', eff: { speed: -0.08 } },
+      homebody: { name: 'Homebody', good: false, desc: '30% slower while you are away', eff: { awaySpeed: -0.3 } },
+    },
+    names: ['Pip', 'Brie', 'Nibbles', 'Gus', 'Colby', 'Mozza', 'Pepper', 'Squeak', 'Rind', 'Fondue', 'Biscuit', 'Curd', 'Tilly', 'Monty', 'Gruyere', 'Havarti', 'Swiss', 'Feta', 'Ricotta', 'Paneer', 'Jack', 'Stilton', 'Muenster', 'Edam', 'Roque', 'Camem', 'Whey', 'Nacho', 'Truffle', 'Poppy', 'Dot', 'Olive', 'Basil', 'Clover', 'Hazel', 'Rye', 'Oats', 'Maple', 'Juniper', 'Sage'],
   },
 
   // ---------- ÁRBOLES ----------
@@ -145,34 +181,29 @@ CM.BALANCE = {
     mining: [
       { id: 'pick', branch: 'power', name: 'Sharper Pick', desc: '+1 search power per hit', level: 1, max: 80, cost: 12, growth: 1.3, eff: { pickPower: 1 } },
       { id: 'swing', branch: 'power', name: 'Heavy Swing', desc: 'Critical hits are 0.5x stronger', level: 6, max: 30, cost: 150, growth: 1.45, eff: { critMult: 0.5 } },
-      { id: 'miner', branch: 'auto', name: 'Miner Mouse', desc: 'One more mouse mining every rock, non-stop', level: 2, max: 15, cost: 100, growth: 2, eff: { miners: 1 } },
-      { id: 'paws', branch: 'auto', name: 'Quick Paws', desc: 'Miner mice swing 10% faster', level: 10, max: 30, cost: 300, growth: 1.42, eff: { minerSpeed: 0.1 } },
+      { id: 'paws', branch: 'auto', name: 'Quick Paws', desc: 'The mouse mining each rock swings 10% faster', level: 10, max: 30, cost: 300, growth: 1.42, eff: { minerSpeed: 0.1 } },
       { id: 'sense', branch: 'special', name: 'Vein Sense', desc: 'Every vein holds 10% more cheese', level: 8, max: 40, cost: 200, growth: 1.4, eff: { veinCap: 0.1 } },
       { id: 'deep', branch: 'special', name: 'Deep Riches', desc: 'Each depth level gives 2% more raw', level: 20, max: 25, cost: 2000, growth: 1.6, eff: { richDepth: 0.02 } },
     ],
     drilling: [
       { id: 'bit', branch: 'power', name: 'Bigger Bit', desc: '+1 Raw Cheese per cycle', level: 1, max: 100, cost: 18, growth: 1.28, eff: { drillYield: 1 } },
       { id: 'motor', branch: 'power', name: 'Turbo Motor', desc: 'Drills run 8% faster', level: 4, max: 40, cost: 70, growth: 1.4, eff: { drillSpeed: 0.08 } },
-      { id: 'driller', branch: 'auto', name: 'Driller Mouse', desc: 'Runs every drill non-stop', level: 3, max: 1, cost: 200, growth: 1, eff: { drillAuto: 1 } },
       { id: 'shift', branch: 'auto', name: 'Night Shift', desc: 'Drills run another 10% faster', level: 12, max: 30, cost: 400, growth: 1.45, eff: { drillSpeed: 0.1 } },
       { id: 'rich', branch: 'special', name: 'Rich Extraction', desc: '6% more Raw Cheese from every cycle', level: 9, max: 50, cost: 250, growth: 1.38, eff: { drillRich: 0.06 } },
     ],
     refining: [
       { id: 'vat', branch: 'power', name: 'Bigger Vat', desc: '+1 Cheese Base per cycle', level: 1, max: 100, cost: 18, growth: 1.28, eff: { refBatch: 1 } },
       { id: 'furnace', branch: 'power', name: 'Hot Furnace', desc: 'Refines 8% faster', level: 4, max: 40, cost: 70, growth: 1.4, eff: { refSpeed: 0.08 } },
-      { id: 'refiner', branch: 'auto', name: 'Refiner Mouse', desc: 'Runs the Refinery non-stop', level: 4, max: 1, cost: 350, growth: 1, eff: { refAuto: 1 } },
       { id: 'burners', branch: 'auto', name: 'Twin Burners', desc: 'Refines another 10% faster', level: 12, max: 30, cost: 400, growth: 1.45, eff: { refSpeed: 0.1 } },
       { id: 'press', branch: 'special', name: 'Double Press', desc: '5% more Cheese Base from the same Raw', level: 9, max: 50, cost: 250, growth: 1.38, eff: { refBonus: 0.05 } },
     ],
     cheesemaking: [
       { id: 'curds', branch: 'power', name: 'Faster Curds', desc: 'Cheese cooks 8% faster', level: 1, max: 60, cost: 30, growth: 1.33, eff: { cheeseSpeed: 0.08 } },
-      { id: 'maker', branch: 'auto', name: 'Cheesemaker Mouse', desc: 'Cooks the recipe you pick, non-stop', level: 5, max: 1, cost: 800, growth: 1, eff: { cheeseAuto: 1 } },
       { id: 'cellar', branch: 'special', name: 'Cheese Cellar', desc: 'Every cheese is worth 8% more', level: 5, max: 80, cost: 150, growth: 1.38, eff: { cheeseValue: 0.08 } },
     ],
     trading: [
       { id: 'prices', branch: 'power', name: 'Better Prices', desc: 'Sell everything for 6% more', level: 1, max: 80, cost: 40, growth: 1.36, eff: { price: 0.06 } },
       { id: 'counter', branch: 'power', name: 'Bigger Counter', desc: '+1 cheese sold per cycle', level: 2, max: 40, cost: 50, growth: 1.5, eff: { sellCount: 1 } },
-      { id: 'keeper', branch: 'auto', name: 'Shopkeeper Mouse', desc: 'Sells your cheese non-stop', level: 3, max: 1, cost: 500, growth: 1, eff: { sellAuto: 1 } },
       { id: 'quick', branch: 'auto', name: 'Quick Sales', desc: 'Sales are 10% faster', level: 5, max: 40, cost: 100, growth: 1.4, eff: { sellSpeed: 0.1 } },
       { id: 'sign', branch: 'special', name: 'Fancy Sign', desc: 'Another 10% on every price', level: 15, max: 40, cost: 900, growth: 1.55, eff: { price: 0.1 } },
     ],
@@ -186,10 +217,11 @@ CM.BALANCE = {
   // Cuántos rangos de la rama POWER hacen falta para cada aspecto del edificio.
   visualTiers: [0, 3, 8, 16, 30, 50],
   // Nudos que existieron y ya no: al cargar una partida se devuelven sus monedas.
+  // Los nudos de ratón pasaron a ser ratones de verdad (ver migración en storage.js).
   retiredNodes: { 'colony.silo': { cost: 40, growth: 1.55 }, 'colony.racks': { cost: 40, growth: 1.55 }, 'colony.shelves': { cost: 40, growth: 1.55 } },
 
   // Monedas que se regalan una sola vez al cumplir cada objetivo.
-  goalRewards: { vein: 0, drill: 5, raw: 5, refinery: 10, base: 10, cheesery: 15, recipe: 15, shop: 20, sale: 20, node: 30, mouse: 60, level5: 80, allAuto: 400, zone2: 1000, depth3: 300, recipes8: 1500, level25: 5000, zone3: 20000 },
+  goalRewards: { vein: 0, drill: 5, raw: 5, refinery: 10, base: 10, cheesery: 15, recipe: 15, shop: 20, sale: 20, node: 30, house: 40, mouse: 60, promote: 500, level5: 80, allAuto: 400, zone2: 1000, depth3: 300, recipes8: 1500, level25: 5000, zone3: 20000 },
 
   offline: {
     baseHours: 4, // máximo de ausencia que se simula (ampliable en el árbol de colonia)

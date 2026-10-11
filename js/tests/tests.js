@@ -49,6 +49,12 @@
     truthy(CM.construction.build(s, 'refinery').ok, 'refinery builds after enough raw');
     return s;
   }
+  // Pone un ratón sin rasgos en un puesto: rinde exactamente igual que una acción manual.
+  function staff(s, skill, zone, extra) {
+    const m = Object.assign({ id: 'm' + s.nextId++, name: 'Test' + s.nextId, traits: [], fav: '', xp: 0, rank: 0, post: CM.mice.postKey(skill, zone || 'cheddar'), rest: false }, extra || {});
+    s.mice.push(m);
+    return m;
+  }
   const COMBO = { base: 'cheddar', ingredient: 'herbs', treatment: 'washed', maturation: 'fresh' };
   // Partida con una receta descubierta, un queso y la tienda construida.
   function withCheese() {
@@ -117,8 +123,10 @@
     const s = withChain();
     s.coins = B.zones[1].unlockCost;
     CM.zones.unlock(s, 'gouda');
-    node(s, 'mining.miner', 4);
-    node(s, 'drilling.driller', 1);
+    for (const z of ['cheddar', 'gouda']) {
+      staff(s, 'mining', z);
+      staff(s, 'drilling', z);
+    }
     run(s, 30 * 60 * 1000);
     truthy(s.inv.raw.cheddar > 100, 'cheddar raw keeps piling up (' + s.inv.raw.cheddar + ')');
     truthy(s.inv.raw.gouda > 0, 'gouda raw is tracked on its own (' + s.inv.raw.gouda + ')');
@@ -129,8 +137,8 @@
 
   test('rocks never run out: an empty vein digs deeper, harder and richer', () => {
     const s = withChain();
-    node(s, 'drilling.driller', 1);
-    node(s, 'refining.refiner', 1);
+    staff(s, 'drilling');
+    staff(s, 'refining');
     const hits0 = q.veinHits(s, 'cheddar');
     const yield0 = q.drillYield(s, 'cheddar');
     const cap0 = q.veinCapacity(s, 'cheddar');
@@ -156,34 +164,146 @@
     eq(CM.zones.unlock(s, 'blue').reason, 'locked', 'zones open in order');
     eq(CM.zones.unlock(s, 'gouda').ok, true, 'open gouda');
     eq(s.zones.cheddar.unlocked, true, 'cheddar is still there');
-    node(s, 'mining.miner', 3);
-    node(s, 'drilling.driller', 1);
+    for (const z of ['cheddar', 'gouda']) {
+      staff(s, 'mining', z);
+      staff(s, 'drilling', z);
+    }
     run(s, 10 * 60 * 1000);
     truthy(s.inv.raw.cheddar > 0 && s.inv.raw.gouda > 0, 'both rocks produced raw');
     truthy(s.zones.gouda.depth > 0 || s.zones.gouda.veinRevealed || s.zones.gouda.discover > 0, 'gouda progressed on its own');
     valid(s);
   });
 
-  test('upgrading does not automate; the mouse automates but does not speed up', () => {
+  test('upgrading does not automate; a mouse on the post does', () => {
     const s = withChain();
     s.coins = 1e6;
     s.skills.drilling.xp = q.xpForLevel(10);
     const y = q.drillYield(s, 'cheddar');
     eq(CM.tree.buy(s, 'drilling', 'bit').ok, true, 'buy Bigger Bit');
     truthy(q.drillYield(s, 'cheddar') > y, 'more yield');
-    eq(q.isAutomated(s, 'drilling'), false, 'not automated');
+    eq(q.auto(s, 'drilling', 'cheddar'), false, 'not automated');
     s.inv.raw.cheddar = 0;
     run(s, 30000);
-    eq(q.rawTotal(s), 0, 'no production without the driller');
-    const y2 = q.drillYield(s, 'cheddar');
-    const d2 = q.drillDuration(s);
-    eq(CM.tree.buy(s, 'drilling', 'driller').ok, true, 'hire driller');
-    eq(q.drillYield(s, 'cheddar'), y2, 'yield unchanged by hiring');
-    eq(q.drillDuration(s), d2, 'duration unchanged by hiring');
-    eq(CM.tree.buy(s, 'drilling', 'driller').reason, 'max-level', 'only one driller');
-    run(s, d2 * 3);
-    truthy(s.totals.rawProduced > 0 && q.rawTotal(s) > 0, 'driller works alone');
+    eq(q.rawTotal(s), 0, 'no production without a mouse');
+    const d = q.drillDuration(s);
+    staff(s, 'drilling');
+    eq(q.auto(s, 'drilling', 'cheddar'), true, 'automated');
+    eq(q.auto(s, 'drilling', 'gouda'), false, 'only on its own rock');
+    eq(q.drillDuration(s), d, 'the machine itself is unchanged');
+    run(s, d * 3);
+    truthy(s.totals.rawProduced > 0 && q.rawTotal(s) > 0, 'the mouse works alone');
     valid(s);
+  });
+
+  test('mice: recruiting, candidates that survive a reload, and auto-placement', () => {
+    const s = withCheese();
+    eq(CM.mice.offer(s).reason, 'no-house', 'needs the Mouse House');
+    s.totals.nodesBought = 1;
+    eq(CM.construction.nextReady(s), 'house', 'house offered after the first upgrade');
+    CM.construction.build(s, 'house');
+    eq(CM.mice.offer(s).reason, 'no-coins', 'needs coins');
+    const cost = CM.mice.recruitCost(s);
+    s.coins = cost + 5;
+    eq(CM.mice.offer(s).ok, true, 'pay');
+    eq(s.coins, 5, 'paid once');
+    eq(s.candidates.length, B.mice.candidates, 'three candidates');
+    eq(CM.mice.offer(s).ok, true, 'offering again does not charge again');
+    eq(s.coins, 5, 'still paid once');
+    const reloaded = CM.storage.parse(JSON.stringify(s), 1);
+    eq(JSON.stringify(reloaded.candidates), JSON.stringify(s.candidates), 'reloading does not reroll the candidates');
+    for (const c of s.candidates) {
+      truthy(B.mice.traits[c.traits[0]].good && !B.mice.traits[c.traits[1]].good, 'one good trait and one quirk');
+      truthy(CM.skills.list.indexOf(c.fav) >= 0, 'a favourite job');
+    }
+    const picked = s.candidates[1].name;
+    eq(CM.mice.choose(s, 1).ok, true, 'choose');
+    eq(s.mice.length, 1, 'one mouse');
+    eq(s.mice[0].name, picked, 'the one chosen');
+    eq(s.candidates.length, 0, 'candidates cleared');
+    eq(s.mice[0].post, 'trading:all', 'placed on the first post by priority: the shop');
+    truthy(CM.mice.recruitCost(s) > cost, 'the next one costs more');
+    valid(s);
+  });
+
+  test('mice: traits, favourite job, levels and promotion change how they work', () => {
+    const s = withChain();
+    const plain = staff(s, 'drilling');
+    const base = CM.mice.speed(plain, 'drilling');
+    eq(base, 1, 'a plain level 1 mouse works at normal speed');
+    truthy(CM.mice.speed(Object.assign({}, plain, { traits: ['fast'] }), 'drilling') > base, 'Fast is faster');
+    truthy(CM.mice.speed(Object.assign({}, plain, { traits: ['dreamer'] }), 'drilling') < base, 'Dreamer is slower');
+    truthy(CM.mice.speed(Object.assign({}, plain, { fav: 'drilling' }), 'drilling') > base, 'favourite job is faster');
+    eq(B.mice.ranks[3].manager, true, 'the last rank is the manager');
+    eq(CM.mice.speed(Object.assign({}, plain, { fav: 'refining' }), 'drilling'), base, 'only in its favourite job');
+    truthy(CM.mice.yieldMult(Object.assign({}, plain, { traits: ['strong'] })) > 1, 'Strong makes more');
+    truthy(CM.mice.yieldMult(Object.assign({}, plain, { traits: ['glutton'] })) < 1, 'Glutton makes less');
+    const night = Object.assign({}, plain, { traits: ['nocturnal'] });
+    eq(CM.mice.speed(night, 'drilling'), base, 'Nocturnal is normal while you play');
+    CM.away = true;
+    truthy(CM.mice.speed(night, 'drilling') > base, 'Nocturnal is faster while away');
+    truthy(CM.mice.speed(Object.assign({}, plain, { traits: ['homebody'] }), 'drilling') < base, 'Homebody is slower while away');
+    CM.away = false;
+    // Trabajar da experiencia al ratón y, con nivel, va más rápido.
+    s.inv.raw.cheddar = 0;
+    run(s, 5 * 60 * 1000);
+    truthy(plain.xp > 0 && CM.mice.level(plain) > 1, 'working levels the mouse up (' + CM.mice.level(plain) + ')');
+    truthy(CM.mice.speed(plain, 'drilling') > base, 'a higher level is faster');
+    // Ascender pide nivel y monedas.
+    eq(CM.mice.promote(s, plain.id).reason, CM.mice.level(plain) >= 10 ? 'no-coins' : 'mouse-level', 'promotion gated');
+    plain.xp = 1e6;
+    s.coins = B.mice.ranks[1].cost - 1;
+    eq(CM.mice.promote(s, plain.id).reason, 'no-coins', 'needs coins');
+    s.coins = B.mice.ranks[1].cost;
+    const before = CM.mice.speed(plain, 'drilling');
+    eq(CM.mice.promote(s, plain.id).ok, true, 'promote');
+    eq(s.coins, 0, 'paid');
+    eq(plain.rank, 1, 'rank');
+    truthy(CM.mice.speed(plain, 'drilling') > before, 'a promoted mouse is faster');
+    valid(s);
+  });
+
+  test('mice: moving, swapping, resting and best fit', () => {
+    const s = withCheese();
+    s.built.house = true;
+    const a = staff(s, 'drilling');
+    const b = staff(s, 'refining');
+    eq(CM.mice.assign(s, a.id, 'refining:cheddar').ok, true, 'move onto an occupied post');
+    eq(a.post, 'refining:cheddar', 'moved');
+    eq(b.post, 'drilling:cheddar', 'the other one swapped');
+    eq(CM.mice.assign(s, a.id, 'drilling:blue').reason, 'invalid', 'a post on a closed rock does not exist');
+    eq(CM.mice.assign(s, a.id, '').ok, true, 'send home');
+    eq(a.post, '', 'resting');
+    run(s, 5000);
+    eq(a.post, '', 'a mouse sent home stays home');
+    const c = staff(s, 'mining');
+    c.post = '';
+    run(s, 5000);
+    truthy(c.post !== '', 'a new idle mouse takes a free post on its own');
+    // Best fit: cada puesto, por prioridad, se lleva al mejor que quede.
+    a.fav = 'trading';
+    b.fav = 'drilling';
+    c.fav = 'refining';
+    CM.mice.bestFit(s);
+    eq(a.post, 'trading:all', 'the trader goes to the shop');
+    eq(b.post, 'drilling:cheddar', 'the driller to the drill');
+    eq(c.post, 'refining:cheddar', 'the refiner to the refinery');
+    valid(s);
+  });
+
+  test('mice: a manager buys upgrades for its job, only if allowed', () => {
+    const s = withChain();
+    const m = staff(s, 'drilling', 'cheddar', { rank: 3 });
+    s.coins = 100;
+    run(s, 4000);
+    truthy((s.nodes['drilling.bit'] || 0) > 0, 'the manager bought drilling upgrades');
+    eq(s.nodes['refining.vat'], undefined, 'only for its own job');
+    const t = withChain();
+    staff(t, 'drilling', 'cheddar', { rank: 3 });
+    t.settings.managersBuy = false;
+    t.coins = 100;
+    run(t, 4000);
+    eq(Object.keys(t.nodes).length, 0, 'with the option off it buys nothing');
+    eq(m.rank, 3, 'still a manager');
   });
 
   test('skill levels: experience curve, level gates and buy-all', () => {
@@ -220,7 +340,7 @@
     eq(sumA.automated, false, 'summary says not automated');
 
     const b = fresh();
-    node(b, 'mining.miner', 1);
+    staff(b, 'mining');
     b.lastSavedAt = 0;
     const xp = b.skills.mining.xp;
     CM.sim.applyOffline(b, 5 * 60 * 1000);
@@ -230,7 +350,7 @@
     eq(CM.sim.applyOffline(b, 5 * 60 * 1000), null, 'second call does nothing');
 
     const c = fresh();
-    node(c, 'mining.miner', 1);
+    staff(c, 'mining');
     c.lastSavedAt = 0;
     const sumC = CM.sim.applyOffline(c, q.offlineCapMs(c) * 3);
     eq(sumC.simulatedMs, B.offline.baseHours * 3600000, 'capped');
@@ -301,7 +421,8 @@
     s.inv.raw.cheddar = 5000;
     s.inv.raw.gouda = 8;
     s.inv.base.gouda = 3;
-    node(s, 'refining.refiner', 1);
+    staff(s, 'refining', 'cheddar');
+    staff(s, 'refining', 'gouda');
     run(s, q.refineDuration(s) * 2);
     truthy(s.inv.base.gouda >= 3 + 4, 'gouda was refined although cheddar has far more raw (' + s.inv.base.gouda + ')');
     truthy(s.zones.cheddar.stats.base > 0, 'cheddar was refined at the same time');
@@ -315,7 +436,8 @@
     eq(s.recipes.length, 2, 'gouda recipe discovered');
     const gouda = s.recipes[1];
     // Una receta por queso para el Cheesemaker.
-    node(s, 'cheesemaking.maker', 1);
+    staff(s, 'cheesemaking', 'cheddar');
+    staff(s, 'cheesemaking', 'gouda');
     CM.cheesery.assign(s, s.recipes[0].id);
     CM.cheesery.assign(s, gouda.id);
     eq(s.zones.cheddar.cookRecipe, s.recipes[0].id, 'cheddar line recipe');
@@ -351,7 +473,7 @@
     run(t, 30000);
     const better = t.recipes[1];
     truthy(CM.cheesery.valueOf(t, better) > CM.cheesery.valueOf(t, t.recipes[0]), 'the smoked one is worth more');
-    node(t, 'cheesemaking.maker', 1);
+    staff(t, 'cheesemaking');
     eq(CM.cheesery.laneRecipe(t, 'cheddar').id, better.id, 'unpinned: picks the most valuable');
     CM.cheesery.assign(t, t.recipes[0].id);
     eq(CM.cheesery.laneRecipe(t, 'cheddar').id, t.recipes[0].id, 'pinned: cooks what you chose');
@@ -390,7 +512,7 @@
   test('cheesemaker and shopkeeper run the end of the chain on their own, within limits', () => {
     const s = withCheese();
     const recipe = s.recipes[0];
-    node(s, 'cheesemaking.maker', 1);
+    staff(s, 'cheesemaking');
     s.inv.base.cheddar = 5;
     run(s, 60000);
     eq(s.lots[recipe.id], 3, 'with no recipe pinned it cooks the best one it knows: 2 cheeses from 4 of the 5 base');
@@ -402,7 +524,7 @@
     eq(s.lots[recipe.id], 3 + 20, 'cooks every pair of base it has, with no cheese cap');
     eq(s.inv.base.cheddar, 1, 'only the odd base is left');
     eq(s.totals.lotsSold, 0, 'the cheesemaker never sells');
-    node(s, 'trading.keeper', 1);
+    staff(s, 'trading');
     const coins = s.coins;
     run(s, 60000);
     truthy(s.totals.lotsSold > 0 && s.coins > coins, 'the shopkeeper sells on its own');
@@ -413,7 +535,7 @@
 
   test('automation waits only for what it is missing, never for space', () => {
     const s = withChain();
-    node(s, 'refining.refiner', 1);
+    staff(s, 'refining');
     s.inv.raw.cheddar = 9;
     run(s, 10 * 60 * 1000);
     eq(s.inv.raw.cheddar, 1, 'refined every pair of raw');
@@ -430,7 +552,10 @@
     CM.storage.save(s, 5000000);
     const loaded = CM.storage.load(5000000).state;
     for (const path of ['coins', 'clock']) eq(loaded[path], s[path], path);
-    for (const part of ['built', 'inv', 'zones', 'nodes', 'skills']) eq(JSON.stringify(loaded[part]), JSON.stringify(s[part]), part);
+    staff(s, 'drilling', 'cheddar', { traits: ['fast', 'glutton'], fav: 'drilling', xp: 40, rank: 1 });
+    CM.storage.save(s, 5000000);
+    const again = CM.storage.load(5000000).state;
+    for (const part of ['built', 'inv', 'zones', 'nodes', 'skills', 'mice']) eq(JSON.stringify(again[part]), JSON.stringify(s[part]), part);
     eq(loaded.recipes.length, 1, 'recipes');
     eq(q.pickPower(loaded), q.pickPower(s), 'tree effects survive the reload');
     valid(loaded);
@@ -452,6 +577,24 @@
     eq(migrated.zones.cheddar.cookRecipe, old.recipes[0].id, 'cheesemaker recipe moved to its line');
     eq(migrated.recipes.length, 1, 'recipes kept');
     valid(migrated);
+    // v4: los ratones eran nudos. Pasan a ser ratones de verdad, uno por puesto y roca abierta.
+    const v4 = JSON.parse(JSON.stringify(withCheese()));
+    v4.version = 4;
+    delete v4.mice;
+    v4.zones.gouda.unlocked = true;
+    v4.nodes = { 'drilling.driller': 1, 'trading.keeper': 1, 'mining.miner': 3, 'mining.pick': 2 };
+    const coinsBefore = v4.coins;
+    const m4 = CM.storage.parse(JSON.stringify(v4), 1);
+    truthy(m4, 'version 4 saves still load');
+    eq(m4.mice.filter((m) => m.post.indexOf('drilling:') === 0).length, 2, 'a driller on each open rock');
+    eq(m4.mice.filter((m) => m.post.indexOf('mining:') === 0).length, 2, 'a miner on each open rock');
+    eq(m4.mice.filter((m) => m.post === 'trading:all').length, 1, 'one shopkeeper');
+    eq(m4.nodes['drilling.driller'], undefined, 'old mouse nodes removed');
+    eq(m4.nodes['mining.pick'], 2, 'other nodes kept');
+    eq(m4.coins, coinsBefore + 200 + 400, 'extra miner ranks refunded');
+    truthy(m4.built.house, 'the Mouse House comes with them');
+    truthy(q.auto(m4, 'drilling', 'gouda'), 'still automated after migrating');
+    valid(m4);
     // Los nudos de almacén ya no existen: una partida que los tenía recupera sus monedas.
     localStorage.setItem(CM.storage.KEY, JSON.stringify({ version: 4, coins: 10, nodes: { 'colony.silo': 2, 'colony.lamp': 1 } }));
     const refunded = CM.storage.load(1).state;
@@ -504,14 +647,14 @@
         lastBuy = s.clock;
         const next = CM.zones.next(s);
         if (next) CM.zones.unlock(s, next.id);
-        // Primero los ratones, luego lo más barato de cada árbol.
-        for (const [skill, id] of [['drilling', 'driller'], ['refining', 'refiner'], ['trading', 'keeper'], ['cheesemaking', 'maker'], ['mining', 'miner']]) CM.tree.buy(s, skill, id);
-        // Ahorra como lo haría una persona: para el siguiente ratón que ya puede
-        // contratar, y para la siguiente roca cuando su economía ya da para ella.
-        const mouse = [['drilling', 'driller'], ['refining', 'refiner'], ['trading', 'keeper'], ['cheesemaking', 'maker'], ['mining', 'miner']].some(([skill, id]) => {
-          const info = CM.tree.info(s, skill, id);
-          return !info.locked && !info.maxed && s.built[B.skills[skill].station] !== false;
-        });
+        // Primero un ratón para cada puesto libre (se queda con el primer candidato
+        // y deja que se coloque solo), luego ascensos, luego lo más barato de cada árbol.
+        const wantsMouse = s.built.house && !!CM.mice.freePost(s);
+        if (wantsMouse && CM.mice.offer(s).ok) CM.mice.choose(s, 0);
+        for (const m of s.mice) CM.mice.promote(s, m.id);
+        // Ahorra como lo haría una persona: para el siguiente ratón y para la
+        // siguiente roca cuando su economía ya da para ella.
+        const mouse = s.built.house && !!CM.mice.freePost(s) && s.totals.coinsEarned > CM.mice.recruitCost(s) * 0.6;
         const saving = mouse || (next && s.totals.coinsEarned > next.unlockCost * 0.5);
         if (!saving) for (const skill of ORDER) CM.tree.buyAll(s, skill);
       }
@@ -520,10 +663,10 @@
         const zone = q.openZones(s).find((z) => CM.mining.status(s, z.id) === 'ready');
         const drillable = q.openZones(s).find((z) => CM.drilling.status(s, z.id) === 'ready');
         const refinable = q.openZones(s).find((z) => CM.refining.status(s, z.id) === 'ready');
-        if (zone && !q.miners(s)) CM.mining.hit(s, zone.id, 'manual');
-        else if (drillable && !q.isAutomated(s, 'drilling')) CM.drilling.tap(s, drillable.id);
-        else if (refinable && !q.isAutomated(s, 'refining')) CM.refining.tap(s, refinable.id);
-        else if (CM.shop.status(s) === 'ready' && !q.isAutomated(s, 'trading')) CM.shop.tap(s);
+        if (zone && !q.auto(s, 'mining', zone.id)) CM.mining.hit(s, zone.id, 'manual');
+        else if (drillable && !q.auto(s, 'drilling', drillable.id)) CM.drilling.tap(s, drillable.id);
+        else if (refinable && !q.auto(s, 'refining', refinable.id)) CM.refining.tap(s, refinable.id);
+        else if (CM.shop.status(s) === 'ready' && !q.auto(s, 'trading', 'all')) CM.shop.tap(s);
         else if (zone) CM.mining.hit(s, zone.id, 'manual');
       }
       // En cada línea: descubre recetas de su queso y, si no quedan asequibles, fabrica la mejor.
@@ -533,8 +676,8 @@
           const unknown = CM.cheesery.allCombos([def.base]).find((c) => !CM.cheesery.recipeByKey(s, CM.cheesery.keyOf(c)) && CM.cheesery.experiment(s, c).ok);
           const mine = s.recipes.filter((r) => CM.cheesery.parseKey(r.key).base === def.base).sort((a, b) => CM.cheesery.valueOf(s, b) - CM.cheesery.valueOf(s, a));
           if (unknown || !mine.length) continue;
-          if (q.isAutomated(s, 'cheesemaking')) CM.cheesery.assign(s, (mine.find((r) => CM.cheesery.maxLots(s, r) > 0) || mine[0]).id);
-          else for (const r of mine) if (CM.cheesery.produce(s, r.id, Math.max(1, Math.min(3, CM.cheesery.maxLots(s, r)))).ok) break;
+          if (q.auto(s, 'cheesemaking', def.id)) continue; // su ratón cocina solo la mejor
+          for (const r of mine) if (CM.cheesery.produce(s, r.id, Math.max(1, Math.min(3, CM.cheesery.maxLots(s, r)))).ok) break;
         }
       }
       if (s.clock % 5000 === 0) valid(s);
@@ -551,7 +694,7 @@
     const { s, mins } = playBot(400, 4 * 60 * 60 * 1000, 'zone2');
     notes.push('bot (1 tap / 0.4 s) goals in minutes: ' + JSON.stringify(mins));
     notes.push('bot at the end: levels ' + CM.skills.list.map((k) => q.level(s, k)).join('/') + ', coins ' + CM.fmt(s.coins) + ', recipes ' + s.recipes.length);
-    for (const id of ['vein', 'drill', 'raw', 'refinery', 'base', 'cheesery', 'recipe', 'shop', 'sale', 'node', 'mouse', 'level5', 'allAuto', 'depth3', 'zone2']) {
+    for (const id of ['vein', 'drill', 'raw', 'refinery', 'base', 'cheesery', 'recipe', 'shop', 'sale', 'node', 'house', 'mouse', 'level5', 'allAuto', 'depth3', 'zone2']) {
       truthy(s.goalsDone[id] !== undefined, 'goal ' + id);
     }
     eq(s.devUsed, false, 'no dev tools');

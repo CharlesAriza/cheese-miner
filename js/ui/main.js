@@ -162,7 +162,7 @@
         banner('CHEESE VEIN FOUND!');
         float(CM.fmt(ev.capacity) + ' RAW INSIDE', 'rock', 'info');
         // Si el taladro aún no existe, es el jugador quien va a su casilla a construirlo.
-        if (ui.station === 'rock' && state.built.drill && !q.isAutomated(state, 'drilling')) select('drill');
+        if (ui.station === 'rock' && state.built.drill && !q.auto(state, 'drilling', ui.zone)) select('drill');
         break;
       case 'drillStart':
         if (here && ev.source === 'manual') play('start');
@@ -189,7 +189,7 @@
         if (here) {
           play('newRock');
           float('DEPTH ' + ev.depth + ': RICHER CHEESE', 'rock', 'lot');
-          if (ui.station === 'drill' && !q.miners(state)) {
+          if (ui.station === 'drill' && !q.auto(state, 'mining', ui.zone)) {
             select('rock');
             toast('Vein used up. The rock goes deeper: mine to find the next vein');
           }
@@ -216,6 +216,33 @@
         scene.celebrate();
         banner('NEW RECIPE: ' + found.name.toUpperCase());
         toast(found.name + ' sells for ' + CM.fmt(CM.shop.price(state, found)) + ' coins. It is in your Recipe Book', true);
+        break;
+      }
+      case 'candidates':
+        play('bell');
+        break;
+      case 'recruited': {
+        const mouse = CM.mice.byId(state, ev.id);
+        play('build');
+        scene.celebrate();
+        banner(mouse.name.toUpperCase() + ' JOINED!');
+        toast(mouse.post ? mouse.name + ' went to ' + CM.mice.postLabel(mouse.post) + ' and works there on its own' : mouse.name + ' is resting: every post has a mouse', true);
+        dirty = true;
+        break;
+      }
+      case 'promoted': {
+        const mouse = CM.mice.byId(state, ev.id);
+        play('goal');
+        scene.celebrate();
+        banner(mouse.name.toUpperCase() + ' IS NOW ' + B.mice.ranks[ev.rank].name.toUpperCase() + '!');
+        dirty = true;
+        break;
+      }
+      case 'mouseLevel': {
+        // Solo se avisa si ese ratón trabaja en la línea que se está mirando.
+        const mouse = CM.mice.byId(state, ev.id);
+        const [skill, zone] = mouse && mouse.post ? mouse.post.split(':') : [];
+        if (skill && (zone === 'all' || zone === ui.zone)) float(P.esc(mouse.name) + ' LV ' + ev.level, B.skills[skill].station, 'info');
         break;
       }
       case 'masteryUp': {
@@ -353,7 +380,7 @@
     if (st !== 'rock' && !state.built[st]) return { state: CM.construction.buildInfo(state, st).condOk ? 'build' : 'locked', progress: 0 };
     const z = state.zones[ui.zone];
     if (st === 'rock') {
-      if (!z.veinRevealed) return { state: q.miners(state) ? 'working' : 'ready', progress: z.discover / q.veinHits(state, ui.zone) };
+      if (!z.veinRevealed) return { state: q.auto(state, 'mining', ui.zone) ? 'working' : 'ready', progress: z.discover / q.veinHits(state, ui.zone) };
       return { state: 'waiting', progress: z.veinRemaining / q.veinCapacity(state, ui.zone), vein: true };
     }
     if (st === 'drill') {
@@ -375,7 +402,7 @@
   }
 
   // Qué estación pide el objetivo actual.
-  const GOAL_AT = { vein: 'rock', drill: 'drill', raw: 'drill', refinery: 'refinery', base: 'refinery', cheesery: 'cheesery', recipe: 'cheesery', shop: 'shop', sale: 'shop', recipes8: 'cheesery', zone2: 'colony', zone3: 'colony', depth3: 'rock' };
+  const GOAL_AT = { house: 'mice', mouse: 'mice', allAuto: 'mice', promote: 'mice', vein: 'rock', drill: 'drill', raw: 'drill', refinery: 'refinery', base: 'refinery', cheesery: 'cheesery', recipe: 'cheesery', shop: 'shop', sale: 'shop', recipes8: 'cheesery', zone2: 'colony', zone3: 'colony', depth3: 'rock' };
 
   const BUBBLE = { 'no-raw': 'NO RAW', 'no-recipe': 'NO RECIPE', 'no-base': 'NO BASE', 'no-cheese': 'NO CHEESE' };
   const bubbles = {};
@@ -408,7 +435,7 @@
       set(tile, 'goal', goalAt === st && ui.station !== st);
       set(tile.querySelector('.mini > i'), 'width', Math.round(info.progress * 100) + '%');
       set(tile.querySelector('u'), 'text', 'LV ' + q.level(state, skill));
-      const auto = q.isAutomated(state, skill);
+      const auto = q.auto(state, skill, ui.zone);
       const ups = info.state !== 'locked' && info.state !== 'build' ? CM.tree.affordable(state, skill) : 0;
       set(tile.querySelector('em'), 'text', info.state === 'locked' ? 'LOCK' : info.state === 'build' ? 'NEW!' : ups ? 'UP! ' + ups : auto ? 'AUTO' : '');
       // Aviso sobre el edificio solo cuando está parado por algo.
@@ -429,7 +456,8 @@
     const skill = SKILL[st];
     const z = state.zones[ui.zone];
     const def = q.zoneDef(ui.zone);
-    const auto = q.isAutomated(state, skill);
+    const worker = CM.mice.at(state, skill, ui.zone);
+    const auto = !!worker;
     const m = { title: B.skills[skill].name, status: '', tone: '', kind: 'none', label: '', sub: '', fill: 0, mode: 'idle', tree: true };
 
     if (st !== 'rock' && !state.built[st]) {
@@ -464,12 +492,12 @@
         const ds = CM.drilling.status(state, ui.zone);
         m.kind = state.built.drill ? 'drill' : 'none';
         m.label = 'DRILL';
-        m.sub = ds === 'running' ? (q.isAutomated(state, 'drilling') ? 'Auto · hold to boost' : 'HOLD TO BOOST!') : 'Tap to drill the vein';
+        m.sub = ds === 'running' ? (q.auto(state, 'drilling', ui.zone) ? 'Auto · hold to boost' : 'HOLD TO BOOST!') : 'Tap to drill the vein';
         m.fill = progress(z.drillJob);
         m.mode = ds === 'ready' ? 'hot' : '';
       } else {
         const need = q.veinHits(state, ui.zone);
-        m.status = 'Mining finds the vein; it gives no cheese · power ' + round1(q.pickPower(state)) + (auto ? ' · ' + q.miners(state) + (q.miners(state) === 1 ? ' mouse' : ' mice') + ' mining' : '');
+        m.status = 'Mining finds the vein; it gives no cheese · power ' + round1(q.pickPower(state)) + (auto ? ' · ' + worker.name + ' is mining' : '');
         m.sub = 'Search ' + CM.fmt(Math.floor(z.discover)) + '/' + CM.fmt(need);
         m.fill = z.discover / need;
         m.mode = 'hot';
@@ -576,6 +604,9 @@
       const n = CM.tree.affordable(state, skill);
       side += P.btn('tree:' + skill, m.book ? 'TREE' : 'ALL UPGRADES' + (n > 1 ? ' · ' + n : ''), { cls: 'buy calm small' });
       if (m.book) side += P.btn('open:cheese', 'RECIPES', { cls: 'buy calm small' });
+      // Quién trabaja en este puesto.
+      const worker = CM.mice.at(state, skill, ui.zone);
+      if (state.built.house) side += P.btn('open:mice', worker ? P.esc(worker.name) + ' · LV ' + CM.mice.level(worker) : 'NO MOUSE HERE', { cls: 'buy calm small' + (worker ? '' : ' warn') });
     }
     if (side !== ui.dockHtml) {
       ui.dockHtml = side;
@@ -592,10 +623,10 @@
   function laneWhy(def) {
     const z = state.zones[def.id];
     const name = B.bases[def.base].name;
-    const auto = (k) => q.isAutomated(state, k);
+    const auto = (k) => q.auto(state, k, def.id);
     if (!z.veinRevealed) {
       const pct = Math.floor((z.discover / q.veinHits(state, def.id)) * 100);
-      return q.miners(state) ? ['Mice searching for the next vein: ' + pct + '%', ''] : ['No vein: mine this rock (' + pct + '%)', 'warn'];
+      return auto('mining') ? ['A mouse is searching for the next vein: ' + pct + '%', ''] : ['No vein: mine this rock (' + pct + '%)', 'warn'];
     }
     if (!state.built.drill) return ['Vein found: build the drill', 'warn'];
     if (!auto('drilling') && !z.drillJob) return ['Drill idle: tap DRILL', 'warn'];
@@ -707,6 +738,7 @@
     const id = scene.hitTest(logical(e.clientX - stage.getBoundingClientRect().left));
     if (!id) return;
     if (id === 'storage') return openPanel('stock');
+    if (id === 'house') return openPanel('mice');
     const same = ui.station === id;
     if (!same) select(id, true);
     updateDock();
@@ -724,6 +756,10 @@
     $('sheet').hidden = false;
     $('sheet-body').scrollTop = 0;
     if (name === 'cheese') scene.focus('cheesery');
+    if (name === 'mice') {
+      ui.moving = null;
+      if (state.built.house) scene.focus('house');
+    }
     renderPanel();
   }
   function openTree(skill) {
@@ -748,7 +784,7 @@
     if (rep) rep.textContent = CM.dev.report(state);
   }
   $('nav-colony').addEventListener('click', () => openTree('colony'));
-  $('nav-stock').addEventListener('click', () => openPanel('stock'));
+  $('nav-mice').addEventListener('click', () => openPanel('mice'));
   // Tocar un contador de recurso abre la despensa.
   for (const id of ['res-raw', 'res-base', 'res-lots']) $(id).addEventListener('click', () => openPanel('stock'));
   $('nav-menu').addEventListener('click', () => openPanel('options'));
@@ -788,6 +824,17 @@
       if (state.zones[id].unlocked) return void focusZone(id);
       return CM.zones.unlock(state, id);
     },
+    build: (id) => CM.construction.build(state, id),
+    recruit: () => CM.mice.offer(state),
+    choose: (i) => CM.mice.choose(state, Number(i)),
+    bestfit: () => CM.mice.bestFit(state),
+    move: (id) => void (ui.moving = ui.moving === id ? null : id),
+    post: (id, skill, zone) => {
+      ui.moving = null;
+      return CM.mice.assign(state, id, skill ? skill + ':' + zone : '');
+    },
+    promote: (id) => CM.mice.promote(state, id),
+    managers: () => void (state.settings.managersBuy = !state.settings.managersBuy),
     tab: (name) => void (ui.cheeseTab = name),
     pick: (part, value) => void (ui.combo[part] = value),
     experiment: () => CM.cheesery.experiment(state, ui.combo),
@@ -873,6 +920,7 @@
     refinery: { why: 'Raw Cheese is not ready to use. The Refinery presses 2 Raw into 1 Cheese Base.', then: 'Now tap REFINE to press your Raw Cheese' },
     cheesery: { why: 'Base is the main ingredient. The Cheesery mixes it with three more things into a real cheese.', then: 'Now discover your first recipe' },
     shop: { why: 'Your cheese needs a place to be sold. A shop turns cheese into coins.', then: 'Now tap SELL' },
+    house: { why: 'A mouse on a post does that job on its own.', then: 'Now recruit your first mouse' },
   };
   let announced = null;
   function checkUnlocks() {
@@ -882,7 +930,7 @@
     announced = id;
     play('reveal');
     banner('NEW: ' + B.buildings[id].name.toUpperCase() + '!');
-    toast('Something new to build. Tap ' + tiles[id].querySelector('b').textContent + ' below', true);
+    toast('Something new to build. Tap ' + (tiles[id] ? tiles[id].querySelector('b').textContent : 'MICE') + ' below', true);
   }
   // Tras la primera venta: para qué sirven las monedas.
   function firstSaleCard() {
@@ -993,6 +1041,7 @@
       raw: () => D.addRaw(state, 10),
       base: () => D.addBase(state, 10),
       levels: () => D.addLevels(state, 5),
+      micexp: () => state.mice.forEach((m) => (m.xp += 2000)),
       reveal: () => D.revealVeins(state),
       buildings: () => D.unlockBuildings(state),
       zones: () => D.unlockZones(state),
@@ -1107,6 +1156,10 @@
     const next = CM.zones.next(state);
     const colony = next && state.coins >= next.unlockCost;
     $('nav-colony').querySelector('.dot').classList.toggle('on', !!colony);
+    // MICE avisa si hay casa por construir, candidatos por elegir, o un puesto libre y monedas para reclutar.
+    const mice = CM.construction.buildInfo(state, 'house').canBuild || state.candidates.length > 0 || (state.built.house && !!CM.mice.freePost(state) && state.coins >= CM.mice.recruitCost(state));
+    $('nav-mice').querySelector('.dot').classList.toggle('on', !!mice);
+    set($('nav-mice'), 'goal', GOAL_AT[CM.sim.objective(state).id] === 'mice');
     const n = buyable();
     set($('nav-all'), 'text', n ? 'BUY ALL ' + n : 'BUY ALL');
     set($('nav-all'), 'ready', n > 0);

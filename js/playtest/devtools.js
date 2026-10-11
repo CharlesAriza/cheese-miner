@@ -41,11 +41,15 @@
         }
       });
     },
-    // Compra el ratón (nudo AUTO principal) de cada etapa.
+    // Pone un ratón en cada puesto libre, sin coste.
     hireAll(s) {
       s.devUsed = true;
-      for (const [skill, id] of [['mining', 'miner'], ['drilling', 'driller'], ['refining', 'refiner'], ['cheesemaking', 'maker'], ['trading', 'keeper']]) {
-        if (!s.nodes[skill + '.' + id]) s.nodes[skill + '.' + id] = 1;
+      s.built.house = true;
+      for (let guard = 0; guard < 40 && CM.mice.freePost(s); guard++) {
+        const name = B.mice.names[s.mice.length % B.mice.names.length];
+        const m = { id: 'm' + s.nextId++, name, traits: ['fast', 'dreamer'], fav: '', xp: 0, rank: 0, post: '', rest: false };
+        s.mice.push(m);
+        CM.mice.autoPlace(s, m);
       }
     },
     // Sube un rango todos los nudos de la rama POWER (para ver los aspectos de los edificios).
@@ -98,6 +102,7 @@
         'stock: raw ' + JSON.stringify(s.inv.raw) + '  base ' + JSON.stringify(s.inv.base) + '  cheese ' + q.lotsTotal(s),
         ...q.openZones(s).map((d) => 'lane ' + d.id + ' d' + s.zones[d.id].depth + ': mine=' + CM.mining.status(s, d.id) + ' drill=' + CM.drilling.status(s, d.id) + ' refine=' + CM.refining.status(s, d.id) + ' cook=' + CM.cheesery.status(s, d.id)),
         'shop=' + CM.shop.status(s),
+        'mice: ' + (s.mice.map((m) => m.name + ' L' + CM.mice.level(m) + ' r' + m.rank + ' @' + (m.post || 'house')).join(', ') || '-'),
         'taps: ' + JSON.stringify(s.metrics.taps),
         'goals (min): ' + (Object.entries(s.goalsDone).map(([k, v]) => k + ' ' + f(v / 60000)).join(', ') || '-'),
         'totals: ' + JSON.stringify(s.totals),

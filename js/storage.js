@@ -70,6 +70,7 @@
       z.drillJob = z.unlocked ? cleanJob(z.drillJob, ['amount']) : null;
       if (z.drillJob && !(z.drillJob.amount > 0)) z.drillJob = null;
       z.refCarry = Math.min(1, pos(z.refCarry));
+      z.cookCarry = Number.isFinite(z.cookCarry) ? Math.max(-1, Math.min(1, z.cookCarry)) : 0;
       z.refJob = z.unlocked ? cleanJob(z.refJob, ['amount']) : null;
       if (z.refJob && !(z.refJob.amount >= 0)) z.refJob = null;
       for (const k of Object.keys(z.stats)) z.stats[k] = nat(z.stats[k]);
@@ -83,6 +84,26 @@
     const lots = {};
     for (const r of s.recipes) if (nat(s.lots[r.id]) > 0) lots[r.id] = nat(s.lots[r.id]);
     s.lots = lots;
+    // Ratones: campos válidos y un solo ratón por puesto existente.
+    const skillsList = Object.keys(B.skills);
+    const posts = CM.mice.posts(s).map((p) => p.key);
+    const taken = {};
+    s.mice = s.mice.filter((m) => isObj(m) && typeof m.id === 'string' && typeof m.name === 'string').slice(0, 200);
+    for (const m of s.mice) {
+      m.name = m.name.slice(0, 16);
+      m.traits = (Array.isArray(m.traits) ? m.traits : []).filter((t) => B.mice.traits[t]).slice(0, 2);
+      m.fav = skillsList.indexOf(m.fav) >= 0 ? m.fav : '';
+      m.xp = pos(m.xp);
+      m.rank = Math.min(nat(m.rank), B.mice.ranks.length - 1);
+      m.rest = m.rest === true;
+      m.post = typeof m.post === 'string' && posts.indexOf(m.post) >= 0 && !taken[m.post] ? m.post : '';
+      if (m.post) taken[m.post] = true;
+    }
+    s.candidates = (Array.isArray(s.candidates) ? s.candidates : [])
+      .filter((c) => isObj(c) && typeof c.name === 'string' && Array.isArray(c.traits) && c.traits.every((t) => B.mice.traits[t]))
+      .slice(0, B.mice.candidates);
+    s.seed = nat(s.seed) || 1;
+
     // Cada línea solo puede cocinar recetas de su propia base.
     for (const def of B.zones) {
       const z = s.zones[def.id];
@@ -122,6 +143,36 @@
     data.version = 4;
   }
 
+  // v4 -> v5: los ratones dejan de ser nudos de los árboles y pasan a ser
+  // personajes. Quien tenía una etapa automatizada (que valía para todas las
+  // rocas) recibe un ratón en ese puesto por cada roca abierta; los rangos
+  // extra del antiguo Miner Mouse se devuelven en monedas.
+  const OLD_MICE = { 'mining.miner': ['mining', 100, 2], 'drilling.driller': ['drilling'], 'refining.refiner': ['refining'], 'cheesemaking.maker': ['cheesemaking'], 'trading.keeper': ['trading'] };
+  function migrate4(data) {
+    const nodes = isObj(data.nodes) ? data.nodes : (data.nodes = {});
+    const zones = isObj(data.zones) ? data.zones : {};
+    const open = B.zones.filter((z, i) => i === 0 || (isObj(zones[z.id]) && zones[z.id].unlocked)).map((z) => z.id);
+    const mice = [];
+    let n = 0;
+    const add = (skill, zone) => {
+      const name = B.mice.names[n % B.mice.names.length];
+      mice.push({ id: 'm' + (nat(data.nextId) + 1000 + n), name, traits: ['fast', 'dreamer'], fav: skill, xp: 0, rank: 0, post: skill + ':' + zone, rest: false });
+      n += 1;
+    };
+    for (const key of Object.keys(OLD_MICE)) {
+      const rank = nat(nodes[key]);
+      delete nodes[key];
+      if (!rank) continue;
+      const [skill, cost, growth] = OLD_MICE[key];
+      if (skill === 'trading') add(skill, 'all');
+      else for (const zone of open) add(skill, zone);
+      for (let r = 1; cost && r < rank; r++) data.coins = nat(data.coins) + Math.round(cost * Math.pow(growth, r));
+    }
+    data.mice = mice;
+    if (mice.length) data.built = Object.assign({}, data.built, { house: true });
+    data.version = 5;
+  }
+
   // Convierte texto JSON en un estado válido, o null si no sirve.
   function parse(text, now) {
     let data;
@@ -132,6 +183,7 @@
     }
     if (isObj(data) && isObj(data.save)) data = data.save; // archivo exportado
     if (isObj(data) && data.version === 3) migrate3(data);
+    if (isObj(data) && data.version === 4) migrate4(data);
     if (!isObj(data) || data.version !== CM.SAVE_VERSION) return null;
     const s = CM.createState(now);
     try {

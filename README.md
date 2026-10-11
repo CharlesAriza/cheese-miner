@@ -26,15 +26,18 @@ La pantalla es el cuartel general. Abajo está la **cadena**: MINE → DRILL →
 | Ver el árbol entero de una etapa | **ALL UPGRADES** en su panel |
 | Comprar todo lo que alcance en un árbol | **BUY EVERYTHING I CAN AFFORD** |
 | Descubrir y cocinar recetas | Etapa CHEESE → botón grande |
+| Reclutar, colocar y ascender ratones | **MICE**, o tocar la Mouse House |
 | Abrir rocas nuevas y ampliar las horas offline | **COLONY** |
-| Ver todo lo que tienes, tipo por tipo | **PANTRY**, o tocar un contador de arriba |
+| Ver todo lo que tienes, tipo por tipo | Tocar un contador de arriba, o el almacén |
 | Ver otro queso (escena y contadores) | Tocar su fila en el panel |
 | Moverse por la colonia | Arrastrar la escena |
 | Sonido, exportar, importar, reiniciar, dev tools | **MENU** |
 
 Los primeros pasos van a fuego lento. Cuando se desbloquea un edificio nuevo de la cadena, el juego lo avisa, su casilla se marca con `NEW!` y tú vas a su panel, lees para qué sirve y lo construyes. Tras la primera venta, una tarjeta resume para qué sirven las monedas. Etiquetas de las casillas: `LOCK` (aún no), `UP! 3` (tres mejoras que ya puedes pagar), `AUTO` (tiene ratón). Los botones de compra que aún no alcanzas se van llenando y dicen cuántos minutos faltan.
 
-El Cheesemaker cocina por su cuenta la receta más valiosa que conozcas de cada queso; fijar otra a mano es opcional.
+**Ratones.** Un puesto con ratón trabaja solo. Cada ratón tiene nombre, un rasgo bueno, una manía, un oficio favorito, nivel propio y rango. Al reclutar eliges uno de tres y va él solo al mejor puesto libre; **BEST FIT** recoloca a toda la plantilla en un toque. Moverlos a mano y ascenderlos es opcional. El color del gorro indica el rango. Nunca se van.
+
+El ratón de Cheesemaking cocina por su cuenta la receta más valiosa que conozcas de su queso; fijar otra a mano es opcional.
 
 Bajo la escena se ve el subsuelo de la roca que estás mirando: baja contigo, cambia de material cada cinco niveles y el pozo llega hasta tu profundidad, con carteles numerados. La casilla que pide el objetivo actual parpadea.
 
@@ -51,6 +54,7 @@ La simulación avanza en pasos fijos de 100 ms y no depende del render. La inter
 | `js/game/config/balance.js` | Todos los valores de balance, árboles y definiciones |
 | `js/game/state.js` | Modelo de datos, niveles, efectos de los árboles, invariantes |
 | `js/game/systems/skills.js` | Experiencia, compra de nudos, edificios, zonas |
+| `js/game/systems/mice.js` | Ratones: reclutar, rasgos, niveles, rangos, puestos |
 | `js/game/systems/production.js` | Mining, Drilling, Refining |
 | `js/game/systems/cheesery.js` | Recetas, maestría, Cheesemaker y tienda |
 | `js/game/simulation.js` | Reloj, automatización, objetivos, progreso offline |

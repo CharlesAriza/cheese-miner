@@ -4,7 +4,7 @@
 
 ## Pruebas automáticas
 
-Ejecutadas abriendo `tests.html` en el navegador. **22 de 22 pasan.**
+Ejecutadas abriendo `tests.html` en el navegador. **26 de 26 pasan.**
 
 | Prueba | Resultado |
 | --- | --- |
@@ -14,7 +14,11 @@ Ejecutadas abriendo `tests.html` en el navegador. **22 de 22 pasan.**
 | Sin topes: lo guardado se acumula por tipo de queso y nada se para por falta de espacio | pasa |
 | Las rocas no se agotan: la veta vacía baja de profundidad, más dura y más rica | pasa |
 | Las zonas se suman: todas las rocas abiertas se pican y taladran a la vez | pasa |
-| Mejorar no automatiza; el ratón automatiza pero no acelera | pasa |
+| Mejorar no automatiza; un ratón en el puesto sí, y solo en su roca | pasa |
+| Ratones: reclutar, candidatos que no cambian al recargar, colocación automática | pasa |
+| Ratones: rasgos, oficio favorito, niveles y ascensos cambian cómo trabajan | pasa |
+| Ratones: mover, intercambiar, descansar y BEST FIT | pasa |
+| Ratones: el gerente compra mejoras de su oficio, solo si se le permite | pasa |
 | Niveles: curva de experiencia, bloqueo por nivel y comprar todo | pasa |
 | Offline: solo progresa lo automatizado, con tope y una sola vez | pasa |
 | Taps rápidos, recarga a mitad de ciclo y venta doble no duplican | pasa |
@@ -49,6 +53,7 @@ Hechas sobre el juego real, pulsando los controles:
 - Líneas: con tres rocas abiertas el Blue se refina aunque haya 900 de Raw de Cheddar; cada fila enseña sus cantidades, sus barras y por qué está parada («No Blue recipe chosen»); al tocar una fila cambian escena y contadores.
 - Repaso de interfaz: al encontrar la veta se anuncia el taladro, su casilla marca NEW! y se construye desde su panel; lo mismo con la refinería al llegar a 10 de Raw; la compra rápida y BUY ALL compran y descuentan; descubrir una receta no abre ventana; con la veta a la vista el botón de la roca taladra.
 - Subsuelo: a profundidad 13 y 27 cambian las capas, el pozo llega al fondo con su cartel y aparece el montacargas.
+- Ratones: aviso de la Mouse House, construirla desde MICE, reclutar y elegir entre tres, colocación automática en la tienda y luego taladro, refinado, quesería y minería; mover con intercambio; ascender a Journeyman (cambia el gorro y la velocidad); BEST FIT; la plantilla se conserva al recargar y la cadena produce sola.
 - Reiniciar deja la partida a cero.
 - Sin desbordamiento horizontal a 320×640 y 375×812.
 - Sin errores en la consola durante todo lo anterior.
@@ -69,8 +74,8 @@ Hechas sobre el juego real, pulsando los controles:
 
 - **Las partidas anteriores no se conservan:** el modelo de datos es nuevo.
 - **Arte placeholder.** Los tramos de edificio se distinguen, pero el acabado sigue siendo el de dibujo por código.
-- **Los ratones aún no son personajes:** hoy un ratón es un nudo comprado en el árbol. Los rasgos, niveles y ascensos son la segunda entrega.
-- **Todos los ratones trabajan en todas las líneas a la vez;** no se asignan a una.
+- **Los rangos Master y Manager** solo están cubiertos por pruebas; no los alcancé jugando.
+- **Elegir entre candidatos** no está medido: el bot siempre coge el primero.
 - **Las partidas de la versión anterior se convierten** al cargar; está cubierto por una prueba, no probado con una partida real larga.
 - **La escena enseña una roca cada vez,** aunque todas trabajan. Las demás se ven en las fichas del panel.
 - **La tienda vende siempre primero el queso más caro;** no se puede reservar stock.

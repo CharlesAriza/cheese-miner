@@ -94,7 +94,8 @@
       s.coins -= coinCost;
       s.totals.coinsSpent += coinCost;
     }
-    const total = jobTime(s, combo, recipe);
+    const w = source === 'worker' ? CM.mice.work(s, 'cheesemaking', zoneId) : null;
+    const total = Math.max(200, Math.round(jobTime(s, combo, recipe) / (w ? w.speed : 1)));
     z.cookJob = { kind, key: keyOf(combo), recipeId: recipe ? recipe.id : null, lotsLeft: lots, remaining: total, total, source: source || 'manual' };
     CM.emit(s, 'cheeseStart', { zone: zoneId, kind, lots, source: source || 'manual', used: baseCost, base: combo.base });
     return CM.ok();
@@ -186,7 +187,7 @@
       if (!s.built.cheesery) return 'not-built';
       if (!z || !z.unlocked) return 'locked';
       if (z.cookJob) return 'running';
-      if (!q.isAutomated(s, 'cheesemaking')) return 'idle';
+      if (!q.auto(s, 'cheesemaking', zoneId)) return 'idle';
       const recipe = this.laneRecipe(s, zoneId);
       if (!recipe) return this.knowsRecipeFor(s, q.zoneDef(zoneId).base) ? 'no-coins' : 'no-recipe';
       const combo = parseKey(recipe.key);
@@ -220,7 +221,24 @@
       s.totals.lotsProduced += 1;
       z.stats.lots += 1;
       job.lotsLeft -= 1;
-      CM.skills.addXp(s, 'cheesemaking', B.xp.perCheese * recipeXp(recipe));
+      const w = job.source === 'worker' ? CM.mice.work(s, 'cheesemaking', zoneId) : null;
+      const xm = w ? CM.mice.reward(s, 'cheesemaking', zoneId) : 1;
+      // El rendimiento del ratón se acumula: de vez en cuando sale un queso de más (o de menos).
+      if (w) {
+        z.cookCarry += w.yield - 1;
+        if (z.cookCarry >= 1) {
+          z.cookCarry -= 1;
+          s.lots[recipe.id] += 1;
+          s.totals.lotsProduced += 1;
+          z.stats.lots += 1;
+        } else if (z.cookCarry <= -1) {
+          z.cookCarry += 1;
+          s.lots[recipe.id] -= 1;
+          s.totals.lotsProduced -= 1;
+          z.stats.lots -= 1;
+        }
+      }
+      CM.skills.addXp(s, 'cheesemaking', B.xp.perCheese * recipeXp(recipe) * xm);
       CM.emit(s, 'lotDone', { zone: zoneId, recipeId: recipe.id, source: job.source });
       if (masteryLevel(recipe) > before) CM.emit(s, 'masteryUp', { recipeId: recipe.id, level: masteryLevel(recipe) });
       if (job.lotsLeft > 0) job.remaining = job.total = jobTime(s, parseKey(job.key), recipe);
@@ -263,7 +281,9 @@
         count += n;
         left -= n;
       }
-      const total = q.sellDuration(s);
+      const w = source === 'worker' ? CM.mice.work(s, 'trading', 'all') : null;
+      const total = Math.max(200, Math.round(q.sellDuration(s) / (w ? w.speed : 1)));
+      if (w) coins = Math.max(1, Math.round(coins * w.yield));
       // Una venta es una acción: la experiencia depende de lo mejor que vendes, no de cuántos.
       const xp = B.xp.perSale * recipeXp(stock[0]);
       s.jobs.shop = { remaining: total, total, coins, count, xp, recipeId: top, source };
@@ -284,7 +304,8 @@
       s.coins += job.coins;
       s.totals.lotsSold += job.count;
       s.totals.coinsEarned += job.coins;
-      CM.skills.addXp(s, 'trading', job.xp);
+      const xm = job.source === 'worker' ? CM.mice.reward(s, 'trading', 'all') : 1;
+      CM.skills.addXp(s, 'trading', job.xp * xm);
       CM.emit(s, 'sale', { coins: job.coins, count: job.count, recipeId: job.recipeId, source: job.source });
     },
   };

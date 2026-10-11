@@ -70,7 +70,7 @@
 
   // Edificios de la cadena: gratis, se desbloquean por hitos.
   CM.construction = {
-    order: ['drill', 'refinery', 'cheesery', 'shop'],
+    order: ['drill', 'refinery', 'cheesery', 'shop', 'house'],
     buildInfo(s, id) {
       const req = B.buildings[id].requires;
       const condOk = s.totals[req.total] >= req.min;

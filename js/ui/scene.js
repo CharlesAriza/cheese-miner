@@ -14,12 +14,12 @@
   const q = CM.q;
   const makeSprite = CM.makeSprite;
   const W = 160;
-  const WORLD = 346;
+  const WORLD = 390;
   const ROCK_W = 54;
   const ROCK_H = 42;
   // Posición X (mundo) de cada edificio.
-  const POS = { shop: 8, cheesery: 54, storage: 102, refinery: 150, drill: 262, rock: 286 };
-  const WIDTH = { shop: 38, cheesery: 40, storage: 38, refinery: 38, drill: 24, rock: ROCK_W };
+  const POS = { shop: 8, cheesery: 54, storage: 102, refinery: 150, house: 214, drill: 306, rock: 330 };
+  const WIDTH = { shop: 38, cheesery: 40, storage: 38, refinery: 38, house: 36, drill: 24, rock: ROCK_W };
 
   function hash(n) {
     n = Math.imul(n ^ (n >>> 15), 0x2c1b3c6d);
@@ -52,13 +52,17 @@
   const mouse = (a, b, c) => makeSprite(MOUSE_ROWS, mousePalette(a, b, c), '#2a1d2e');
   const MICE = {
     player: mouse('#ffcf2e', '#d99a12', '#8ff3ff'),
-    miner: mouse('#ff8a3a', '#c85a14', '#ffe55c'),
-    driller: mouse('#e2562a', '#9c2f14', '#ffe55c'),
-    refiner: mouse('#4a8fe8', '#2b5cab', '#dff3ff'),
-    cheesemaker: mouse('#ffffff', '#c9d0df', '#ffffff'),
-    keeper: mouse('#5fcf6a', '#2f8f44', '#fff3a0'),
     customer: mouse('#c9975a', '#8b5a2b', '#e6bb80'),
+    // Tus ratones: el color del gorro es su rango (aprendiz, oficial, maestro, gerente).
+    r0: mouse('#9aa3b5', '#6b7386', '#dfe6ee'),
+    r1: mouse('#4a8fe8', '#2b5cab', '#dff3ff'),
+    r2: mouse('#e2562a', '#9c2f14', '#ffe55c'),
+    r3: mouse('#9a5fd0', '#5f3590', '#ffe55c'),
   };
+  const rankSprite = (m) => MICE['r' + Math.min(3, m.rank)];
+  // Retrato de un ratón para los paneles.
+  const portraits = {};
+  CM.mouseUrl = (rank) => portraits[rank] || (portraits[rank] = MICE['r' + Math.min(3, rank)].toDataURL());
   const MOUSE_W = MICE.player.width;
   const MOUSE_H = MICE.player.height;
 
@@ -189,9 +193,9 @@
     // explicar. Un ratón acarrea únicamente si ESE ratón está contratado: es el
     // mismo que trabaja en su puesto, que sale con el producto, lo deja en el
     // edificio siguiente y vuelve. Nunca hay dos acarreando por la misma ruta.
-    function carry(role, from, to, color) {
-      if (walkers.some((w) => w.role === role)) return;
-      walkers.push({ role, img: MICE[role], x: from, home: from, to, carry: color, bob: 0 });
+    function carry(role, m, from, to, color) {
+      if (!m || walkers.some((w) => w.role === role)) return;
+      walkers.push({ role, img: rankSprite(m), x: from, home: from, to, carry: color, bob: 0 });
     }
     // Un cliente se va de la tienda con su queso.
     function customerLeaves() {
@@ -232,7 +236,7 @@
         case 'drillDone':
           fx.pulseAt.drill = now;
           if (here) burst(rx + 14, ry + 20, 12, YELLOWS, 110, 70);
-          if (ev.source === 'worker' && state.built.refinery) carry('driller', POS.drill - 6, POS.refinery + 40, tone(ev.base));
+          if (here && ev.source === 'worker' && state.built.refinery) carry('drilling', CM.mice.at(state, 'drilling', zoneId), POS.drill - 6, POS.refinery + 40, tone(ev.base));
           break;
         case 'deeper':
           if (!here) break;
@@ -247,7 +251,7 @@
         case 'refineDone':
           fx.pulseAt.refinery = now;
           burst(POS.refinery + 36, groundY - 12, 12, ORANGES, 100, 70);
-          if (ev.source === 'worker' && state.built.cheesery) carry('refiner', POS.refinery + 36, POS.cheesery + 42, tone(ev.base));
+          if (here && ev.source === 'worker' && state.built.cheesery) carry('refining', CM.mice.at(state, 'refining', zoneId), POS.refinery + 36, POS.cheesery + 42, tone(ev.base));
           break;
         case 'cheeseBoost':
           fx.station = 'cheesery';
@@ -255,7 +259,7 @@
         case 'lotDone':
           fx.pulseAt.cheesery = now;
           burst(center('cheesery'), groundY - 30, 16, YELLOWS, 100, 70);
-          if (ev.source === 'worker' && state.built.shop) carry('cheesemaker', POS.cheesery + 38, POS.shop + 38, '#d93a4f');
+          if (here && ev.source === 'worker' && state.built.shop) carry('cheesemaking', CM.mice.at(state, 'cheesemaking', zoneId), POS.cheesery + 38, POS.shop + 38, '#d93a4f');
           break;
         case 'sellStart':
         case 'sellBoost':
@@ -522,7 +526,8 @@
       }
       R(x + 2, y + 8, 2, 26, '#5c3620');
       R(x + 34, y + 8, 2, 26, '#5c3620');
-      if (q.isAutomated(state, 'trading')) ctx.drawImage(MICE.keeper, x + 9, y + 12 + (((now / 500) | 0) % 2));
+      const keeper = CM.mice.at(state, 'trading', 'all');
+      if (keeper) ctx.drawImage(rankSprite(keeper), x + 9, y + 12 + (((now / 500) | 0) % 2));
       for (let i = 0; i < 6; i++) R(x + i * 6 + 1, y + 2, 6, 8, i % 2 ? '#ffffff' : stripe);
       R(x, y + 1, 38, 2, '#2b1d12');
       for (let i = 0; i < 6; i++) R(x + i * 6 + 2, y + 10, 4, 2, i % 2 ? '#dfe6ee' : '#2b1d12');
@@ -641,6 +646,32 @@
           R(px + 4, cy + 2, 2, 1, mark);
         }
       }
+    }
+
+    // SPRITE: Mouse House. Las luces de la fachada son tus ratones; los que
+    // no tienen puesto se asoman a la puerta.
+    function drawHouse(state, now) {
+      const x = POS.house;
+      const y = groundY - 32 + pop('house', now);
+      const count = state.mice.length;
+      const idle = state.mice.filter((m) => !m.post);
+      R(x + 26, y - 2, 5, 10, '#2b1d12');
+      R(x + 27, y - 1, 3, 9, '#8a90a3');
+      for (let i = 0; i < 10; i++) R(x - 1 + i, y + 10 - i, 38 - i * 2, 1, i % 3 === 0 ? '#2b5cab' : '#4a8fe8');
+      R(x - 1, y + 10, 38, 2, '#2b1d12');
+      R(x + 1, y + 12, 34, 20, '#2b1d12');
+      R(x + 2, y + 13, 32, 18, '#e9d2a8');
+      R(x + 2, y + 13, 32, 2, '#fff0cf');
+      R(x + 6, y + 19, 10, 13, '#2b1d12');
+      R(x + 7, y + 20, 8, 12, '#8b5a2b');
+      R(x + 13, y + 26, 1, 2, '#ffe55c');
+      R(x + 20, y + 17, 11, 9, '#2b1d12');
+      R(x + 21, y + 18, 9, 7, count ? '#ffe55c' : '#5a6a8a');
+      R(x + 25, y + 18, 1, 7, '#2b1d12');
+      R(x + 21, y + 21, 9, 1, '#2b1d12');
+      for (let i = 0; i < Math.min(8, count); i++) R(x + 3 + i * 4, y + 6 - (i % 2), 2, 2, '#ffe55c');
+      if (count && Math.random() < 0.08) puff(x + 28, y - 3, '#e8ecf5');
+      if (idle.length) drawMouseSprite(rankSprite(idle[0]), x - 12, groundY - MOUSE_H + 2 + (((now / 600) | 0) % 2), false, null);
     }
 
     // SPRITE: Refinery
@@ -829,19 +860,22 @@
       ctx.restore();
     }
 
-    // Ratones en su puesto: los que has contratado en cada árbol.
+    // Ratones en su puesto: los que tienes asignados a la línea que se está mirando.
     function drawStaff(state, now, zoneId) {
       const beat = (ms) => ((now / ms) | 0) % 2;
       const z = state.zones[zoneId];
-      const miners = Math.min(3, q.miners(state));
-      for (let i = 0; i < miners; i++) {
+      const at = (skill) => CM.mice.at(state, skill, zoneId);
+      const miner = at('mining');
+      if (miner) {
         const active = !z.veinRevealed;
-        const t = (now - fx.minerSwingAt) / 200 + i * 0.3;
-        drawMouseSprite(MICE.miner, POS.rock + 2 + i * 15, rockY() - MOUSE_H + 8 + (active ? 0 : beat(700)), false, active ? swing(t % 1.6, -1.1) + 0.5 : null);
+        drawMouseSprite(rankSprite(miner), POS.rock + 6, rockY() - MOUSE_H + 8 + (active ? 0 : beat(700)), false, active ? swing(((now - fx.minerSwingAt) / 200) % 1.6, -1.1) + 0.5 : null);
       }
-      if (q.isAutomated(state, 'drilling') && state.built.drill && !away('driller')) drawMouseSprite(MICE.driller, POS.drill - 6, groundY - MOUSE_H - 8 + (z.drillJob ? beat(60) : beat(700)), false, null);
-      if (q.isAutomated(state, 'refining') && state.built.refinery && !away('refiner')) drawMouseSprite(MICE.refiner, POS.refinery + 36, groundY - MOUSE_H + 2 + (state.zones[fx.zoneId].refJob ? beat(90) : beat(700)), true, null);
-      if (q.isAutomated(state, 'cheesemaking') && state.built.cheesery && !away('cheesemaker')) drawMouseSprite(MICE.cheesemaker, POS.cheesery + 38, groundY - MOUSE_H + 2 + (state.zones[fx.zoneId].cookJob ? beat(110) : beat(700)), true, null);
+      const driller = at('drilling');
+      if (driller && state.built.drill && !away('drilling')) drawMouseSprite(rankSprite(driller), POS.drill - 6, groundY - MOUSE_H - 8 + (z.drillJob ? beat(60) : beat(700)), false, null);
+      const refiner = at('refining');
+      if (refiner && state.built.refinery && !away('refining')) drawMouseSprite(rankSprite(refiner), POS.refinery + 36, groundY - MOUSE_H + 2 + (z.refJob ? beat(90) : beat(700)), true, null);
+      const cook = at('cheesemaking');
+      if (cook && state.built.cheesery && !away('cheesemaking')) drawMouseSprite(rankSprite(cook), POS.cheesery + 38, groundY - MOUSE_H + 2 + (z.cookJob ? beat(110) : beat(700)), true, null);
     }
 
     function drawWalkers(now, dt) {
@@ -935,7 +969,7 @@
       }
     }
 
-    const BUILDINGS = { shop: drawShop, cheesery: drawCheesery, refinery: drawRefinery };
+    const BUILDINGS = { shop: drawShop, cheesery: drawCheesery, refinery: drawRefinery, house: drawHouse };
 
     function draw(state, now, dt, zoneId) {
       ctx.imageSmoothingEnabled = false;
@@ -1008,7 +1042,7 @@
       hitTest(screenX) {
         const wx = screenX + fx.cam;
         if (wx >= POS.rock - 2) return 'rock';
-        for (const id of ['drill', 'refinery', 'storage', 'cheesery', 'shop']) if (wx >= POS[id] - 3 && wx <= POS[id] + WIDTH[id] + 3) return id;
+        for (const id of ['drill', 'house', 'refinery', 'storage', 'cheesery', 'shop']) if (wx >= POS[id] - 3 && wx <= POS[id] + WIDTH[id] + 3) return id;
         return null;
       },
     };
