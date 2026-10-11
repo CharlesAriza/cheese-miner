@@ -127,6 +127,9 @@
     },
     // Multiplicador por nivel de habilidad.
     skillMult: (s, skill) => 1 + B.xp.bonusPerLevel * (levelOf(s, skill) - 1),
+    // Cuánta experiencia da trabajar una zona: mejor base y más profundidad, más.
+    zoneXp: (s, id) => Math.pow(B.bases[q.zoneDef(id).base].value / 10, B.xp.tierPower) * (1 + s.zones[id].depth * B.xp.depthBonus),
+    baseXp: (base) => Math.pow(B.bases[base].value / 10, B.xp.tierPower),
     totalLevel: (s) => Object.keys(B.skills).reduce((a, k) => a + levelOf(s, k), 0),
 
     zoneDef: (id) => B.zones.find((z) => z.id === id),

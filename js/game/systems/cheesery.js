@@ -28,6 +28,9 @@
     return { value: Math.round(value), synergies };
   }
 
+  // Las recetas más elaboradas dan más experiencia.
+  const recipeXp = (recipe) => Math.pow(formula(parseKey(recipe.key)).value / 10, B.xp.recipePower);
+
   const tierOf = (value) => B.tiers.reduce((best, t) => (value >= t.min ? t : best), B.tiers[0]).name;
   const lotTime = (combo) => B.cheesery.baseTimeMs + B.treatments[combo.treatment].timeMs + B.maturations[combo.maturation].timeMs;
 
@@ -179,7 +182,7 @@
       s.lots[recipe.id] = (s.lots[recipe.id] || 0) + 1;
       s.totals.lotsProduced += 1;
       job.lotsLeft -= 1;
-      CM.skills.addXp(s, 'cheesemaking', B.xp.perCheese + Math.sqrt(formula(parseKey(recipe.key)).value));
+      CM.skills.addXp(s, 'cheesemaking', B.xp.perCheese * recipeXp(recipe));
       CM.emit(s, 'lotDone', { recipeId: recipe.id, source: job.source });
       if (masteryLevel(recipe) > before) CM.emit(s, 'masteryUp', { recipeId: recipe.id, level: masteryLevel(recipe) });
       if (job.lotsLeft > 0) job.remaining = job.total = jobTime(s, parseKey(job.key), recipe);
@@ -213,18 +216,18 @@
       let coins = 0;
       let count = 0;
       let top = stock[0].id;
-      let xp = 0;
       for (const r of stock) {
         const n = Math.min(left, s.lots[r.id]);
         if (n <= 0) break;
         const price = this.price(s, r);
         s.lots[r.id] -= n;
         coins += price * n;
-        xp += n * (B.xp.perSale + Math.sqrt(price));
         count += n;
         left -= n;
       }
       const total = q.sellDuration(s);
+      // Una venta es una acción: la experiencia depende de lo mejor que vendes, no de cuántos.
+      const xp = B.xp.perSale * recipeXp(stock[0]);
       s.jobs.shop = { remaining: total, total, coins, count, xp, recipeId: top, source };
       CM.emit(s, 'sellStart', { source, count, recipeId: top });
       return CM.ok();

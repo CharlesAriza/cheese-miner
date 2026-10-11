@@ -414,8 +414,9 @@
   });
 
   // Un bot juega desde cero usando solo las acciones del jugador, sin dev tools.
-  function playBot(tapEveryMs, limitMs, stopAt) {
+  function playBot(tapEveryMs, limitMs, stopAt, snapshots) {
     const s = fresh();
+    const snaps = [];
     let lastTap = -1e9;
     let lastBuy = -1e9;
     const ORDER = ['drilling', 'refining', 'trading', 'cheesemaking', 'mining', 'colony'];
@@ -428,7 +429,13 @@
         if (next) CM.zones.unlock(s, next.id);
         // Primero los ratones, luego lo más barato de cada árbol.
         for (const [skill, id] of [['drilling', 'driller'], ['refining', 'refiner'], ['trading', 'keeper'], ['cheesemaking', 'maker'], ['mining', 'miner']]) CM.tree.buy(s, skill, id);
-        const saving = next && s.coins > next.unlockCost * 0.5;
+        // Ahorra como lo haría una persona: para el siguiente ratón que ya puede
+        // contratar, y para la siguiente roca cuando su economía ya da para ella.
+        const mouse = [['drilling', 'driller'], ['refining', 'refiner'], ['trading', 'keeper'], ['cheesemaking', 'maker'], ['mining', 'miner']].some(([skill, id]) => {
+          const info = CM.tree.info(s, skill, id);
+          return !info.locked && !info.maxed && s.built[B.skills[skill].station] !== false;
+        });
+        const saving = mouse || (next && s.totals.coinsEarned > next.unlockCost * 0.5);
         if (!saving) for (const skill of ORDER) CM.tree.buyAll(s, skill);
       }
       if (s.clock - lastTap >= tapEveryMs) {
@@ -450,10 +457,13 @@
         }
       }
       if (s.clock % 5000 === 0) valid(s);
+      if (snapshots && snapshots.length && s.clock >= snapshots[0] * 60000) {
+        snaps.push(snapshots.shift() + ' min: levels ' + CM.skills.list.map((k) => q.level(s, k)).join('/') + ', rocks ' + s.totals.zonesUnlocked + ', depth ' + B.zones.map((z) => s.zones[z.id].depth).join('/') + ', recipes ' + s.recipes.length + ', coins ' + CM.fmt(s.coins) + ', earned ' + CM.fmt(s.totals.coinsEarned));
+      }
     }
     const mins = {};
     Object.keys(s.goalsDone).forEach((k) => (mins[k] = Math.round(s.goalsDone[k] / 6000) / 10));
-    return { s, mins };
+    return { s, mins, snaps };
   }
 
   test('a new game reaches full automation, depth 3 and a second rock without dev tools', () => {
@@ -466,6 +476,12 @@
     eq(s.devUsed, false, 'no dev tools');
     eq(s.metrics.errors.length, 0, 'errors');
     valid(s);
+  });
+
+  // No comprueba nada: mide el ritmo de una partida larga para ajustar el balance.
+  test('pace report: four hours of an ideal player', () => {
+    const { snaps } = playBot(400, 4 * 60 * 60 * 1000, 'never', [2, 5, 10, 15, 30, 45, 60, 120, 180, 240]);
+    snaps.forEach((line) => notes.push('pace ' + line));
   });
 
   test('a slow player (1 tap / 1.5 s) also gets there', () => {

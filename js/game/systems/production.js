@@ -28,7 +28,7 @@
       const amount = Math.min(need - z.discover, q.pickPower(s) * (crit ? q.critMult(s) : 1));
       z.discover += amount;
       s.totals.hits += 1;
-      CM.skills.addXp(s, 'mining', amount * B.xp.perSearch);
+      CM.skills.addXp(s, 'mining', B.xp.perHit * q.zoneXp(s, zoneId));
       CM.emit(s, 'hit', { zone: zoneId, source, crit, amount, combo: source === 'manual' ? s.combo : 0 });
       if (z.discover >= need - 1e-6) {
         z.discover = need;
@@ -83,7 +83,7 @@
       z.drillJob = null;
       s.inv.raw[base] += job.amount;
       s.totals.rawProduced += job.amount;
-      CM.skills.addXp(s, 'drilling', job.amount * B.xp.perRaw);
+      CM.skills.addXp(s, 'drilling', B.xp.perDrill * q.zoneXp(s, zoneId));
       CM.emit(s, 'drillDone', { zone: zoneId, amount: job.amount, base, source: job.source });
       // Veta vacía: la roca no se agota, baja un nivel y hay que volver a buscar.
       if (z.veinRevealed && z.veinRemaining <= 0) {
@@ -146,7 +146,7 @@
       s.jobs.refinery = null;
       s.inv.base[job.base] += job.amount;
       s.totals.baseProduced += job.amount;
-      CM.skills.addXp(s, 'refining', job.amount * B.xp.perBase);
+      CM.skills.addXp(s, 'refining', B.xp.perRefine * q.baseXp(job.base));
       CM.emit(s, 'refineDone', { amount: job.amount, base: job.base, source: job.source });
     },
   };

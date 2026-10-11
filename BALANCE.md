@@ -4,17 +4,18 @@ Todas las cifras están en `js/game/config/balance.js` y son provisionales. Se c
 
 ## Habilidades
 
-- Niveles 1 a 99. Pasar del 1 al 2 pide 25 de experiencia; cada nivel pide un 10 % más.
+- Niveles 1 a 99. Pasar del 1 al 2 pide 25 de experiencia; cada nivel pide un 15 % más.
 - Cada nivel da +2 % de rendimiento en esa habilidad.
-- Experiencia: 1 por punto de búsqueda (Mining), 2 por Raw Cheese (Drilling), 5 por Cheese Base (Refining), 12 más la raíz del valor por queso (Cheesemaking), 6 más la raíz del precio por queso vendido (Trading).
+- La experiencia se gana **por acción completada, no por unidad producida**: sacar más por ciclo da más queso, no más niveles. Base: 0,4 por golpe (Mining), 5 por ciclo de taladro, 6 por ciclo de refinado, 8 por queso cocinado, 5 por venta.
+- Lo difícil da más: la experiencia se multiplica por (valor de la base ÷ 10)^0,7 y por +5 % por nivel de profundidad en minería y taladro, y por (valor de fórmula ÷ 10)^0,5 en quesería y comercio.
 
 ## Zonas y profundidad
 
 | Roca | Coste | Búsqueda inicial | Veta inicial | Valor de la base |
 | --- | --- | --- | --- | --- |
 | Cheddar | gratis | 30 | 60 | 10 |
-| Gouda | 15.000 | 150 | 120 | 24 |
-| Blue | 500.000 | 800 | 240 | 60 |
+| Gouda | 6.000 | 150 | 120 | 24 |
+| Blue | 200.000 | 800 | 240 | 60 |
 
 Por cada nivel de profundidad: búsqueda ×1,22, veta ×1,15 y +8 % de Raw Cheese por ciclo.
 
@@ -39,26 +40,26 @@ Coste de un nudo: `coste × crecimiento ^ rango`. El nivel indicado es el de la 
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Mining | Sharper Pick | potencia | 1 | 80 | 12 | 1,3 | +1 búsqueda por golpe |
 | Mining | Heavy Swing | potencia | 6 | 30 | 150 | 1,45 | críticos +0,5× |
-| Mining | Miner Mouse | ratones | 2 | 15 | 60 | 2 | +1 ratón minero en cada roca |
+| Mining | Miner Mouse | ratones | 2 | 15 | 100 | 2 | +1 ratón minero en cada roca |
 | Mining | Quick Paws | ratones | 10 | 30 | 300 | 1,42 | mineros +10 % rápidos |
 | Mining | Vein Sense | especial | 8 | 40 | 200 | 1,4 | vetas +10 % |
 | Mining | Deep Riches | especial | 20 | 25 | 2.000 | 1,6 | +2 % de Raw por nivel de profundidad |
 | Drilling | Bigger Bit | potencia | 1 | 100 | 18 | 1,28 | +1 Raw por ciclo |
 | Drilling | Turbo Motor | potencia | 4 | 40 | 70 | 1,4 | +8 % velocidad |
-| Drilling | Driller Mouse | ratones | 3 | 1 | 150 | — | automatiza todos los taladros |
+| Drilling | Driller Mouse | ratones | 3 | 1 | 200 | — | automatiza todos los taladros |
 | Drilling | Night Shift | ratones | 12 | 30 | 400 | 1,45 | +10 % velocidad |
 | Drilling | Rich Extraction | especial | 9 | 50 | 250 | 1,38 | +6 % Raw |
 | Refining | Bigger Vat | potencia | 1 | 100 | 18 | 1,28 | +1 Base por ciclo |
 | Refining | Hot Furnace | potencia | 4 | 40 | 70 | 1,4 | +8 % velocidad |
-| Refining | Refiner Mouse | ratones | 3 | 1 | 150 | — | automatiza la refinería |
+| Refining | Refiner Mouse | ratones | 4 | 1 | 350 | — | automatiza la refinería |
 | Refining | Twin Burners | ratones | 12 | 30 | 400 | 1,45 | +10 % velocidad |
 | Refining | Double Press | especial | 9 | 50 | 250 | 1,38 | +5 % Base con el mismo Raw |
 | Cheesemaking | Faster Curds | potencia | 1 | 60 | 30 | 1,33 | +8 % velocidad |
-| Cheesemaking | Cheesemaker Mouse | ratones | 3 | 1 | 250 | — | cocina sola la receta elegida |
+| Cheesemaking | Cheesemaker Mouse | ratones | 5 | 1 | 800 | — | cocina sola la receta elegida |
 | Cheesemaking | Cheese Cellar | especial | 5 | 80 | 150 | 1,38 | +8 % valor |
 | Trading | Better Prices | potencia | 1 | 80 | 40 | 1,36 | +6 % precio |
 | Trading | Bigger Counter | potencia | 2 | 40 | 50 | 1,5 | +1 queso por venta |
-| Trading | Shopkeeper Mouse | ratones | 3 | 1 | 200 | — | vende solo |
+| Trading | Shopkeeper Mouse | ratones | 3 | 1 | 500 | — | vende solo |
 | Trading | Quick Sales | ratones | 5 | 40 | 100 | 1,4 | +10 % velocidad |
 | Trading | Fancy Sign | especial | 15 | 40 | 900 | 1,55 | +10 % precio |
 | Colonia | Night Lamp | especial | — | 10 | 500 | 2,2 | +2 horas offline |
@@ -98,14 +99,24 @@ Se simula el tiempo real desde el último guardado, con tope de 4 horas (ampliab
 
 ## Ritmo medido
 
-Un bot que juega sin pausas y sin dev tools, comprando siempre lo más barato:
+Un bot que juega sin pausas y sin dev tools (1 tap cada 0,4 s), ahorrando para cada ratón y para cada roca:
 
-| Hito | Bot rápido (1 tap / 0,4 s) | Bot lento (1 tap / 1,5 s) |
+| Hito | Objetivo | Medido |
 | --- | --- | --- |
-| Primera venta | 0,8 min | 1,4 min |
-| Primer ratón | 1,4 min | 2 min |
-| Profundidad 3 | 3,3 min | 4,2 min |
-| Las cinco etapas automatizadas | 4,7 min | 5,3 min |
-| Segunda roca y nivel 25 | 6,6 min | 7,4 min |
+| Primer ratón | 2–3 min | 2,5 min |
+| Las cinco etapas automatizadas | 10–15 min | 7 min |
+| Nivel 10 en una habilidad | 10 min | 8 min |
+| Segunda roca | 30–45 min | 43 min |
+| Nivel 25 | 1 hora | 55 min |
 
-**Aviso:** al quitar los topes del almacén el principio se ha acelerado mucho. Con topes, la segunda roca llegaba a los 31 minutos; ahora a los 7. Los costes están pendientes de reajuste. El tramo posterior a la segunda roca no está medido.
+Niveles (Mining / Drilling / Refining / Cheesemaking / Trading) a lo largo de una partida de cuatro horas:
+
+| Tiempo | Niveles | Rocas | Monedas ganadas |
+| --- | --- | --- | --- |
+| 10 min | 3 / 11 / 11 / 10 / 8 | 1 | 3,6K |
+| 30 min | 11 / 19 / 18 / 16 / 13 | 1 | 9,3K |
+| 1 h | 21 / 26 / 23 / 21 / 18 | 2 | 28K |
+| 2 h | 33 / 34 / 28 / 26 / 23 | 2 | 62K |
+| 4 h | 44 / 41 / 32 / 31 / 28 | 2 | 194K |
+
+Sin medir: la tercera roca (estimada entre 5 y 6 horas), el nivel 50 (estimado en 6–10 horas) y todo lo posterior. El bot solo descubre 8 recetas y no explora las de Gouda, así que a partir de la segunda roca sus ingresos se quedan cortos frente a los de una persona.
