@@ -32,7 +32,8 @@
     const free = M.names.filter((n) => taken.indexOf(n) < 0);
     const name = pick(s, free.length ? free : M.names);
     taken.push(name);
-    return { name, traits: [pick(s, goods), pick(s, quirks)], fav: pick(s, CM.skills.list) };
+    // `look` decide su aspecto (pelaje, gorro, accesorio...): cada ratón es distinto.
+    return { name, traits: [pick(s, goods), pick(s, quirks)], fav: pick(s, CM.skills.list), look: Math.floor(CM.rand(s) * 1048576) };
   }
 
   CM.mice = {
@@ -109,7 +110,7 @@
     choose(s, index) {
       const c = s.candidates[index];
       if (!c) return CM.fail('invalid');
-      const m = { id: 'm' + s.nextId++, name: c.name, traits: c.traits.slice(), fav: c.fav, xp: 0, rank: 0, post: '', rest: false };
+      const m = { id: 'm' + s.nextId++, name: c.name, traits: c.traits.slice(), fav: c.fav, look: c.look || 0, xp: 0, rank: 0, post: '', rest: false };
       s.mice.push(m);
       s.candidates = [];
       s.totals.miceRecruited += 1;

@@ -4,7 +4,7 @@
 
 ## Pruebas automáticas
 
-Ejecutadas abriendo `tests.html` en el navegador. **26 de 26 pasan.**
+Ejecutadas abriendo `tests.html` en el navegador. **27 de 27 pasan.**
 
 | Prueba | Resultado |
 | --- | --- |
@@ -19,6 +19,7 @@ Ejecutadas abriendo `tests.html` en el navegador. **26 de 26 pasan.**
 | Ratones: rasgos, oficio favorito, niveles y ascensos cambian cómo trabajan | pasa |
 | Ratones: mover, intercambiar, descansar y BEST FIT | pasa |
 | Ratones: el gerente compra mejoras de su oficio, solo si se le permite | pasa |
+| Ratones: cada uno tiene su propio aspecto, y los guardados antiguos reciben uno | pasa |
 | Niveles: curva de experiencia, bloqueo por nivel y comprar todo | pasa |
 | Offline: solo progresa lo automatizado, con tope y una sola vez | pasa |
 | Taps rápidos, recarga a mitad de ciclo y venta doble no duplican | pasa |

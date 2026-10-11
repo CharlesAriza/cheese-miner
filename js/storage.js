@@ -96,6 +96,9 @@
       m.xp = pos(m.xp);
       m.rank = Math.min(nat(m.rank), B.mice.ranks.length - 1);
       m.rest = m.rest === true;
+      // Aspecto: si la partida es anterior, se deduce de su identificador y nombre.
+      if (!Number.isFinite(m.look)) m.look = [...(m.id + m.name)].reduce((a, ch) => (a * 131 + ch.charCodeAt(0)) % 1048576, 7);
+      m.look = nat(m.look);
       m.post = typeof m.post === 'string' && posts.indexOf(m.post) >= 0 && !taken[m.post] ? m.post : '';
       if (m.post) taken[m.post] = true;
     }

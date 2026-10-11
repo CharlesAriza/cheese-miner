@@ -51,7 +51,7 @@
   }
   // Pone un ratón sin rasgos en un puesto: rinde exactamente igual que una acción manual.
   function staff(s, skill, zone, extra) {
-    const m = Object.assign({ id: 'm' + s.nextId++, name: 'Test' + s.nextId, traits: [], fav: '', xp: 0, rank: 0, post: CM.mice.postKey(skill, zone || 'cheddar'), rest: false }, extra || {});
+    const m = Object.assign({ id: 'm' + s.nextId++, name: 'Test' + s.nextId, traits: [], fav: '', look: 4242, xp: 0, rank: 0, post: CM.mice.postKey(skill, zone || 'cheddar'), rest: false }, extra || {});
     s.mice.push(m);
     return m;
   }
@@ -542,6 +542,26 @@
     eq(CM.refining.status(s, 'cheddar'), 'no-raw', 'then waits for raw');
     eq(s.totals.baseProduced, s.inv.base.cheddar, 'all the base is in stock');
     valid(s);
+  });
+
+  test('every mouse has its own look, and old saves get one', () => {
+    const s = fresh();
+    s.built.house = true;
+    s.coins = 1e9;
+    const looks = [];
+    for (let i = 0; i < 8; i++) {
+      CM.mice.offer(s);
+      s.candidates.forEach((c) => looks.push(c.look));
+      CM.mice.choose(s, 0);
+    }
+    truthy(looks.every((n) => Number.isInteger(n) && n >= 0 && n < 1048576), 'looks are valid');
+    truthy(new Set(looks).size >= 20, 'candidates look different: ' + new Set(looks).size);
+    truthy(s.mice.every((m, i) => m.look === looks[i * 3]), 'a recruited mouse keeps the look it was offered with');
+    const old = JSON.parse(JSON.stringify(s));
+    old.mice.forEach((m) => delete m.look);
+    const back = CM.storage.parse(JSON.stringify(old), 1000000);
+    truthy(back && back.mice.every((m) => Number.isInteger(m.look)), 'old saves get a look');
+    truthy(new Set(back.mice.map((m) => m.look)).size === back.mice.length, 'and each one is different');
   });
 
   test('save/load keeps the state; damaged and old saves start clean', () => {

@@ -35,7 +35,7 @@ La pantalla es el cuartel general. Abajo está la **cadena**: MINE → DRILL →
 
 Los primeros pasos van a fuego lento. Cuando se desbloquea un edificio nuevo de la cadena, el juego lo avisa, su casilla se marca con `NEW!` y tú vas a su panel, lees para qué sirve y lo construyes. Tras la primera venta, una tarjeta resume para qué sirven las monedas. Etiquetas de las casillas: `LOCK` (aún no), `UP! 3` (tres mejoras que ya puedes pagar), `AUTO` (tiene ratón). Los botones de compra que aún no alcanzas se van llenando y dicen cuántos minutos faltan.
 
-**Ratones.** Un puesto con ratón trabaja solo. Cada ratón tiene nombre, un rasgo bueno, una manía, un oficio favorito, nivel propio y rango. Al reclutar eliges uno de tres y va él solo al mejor puesto libre; **BEST FIT** recoloca a toda la plantilla en un toque. Moverlos a mano y ascenderlos es opcional. El color del gorro indica el rango. Nunca se van.
+**Ratones.** Un puesto con ratón trabaja solo. Cada ratón tiene nombre, un rasgo bueno, una manía, un oficio favorito, nivel propio y rango. Al reclutar eliges uno de tres y va él solo al mejor puesto libre; **BEST FIT** recoloca a toda la plantilla en un toque. Moverlos a mano y ascenderlos es opcional. Cada ratón tiene un aspecto único (pelaje, gorro, accesorio y mochila salen de su número `look`), el mismo en su retrato y en la escena; el pañuelo indica el rango. Nunca se van.
 
 El ratón de Cheesemaking cocina por su cuenta la receta más valiosa que conozcas de su queso; fijar otra a mano es opcional.
 

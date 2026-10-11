@@ -244,7 +244,7 @@
   const M = B.mice;
   const traitChip = (id) => '<span class="stat ' + (M.traits[id].good ? 'tgood' : 'tquirk') + '">' + M.traits[id].name + '</span>';
   const traitText = (ids) => ids.map((id) => M.traits[id].name + ': ' + M.traits[id].desc.toLowerCase()).join('. ');
-  const face = (rank, cls) => '<img class="pix ' + (cls || 'face') + '" alt="" src="' + CM.mouseUrl(rank) + '">';
+  const face = (m, cls) => '<img class="pix ' + (cls || 'face') + '" alt="" src="' + CM.mouseUrl(m) + '">';
   const pct = (n) => Math.round(n * 100) + '%';
 
   function micePanel(s, ui) {
@@ -253,7 +253,7 @@
       const info = CM.construction.buildInfo(s, 'house');
       if (!info.condOk) return '<p class="hint">Mice do the work for you. First: ' + esc(info.condText.toLowerCase()) + '.</p>';
       return (
-        '<p class="lead">A <b>mouse on a post</b> does that job on its own, even while you are away.</p><p class="hint">Each mouse has a good trait, a quirk and a favourite job. They level up as they work and never leave.</p>' +
+        '<p class="lead">A <b>mouse on a post</b> does that job on its own, even while you are away.</p><p class="hint">Every mouse is one of a kind: its own look, a good trait, a quirk and a favourite job. They level up as they work and never leave.</p>' +
         btn('build:house', 'BUILD THE MOUSE HOUSE<br>It is free', { cls: 'buy wide' })
       );
     }
@@ -262,7 +262,7 @@
     if (s.candidates.length) {
       h += '<h3>CHOOSE ONE</h3><p class="hint">Already paid. Pick the one you like; it goes straight to the best free post.</p>';
       s.candidates.forEach((c, i) => {
-        h += '<div class="mouse cand">' + face(0) + '<div class="info"><b>' + esc(c.name) + '</b><div>' + c.traits.map(traitChip).join('') + '<span class="stat">Loves ' + B.skills[c.fav].name + '</span></div><small>' + traitText(c.traits) + '. ' + pct(M.favoriteBonus) + ' faster at ' + B.skills[c.fav].name + '.</small></div><div class="side">' + btn('choose:' + i, 'CHOOSE', { cls: 'buy' }) + '</div></div>';
+        h += '<div class="mouse cand">' + face(c) + '<div class="info"><b>' + esc(c.name) + '</b><div>' + c.traits.map(traitChip).join('') + '<span class="stat">Loves ' + B.skills[c.fav].name + '</span></div><small>' + traitText(c.traits) + '. ' + pct(M.favoriteBonus) + ' faster at ' + B.skills[c.fav].name + '.</small></div><div class="side">' + btn('choose:' + i, 'CHOOSE', { cls: 'buy' }) + '</div></div>';
       });
       return h;
     }
@@ -282,7 +282,7 @@
       let promote = '';
       if (!pr.maxed) promote = pr.levelOk ? btn('promote:' + m.id, 'PROMOTE<br>' + coin(pr.cost), { off: !pr.can, cls: 'buy', cost: pr.cost }) : '<span class="tag lock">' + pr.next.name + '<br>at LV ' + pr.next.level + '</span>';
       h +=
-        '<div class="mouse' + (m.post ? '' : ' idle') + '"><div class="mhead">' + face(m.rank) + '<div class="info"><b>' + esc(m.name) + ' <span class="rank">LV ' + p.level + ' · ' + M.ranks[m.rank].name + '</span></b>' + xpBar(p) + '<div>' + m.traits.map(traitChip).join('') + (m.fav ? '<span class="stat">Loves ' + B.skills[m.fav].name + '</span>' : '') + '</div><small>' + where + '</small></div></div>' +
+        '<div class="mouse' + (m.post ? '' : ' idle') + '"><div class="mhead">' + face(m) + '<div class="info"><b>' + esc(m.name) + ' <span class="rank">LV ' + p.level + ' · ' + M.ranks[m.rank].name + '</span></b>' + xpBar(p) + '<div>' + m.traits.map(traitChip).join('') + (m.fav ? '<span class="stat">Loves ' + B.skills[m.fav].name + '</span>' : '') + '</div><small>' + where + '</small></div></div>' +
         '<div class="mfoot">' + btn('move:' + m.id, ui.moving === m.id ? 'CANCEL' : 'MOVE', { cls: 'mini' }) + promote + '</div>';
       // Elegir puesto: cada opción dice cuánto rendiría ahí y a quién desplazaría.
       if (ui.moving === m.id) {

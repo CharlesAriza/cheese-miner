@@ -43,6 +43,7 @@ No hay almacén con tope. Raw Cheese, Cheese Base y quesos se acumulan sin lími
 ## Ratones
 
 - Reclutar: 150 monedas el primero, cada uno un 80 % más que el anterior. Se elige entre tres candidatos.
+- Aspecto: cada ratón guarda un número `look` que decide pelaje (7), gorro (5 formas × 8 colores), accesorio (5) y mochila (5): 7.000 combinaciones. No afecta al juego. El pañuelo indica el rango.
 - Un puesto por etapa y por roca (minería, taladro, refinado, quesería) más un tendero común: 5 con una roca, 13 con tres.
 - Velocidad en su puesto: +1 % por nivel, +15 % en su oficio favorito, más su rango y sus rasgos.
 - Nivel del ratón: 12 acciones para el nivel 2, un 15 % más cada nivel, máximo 60. Un golpe de minería cuenta un cuarto de acción.

@@ -53,16 +53,92 @@
   const MICE = {
     player: mouse('#ffcf2e', '#d99a12', '#8ff3ff'),
     customer: mouse('#c9975a', '#8b5a2b', '#e6bb80'),
-    // Tus ratones: el color del gorro es su rango (aprendiz, oficial, maestro, gerente).
-    r0: mouse('#9aa3b5', '#6b7386', '#dfe6ee'),
-    r1: mouse('#4a8fe8', '#2b5cab', '#dff3ff'),
-    r2: mouse('#e2562a', '#9c2f14', '#ffe55c'),
-    r3: mouse('#9a5fd0', '#5f3590', '#ffe55c'),
   };
-  const rankSprite = (m) => MICE['r' + Math.min(3, m.rank)];
-  // Retrato de un ratón para los paneles.
+
+  // SPRITE: tus ratones. Cada uno es único: su número `look` elige pelaje,
+  // gorro, color de gorro, accesorio y mochila (7 x 5 x 8 x 5 x 5 = 7.000
+  // combinaciones). El rango se ve en la bufanda: sin bufanda, azul, roja o
+  // morada con borde dorado.
+  const FURS = [
+    ['#f1eaec', '#cfc6cc'],
+    ['#b9b4bd', '#8f8994'],
+    ['#c9975a', '#9c6f3c'],
+    ['#f3e3b6', '#d9c38a'],
+    ['#5a5560', '#3d3944'],
+    ['#ffd9c2', '#eab59a'],
+    ['#a8c4e8', '#7f9cc4'],
+  ];
+  const HAT_COLORS = [['#ffcf2e', '#d99a12'], ['#e2562a', '#9c2f14'], ['#4a8fe8', '#2b5cab'], ['#5fcf6a', '#2f8f44'], ['#9a5fd0', '#5f3590'], ['#ff7aa8', '#c44a78'], ['#f4f4f4', '#b9c0cf'], ['#3a3f52', '#1f2330']];
+  const PACKS = ['#8b5a2b', '#3f7a52', '#7a3f6a', '#3f5a8b', '#a8502a'];
+  const HATS = [
+    // casco con lámpara
+    ['......HHHHHH........', '.....HHHHHHHHLL.....', '....HHHHHHHHHLLL....', '....hhhhhhhhhhhhh...'],
+    // gorra
+    ['....................', '......HHHHHHH.......', '.....HHHHHHHHH......', '.....hhhhhhhhhhhhh..'],
+    // gorro de lana con pompón
+    ['........LL..........', '......HHHHHH........', '.....HHHHHHHH.......', '.....hhhhhhhh.......'],
+    // chistera
+    ['......HHHHHH........', '......HHHHHH........', '......hhhhhh........', '....HHHHHHHHHH......'],
+    // lazo
+    ['....................', '....................', '.........LL.LL......', '..........LLL.......'],
+  ];
+  const SCARVES = [null, ['#4a8fe8', '#2b5cab'], ['#e2462f', '#9c2a1c'], ['#9a5fd0', '#ffcf2e']];
+  const spriteCache = {};
+  function mouseSprite(look, rank) {
+    const n = look >>> 0;
+    const r = Math.min(3, rank || 0);
+    const key = n + ':' + r;
+    if (spriteCache[key]) return spriteCache[key];
+    const fur = FURS[n % 7];
+    const hat = HATS[(n >> 3) % 5];
+    const hc = HAT_COLORS[(n >> 6) % 8];
+    const acc = (n >> 9) % 5;
+    const pal = mousePalette(hc[0], hc[1], '#fff3a0');
+    pal.G = fur[0];
+    pal.E = fur[1];
+    pal.B = PACKS[(n >> 12) % 5];
+    const c = makeSprite(hat.concat(MOUSE_ROWS.slice(4)), pal, '#2a1d2e');
+    const g = c.getContext('2d');
+    const px = (x, y, w, h, color) => {
+      g.fillStyle = color;
+      g.fillRect(x + 1, y + 1, w, h); // +1 por el contorno
+    };
+    if (acc === 1) {
+      // gafas
+      px(9, 4, 5, 1, '#1b1622');
+      px(9, 5, 1, 3, '#1b1622');
+      px(13, 5, 1, 3, '#1b1622');
+      px(9, 7, 5, 1, '#1b1622');
+      px(10, 5, 1, 2, '#bfe8fd');
+      px(12, 5, 1, 2, '#bfe8fd');
+    } else if (acc === 2) {
+      // parche
+      px(10, 5, 3, 2, '#1b1622');
+      px(5, 4, 9, 1, '#1b1622');
+    } else if (acc === 3) {
+      // bigote
+      px(12, 8, 3, 1, '#5c3620');
+      px(11, 9, 2, 1, '#5c3620');
+    } else if (acc === 4) {
+      // colorete y peca
+      px(9, 8, 2, 1, '#ff7a9c');
+      px(13, 5, 1, 1, fur[1]);
+    }
+    const scarf = SCARVES[r];
+    if (scarf) {
+      px(5, 9, 8, 2, scarf[0]);
+      px(5, 10, 8, 1, scarf[1]);
+      px(4, 10, 2, 3, scarf[0]);
+    }
+    return (spriteCache[key] = c);
+  }
+  const rankSprite = (m) => mouseSprite(m.look || 0, m.rank);
+  // Retrato de un ratón (o de un candidato) para los paneles.
   const portraits = {};
-  CM.mouseUrl = (rank) => portraits[rank] || (portraits[rank] = MICE['r' + Math.min(3, rank)].toDataURL());
+  CM.mouseUrl = (m) => {
+    const key = (m.look || 0) + ':' + (m.rank || 0);
+    return portraits[key] || (portraits[key] = mouseSprite(m.look || 0, m.rank || 0).toDataURL());
+  };
   const MOUSE_W = MICE.player.width;
   const MOUSE_H = MICE.player.height;
 
