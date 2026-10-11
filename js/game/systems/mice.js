@@ -18,7 +18,7 @@
 
   // Velocidad de un ratón en un oficio: nivel, rango, oficio favorito y rasgos.
   function speed(m, skill) {
-    const power = 1 + M.perLevel * (level(m) - 1) + M.ranks[m.rank].bonus + (m.fav === skill ? M.favoriteBonus : 0);
+    const power = 1 + M.perLevel * (level(m) - 1) + M.ranks[m.rank].bonus + M.rarities[m.rarity || 0].bonus + (m.fav === skill ? M.favoriteBonus : 0);
     return Math.max(0.2, power * (1 + trait(m, 'speed') + (CM.away ? trait(m, 'awaySpeed') : 0)));
   }
   const yieldMult = (m) => Math.max(0.2, 1 + trait(m, 'yield'));
@@ -32,8 +32,37 @@
     const free = M.names.filter((n) => taken.indexOf(n) < 0);
     const name = pick(s, free.length ? free : M.names);
     taken.push(name);
+    const roll = CM.rand(s);
+    const rarity = roll < M.rarities[2].chance ? 2 : roll < M.rarities[2].chance + M.rarities[1].chance ? 1 : 0;
+    const good = pick(s, goods);
+    // Un legendario no tiene manía: lleva un segundo rasgo bueno.
+    const second = rarity === 2 ? pick(s, goods.filter((g) => g !== good)) : pick(s, quirks);
     // `look` decide su aspecto (pelaje, gorro, accesorio...): cada ratón es distinto.
-    return { name, traits: [pick(s, goods), pick(s, quirks)], fav: pick(s, CM.skills.list), look: Math.floor(CM.rand(s) * 1048576) };
+    return { name, traits: [good, second], fav: pick(s, CM.skills.list), look: Math.floor(CM.rand(s) * 1048576), rarity };
+  }
+
+  // Piezas del aspecto de un ratón. Los raros y legendarios tienen pelajes
+  // propios; el legendario lleva corona.
+  const FUR_NAMES = ['White', 'Grey', 'Brown', 'Cream', 'Charcoal', 'Peach', 'Blue', 'Mint', 'Lilac', 'Golden'];
+  const HAT_NAMES = ['Helmet', 'Cap', 'Bobble hat', 'Top hat', 'Bow', 'Crown'];
+  const ACC_NAMES = ['', 'Glasses', 'Eye patch', 'Moustache', 'Blush'];
+  function parts(m) {
+    const n = (m.look || 0) >>> 0;
+    const r = m.rarity || 0;
+    return { fur: r === 2 ? 9 : r === 1 ? 7 + (n % 2) : n % 7, hat: r === 2 ? 5 : (n >> 3) % 5, hatColor: (n >> 6) % 8, acc: (n >> 9) % 5, pack: (n >> 12) % 5, rarity: r };
+  }
+  // El álbum: todo lo coleccionable, por categorías.
+  const ALBUM = [
+    { kind: 'fur', title: 'FURS', items: FUR_NAMES.map((name, i) => ({ key: 'fur:' + i, name, rarity: i === 9 ? 2 : i >= 7 ? 1 : 0 })) },
+    { kind: 'hat', title: 'HATS', items: HAT_NAMES.map((name, i) => ({ key: 'hat:' + i, name, rarity: i === 5 ? 2 : 0 })) },
+    { kind: 'acc', title: 'ACCESSORIES', items: ACC_NAMES.map((name, i) => ({ key: 'acc:' + i, name, rarity: 0 })).slice(1) },
+    { kind: 'trait', title: 'TRAITS', items: Object.keys(M.traits).map((id) => ({ key: 'trait:' + id, name: M.traits[id].name, rarity: 0 })) },
+  ];
+  const ALBUM_KEYS = {};
+  ALBUM.forEach((cat) => cat.items.forEach((it) => (ALBUM_KEYS[it.key] = it)));
+  function albumKeys(m) {
+    const p = parts(m);
+    return ['fur:' + p.fur, 'hat:' + p.hat].concat(p.acc ? ['acc:' + p.acc] : [], m.traits.map((t) => 'trait:' + t)).filter((k) => ALBUM_KEYS[k]);
   }
 
   CM.mice = {
@@ -42,6 +71,17 @@
     speed,
     yieldMult,
     trait,
+    parts,
+    ALBUM,
+    albumItem: (key) => ALBUM_KEYS[key] || null,
+    albumTotal: Object.keys(ALBUM_KEYS).length,
+    albumCount: (s) => Object.keys(s.album).length,
+    // Apunta en el álbum las piezas de un ratón reclutado. Devuelve las nuevas.
+    record(s, m) {
+      const fresh = albumKeys(m).filter((k) => !s.album[k]);
+      fresh.forEach((k) => (s.album[k] = true));
+      return fresh;
+    },
     byId: (s, id) => s.mice.find((m) => m.id === id) || null,
     at: (s, skill, zone) => s.mice.find((m) => m.post === postKey(skill, zone)) || null,
     // Progreso dentro del nivel actual.
@@ -110,8 +150,10 @@
     choose(s, index) {
       const c = s.candidates[index];
       if (!c) return CM.fail('invalid');
-      const m = { id: 'm' + s.nextId++, name: c.name, traits: c.traits.slice(), fav: c.fav, look: c.look || 0, xp: 0, rank: 0, post: '', rest: false };
+      const m = { id: 'm' + s.nextId++, name: c.name, traits: c.traits.slice(), fav: c.fav, look: c.look || 0, rarity: c.rarity || 0, xp: 0, rank: 0, post: '', rest: false };
       s.mice.push(m);
+      const found = this.record(s, m);
+      if (found.length) CM.emit(s, 'album', { keys: found });
       s.candidates = [];
       s.totals.miceRecruited += 1;
       this.autoPlace(s, m);

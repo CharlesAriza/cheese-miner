@@ -246,6 +246,8 @@
   const face = (m, cls) => '<img class="pix ' + (cls || 'face') + ' r' + (m.rank || 0) + '" alt="" src="' + CM.mouseUrl(m) + '">';
   // Lo que cambia a la vista con cada rango.
   const RANK_LOOK = ['no scarf', 'a blue scarf', 'a red scarf and a medal', 'a suit, a gold tie and a purple scarf'];
+  const RARITY = M.rarities;
+  const rareChip = (m) => (m.rarity ? '<span class="stat rare' + m.rarity + '">' + RARITY[m.rarity].name.toUpperCase() + '</span>' : '');
   const signed = (n) => (n < 0 ? '-' : '+') + Math.round(Math.abs(n) * 100) + '%';
   const times = (n) => 'x' + (Math.round(n * 100) / 100).toFixed(2);
   const plural = (n, word) => n + ' ' + (n === 1 ? word : word === 'mouse' ? 'mice' : word + 's');
@@ -269,12 +271,14 @@
     const out = [];
     if (lv > 1) out.push('level ' + lv + ' ' + signed(M.perLevel * (lv - 1)));
     if (M.ranks[m.rank].bonus) out.push(M.ranks[m.rank].name + ' ' + signed(M.ranks[m.rank].bonus));
+    if (m.rarity) out.push(RARITY[m.rarity].name + ' ' + signed(RARITY[m.rarity].bonus));
     if (m.fav === skill) out.push('loves this job ' + signed(M.favoriteBonus));
     for (const id of m.traits) if (M.traits[id].eff.speed) out.push(M.traits[id].name + ' ' + signed(M.traits[id].eff.speed));
     return out;
   }
   const traitList = (m) =>
     '<ul class="traits">' +
+    (m.rarity ? '<li>' + rareChip(m) + Math.round(RARITY[m.rarity].bonus * 100) + '% faster at any job' + (m.rarity === 2 ? ', and no quirk' : '') + '</li>' : '') +
     m.traits.map((id) => '<li>' + traitChip(id) + M.traits[id].desc + '</li>').join('') +
     (m.fav ? '<li><span class="stat">Loves ' + B.skills[m.fav].name + '</span>' + Math.round(M.favoriteBonus * 100) + '% faster on a ' + B.skills[m.fav].name + ' post</li>' : '') +
     '</ul>';
@@ -336,9 +340,26 @@
       s.candidates.forEach((c, i) => {
         const as = Object.assign({ xp: 0, rank: 0 }, c);
         h +=
-          '<div class="mouse cand"><div class="mhead">' + face(c) + '<div class="info"><b>' + esc(c.name) + '</b>' + traitList(c) + '</div></div>' +
+          '<div class="mouse cand rar' + (c.rarity || 0) + '"><div class="mhead">' + face(c) + '<div class="info"><b>' + esc(c.name) + '</b>' + traitList(c) + '</div></div>' +
           '<div class="mfoot"><small class="mjob">' + (dest ? 'There: <b>' + mouseRate(s, as, dest.skill, dest.zone) + '</b>' + (c.fav === dest.skill ? ' · loves it' : '') : 'Waits in the house') + '</small>' + btn('choose:' + i, 'CHOOSE', { cls: 'buy' }) + '</div></div>';
       });
+      return h;
+    }
+
+    // Álbum: lo coleccionado, por categorías.
+    if (ui.miceTab === 'album') {
+      h += btn('album', 'BACK TO MY MICE', { cls: 'mini wide' });
+      h += '<p class="lead"><b>' + K.albumCount(s) + ' of ' + K.albumTotal + '</b> found. Customers pay <b>' + times(1 + q.albumBonus(s)) + '</b>.</p><p class="hint">Every new fur, hat, accessory and trait on a mouse you recruit goes in here for good, even if that mouse leaves. Each one raises all your sale prices by ' + Math.round(M.albumPrice * 100) + '%.</p>';
+      for (const cat of K.ALBUM) {
+        const got = cat.items.filter((it) => s.album[it.key]).length;
+        h += '<h3>' + cat.title + ' · ' + got + '/' + cat.items.length + '</h3><div class="album">';
+        for (const it of cat.items) {
+          const have = !!s.album[it.key];
+          const pic = cat.kind === 'trait' ? '' : '<img class="pix face mini' + (have ? '' : ' shade') + '" alt="" src="' + CM.partUrl(it.key) + '">';
+          h += '<div class="' + (have ? 'have' : 'miss') + ' rar' + it.rarity + '">' + pic + '<span>' + (have ? it.name : '???') + (it.rarity ? '<small>' + RARITY[it.rarity].name + ' only</small>' : '') + '</span></div>';
+        }
+        h += '</div>';
+      }
       return h;
     }
 
@@ -357,6 +378,8 @@
       const moves = K.bestFitMoves(s);
       h += moves ? btn('bestfit', 'BEST FIT: PLACE EVERYONE FOR ME<br><small>Moves ' + plural(moves, 'mouse') + ' to where they work best</small>', { cls: 'buy wide calm' }) : '<p class="hint note good">Best fit: everyone is already where they work best.</p>';
     }
+    if (s.mice.length) h += btn('album', 'ALBUM · ' + K.albumCount(s) + '/' + K.albumTotal + ' FOUND<br><small>Customers pay ' + times(1 + q.albumBonus(s)) + ' thanks to it. Recruit to find more</small>', { cls: 'buy wide calm' });
+    h += '<p class="hint">Each candidate: ' + Math.round(RARITY[1].chance * 100) + '% Rare, ' + Math.round(RARITY[2].chance * 100) + '% Legendary.</p>';
     if (s.mice.some((m) => M.ranks[m.rank].manager)) h += row('Managers buy upgrades', 'They buy the cheapest upgrade of their job on their own', btn('managers', s.settings.managersBuy ? 'ON' : 'OFF', { cls: 'buy' }));
     if (!s.mice.length) return h + '<p class="hint">No mice yet. Your first recruit will take over a stage so you do not have to tap it.</p>';
 
@@ -373,8 +396,8 @@
       else job = '<b>Waiting in the house</b> · every post is taken. Tap MANAGE to swap it in';
       const pips = M.ranks.map((r, i) => '<i class="' + (i <= m.rank ? 'on' : '') + '"></i>').join('');
       h +=
-        '<div class="mouse' + (m.post ? '' : ' idle') + (open ? ' open' : '') + '" data-mouse="' + m.id + '"><div class="mhead">' + face(m) + '<div class="info"><b>' + esc(m.name) + ' <span class="rank">' + M.ranks[m.rank].name + '</span><span class="pips">' + pips + '</span></b>' +
-        '<div class="lvl"><span>LV ' + p.level + '</span>' + xpBar(p) + '<span>' + (p.maxed ? 'MAX' : p.cur + '/' + p.need) + '</span></div><div>' + m.traits.map(traitChip).join('') + (m.fav ? '<span class="stat">Loves ' + B.skills[m.fav].name + '</span>' : '') + '</div></div></div>' +
+        '<div class="mouse rar' + (m.rarity || 0) + (m.post ? '' : ' idle') + (open ? ' open' : '') + '" data-mouse="' + m.id + '"><div class="mhead">' + face(m) + '<div class="info"><b>' + esc(m.name) + ' <span class="rank">' + M.ranks[m.rank].name + '</span><span class="pips">' + pips + '</span></b>' +
+        '<div class="lvl"><span>LV ' + p.level + '</span>' + xpBar(p) + '<span>' + (p.maxed ? 'MAX' : p.cur + '/' + p.need) + '</span></div><div>' + rareChip(m) + m.traits.map(traitChip).join('') + (m.fav ? '<span class="stat">Loves ' + B.skills[m.fav].name + '</span>' : '') + '</div></div></div>' +
         '<p class="mjob">' + job + '</p>' + promoteBlock(s, m) +
         '<div class="mfoot">' + btn('move:' + m.id, open ? 'CLOSE' : 'MANAGE: MOVE · DETAILS · DISMISS', { cls: 'mini wide' }) + '</div>';
       if (open) {

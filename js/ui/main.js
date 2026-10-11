@@ -218,8 +218,17 @@
         toast(found.name + ' sells for ' + CM.fmt(CM.shop.price(state, found)) + ' coins. It is in your Recipe Book', true);
         break;
       }
-      case 'candidates':
-        play('bell');
+      case 'candidates': {
+        const best = Math.max(...state.candidates.map((c) => c.rarity || 0));
+        play(best ? 'reveal' : 'bell');
+        if (best) {
+          scene.celebrate();
+          banner('A ' + B.mice.rarities[best].name.toUpperCase() + ' MOUSE CAME BY!');
+        }
+        break;
+      }
+      case 'album':
+        toast('New in your album: ' + ev.keys.map((k) => CM.mice.albumItem(k).name).join(', ') + '. Customers now pay x' + (1 + q.albumBonus(state)).toFixed(2), true);
         break;
       case 'recruited': {
         const mouse = CM.mice.byId(state, ev.id);
@@ -767,6 +776,7 @@
     if (name === 'cheese') scene.focus('cheesery');
     if (name === 'mice') {
       ui.moving = null;
+      ui.miceTab = '';
       if (state.built.house) scene.focus('house');
     }
     renderPanel();
@@ -843,6 +853,7 @@
       return CM.mice.assign(state, id, skill ? skill + ':' + zone : '');
     },
     promote: (id) => CM.mice.promote(state, id),
+    album: () => void (ui.miceTab = ui.miceTab === 'album' ? '' : 'album'),
     dismiss: (id) => void confirmDismiss(id),
     managers: () => void (state.settings.managersBuy = !state.settings.managersBuy),
     tab: (name) => void (ui.cheeseTab = name),

@@ -145,6 +145,14 @@ CM.BALANCE = {
     recruitCost: 150, // coste del primero
     recruitGrowth: 1.8, // cada ratón cuesta un 80 % más que el anterior
     candidates: 3, // se elige uno de tres
+    // Rareza de cada candidato. Un raro es más rápido y tiene pelajes propios;
+    // un legendario, además, trae dos rasgos buenos y ninguna manía.
+    rarities: [
+      { name: 'Common', chance: 0.83, bonus: 0 },
+      { name: 'Rare', chance: 0.15, bonus: 0.1 },
+      { name: 'Legendary', chance: 0.02, bonus: 0.25 },
+    ],
+    albumPrice: 0.02, // cada pieza nueva del álbum sube un 2 % el precio de venta, para siempre
     favoriteBonus: 0.15, // +15 % de velocidad en su oficio favorito
     xpBase: 12, // acciones para pasar del nivel 1 al 2
     xpGrowth: 1.15,

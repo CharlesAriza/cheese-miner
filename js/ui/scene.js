@@ -57,7 +57,8 @@
 
   // SPRITE: tus ratones. Cada uno es único: su número `look` elige pelaje,
   // gorro, color de gorro, accesorio y mochila (7 x 5 x 8 x 5 x 5 = 7.000
-  // combinaciones). El rango se ve en la ropa y se acumula: Journeyman lleva
+  // combinaciones). Los raros tienen dos pelajes propios; los legendarios,
+  // pelaje dorado y corona. El rango se ve en la ropa y se acumula: Journeyman lleva
   // bufanda azul; Master, bufanda roja y medalla; Manager, bufanda morada,
   // traje con corbata dorada y el ala del gorro dorada.
   const FURS = [
@@ -68,6 +69,11 @@
     ['#5a5560', '#3d3944'],
     ['#ffd9c2', '#eab59a'],
     ['#a8c4e8', '#7f9cc4'],
+    // solo raros
+    ['#a8e8c8', '#7fc4a0'],
+    ['#d8b8f0', '#b08fd0'],
+    // solo legendarios
+    ['#ffd84a', '#d9a514'],
   ];
   const HAT_COLORS = [['#ffcf2e', '#d99a12'], ['#e2562a', '#9c2f14'], ['#4a8fe8', '#2b5cab'], ['#5fcf6a', '#2f8f44'], ['#9a5fd0', '#5f3590'], ['#ff7aa8', '#c44a78'], ['#f4f4f4', '#b9c0cf'], ['#3a3f52', '#1f2330']];
   const PACKS = ['#8b5a2b', '#3f7a52', '#7a3f6a', '#3f5a8b', '#a8502a'];
@@ -82,22 +88,24 @@
     ['......HHHHHH........', '......HHHHHH........', '......hhhhhh........', '....HHHHHHHHHH......'],
     // lazo
     ['....................', '....................', '.........LL.LL......', '..........LLL.......'],
+    // corona (solo legendarios)
+    ['.....H.H.H.H........', '.....HHHHHHH........', '.....HLHHHLH........', '.....hhhhhhh........'],
   ];
   const SCARVES = [null, ['#4a8fe8', '#2b5cab'], ['#e2462f', '#9c2a1c'], ['#9a5fd0', '#ffcf2e']];
   const spriteCache = {};
-  function mouseSprite(look, rank) {
-    const n = look >>> 0;
+  // `p` son las piezas (CM.mice.parts): pelaje, gorro, color, accesorio y mochila.
+  function mouseSprite(p, rank) {
     const r = Math.min(3, rank || 0);
-    const key = n + ':' + r;
+    const key = [p.fur, p.hat, p.hatColor, p.acc, p.pack, r].join(':');
     if (spriteCache[key]) return spriteCache[key];
-    const fur = FURS[n % 7];
-    const hat = HATS[(n >> 3) % 5];
-    const hc = HAT_COLORS[(n >> 6) % 8];
-    const acc = (n >> 9) % 5;
-    const pal = mousePalette(hc[0], hc[1], '#fff3a0');
+    const fur = FURS[p.fur];
+    const hat = HATS[p.hat];
+    const hc = p.hat === 5 ? ['#ffcf2e', '#d99a12'] : HAT_COLORS[p.hatColor];
+    const acc = p.acc;
+    const pal = mousePalette(hc[0], hc[1], p.hat === 5 ? '#e2462f' : '#fff3a0');
     pal.G = fur[0];
     pal.E = fur[1];
-    pal.B = PACKS[(n >> 12) % 5];
+    pal.B = PACKS[p.pack];
     if (r >= 3) pal.h = '#ffcf2e';
     const c = makeSprite(hat.concat(MOUSE_ROWS.slice(4)), pal, '#2a1d2e');
     const g = c.getContext('2d');
@@ -143,12 +151,21 @@
     }
     return (spriteCache[key] = c);
   }
-  const rankSprite = (m) => mouseSprite(m.look || 0, m.rank);
+  const rankSprite = (m) => mouseSprite(CM.mice.parts(m), m.rank);
   // Retrato de un ratón (o de un candidato) para los paneles.
   const portraits = {};
-  CM.mouseUrl = (m) => {
-    const key = (m.look || 0) + ':' + (m.rank || 0);
-    return portraits[key] || (portraits[key] = mouseSprite(m.look || 0, m.rank || 0).toDataURL());
+  const urlOf = (p, rank) => {
+    const c = mouseSprite(p, rank);
+    const key = [p.fur, p.hat, p.hatColor, p.acc, p.pack, rank].join(':');
+    return portraits[key] || (portraits[key] = c.toDataURL());
+  };
+  CM.mouseUrl = (m) => urlOf(CM.mice.parts(m), Math.min(3, m.rank || 0));
+  // Muestra de una pieza del álbum sobre un ratón neutro ('fur:3', 'hat:1', 'acc:2').
+  CM.partUrl = (key) => {
+    const [kind, i] = key.split(':');
+    const p = { fur: 0, hat: 1, hatColor: 2, acc: 0, pack: 0 };
+    p[kind] = Number(i);
+    return urlOf(p, 0);
   };
   const MOUSE_W = MICE.player.width;
   const MOUSE_H = MICE.player.height;

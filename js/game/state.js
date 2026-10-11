@@ -82,6 +82,7 @@
       built: { drill: false, refinery: false, cheesery: false, shop: false, house: false },
       mice: [], // { id, name, traits:[bueno, manía], fav, xp, rank, post, rest }
       candidates: [], // candidatos pendientes de elegir tras pagar el reclutamiento
+      album: {}, // 'fur:3', 'hat:1', 'trait:fast'... piezas vistas en ratones reclutados; no se pierden
       settings: { managersBuy: true },
       jobs: { shop: null },
       recipes: [], // { id, key, name, at, made }
@@ -195,7 +196,8 @@
       for (const b of B.shop.buyers) if (level >= b.level) best = b;
       return best;
     },
-    priceMult: (s) => q.buyer(s).mult * (1 + mods(s)('price')) * q.skillMult(s, 'trading'),
+    albumBonus: (s) => Object.keys(s.album).length * B.mice.albumPrice,
+    priceMult: (s) => q.buyer(s).mult * (1 + mods(s)('price')) * q.skillMult(s, 'trading') * (1 + q.albumBonus(s)),
     offlineCapMs: (s) => (B.offline.baseHours + mods(s)('offlineHours')) * 3600000,
     // Automatización: un puesto trabaja solo si tiene un ratón asignado.
     auto: (s, skill, zone) => s.mice.some((m) => m.post === skill + ':' + (skill === 'trading' ? 'all' : zone)),

@@ -2084,6 +2084,71 @@ button {
   box-shadow: 0 0 6px #ffcf2e;
 }
 
+.stat.rare1 {
+  color: #0c0910;
+  background: #6fd3ff;
+}
+
+.stat.rare2 {
+  color: #0c0910;
+  background: #ffcf2e;
+}
+
+.mouse.rar1 {
+  border-color: #6fd3ff;
+}
+
+.mouse.rar2 {
+  border-color: #ffcf2e;
+  box-shadow: 0 0 8px #ffcf2e;
+}
+
+/* Álbum */
+.album {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.album > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 4px 6px;
+  font-family: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--bg);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+}
+
+.album .miss {
+  color: #6c6488;
+}
+
+.album small {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  color: #a79fc0;
+}
+
+.album .have.rar1 {
+  border-color: #6fd3ff;
+}
+
+.album .have.rar2 {
+  border-color: #ffcf2e;
+}
+
+.pix.face.shade {
+  filter: brightness(0);
+  opacity: 0.5;
+}
+
 .pix.face.mini {
   width: 34px;
   padding: 2px;

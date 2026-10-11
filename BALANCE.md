@@ -44,6 +44,8 @@ No hay almacén con tope. Raw Cheese, Cheese Base y quesos se acumulan sin lími
 
 - Reclutar: 150 monedas el primero, cada uno un 80 % más que el anterior. Se elige entre tres candidatos.
 - Aspecto: cada ratón guarda un número `look` que decide pelaje (7), gorro (5 formas × 8 colores), accesorio (5) y mochila (5): 7.000 combinaciones. No afecta al juego. El rango se ve en la ropa: bufanda azul (Journeyman), bufanda roja y medalla (Master), traje con corbata dorada (Manager).
+- Rareza de cada candidato: 83 % Common, 15 % Rare (+10 % de velocidad, pelajes Mint y Lilac), 2 % Legendary (+25 %, dos rasgos buenos y ninguna manía, pelaje dorado y corona).
+- Álbum: 28 piezas (10 pelajes, 6 gorros, 4 accesorios, 8 rasgos). Se apuntan al reclutar y no se pierden al despedir. Cada pieza: +2 % al precio de venta (hasta +56 %).
 - Despedir: gratis y sin reembolso. El precio de reclutar depende de cuántos ratones tienes, así que despedir abarata el siguiente (cambiar un ratón cuesta lo que costó su hueco).
 - Un puesto por etapa y por roca (minería, taladro, refinado, quesería) más un tendero común: 5 con una roca, 13 con tres.
 - Velocidad en su puesto: +1 % por nivel, +15 % en su oficio favorito, más su rango y sus rasgos.

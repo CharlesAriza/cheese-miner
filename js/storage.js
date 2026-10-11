@@ -99,12 +99,19 @@
       // Aspecto: si la partida es anterior, se deduce de su identificador y nombre.
       if (!Number.isFinite(m.look)) m.look = [...(m.id + m.name)].reduce((a, ch) => (a * 131 + ch.charCodeAt(0)) % 1048576, 7);
       m.look = nat(m.look);
+      m.rarity = Math.min(nat(m.rarity), B.mice.rarities.length - 1);
       m.post = typeof m.post === 'string' && posts.indexOf(m.post) >= 0 && !taken[m.post] ? m.post : '';
       if (m.post) taken[m.post] = true;
     }
     s.candidates = (Array.isArray(s.candidates) ? s.candidates : [])
       .filter((c) => isObj(c) && typeof c.name === 'string' && Array.isArray(c.traits) && c.traits.every((t) => B.mice.traits[t]))
       .slice(0, B.mice.candidates);
+    s.candidates.forEach((c) => (c.rarity = Math.min(nat(c.rarity), B.mice.rarities.length - 1)));
+    // Álbum: solo piezas que existen, más las de los ratones que ya se tienen.
+    const album = {};
+    for (const k of Object.keys(s.album)) if (CM.mice.albumItem(k)) album[k] = true;
+    s.album = album;
+    s.mice.forEach((m) => CM.mice.record(s, m));
     s.seed = nat(s.seed) || 1;
 
     // Cada línea solo puede cocinar recetas de su propia base.

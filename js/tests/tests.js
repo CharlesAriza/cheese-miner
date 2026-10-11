@@ -51,7 +51,7 @@
   }
   // Pone un ratón sin rasgos en un puesto: rinde exactamente igual que una acción manual.
   function staff(s, skill, zone, extra) {
-    const m = Object.assign({ id: 'm' + s.nextId++, name: 'Test' + s.nextId, traits: [], fav: '', look: 4242, xp: 0, rank: 0, post: CM.mice.postKey(skill, zone || 'cheddar'), rest: false }, extra || {});
+    const m = Object.assign({ id: 'm' + s.nextId++, name: 'Test' + s.nextId, traits: [], fav: '', look: 4242, rarity: 0, xp: 0, rank: 0, post: CM.mice.postKey(skill, zone || 'cheddar'), rest: false }, extra || {});
     s.mice.push(m);
     return m;
   }
@@ -212,7 +212,7 @@
     const reloaded = CM.storage.parse(JSON.stringify(s), 1);
     eq(JSON.stringify(reloaded.candidates), JSON.stringify(s.candidates), 'reloading does not reroll the candidates');
     for (const c of s.candidates) {
-      truthy(B.mice.traits[c.traits[0]].good && !B.mice.traits[c.traits[1]].good, 'one good trait and one quirk');
+      truthy(B.mice.traits[c.traits[0]].good && (c.rarity === 2 ? B.mice.traits[c.traits[1]].good && c.traits[1] !== c.traits[0] : !B.mice.traits[c.traits[1]].good), 'one good trait and one quirk (a legendary: two good traits)');
       truthy(CM.skills.list.indexOf(c.fav) >= 0, 'a favourite job');
     }
     const picked = s.candidates[1].name;
@@ -592,6 +592,51 @@
     valid(s);
     const back = CM.storage.parse(JSON.stringify(s), 1000000);
     eq(back.mice.length, 1, 'a dismissed mouse stays gone after a reload');
+  });
+
+  test('mice: rarities and the album that raises sale prices for good', () => {
+    const s = fresh();
+    s.built.house = true;
+    s.coins = 1e300;
+    const seen = [0, 0, 0];
+    for (let i = 0; i < 700; i++) {
+      CM.mice.offer(s);
+      s.candidates.forEach((c) => (seen[c.rarity] += 1));
+      s.candidates = [];
+    }
+    truthy(seen[0] > seen[1] && seen[1] > seen[2] && seen[2] > 0, 'common > rare > legendary, and all appear: ' + seen.join('/'));
+    const plain = { traits: [], fav: '', xp: 0, rank: 0, look: 5 };
+    truthy(CM.mice.speed(Object.assign({ rarity: 2 }, plain), 'drilling') > CM.mice.speed(Object.assign({ rarity: 1 }, plain), 'drilling'), 'legendary is faster than rare');
+    truthy(CM.mice.speed(Object.assign({ rarity: 1 }, plain), 'drilling') > CM.mice.speed(plain, 'drilling'), 'rare is faster than common');
+    eq(CM.mice.parts(Object.assign({ rarity: 2 }, plain)).hat, 5, 'a legendary wears the crown');
+    truthy(CM.mice.parts(Object.assign({ rarity: 1 }, plain)).fur >= 7, 'a rare has a rare fur');
+    truthy(CM.mice.parts(plain).fur < 7 && CM.mice.parts(plain).hat < 5, 'a common never has them');
+    // Álbum
+    const t = fresh();
+    t.built.house = true;
+    t.coins = 1e9;
+    const price = CM.q.priceMult(t);
+    eq(CM.mice.albumCount(t), 0, 'empty album');
+    CM.mice.offer(t);
+    eq(CM.mice.albumCount(t), 0, 'seeing candidates does not count');
+    CM.mice.choose(t, 0);
+    const n = CM.mice.albumCount(t);
+    truthy(n >= 4, 'recruiting records fur, hat and traits: ' + n);
+    truthy(CM.events.some((e) => e.type === 'album'), 'and says so');
+    truthy(Math.abs(CM.q.priceMult(t) / price - (1 + n * B.mice.albumPrice)) < 1e-9, 'each piece raises sale prices');
+    CM.mice.dismiss(t, t.mice[0].id);
+    eq(CM.mice.albumCount(t), n, 'dismissing the mouse keeps the album');
+    const back = CM.storage.parse(JSON.stringify(t), 1000000);
+    eq(CM.mice.albumCount(back), n, 'the album survives a reload');
+    // Una partida anterior al álbum lo recibe relleno con sus ratones
+    const u = fresh();
+    CM.dev.unlockBuildings(u);
+    staff(u, 'drilling', 'cheddar', { traits: ['fast', 'glutton'] });
+    const old = JSON.parse(JSON.stringify(u));
+    delete old.album;
+    truthy(CM.mice.albumCount(CM.storage.parse(JSON.stringify(old), 1000000)) >= 4, 'old saves get their mice recorded');
+    t.album['fur:99'] = true;
+    eq(CM.mice.albumCount(CM.storage.parse(JSON.stringify(t), 1000000)), n, 'unknown pieces are dropped');
   });
 
   test('every mouse has its own look, and old saves get one', () => {
