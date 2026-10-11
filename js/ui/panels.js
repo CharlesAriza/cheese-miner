@@ -144,14 +144,17 @@
   // ---------- CHEESERY ----------
   function cheesePanel(s, ui) {
     const C = CM.cheesery;
-    const job = s.jobs.cheesery;
+    const laneOf = (base) => s.zones[q.zoneOfBase(base)];
     const hasCook = q.isAutomated(s, 'cheesemaking');
     const level = q.level(s, 'cheesemaking');
     let h = '';
-    if (job) {
+    // Cada queso se cocina en su propia línea: puede haber varios encargos a la vez.
+    for (const def of q.openZones(s)) {
+      const job = s.zones[def.id].cookJob;
+      if (!job) continue;
       const r = job.recipeId ? C.recipe(s, job.recipeId) : null;
-      const label = job.kind === 'experiment' && !r ? 'Experimenting...' : 'Making ' + esc(r ? r.name : 'cheese') + (job.lotsLeft > 1 ? ' (' + job.lotsLeft + ' left)' : '');
-      h += '<div class="jobbar"><span>' + label + '</span><div class="bar"><i data-job="cheesery"></i></div>' + btn('cheeseTap', 'SPEED UP', { cls: 'buy' }) + '</div>';
+      const label = job.kind === 'experiment' && !r ? 'New ' + B.bases[def.base].name + ' recipe...' : esc(r ? r.name : 'cheese') + (job.lotsLeft > 1 ? ' (' + job.lotsLeft + ' left)' : '');
+      h += '<div class="jobbar">' + I.img('lot', def.base) + '<span>' + label + '</span><div class="bar"><i data-job="cook:' + def.id + '"></i></div>' + btn('cheeseTap:' + def.id, 'SPEED UP', { cls: 'buy' }) + '</div>';
     }
     h += '<p class="hint stock">' + C.unlockedBases(s).map((b) => I.img('base', b) + B.bases[b].name + ' Base ' + CM.fmt(s.inv.base[b])).join(' &nbsp; ') + '</p>';
     h += '<div class="tabs">' + btn('tab:experiment', 'NEW RECIPE', { cls: ui.cheeseTab === 'experiment' ? 'on' : '' }) + btn('tab:book', 'RECIPE BOOK ' + s.recipes.length + '/' + C.totalCombos(), { cls: ui.cheeseTab === 'book' ? 'on' : '' }) + '</div>';
@@ -179,7 +182,7 @@
       if (known) {
         h += '<div class="result">' + I.img('lot', combo.base, 'big') + '<div><b>' + esc(known.name) + '</b><div>' + valueTag(s, known) + '</div><small>Already in your Recipe Book</small></div></div>';
       } else {
-        const can = !job && s.inv.base[combo.base] >= B.cheesery.experimentBase && s.coins >= coins;
+        const can = !laneOf(combo.base).cookJob && s.inv.base[combo.base] >= B.cheesery.experimentBase && s.coins >= coins;
         const syn = C.formula(combo).synergies;
         h += '<div class="result"><div><b>Undiscovered cheese</b><small>' + (syn.length ? 'These go well together! ' : '') + 'Costs ' + B.cheesery.experimentBase + ' ' + B.bases[combo.base].name + ' Base' + (coins ? ' + ' + coins + ' coins' : '') + ' · ' + secs(C.jobTime(s, combo, null)) + ' · you get the recipe and 1 cheese</small></div></div>';
         h += btn('experiment', 'DISCOVER IT', { off: !can, cls: 'buy wide' });
@@ -188,13 +191,14 @@
     }
 
     if (!s.recipes.length) return h + '<p class="hint">No recipes yet. Combine four parts in NEW RECIPE.</p>';
-    h += '<p class="hint">' + (hasCook ? 'Your Cheesemaker cooks one recipe non-stop. Pick it with COOK THIS.' : 'Tip: hire the Cheesemaker Mouse in the tree to cook automatically.') + '</p>';
+    h += '<p class="hint">' + (hasCook ? 'Your Cheesemaker cooks one recipe for each cheese, all at once. Pick them with COOK THIS.' : 'Each cheese is cooked on its own line, at the same time. Tip: hire the Cheesemaker Mouse in the tree to cook automatically.') + '</p>';
     const sorted = s.recipes.slice().sort((a, b) => CM.cheesery.valueOf(s, b) - CM.cheesery.valueOf(s, a));
     for (const r of sorted) {
       const combo = C.parseKey(r.key);
       const coins = B.ingredients[combo.ingredient].coinCost;
       const max = C.maxLots(s, r);
-      const cooking = hasCook && s.cookRecipe === r.id;
+      const job = laneOf(combo.base).cookJob;
+      const cooking = hasCook && C.isCooking(s, r);
       const m = C.masteryLevel(r);
       const nextAt = B.cheesery.masteryAt[m];
       const syn = C.formula(combo).synergies;
@@ -202,7 +206,7 @@
         '<div class="recipe' + (cooking ? ' cooking' : '') + '"><div class="rhead">' + I.img('lot', combo.base, 'big') + '<b>' + esc(r.name) + '</b>' + btn('rename:' + r.id, 'RENAME', { cls: 'mini' }) + '</div><small>' + comboLine(combo) + (syn.length ? ' · ' + syn.join(', ') : '') + '</small><div>' + valueTag(s, r) + '<span class="stat">Mastery ' + m + (nextAt ? ' · ' + (r.made || 0) + '/' + nextAt : ' MAX') + '</span></div>' +
         '<div class="rfoot"><span>Have ' + (s.lots[r.id] || 0) + ' · ' + B.cheesery.lotBase + ' Base' + (coins ? ' + ' + coins + 'c' : '') + ' each · ' + secs(C.jobTime(s, combo, r)) + '</span><span>' +
         btn('make:' + r.id + ':1', 'MAKE 1', { off: job || max < 1, cls: 'buy' }) + btn('make:' + r.id + ':' + Math.max(1, max), 'MAKE ' + (max > 1 ? max : 'MAX'), { off: job || max < 2, cls: 'buy' }) + '</span></div>' +
-        (hasCook ? btn(cooking ? 'cook:' : 'cook:' + r.id, cooking ? 'COOKING THIS · TAP TO STOP' : 'COOK THIS', { cls: 'wide ' + (cooking ? 'on' : '') }) : '') + '</div>';
+        (hasCook ? btn(cooking ? 'uncook:' + q.zoneOfBase(combo.base) : 'cook:' + r.id, cooking ? 'COOKING THIS ' + B.bases[combo.base].name.toUpperCase() + ' · TAP TO STOP' : 'COOK THIS ' + B.bases[combo.base].name.toUpperCase(), { cls: 'wide ' + (cooking ? 'on' : '') }) : '') + '</div>';
     }
     return h;
   }

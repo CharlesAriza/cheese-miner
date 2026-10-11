@@ -4,7 +4,7 @@
 
 ## Pruebas automáticas
 
-Ejecutadas abriendo `tests.html` en el navegador. **19 de 19 pasan.**
+Ejecutadas abriendo `tests.html` en el navegador. **21 de 21 pasan.**
 
 | Prueba | Resultado |
 | --- | --- |
@@ -19,6 +19,7 @@ Ejecutadas abriendo `tests.html` en el navegador. **19 de 19 pasan.**
 | Offline: solo progresa lo automatizado, con tope y una sola vez | pasa |
 | Taps rápidos, recarga a mitad de ciclo y venta doble no duplican | pasa |
 | Recetas: descubrir, componentes bloqueados por nivel, renombrar, fabricar, persistir | pasa |
+| Líneas en paralelo: un queso escaso se refina y se cocina aunque otro tenga mucho más Raw | pasa |
 | Valor del queso: fórmula, sinergias, maestría, bodega y nivel de Trading | pasa |
 | Cheesemaker y Shopkeeper llevan solos el final de la cadena, dentro de sus límites | pasa |
 | La automatización solo espera por lo que le falta, nunca por espacio | pasa |
@@ -44,6 +45,7 @@ Hechas sobre el juego real, pulsando los controles:
 - Despensa: una fila por tipo de Raw, de Base y por receta, con sus cantidades; se abre desde PANTRY o tocando un contador.
 - Árboles: cada nudo enseña el valor actual y el siguiente en unidades reales.
 - El edificio del almacén ya no cambia de tamaño ni pisa a los vecinos; apila cajas según lo guardado.
+- Líneas: con tres rocas abiertas el Blue se refina aunque haya 900 de Raw de Cheddar; cada fila enseña sus cantidades, sus barras y por qué está parada («No Blue recipe chosen»); al tocar una fila cambian escena y contadores.
 - Reiniciar deja la partida a cero.
 - Sin desbordamiento horizontal a 320×640 y 375×812.
 - Sin errores en la consola durante todo lo anterior.
@@ -64,7 +66,8 @@ Hechas sobre el juego real, pulsando los controles:
 - **Las partidas anteriores no se conservan:** el modelo de datos es nuevo.
 - **Arte placeholder.** Los tramos de edificio se distinguen, pero el acabado sigue siendo el de dibujo por código.
 - **Los ratones aún no son personajes:** hoy un ratón es un nudo comprado en el árbol. Los rasgos, niveles y ascensos son la segunda entrega.
-- **Todos los mineros pican en todas las rocas a la vez;** no se asignan.
+- **Todos los ratones trabajan en todas las líneas a la vez;** no se asignan a una.
+- **Las partidas de la versión anterior se convierten** al cargar; está cubierto por una prueba, no probado con una partida real larga.
 - **La escena enseña una roca cada vez,** aunque todas trabajan. Las demás se ven en las fichas del panel.
 - **La tienda vende siempre primero el queso más caro;** no se puede reservar stock.
 - **Fuente pixel desde Google Fonts.** Sin conexión se usa una monoespaciada del sistema.

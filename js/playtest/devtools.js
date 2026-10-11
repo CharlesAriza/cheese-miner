@@ -47,7 +47,7 @@
       for (const [skill, id] of [['mining', 'miner'], ['drilling', 'driller'], ['refining', 'refiner'], ['cheesemaking', 'maker'], ['trading', 'keeper']]) {
         if (!s.nodes[skill + '.' + id]) s.nodes[skill + '.' + id] = 1;
       }
-      if (!s.cookRecipe && s.recipes.length) s.cookRecipe = s.recipes[0].id;
+      for (const r of s.recipes) if (!CM.cheesery.isCooking(s, r) && !s.zones[q.zoneOfBase(CM.cheesery.parseKey(r.key).base)].cookRecipe) CM.cheesery.assign(s, r.id);
     },
     // Sube un rango todos los nudos de la rama POWER (para ver los aspectos de los edificios).
     powerUp(s, ranks) {
@@ -94,11 +94,11 @@
         'played ' + mins(s.clock) + '  offline ' + mins(s.metrics.offlineMs) + '  speed x' + CM.dev.speed + (CM.dev.paused ? ' PAUSED' : ''),
         'levels: ' + CM.skills.list.map((k) => k.slice(0, 5) + ' ' + q.level(s, k)).join('  '),
         'per min (last 60s):',
-        '  raw +' + f(r.raw) + ' / -' + f(r.rawUsed) + '   base +' + f(r.base) + ' / -' + f(r.baseUsed),
-        '  cheese +' + f(r.lots) + '   coins +' + f(r.coins),
+        '  coins +' + f(r.coins),
+        ...q.openZones(s).map((d) => '  ' + d.id + ': raw +' + f(r.lanes[d.id].raw) + '/-' + f(r.lanes[d.id].rawUsed) + '  base +' + f(r.lanes[d.id].base) + '/-' + f(r.lanes[d.id].baseUsed) + '  cheese +' + f(r.lanes[d.id].lots)),
         'stock: raw ' + JSON.stringify(s.inv.raw) + '  base ' + JSON.stringify(s.inv.base) + '  cheese ' + q.lotsTotal(s),
-        'zones: ' + q.openZones(s).map((d) => d.id + ' d' + s.zones[d.id].depth + ' mine=' + CM.mining.status(s, d.id) + ' drill=' + CM.drilling.status(s, d.id)).join(' | '),
-        'refinery=' + CM.refining.status(s) + '  cheesery=' + CM.cheesery.status(s) + '  shop=' + CM.shop.status(s),
+        ...q.openZones(s).map((d) => 'lane ' + d.id + ' d' + s.zones[d.id].depth + ': mine=' + CM.mining.status(s, d.id) + ' drill=' + CM.drilling.status(s, d.id) + ' refine=' + CM.refining.status(s, d.id) + ' cook=' + CM.cheesery.status(s, d.id)),
+        'shop=' + CM.shop.status(s),
         'taps: ' + JSON.stringify(s.metrics.taps),
         'goals (min): ' + (Object.entries(s.goalsDone).map(([k, v]) => k + ' ' + f(v / 60000)).join(', ') || '-'),
         'totals: ' + JSON.stringify(s.totals),

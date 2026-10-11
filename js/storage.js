@@ -1,7 +1,7 @@
 // Persistencia: guardado versionado en localStorage, exportación e importación.
 (function () {
   const B = CM.BALANCE;
-  const KEY = CM.SAVE_KEY || 'cheese-miner-v3';
+  const KEY = CM.SAVE_KEY || 'cheese-miner-v3'; // la clave no cambia: las versiones se migran
   const BACKUP_KEY = KEY + '-broken';
 
   const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v);
@@ -69,8 +69,11 @@
       z.minerAcc = pos(z.minerAcc);
       z.drillJob = z.unlocked ? cleanJob(z.drillJob, ['amount']) : null;
       if (z.drillJob && !(z.drillJob.amount > 0)) z.drillJob = null;
+      z.refCarry = Math.min(1, pos(z.refCarry));
+      z.refJob = z.unlocked ? cleanJob(z.refJob, ['amount']) : null;
+      if (z.refJob && !(z.refJob.amount >= 0)) z.refJob = null;
+      for (const k of Object.keys(z.stats)) z.stats[k] = nat(z.stats[k]);
     }
-    s.refCarry = Math.min(1, pos(s.refCarry));
 
     s.recipes = s.recipes.filter((r) => isObj(r) && typeof r.id === 'string' && CM.cheesery.parseKey(r.key));
     s.recipes.forEach((r) => {
@@ -80,13 +83,15 @@
     const lots = {};
     for (const r of s.recipes) if (nat(s.lots[r.id]) > 0) lots[r.id] = nat(s.lots[r.id]);
     s.lots = lots;
-    if (!CM.cheesery.recipe(s, s.cookRecipe)) s.cookRecipe = '';
-
-    s.jobs.refinery = cleanJob(s.jobs.refinery, ['amount', 'base']);
-    if (s.jobs.refinery && s.inv.base[s.jobs.refinery.base] === undefined) s.jobs.refinery = null;
-    s.jobs.cheesery = cleanJob(s.jobs.cheesery, ['key', 'lotsLeft', 'kind']);
-    const cj = s.jobs.cheesery;
-    if (cj && (!CM.cheesery.parseKey(cj.key) || !(cj.lotsLeft > 0) || (cj.kind === 'produce' && !CM.cheesery.recipe(s, cj.recipeId)))) s.jobs.cheesery = null;
+    // Cada línea solo puede cocinar recetas de su propia base.
+    for (const def of B.zones) {
+      const z = s.zones[def.id];
+      const assigned = CM.cheesery.recipe(s, z.cookRecipe);
+      if (!assigned || CM.cheesery.parseKey(assigned.key).base !== def.base) z.cookRecipe = '';
+      const cj = z.unlocked ? cleanJob(z.cookJob, ['key', 'lotsLeft', 'kind']) : null;
+      const combo = cj ? CM.cheesery.parseKey(cj.key) : null;
+      z.cookJob = cj && combo && combo.base === def.base && cj.lotsLeft > 0 && (cj.kind !== 'produce' || CM.cheesery.recipe(s, cj.recipeId)) ? cj : null;
+    }
     s.jobs.shop = cleanJob(s.jobs.shop, ['coins', 'count', 'xp']);
     if (s.jobs.shop && !(s.jobs.shop.coins >= 0 && s.jobs.shop.count > 0)) s.jobs.shop = null;
 
@@ -94,6 +99,27 @@
     for (const k of Object.keys(fresh)) if (typeof s.metrics[k] !== typeof fresh[k]) s.metrics[k] = fresh[k];
     for (const k of Object.keys(fresh.taps)) s.metrics.taps[k] = nat(s.metrics.taps[k]);
     return s;
+  }
+
+  // v3 -> v4: la refinería y la quesería dejan de ser una sola para todos los
+  // quesos y pasan a ser una línea por zona. Se recolocan los ciclos en marcha
+  // y la receta del Cheesemaker en la línea que les toca.
+  function migrate3(data) {
+    const zoneOf = (base) => (B.zones.find((z) => z.base === base) || {}).id;
+    const zones = isObj(data.zones) ? data.zones : (data.zones = {});
+    const lane = (base) => {
+      const id = zoneOf(base);
+      if (!id) return null;
+      if (!isObj(zones[id])) zones[id] = {};
+      return zones[id];
+    };
+    const jobs = isObj(data.jobs) ? data.jobs : {};
+    if (isObj(jobs.refinery) && lane(jobs.refinery.base)) lane(jobs.refinery.base).refJob = jobs.refinery;
+    if (isObj(jobs.cheesery) && lane(String(jobs.cheesery.key).split('+')[0])) lane(String(jobs.cheesery.key).split('+')[0]).cookJob = jobs.cheesery;
+    const cooking = Array.isArray(data.recipes) ? data.recipes.find((r) => isObj(r) && r.id === data.cookRecipe) : null;
+    if (cooking && lane(String(cooking.key).split('+')[0])) lane(String(cooking.key).split('+')[0]).cookRecipe = cooking.id;
+    data.jobs = { shop: jobs.shop };
+    data.version = 4;
   }
 
   // Convierte texto JSON en un estado válido, o null si no sirve.
@@ -105,6 +131,7 @@
       return null;
     }
     if (isObj(data) && isObj(data.save)) data = data.save; // archivo exportado
+    if (isObj(data) && data.version === 3) migrate3(data);
     if (!isObj(data) || data.version !== CM.SAVE_VERSION) return null;
     const s = CM.createState(now);
     try {

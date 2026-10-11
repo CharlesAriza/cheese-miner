@@ -26,7 +26,7 @@ La pantalla es el cuartel general. Abajo está la **cadena**: MINE → DRILL →
 | Descubrir y cocinar recetas | Etapa CHEESE → botón grande |
 | Abrir rocas nuevas y ampliar las horas offline | **COLONY** |
 | Ver todo lo que tienes, tipo por tipo | **PANTRY**, o tocar un contador de arriba |
-| Ver otra roca en la escena | Las fichas de roca del panel de MINE o DRILL |
+| Ver otro queso (escena y contadores) | Tocar su fila en el panel |
 | Moverse por la colonia | Arrastrar la escena |
 | Silenciar | **SOUND** |
 | Exportar, importar, reiniciar, dev tools | **MENU** |
@@ -35,7 +35,7 @@ Etiquetas de las casillas: `BUILD` (se puede construir), `UP! 3` (tres mejoras q
 
 No hay almacén con tope: todo se acumula sin límite en la despensa, cada queso por separado.
 
-Todas las rocas abiertas trabajan a la vez. Una roca nunca se agota: al vaciar su veta baja un nivel de profundidad, y más hondo el queso es más rico.
+Cada roca abierta es una línea de producción completa y todas trabajan a la vez: se pica, se taladra, se refina y se cocina cada queso por separado. Debajo del panel hay una fila por queso con su recorrido (Raw → Base → queso), el progreso de cada paso y una frase que dice qué le pasa. Los tres contadores de arriba son los del queso que estás mirando; tocas una fila para cambiar. Una roca nunca se agota: al vaciar su veta baja un nivel de profundidad, y más hondo el queso es más rico.
 
 ## Arquitectura
 

@@ -1582,6 +1582,143 @@ button {
   color: #ffe55c;
 }
 
+/* ---------- Líneas de producción ---------- */
+#dock-zones {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lane {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 6px;
+  width: 100%;
+  padding: 4px 6px;
+  text-align: left;
+  background: var(--panel-2);
+  border: 2px solid var(--ink);
+  border-left: 5px solid #8b84a3;
+  border-radius: 6px;
+}
+
+.lane.ok {
+  border-left-color: #5fcf6a;
+}
+
+.lane.on {
+  border-color: #ffe55c;
+  background: #4a4068;
+}
+
+.lhead {
+  flex: 0 0 58px;
+  min-width: 0;
+}
+
+.lhead b {
+  display: block;
+  font-weight: normal;
+  font-size: 7px;
+  color: #ffe55c;
+}
+
+.lhead u {
+  display: block;
+  margin-top: 3px;
+  font-size: 5px;
+  text-decoration: none;
+  color: var(--muted);
+}
+
+.lane em {
+  flex: 1 0 100%;
+  font-family: var(--text);
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--muted);
+}
+
+.lane em:empty {
+  display: none;
+}
+
+.lane em.warn {
+  color: #ffd43a;
+}
+
+.lane em.bad {
+  color: #ff8a9c;
+}
+
+.lrow {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lcell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 4px;
+}
+
+.lcell .pix {
+  width: 14px;
+}
+
+.lcell b {
+  font-weight: normal;
+  font-size: 8px;
+}
+
+.lcell > i {
+  flex: 1 0 100%;
+  height: 3px;
+  background: var(--ink);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.lcell > i > i {
+  display: block;
+  height: 100%;
+  background: #5fcf6a;
+}
+
+.lrow .arrow {
+  flex: none;
+  border: 3px solid transparent;
+  border-left: 4px solid var(--muted);
+}
+
+/* La escena nunca se queda sin sitio: si el panel crece, se desplaza él. */
+.stage {
+  min-height: 30%;
+}
+
+.controls {
+  max-height: 62%;
+  overflow-y: auto;
+}
+
+.res span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jobbar .pix {
+  width: 18px;
+}
+
 @keyframes spend {
   0% {
     opacity: 0;

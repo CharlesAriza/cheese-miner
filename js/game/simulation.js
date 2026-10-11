@@ -79,18 +79,21 @@
 
   CM.sim = {
     GOALS,
-    // Un paso de simulación. Orden fijo: zonas (minería y taladro), refinería, cheesery, tienda.
+    // Un paso de simulación. Cada línea (zona) hace minería, taladro, refinado y
+    // cocinado; todas a la vez. Después, la tienda, que es común.
     step(s, dt) {
       s.clock += dt;
       const drillAuto = q.isAutomated(s, 'drilling');
+      const refAuto = q.isAutomated(s, 'refining');
+      const cookAuto = q.isAutomated(s, 'cheesemaking');
       for (const def of B.zones) {
         const z = s.zones[def.id];
         if (!z.unlocked) continue;
         runMiners(s, def.id, dt);
         runJob(dt, () => z.drillJob, drillAuto, () => CM.drilling.start(s, def.id, 'worker'), () => CM.drilling.complete(s, def.id));
+        runJob(dt, () => z.refJob, refAuto, () => CM.refining.start(s, def.id, 'worker'), () => CM.refining.complete(s, def.id));
+        runJob(dt, () => z.cookJob, cookAuto, () => CM.cheesery.start(s, def.id), () => CM.cheesery.complete(s, def.id));
       }
-      runJob(dt, () => s.jobs.refinery, q.isAutomated(s, 'refining'), () => CM.refining.start(s, 'worker'), () => CM.refining.complete(s));
-      runJob(dt, () => s.jobs.cheesery, q.isAutomated(s, 'cheesemaking'), () => CM.cheesery.start(s), () => CM.cheesery.complete(s));
       runJob(dt, () => s.jobs.shop, q.isAutomated(s, 'trading'), () => CM.shop.start(s, 'worker'), () => CM.shop.complete(s));
       updateGoals(s);
     },

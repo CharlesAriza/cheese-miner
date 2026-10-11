@@ -2,7 +2,7 @@
 (function () {
   const B = CM.BALANCE;
 
-  CM.SAVE_VERSION = 3;
+  CM.SAVE_VERSION = 4;
   CM.events = []; // cola que consume la UI para dar feedback
   CM.muted = false; // true durante la simulación offline: no hay feedback visual
 
@@ -35,7 +35,23 @@
   CM.createState = function (now) {
     const zones = {};
     B.zones.forEach((z, i) => {
-      zones[z.id] = { unlocked: i === 0, depth: 0, discover: 0, veinRevealed: false, veinRemaining: 0, drillJob: null, minerAcc: 0, carry: 0 };
+      // Cada zona es una LÍNEA completa: su roca, su taladro, su refinado y su
+      // cocinado. Todas las líneas trabajan a la vez; solo la tienda es común.
+      zones[z.id] = {
+        unlocked: i === 0,
+        depth: 0,
+        discover: 0,
+        veinRevealed: false,
+        veinRemaining: 0,
+        drillJob: null,
+        minerAcc: 0,
+        carry: 0, // fracción de Raw pendiente
+        refJob: null,
+        refCarry: 0, // fracción de Base pendiente del bonus de refinado
+        cookJob: null,
+        cookRecipe: '', // receta que el Cheesemaker cocina en esta línea
+        stats: { raw: 0, rawUsed: 0, base: 0, baseUsed: 0, lots: 0 }, // producido y gastado, para los ritmos
+      };
     });
     const skills = {};
     Object.keys(B.skills).forEach((k) => (skills[k] = { xp: 0 }));
@@ -53,9 +69,7 @@
       inv: { raw: perBase(), base: perBase() },
       lots: {}, // recipeId -> quesos en almacén
       built: { drill: false, refinery: false, cheesery: false, shop: false },
-      jobs: { refinery: null, cheesery: null, shop: null },
-      refCarry: 0, // fracción de Cheese Base pendiente del bonus de refinado
-      cookRecipe: '', // receta que cocina el Cheesemaker
+      jobs: { shop: null },
       recipes: [], // { id, key, name, at, made }
       combo: 0,
       lastHitAt: -1e9,
@@ -133,6 +147,10 @@
     totalLevel: (s) => Object.keys(B.skills).reduce((a, k) => a + levelOf(s, k), 0),
 
     zoneDef: (id) => B.zones.find((z) => z.id === id),
+    // La línea (zona) que produce una base.
+    zoneOfBase: (base) => (B.zones.find((z) => z.base === base) || {}).id,
+    // Quesos en stock de una base.
+    lotsOfBase: (s, base) => s.recipes.reduce((a, r) => a + (r.key.split('+')[0] === base ? s.lots[r.id] || 0 : 0), 0),
     openZones: (s) => B.zones.filter((z) => s.zones[z.id].unlocked),
     veinHits: (s, id) => Math.round(q.zoneDef(id).hits * Math.pow(B.depth.hitsGrowth, s.zones[id].depth)),
     veinCapacity: (s, id) => Math.round(q.zoneDef(id).capacity * Math.pow(B.depth.capacityGrowth, s.zones[id].depth) * (1 + mods(s)('veinCap'))),

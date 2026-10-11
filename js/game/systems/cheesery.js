@@ -79,20 +79,24 @@
 
   function startJob(s, kind, combo, recipe, lots, baseCost, source) {
     const coinCost = B.ingredients[combo.ingredient].coinCost * lots;
+    const zoneId = q.zoneOfBase(combo.base);
+    const z = s.zones[zoneId];
     if (!s.built.cheesery) return CM.fail('not-built');
-    if (s.jobs.cheesery) return CM.fail('busy');
+    // Cada línea cocina su propio queso: solo estorba un encargo de la misma base.
+    if (z.cookJob) return CM.fail('busy');
     if (s.inv.base[combo.base] < baseCost) return CM.fail('no-base');
     if (s.coins < coinCost) return CM.fail('no-coins');
     // Los inputs se consumen aquí, una sola vez; los quesos se entregan uno a uno al completarse.
     s.inv.base[combo.base] -= baseCost;
     s.totals.baseConsumed += baseCost;
+    z.stats.baseUsed += baseCost;
     if (coinCost > 0) {
       s.coins -= coinCost;
       s.totals.coinsSpent += coinCost;
     }
     const total = jobTime(s, combo, recipe);
-    s.jobs.cheesery = { kind, key: keyOf(combo), recipeId: recipe ? recipe.id : null, lotsLeft: lots, remaining: total, total, source: source || 'manual' };
-    CM.emit(s, 'cheeseStart', { kind, lots, source: source || 'manual', used: baseCost, base: combo.base });
+    z.cookJob = { kind, key: keyOf(combo), recipeId: recipe ? recipe.id : null, lotsLeft: lots, remaining: total, total, source: source || 'manual' };
+    CM.emit(s, 'cheeseStart', { zone: zoneId, kind, lots, source: source || 'manual', used: baseCost, base: combo.base });
     return CM.ok();
   }
 
@@ -135,40 +139,52 @@
     },
 
     // --- Cheesemaker: cocina de uno en uno la receta asignada ---
+    // Asigna una receta a la línea de su base (una receta por queso).
     assign(s, recipeId) {
-      if (recipeId && !this.recipe(s, recipeId)) return CM.fail('unknown-recipe');
-      s.cookRecipe = recipeId || '';
-      CM.emit(s, 'cookAssigned', { recipeId: s.cookRecipe });
+      const recipe = this.recipe(s, recipeId);
+      if (!recipe) return CM.fail('unknown-recipe');
+      const zoneId = q.zoneOfBase(parseKey(recipe.key).base);
+      s.zones[zoneId].cookRecipe = recipe.id;
+      CM.emit(s, 'cookAssigned', { zone: zoneId, recipeId: recipe.id });
       return CM.ok();
     },
-    start(s) {
-      const recipe = this.recipe(s, s.cookRecipe);
+    unassign(s, zoneId) {
+      if (!s.zones[zoneId]) return CM.fail('invalid');
+      s.zones[zoneId].cookRecipe = '';
+      return CM.ok();
+    },
+    isCooking: (s, recipe) => s.zones[q.zoneOfBase(parseKey(recipe.key).base)].cookRecipe === recipe.id,
+    start(s, zoneId) {
+      const recipe = this.recipe(s, s.zones[zoneId].cookRecipe);
       if (!recipe) return CM.fail('no-recipe');
       return startJob(s, 'produce', parseKey(recipe.key), recipe, 1, B.cheesery.lotBase, 'worker');
     },
     // Estado: not-built, running, no-recipe, no-base, no-coins, ready, idle.
-    status(s) {
+    status(s, zoneId) {
+      const z = s.zones[zoneId];
       if (!s.built.cheesery) return 'not-built';
-      if (s.jobs.cheesery) return 'running';
+      if (!z || !z.unlocked) return 'locked';
+      if (z.cookJob) return 'running';
       if (!q.isAutomated(s, 'cheesemaking')) return 'idle';
-      const recipe = this.recipe(s, s.cookRecipe);
+      const recipe = this.recipe(s, z.cookRecipe);
       if (!recipe) return 'no-recipe';
       const combo = parseKey(recipe.key);
       if (s.inv.base[combo.base] < B.cheesery.lotBase) return 'no-base';
       if (s.coins < B.ingredients[combo.ingredient].coinCost) return 'no-coins';
       return 'ready';
     },
-    tap(s) {
-      const job = s.jobs.cheesery;
+    tap(s, zoneId) {
+      const job = s.zones[zoneId] && s.zones[zoneId].cookJob;
       if (!job) return CM.fail('idle');
       s.metrics.taps.cheesery += 1;
       job.remaining = Math.max(0, job.remaining - B.cheesery.boostMs);
-      CM.emit(s, 'cheeseBoost');
+      CM.emit(s, 'cheeseBoost', { zone: zoneId });
       return CM.ok();
     },
-    // Completa UN queso del encargo en curso.
-    complete(s) {
-      const job = s.jobs.cheesery;
+    // Completa UN queso del encargo en curso de una línea.
+    complete(s, zoneId) {
+      const z = s.zones[zoneId];
+      const job = z.cookJob;
       let recipe = job.recipeId ? this.recipe(s, job.recipeId) : null;
       if (job.kind === 'experiment') {
         recipe = { id: 'r' + s.nextId++, key: job.key, name: defaultName(parseKey(job.key)), at: s.clock, made: 0 };
@@ -181,12 +197,13 @@
       recipe.made = (recipe.made || 0) + 1;
       s.lots[recipe.id] = (s.lots[recipe.id] || 0) + 1;
       s.totals.lotsProduced += 1;
+      z.stats.lots += 1;
       job.lotsLeft -= 1;
       CM.skills.addXp(s, 'cheesemaking', B.xp.perCheese * recipeXp(recipe));
-      CM.emit(s, 'lotDone', { recipeId: recipe.id, source: job.source });
+      CM.emit(s, 'lotDone', { zone: zoneId, recipeId: recipe.id, source: job.source });
       if (masteryLevel(recipe) > before) CM.emit(s, 'masteryUp', { recipeId: recipe.id, level: masteryLevel(recipe) });
       if (job.lotsLeft > 0) job.remaining = job.total = jobTime(s, parseKey(job.key), recipe);
-      else s.jobs.cheesery = null;
+      else z.cookJob = null;
     },
     rename(s, recipeId, name) {
       const recipe = this.recipe(s, recipeId);

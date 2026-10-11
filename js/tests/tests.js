@@ -100,10 +100,10 @@
   test('refinery needs raw cheese; consumes input and gives output once', () => {
     const s = fresh();
     s.built.refinery = true;
-    eq(CM.refining.tap(s).reason, 'no-raw', 'no raw');
+    eq(CM.refining.tap(s, 'cheddar').reason, 'no-raw', 'no raw');
     s.inv.raw.cheddar = 5;
-    eq(CM.refining.tap(s).ok, true, 'start');
-    const job = Object.assign({}, s.jobs.refinery);
+    eq(CM.refining.tap(s, 'cheddar').ok, true, 'start');
+    const job = Object.assign({}, s.zones.cheddar.refJob);
     eq(s.inv.raw.cheddar, 5 - job.used, 'raw consumed at start');
     eq(q.baseTotal(s), 0, 'base during cycle');
     run(s, q.refineDuration(s));
@@ -249,12 +249,12 @@
     eq(q.rawTotal(s), amount, 'one cycle despite 100 taps');
 
     s.inv.raw.cheddar = 4;
-    CM.refining.tap(s);
+    CM.refining.tap(s, 'cheddar');
     run(s, 1000);
     const text = JSON.stringify(s);
     for (const copy of [CM.storage.parse(text, 2000000), CM.storage.parse(text, 2000000)]) {
       run(copy, 60000);
-      eq(copy.inv.base.cheddar, s.jobs.refinery.amount, 'reloaded cycle pays once');
+      eq(copy.inv.base.cheddar, s.zones.cheddar.refJob.amount, 'reloaded cycle pays once');
       eq(copy.inv.raw.cheddar, s.inv.raw.cheddar, 'reloaded cycle consumed once');
     }
 
@@ -283,15 +283,49 @@
     const base = s.inv.base.cheddar;
     eq(CM.cheesery.produce(s, recipe.id, 2).ok, true, 'produce');
     eq(s.inv.base.cheddar, base - 2 * B.cheesery.lotBase, 'base consumed');
-    eq(CM.cheesery.produce(s, recipe.id, 1).reason, 'busy', 'one job at a time');
+    eq(CM.cheesery.produce(s, recipe.id, 1).reason, 'busy', 'one job at a time in a line');
     run(s, CM.cheesery.jobTime(s, COMBO, recipe));
     eq(s.lots[recipe.id], 2, 'first cheese delivered');
     const loaded = CM.storage.parse(JSON.stringify(s), 3000000);
     eq(loaded.recipes[0].name, 'Abuela Special', 'name persisted');
     run(loaded, CM.cheesery.jobTime(loaded, COMBO, loaded.recipes[0]));
     eq(loaded.lots[recipe.id], 3, 'queued cheese finishes after reload');
-    eq(loaded.jobs.cheesery, null, 'job done');
+    eq(loaded.zones.cheddar.cookJob, null, 'job done');
     valid(loaded);
+  });
+
+  test('lines run in parallel: a rare cheese is refined and cooked while a common one piles up', () => {
+    const s = withCheese();
+    s.coins = B.zones[1].unlockCost;
+    CM.zones.unlock(s, 'gouda');
+    s.inv.raw.cheddar = 5000;
+    s.inv.raw.gouda = 8;
+    s.inv.base.gouda = 3;
+    node(s, 'refining.refiner', 1);
+    run(s, q.refineDuration(s) * 2);
+    truthy(s.inv.base.gouda >= 3 + 4, 'gouda was refined although cheddar has far more raw (' + s.inv.base.gouda + ')');
+    truthy(s.zones.cheddar.stats.base > 0, 'cheddar was refined at the same time');
+    eq(s.inv.raw.gouda, 0, 'all the gouda raw was used');
+    // Dos encargos a la vez, uno por línea.
+    s.skills.cheesemaking.xp = q.xpForLevel(1);
+    eq(CM.cheesery.experiment(s, Object.assign({}, COMBO, { base: 'gouda' })).ok, true, 'experiment on the gouda line');
+    eq(CM.cheesery.produce(s, s.recipes[0].id, 1).ok, true, 'cheddar line cooks at the same time');
+    truthy(s.zones.gouda.cookJob && s.zones.cheddar.cookJob, 'both lines are busy');
+    run(s, 30000);
+    eq(s.recipes.length, 2, 'gouda recipe discovered');
+    const gouda = s.recipes[1];
+    // Una receta por queso para el Cheesemaker.
+    node(s, 'cheesemaking.maker', 1);
+    CM.cheesery.assign(s, s.recipes[0].id);
+    CM.cheesery.assign(s, gouda.id);
+    eq(s.zones.cheddar.cookRecipe, s.recipes[0].id, 'cheddar line recipe');
+    eq(s.zones.gouda.cookRecipe, gouda.id, 'gouda line recipe');
+    const before = [s.lots[s.recipes[0].id], s.lots[gouda.id]];
+    run(s, 60000);
+    truthy(s.lots[s.recipes[0].id] > before[0] && s.lots[gouda.id] > before[1], 'both cheeses are cooked on their own');
+    eq(CM.cheesery.status(s, 'blue'), 'locked', 'a closed rock has no line');
+    eq(q.lotsOfBase(s, 'gouda'), s.lots[gouda.id], 'cheese counted per base');
+    valid(s);
   });
 
   test('cheese value: formula, synergies, mastery, cellar and trading level', () => {
@@ -325,12 +359,12 @@
     s.inv.base.cheddar = 5;
     run(s, 60000);
     eq(s.lots[recipe.id], 1, 'no recipe assigned: nothing cooked');
-    eq(CM.cheesery.status(s), 'no-recipe', 'status');
+    eq(CM.cheesery.status(s, 'cheddar'), 'no-recipe', 'status');
     eq(CM.cheesery.assign(s, 'nope').reason, 'unknown-recipe', 'bad recipe');
     eq(CM.cheesery.assign(s, recipe.id).ok, true, 'assign');
     run(s, CM.cheesery.jobTime(s, COMBO, recipe) * 2 + 1000);
     eq(s.lots[recipe.id], 3, 'two cheeses cooked with 4 of the 5 base');
-    eq(CM.cheesery.status(s), 'no-base', 'stops without base');
+    eq(CM.cheesery.status(s, 'cheddar'), 'no-base', 'stops without base');
     s.inv.base.cheddar = 41;
     run(s, 30 * 60 * 1000);
     eq(s.lots[recipe.id], 3 + 20, 'cooks every pair of base it has, with no cheese cap');
@@ -341,7 +375,7 @@
     run(s, 60000);
     truthy(s.totals.lotsSold > 0 && s.coins > coins, 'the shopkeeper sells on its own');
     truthy(s.skills.trading.xp > 0 && s.skills.cheesemaking.xp > 0, 'both skills earn experience');
-    eq(CM.storage.parse(JSON.stringify(s), 1).cookRecipe, recipe.id, 'assignment persists');
+    eq(CM.storage.parse(JSON.stringify(s), 1).zones.cheddar.cookRecipe, recipe.id, 'assignment persists');
     valid(s);
   });
 
@@ -351,7 +385,7 @@
     s.inv.raw.cheddar = 9;
     run(s, 10 * 60 * 1000);
     eq(s.inv.raw.cheddar, 1, 'refined every pair of raw');
-    eq(CM.refining.status(s), 'no-raw', 'then waits for raw');
+    eq(CM.refining.status(s, 'cheddar'), 'no-raw', 'then waits for raw');
     eq(s.totals.baseProduced, s.inv.base.cheddar, 'all the base is in stock');
     valid(s);
   });
@@ -373,10 +407,21 @@
     truthy(CM.storage.load(1).recovered, 'corrupt save recovers');
     localStorage.setItem(CM.storage.KEY, '{"version":2,"coins":9}');
     eq(CM.storage.load(1).state.coins, 0, 'old schema starts fresh');
-    localStorage.setItem(CM.storage.KEY, JSON.stringify({ version: 3, coins: -50, inv: { raw: { cheddar: -7 } }, nodes: { 'mining.pick': 9999, 'fake.node': 3 }, lots: { ghost: 5 }, zones: { gouda: { depth: 7 } }, skills: { mining: { xp: -4 } } }));
+    localStorage.setItem(CM.storage.KEY, JSON.stringify({ version: 4, coins: -50, inv: { raw: { cheddar: -7 } }, nodes: { 'mining.pick': 9999, 'fake.node': 3 }, lots: { ghost: 5 }, zones: { gouda: { depth: 7 } }, skills: { mining: { xp: -4 } } }));
     valid(CM.storage.load(1).state);
+    // Partidas de la versión anterior (una sola refinería y quesería): se recolocan en su línea.
+    const old = JSON.parse(JSON.stringify(withCheese()));
+    old.version = 3;
+    old.jobs = { refinery: { remaining: 100, total: 6000, amount: 2, base: 'cheddar', used: 4 }, cheesery: null, shop: null };
+    old.cookRecipe = old.recipes[0].id;
+    const migrated = CM.storage.parse(JSON.stringify(old), 1);
+    truthy(migrated, 'version 3 saves still load');
+    eq(migrated.zones.cheddar.refJob.amount, 2, 'refinery cycle moved to its line');
+    eq(migrated.zones.cheddar.cookRecipe, old.recipes[0].id, 'cheesemaker recipe moved to its line');
+    eq(migrated.recipes.length, 1, 'recipes kept');
+    valid(migrated);
     // Los nudos de almacén ya no existen: una partida que los tenía recupera sus monedas.
-    localStorage.setItem(CM.storage.KEY, JSON.stringify({ version: 3, coins: 10, nodes: { 'colony.silo': 2, 'colony.lamp': 1 } }));
+    localStorage.setItem(CM.storage.KEY, JSON.stringify({ version: 4, coins: 10, nodes: { 'colony.silo': 2, 'colony.lamp': 1 } }));
     const refunded = CM.storage.load(1).state;
     eq(refunded.coins, 10 + 40 + Math.round(40 * 1.55), 'retired storage upgrades are refunded');
     eq(refunded.nodes['colony.silo'], undefined, 'retired node removed');
@@ -442,18 +487,22 @@
         lastTap = s.clock;
         const zone = q.openZones(s).find((z) => CM.mining.status(s, z.id) === 'ready');
         const drillable = q.openZones(s).find((z) => CM.drilling.status(s, z.id) === 'ready');
+        const refinable = q.openZones(s).find((z) => CM.refining.status(s, z.id) === 'ready');
         if (zone && !q.miners(s)) CM.mining.hit(s, zone.id, 'manual');
         else if (drillable && !q.isAutomated(s, 'drilling')) CM.drilling.tap(s, drillable.id);
-        else if (CM.refining.status(s) === 'ready' && !q.isAutomated(s, 'refining')) CM.refining.tap(s);
+        else if (refinable && !q.isAutomated(s, 'refining')) CM.refining.tap(s, refinable.id);
         else if (CM.shop.status(s) === 'ready' && !q.isAutomated(s, 'trading')) CM.shop.tap(s);
         else if (zone) CM.mining.hit(s, zone.id, 'manual');
       }
-      if (s.built.cheesery && !s.jobs.cheesery) {
-        const unknown = CM.cheesery.allCombos(CM.cheesery.unlockedBases(s)).find((c) => !CM.cheesery.recipeByKey(s, CM.cheesery.keyOf(c)) && CM.cheesery.experiment(s, c).ok);
-        if (!unknown && s.recipes.length) {
-          const best = s.recipes.slice().sort((a, b) => CM.cheesery.valueOf(s, b) - CM.cheesery.valueOf(s, a));
-          if (q.isAutomated(s, 'cheesemaking')) CM.cheesery.assign(s, (best.find((r) => CM.cheesery.maxLots(s, r) > 0) || best[0]).id);
-          else for (const r of best) if (CM.cheesery.produce(s, r.id, Math.max(1, Math.min(3, CM.cheesery.maxLots(s, r)))).ok) break;
+      // En cada línea: descubre recetas de su queso y, si no quedan asequibles, fabrica la mejor.
+      if (s.built.cheesery) {
+        for (const def of q.openZones(s)) {
+          if (s.zones[def.id].cookJob) continue;
+          const unknown = CM.cheesery.allCombos([def.base]).find((c) => !CM.cheesery.recipeByKey(s, CM.cheesery.keyOf(c)) && CM.cheesery.experiment(s, c).ok);
+          const mine = s.recipes.filter((r) => CM.cheesery.parseKey(r.key).base === def.base).sort((a, b) => CM.cheesery.valueOf(s, b) - CM.cheesery.valueOf(s, a));
+          if (unknown || !mine.length) continue;
+          if (q.isAutomated(s, 'cheesemaking')) CM.cheesery.assign(s, (mine.find((r) => CM.cheesery.maxLots(s, r) > 0) || mine[0]).id);
+          else for (const r of mine) if (CM.cheesery.produce(s, r.id, Math.max(1, Math.min(3, CM.cheesery.maxLots(s, r)))).ok) break;
         }
       }
       if (s.clock % 5000 === 0) valid(s);

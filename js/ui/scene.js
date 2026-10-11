@@ -147,7 +147,7 @@
     const particles = [];
     const walkers = []; // ratones que acarrean recursos o clientes que se van
     const far = -1e9;
-    const fx = { shake: 0, flash: 0, swingAt: far, minerSwingAt: far, rockHitAt: far, rockDropAt: far, rockLanded: true, station: 'rock', mouseX: POS.rock - 22, cam: WORLD - W, camTarget: WORLD - W, popAt: {}, pulseAt: {}, selected: 'rock', zone: 'cheddar' };
+    const fx = { shake: 0, flash: 0, swingAt: far, minerSwingAt: far, rockHitAt: far, rockDropAt: far, rockLanded: true, station: 'rock', mouseX: POS.rock - 22, cam: WORLD - W, camTarget: WORLD - W, popAt: {}, pulseAt: {}, selected: 'rock', zone: 'cheddar', zoneId: B.zones[0].id };
 
     const R = (x, y, w, h, color) => {
       ctx.fillStyle = color;
@@ -477,7 +477,7 @@
     function drawCheesery(state, now) {
       const t = q.visualTier(state, 'cheesemaking');
       const x = POS.cheesery;
-      const job = state.jobs.cheesery;
+      const job = state.zones[fx.zoneId].cookJob;
       const y = groundY - 36 + pop('cheesery', now);
       const roofA = ['#b8503a', '#b8503a', '#3d6fd1', '#7a6fd0', '#3fb38a', '#d9a514'][t];
       const roofB = ['#8f3b2a', '#8f3b2a', '#2b4f9c', '#4a4296', '#1f7a5a', '#b8860b'][t];
@@ -566,7 +566,7 @@
     // SPRITE: Refinery
     function drawRefinery(state, now) {
       const t = q.visualTier(state, 'refining');
-      const job = state.jobs.refinery;
+      const job = state.zones[fx.zoneId].refJob;
       const M = METAL[t];
       const x = POS.refinery;
       const y = groundY - 30 + pop('refinery', now) + (job && ((now / 70) | 0) % 2 ? 1 : 0);
@@ -760,8 +760,8 @@
         drawMouseSprite(MICE.miner, POS.rock + 2 + i * 15, rockY() - MOUSE_H + 8 + (active ? 0 : beat(700)), false, active ? swing(t % 1.6, -1.1) + 0.5 : null);
       }
       if (q.isAutomated(state, 'drilling') && state.built.drill && !away('driller')) drawMouseSprite(MICE.driller, POS.drill - 6, groundY - MOUSE_H - 8 + (z.drillJob ? beat(60) : beat(700)), false, null);
-      if (q.isAutomated(state, 'refining') && state.built.refinery && !away('refiner')) drawMouseSprite(MICE.refiner, POS.refinery + 36, groundY - MOUSE_H + 2 + (state.jobs.refinery ? beat(90) : beat(700)), true, null);
-      if (q.isAutomated(state, 'cheesemaking') && state.built.cheesery && !away('cheesemaker')) drawMouseSprite(MICE.cheesemaker, POS.cheesery + 38, groundY - MOUSE_H + 2 + (state.jobs.cheesery ? beat(110) : beat(700)), true, null);
+      if (q.isAutomated(state, 'refining') && state.built.refinery && !away('refiner')) drawMouseSprite(MICE.refiner, POS.refinery + 36, groundY - MOUSE_H + 2 + (state.zones[fx.zoneId].refJob ? beat(90) : beat(700)), true, null);
+      if (q.isAutomated(state, 'cheesemaking') && state.built.cheesery && !away('cheesemaker')) drawMouseSprite(MICE.cheesemaker, POS.cheesery + 38, groundY - MOUSE_H + 2 + (state.zones[fx.zoneId].cookJob ? beat(110) : beat(700)), true, null);
     }
 
     function drawWalkers(now, dt) {
@@ -797,7 +797,7 @@
       fx.mouseX += gap * Math.min(1, dt * 10);
       const walking = Math.abs(gap) > 1;
       if (walking && Math.random() < 0.3) puff(fx.mouseX + 8, groundY - 1, '#d9c9a8');
-      const working = (st === 'drill' && z.drillJob) || (st === 'refinery' && state.jobs.refinery) || (st === 'cheesery' && state.jobs.cheesery) || (st === 'shop' && state.jobs.shop);
+      const working = (st === 'drill' && z.drillJob) || (st === 'refinery' && state.zones[fx.zoneId].refJob) || (st === 'cheesery' && state.zones[fx.zoneId].cookJob) || (st === 'shop' && state.jobs.shop);
       const bob = walking ? -Math.abs(Math.sin(now / 55)) * 3 : working ? ((now / 80) | 0) % 2 : Math.round(Math.sin(now / 450) * 0.6);
       const faceLeft = walking ? gap < 0 : st !== 'rock' && st !== 'drill';
       const mining = st === 'rock' && !walking;

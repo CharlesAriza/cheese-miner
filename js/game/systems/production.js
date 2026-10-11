@@ -83,6 +83,7 @@
       z.drillJob = null;
       s.inv.raw[base] += job.amount;
       s.totals.rawProduced += job.amount;
+      z.stats.raw += job.amount;
       CM.skills.addXp(s, 'drilling', B.xp.perDrill * q.zoneXp(s, zoneId));
       CM.emit(s, 'drillDone', { zone: zoneId, amount: job.amount, base, source: job.source });
       // Veta vacía: la roca no se agota, baja un nivel y hay que volver a buscar.
@@ -97,57 +98,58 @@
   };
 
   // ---------- REFINING ----------
+  // Cada línea refina su propio queso, a la vez que las demás.
   CM.refining = {
-    // Refina la base de la que más Raw Cheese haya.
-    pickBase(s) {
-      let best = null;
-      for (const k of Object.keys(s.inv.raw)) {
-        if (s.inv.raw[k] >= B.refinery.rawPerBase && (!best || s.inv.raw[k] > s.inv.raw[best])) best = k;
-      }
-      return best;
-    },
-    // Plan del siguiente ciclo: cuántas tandas entran y cuánta base sale.
-    plan(s) {
-      const base = this.pickBase(s);
-      if (!base) return null;
+    // Plan del siguiente ciclo de una línea: cuántas tandas entran y cuánta base sale.
+    plan(s, zoneId) {
+      const z = s.zones[zoneId];
+      const base = q.zoneDef(zoneId).base;
       const batches = Math.min(q.refineBatch(s), Math.floor(s.inv.raw[base] / B.refinery.rawPerBase));
-      const wanted = batches * q.refineMult(s) + s.refCarry;
+      if (batches < 1) return null;
+      const wanted = batches * q.refineMult(s) + z.refCarry;
       return { base, batches, amount: Math.floor(wanted), carry: wanted - Math.floor(wanted) };
     },
-    status(s) {
+    status(s, zoneId) {
+      const z = s.zones[zoneId];
       if (!s.built.refinery) return 'not-built';
-      if (s.jobs.refinery) return 'running';
-      return this.plan(s) ? 'ready' : 'no-raw';
+      if (!z || !z.unlocked) return 'locked';
+      if (z.refJob) return 'running';
+      return this.plan(s, zoneId) ? 'ready' : 'no-raw';
     },
     // El Raw Cheese se consume al empezar; la Cheese Base se entrega una sola vez al completar.
-    start(s, source) {
-      const st = this.status(s);
+    start(s, zoneId, source) {
+      const st = this.status(s, zoneId);
       if (st !== 'ready') return CM.fail(st);
-      const plan = this.plan(s);
+      const z = s.zones[zoneId];
+      const plan = this.plan(s, zoneId);
       const used = plan.batches * B.refinery.rawPerBase;
       const total = q.refineDuration(s);
       s.inv.raw[plan.base] -= used;
       s.totals.rawConsumed += used;
-      s.refCarry = plan.carry;
-      s.jobs.refinery = { remaining: total, total, amount: plan.amount, base: plan.base, used, source };
-      CM.emit(s, 'refineStart', { source, used, base: plan.base });
+      z.stats.rawUsed += used;
+      z.refCarry = plan.carry;
+      z.refJob = { remaining: total, total, amount: plan.amount, used, source };
+      CM.emit(s, 'refineStart', { zone: zoneId, source, used, base: plan.base });
       return CM.ok();
     },
-    tap(s) {
+    tap(s, zoneId) {
       s.metrics.taps.refine += 1;
-      const job = s.jobs.refinery;
-      if (!job) return this.start(s, 'manual');
-      job.remaining = Math.max(0, job.remaining - B.refinery.boostMs);
-      CM.emit(s, 'refineBoost');
+      const z = s.zones[zoneId];
+      if (!z || !z.refJob) return this.start(s, zoneId, 'manual');
+      z.refJob.remaining = Math.max(0, z.refJob.remaining - B.refinery.boostMs);
+      CM.emit(s, 'refineBoost', { zone: zoneId });
       return CM.ok({ boosted: true });
     },
-    complete(s) {
-      const job = s.jobs.refinery;
-      s.jobs.refinery = null;
-      s.inv.base[job.base] += job.amount;
+    complete(s, zoneId) {
+      const z = s.zones[zoneId];
+      const job = z.refJob;
+      const base = q.zoneDef(zoneId).base;
+      z.refJob = null;
+      s.inv.base[base] += job.amount;
       s.totals.baseProduced += job.amount;
-      CM.skills.addXp(s, 'refining', B.xp.perRefine * q.baseXp(job.base));
-      CM.emit(s, 'refineDone', { amount: job.amount, base: job.base, source: job.source });
+      z.stats.base += job.amount;
+      CM.skills.addXp(s, 'refining', B.xp.perRefine * q.baseXp(base));
+      CM.emit(s, 'refineDone', { zone: zoneId, amount: job.amount, base, source: job.source });
     },
   };
 })();

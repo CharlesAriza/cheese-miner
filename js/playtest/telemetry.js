@@ -4,7 +4,11 @@
   const LOG_MAX = 400;
   const samples = []; // muestras recientes para tasas por minuto (no se guardan)
 
-  const PRODUCED = { drillDone: 'raw', refineDone: 'base', lotDone: 'lots' };
+  function snapshot(s) {
+    const lanes = {};
+    for (const id of Object.keys(s.zones)) lanes[id] = Object.assign({}, s.zones[id].stats);
+    return { t: s.clock, coins: s.totals.coinsEarned, lanes };
+  }
 
   CM.telemetry = {
     create() {
@@ -34,24 +38,28 @@
       s.metrics.errors.push({ t: s.clock, message: String(message).slice(0, 200) });
       if (s.metrics.errors.length > 50) s.metrics.errors.shift();
     },
-    // Llamar periódicamente; guarda una muestra de totales cada 5 s de simulación.
+    // Llamar periódicamente; guarda una muestra cada 5 s de simulación.
     sample(s) {
       const last = samples[samples.length - 1];
       if (last && s.clock < last.t) samples.length = 0;
       if (last && s.clock - last.t < 5000) return;
-      samples.push({ t: s.clock, raw: s.totals.rawProduced, base: s.totals.baseProduced, lots: s.totals.lotsProduced, coins: s.totals.coinsEarned, rawUsed: s.totals.rawConsumed, baseUsed: s.totals.baseConsumed });
+      samples.push(snapshot(s));
       while (samples.length > 40) samples.shift();
     },
-    // Producción y consumo por minuto en los últimos ~60 s de simulación.
+    // Ritmos por minuto en los últimos ~60 s: monedas, y lo producido y gastado en cada línea.
     rates(s) {
-      const now = { t: s.clock, raw: s.totals.rawProduced, base: s.totals.baseProduced, lots: s.totals.lotsProduced, coins: s.totals.coinsEarned, rawUsed: s.totals.rawConsumed, baseUsed: s.totals.baseConsumed };
+      const now = snapshot(s);
       const from = samples.find((x) => s.clock - x.t <= 60000) || now;
       const span = Math.max(1, now.t - from.t) / 60000;
-      const out = {};
-      for (const k of Object.keys(now)) if (k !== 't') out[k] = span > 0.05 ? (now[k] - from[k]) / span : 0;
+      const per = (a, b) => (span > 0.05 ? (a - b) / span : 0);
+      const out = { coins: per(now.coins, from.coins), lanes: {} };
+      for (const id of Object.keys(now.lanes)) {
+        const a = now.lanes[id];
+        const b = from.lanes[id] || a;
+        out.lanes[id] = { raw: per(a.raw, b.raw), rawUsed: per(a.rawUsed, b.rawUsed), base: per(a.base, b.base), baseUsed: per(a.baseUsed, b.baseUsed), lots: per(a.lots, b.lots) };
+      }
       return out;
     },
     resetSamples: () => (samples.length = 0),
-    PRODUCED,
   };
 })();

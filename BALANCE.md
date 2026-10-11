@@ -15,7 +15,7 @@ Todas las cifras están en `js/game/config/balance.js` y son provisionales. Se c
 | --- | --- | --- | --- | --- |
 | Cheddar | gratis | 30 | 60 | 10 |
 | Gouda | 6.000 | 150 | 120 | 24 |
-| Blue | 200.000 | 800 | 240 | 60 |
+| Blue | 1.000.000 | 800 | 240 | 60 |
 
 Por cada nivel de profundidad: búsqueda ×1,22, veta ×1,15 y +8 % de Raw Cheese por ciclo.
 
@@ -24,9 +24,13 @@ Por cada nivel de profundidad: búsqueda ×1,22, veta ×1,15 y +8 % de Raw Chees
 | Etapa | Valor inicial |
 | --- | --- |
 | Taladro | 2 Raw cada 6 s |
-| Refinería | 4 Raw → 2 Base cada 6 s |
+| Refinería | 4 Raw → 2 Base cada 6 s, en cada línea |
 | Quesería | 8 s por queso, más tratamiento y maduración |
 | Tienda | 1 queso cada 4 s |
+
+## Líneas en paralelo
+
+Cada roca abierta es una línea completa: se pica, se taladra, se refina y se cocina por separado y a la vez que las demás. Solo la tienda es común. El Cheesemaker lleva una receta por cada queso. Las mejoras de los árboles valen para todas las líneas.
 
 ## Despensa
 
@@ -119,4 +123,6 @@ Niveles (Mining / Drilling / Refining / Cheesemaking / Trading) a lo largo de un
 | 2 h | 33 / 34 / 28 / 26 / 23 | 2 | 62K |
 | 4 h | 44 / 41 / 32 / 31 / 28 | 2 | 194K |
 
-Sin medir: la tercera roca (estimada entre 5 y 6 horas), el nivel 50 (estimado en 6–10 horas) y todo lo posterior. El bot solo descubre 8 recetas y no explora las de Gouda, así que a partir de la segunda roca sus ingresos se quedan cortos frente a los de una persona.
+Estas tablas son anteriores a las líneas en paralelo. Con ellas, la primera hora no cambia; después el bot gana bastante más (759K a las 4 horas en vez de 194K) porque el Gouda ya se refina y se cocina. Por eso la tercera roca subió a 1.000.000.
+
+Sin medir: la tercera roca (estimada entre 4 y 5 horas), el nivel 50 (estimado en 5–8 horas) y todo lo posterior.

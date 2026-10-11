@@ -41,7 +41,7 @@ Hecho:
 - Cinco habilidades (Mining, Drilling, Refining, Cheesemaking, Trading) con nivel 1–99.
 - Un árbol por habilidad con tres ramas (potencia, ratones, especial) y uno de colonia (horas offline).
 - Despensa sin tope, estilo banco de Melvor: cada recurso y cada receta en su fila.
-- Rocas con profundidad sin fin y tres zonas (Cheddar, Gouda, Blue) que producen a la vez.
+- Rocas con profundidad sin fin y tres zonas (Cheddar, Gouda, Blue). Cada zona es una línea completa (minería, taladro, refinado y cocinado) que trabaja en paralelo a las demás; solo la tienda es común.
 - Recetas de cuatro componentes con un único valor, rango y maestría; 108 combinaciones.
 - Venta por ciclos; el nivel de Trading trae mejores compradores.
 - Edificios con seis aspectos según sus mejoras, pozo de la roca, pueblo que crece y ratones que acarrean.
