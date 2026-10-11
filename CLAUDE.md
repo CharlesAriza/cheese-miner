@@ -20,8 +20,9 @@ Shop Titans deja de ser referencia.
 4. **Tocar es un extra, no una obligación.** El juego avanza solo; el juego activo da empujones y premios puntuales.
 5. **La progresión se ve.** Toda mejora cambia algo en pantalla: el edificio, la roca, el pueblo, el trasiego de ratones.
 6. **Claridad antes que adorno.** En pantalla solo se mueve lo que el jugador puede explicar. Un ratón solo aparece trabajando o acarreando si está contratado. Mejor una animación de menos que una que confunda.
-7. **Todo es exponencial.** Costes y producción crecen en curva; los números se abrevian.
-8. **Fuera lo que no sirva a largo plazo.** Si una mecánica no va a dar horas de juego o va a confundir, se quita, aunque ya esté hecha.
+7. **Lo nuevo se desbloquea, se anuncia y lo activa el jugador.** Nada aparece solo ni se construye desde una ventana: el juego avisa, marca dónde está lo nuevo y el jugador va a su panel, lee para qué sirve y lo construye. Vale para toda mecánica futura.
+8. **Todo es exponencial.** Costes y producción crecen en curva; los números se abrevian.
+9. **Fuera lo que no sirva a largo plazo.** Si una mecánica no va a dar horas de juego o va a confundir, se quita, aunque ya esté hecha.
 
 ## Cómo se trabaja
 
@@ -45,7 +46,7 @@ Hecho:
 - Recetas de cuatro componentes con un único valor, rango y maestría; 108 combinaciones.
 - Venta por ciclos; el nivel de Trading trae mejores compradores.
 - Edificios con seis aspectos según sus mejoras, subsuelo que baja con la profundidad de la roca (capas, pozo, carteles, montacargas), pueblo que crece y ratones que acarrean.
-- Primeros pasos a fuego lento: cada edificio de la cadena llega con una tarjeta que explica por qué aparece y lo construye el jugador. Compra rápida de mejoras desde cada etapa, «BUY ALL» global y Cheesemaker que elige la mejor receta.
+- Primeros pasos a fuego lento: cada edificio de la cadena se anuncia, su casilla se marca como nueva y el jugador va a su panel a construirlo. Compra rápida de mejoras desde cada etapa, «BUY ALL» global y Cheesemaker que elige la mejor receta.
 - Progreso offline con la misma simulación.
 
 Quitado respecto a la Alpha: almacén con capacidad, regateo, clientes con paciencia, Taste/Funk/Aroma, reputación, viajar entre zonas, rocas que se agotan y Mouse House con camas.

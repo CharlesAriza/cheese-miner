@@ -32,7 +32,7 @@ La pantalla es el cuartel general. Abajo está la **cadena**: MINE → DRILL →
 | Moverse por la colonia | Arrastrar la escena |
 | Sonido, exportar, importar, reiniciar, dev tools | **MENU** |
 
-Los primeros pasos van a fuego lento: cuando toca un edificio nuevo de la cadena, el juego para un momento, explica por qué aparece y para qué sirve, y lo construyes tú con un toque. Tras la primera venta, otra tarjeta resume para qué sirven las monedas. Etiquetas de las casillas: `LOCK` (aún no), `UP! 3` (tres mejoras que ya puedes pagar), `AUTO` (tiene ratón). Los botones de compra que aún no alcanzas se van llenando y dicen cuántos minutos faltan.
+Los primeros pasos van a fuego lento. Cuando se desbloquea un edificio nuevo de la cadena, el juego lo avisa, su casilla se marca con `NEW!` y tú vas a su panel, lees para qué sirve y lo construyes. Tras la primera venta, una tarjeta resume para qué sirven las monedas. Etiquetas de las casillas: `LOCK` (aún no), `UP! 3` (tres mejoras que ya puedes pagar), `AUTO` (tiene ratón). Los botones de compra que aún no alcanzas se van llenando y dicen cuántos minutos faltan.
 
 El Cheesemaker cocina por su cuenta la receta más valiosa que conozcas de cada queso; fijar otra a mano es opcional.
 

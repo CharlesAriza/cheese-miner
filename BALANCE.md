@@ -34,7 +34,7 @@ Cada roca abierta es una línea completa: se pica, se taladra, se refina y se co
 
 ## Primeros pasos
 
-Los cuatro edificios de la cadena son gratis y los construye el jugador desde una tarjeta explicativa: el taladro al encontrar la primera veta, la refinería tras sacar 10 Raw Cheese, la quesería tras refinar 6 Cheese Base y la tienda tras descubrir la primera receta. Con el bot, la primera venta llega a 1,2 minutos (1,8 con el bot lento).
+Los cuatro edificios de la cadena son gratis y los construye el jugador desde el panel de su casilla, que explica para qué sirven: el taladro al encontrar la primera veta, la refinería tras sacar 10 Raw Cheese, la quesería tras refinar 6 Cheese Base y la tienda tras descubrir la primera receta. Con el bot, la primera venta llega a 1,2 minutos (1,8 con el bot lento).
 
 ## Despensa
 

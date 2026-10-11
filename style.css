@@ -1811,6 +1811,16 @@ button {
   background: #58704e;
 }
 
+/* Casilla con algo nuevo por construir. */
+.tile.isnew {
+  border-color: #5fcf6a;
+  animation: goal 0.8s ease-in-out infinite;
+}
+
+.tile.isnew em {
+  background: #5fcf6a;
+}
+
 /* ---------- Tarjetas de primeros pasos ---------- */
 .lead {
   margin: 0 0 8px;

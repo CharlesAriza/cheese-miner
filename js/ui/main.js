@@ -161,7 +161,8 @@
         punch();
         banner('CHEESE VEIN FOUND!');
         float(CM.fmt(ev.capacity) + ' RAW INSIDE', 'rock', 'info');
-        if (ui.station === 'rock' && !q.isAutomated(state, 'drilling')) select('drill');
+        // Si el taladro aún no existe, es el jugador quien va a su casilla a construirlo.
+        if (ui.station === 'rock' && state.built.drill && !q.isAutomated(state, 'drilling')) select('drill');
         break;
       case 'drillStart':
         if (here && ev.source === 'manual') play('start');
@@ -278,6 +279,8 @@
       case 'built':
         punch();
         play('build');
+        banner(B.buildings[ev.id].name.toUpperCase() + ' BUILT!');
+        toast(UNLOCK[ev.id].then, true);
         scene.focus(ev.id);
         scene.celebrate();
         dirty = true;
@@ -347,7 +350,7 @@
 
   // Estado resumido de una estación: locked, build, ready, working, waiting o blocked.
   function stationInfo(st) {
-    if (st !== 'rock' && !state.built[st]) return { state: 'locked', progress: 0 };
+    if (st !== 'rock' && !state.built[st]) return { state: CM.construction.buildInfo(state, st).condOk ? 'build' : 'locked', progress: 0 };
     const z = state.zones[ui.zone];
     if (st === 'rock') {
       if (!z.veinRevealed) return { state: q.miners(state) ? 'working' : 'ready', progress: z.discover / q.veinHits(state, ui.zone) };
@@ -400,13 +403,14 @@
       const tile = tiles[st];
       const skill = SKILL[st];
       for (const cls of ['locked', 'build', 'ready', 'working', 'waiting', 'blocked']) set(tile, cls, info.state === cls);
+      set(tile, 'isnew', info.state === 'build');
       set(tile, 'sel', ui.station === st);
       set(tile, 'goal', goalAt === st && ui.station !== st);
       set(tile.querySelector('.mini > i'), 'width', Math.round(info.progress * 100) + '%');
       set(tile.querySelector('u'), 'text', 'LV ' + q.level(state, skill));
       const auto = q.isAutomated(state, skill);
       const ups = info.state !== 'locked' && info.state !== 'build' ? CM.tree.affordable(state, skill) : 0;
-      set(tile.querySelector('em'), 'text', info.state === 'locked' ? 'LOCK' : ups ? 'UP! ' + ups : auto ? 'AUTO' : '');
+      set(tile.querySelector('em'), 'text', info.state === 'locked' ? 'LOCK' : info.state === 'build' ? 'NEW!' : ups ? 'UP! ' + ups : auto ? 'AUTO' : '');
       // Aviso sobre el edificio solo cuando está parado por algo.
       const reason = info.state === 'blocked' || (auto && info.state === 'waiting') ? BUBBLE[info.reason] : '';
       if (st !== 'rock') bubble(st, reason || '', 'bad');
@@ -432,11 +436,20 @@
       const b = CM.construction.buildInfo(state, st);
       m.title = B.buildings[st].name;
       m.status = { drill: 'Extracts Raw Cheese from an exposed vein', refinery: 'Turns Raw Cheese into Cheese Base', cheesery: 'Turns Cheese Base into cheese you can sell', shop: 'Sells your cheese for coins' }[st];
-      // Se construye solo y gratis en cuanto se cumple la condición.
-      m.kind = 'locked:' + st;
-      m.label = 'LOCKED';
-      m.sub = b.condOk ? 'Ready to build' : b.condText;
-      m.mode = 'locked';
+      // Lo construye el jugador aquí, en el panel, cuando ya está desbloqueado.
+      if (b.condOk) {
+        m.status = UNLOCK[st].why;
+        m.tone = 'good';
+        m.kind = 'build:' + st;
+        m.label = 'BUILD';
+        m.sub = 'It is free';
+        m.mode = 'hot';
+      } else {
+        m.kind = 'locked:' + st;
+        m.label = 'LOCKED';
+        m.sub = b.condText;
+        m.mode = 'locked';
+      }
       m.tree = false;
       return m;
     }
@@ -851,39 +864,25 @@
     if (isNew) banner('NEW RECIPE DISCOVERED!');
   }
 
-  // ---------- Primeros pasos, a fuego lento ----------
-  // Cada edificio de la cadena llega con una tarjeta que para el juego un
-  // momento, dice por qué aparece y para qué sirve, y lo construye el jugador.
-  // Nada aparece solo: así se entiende qué hace qué.
+  // ---------- Desbloqueos ----------
+  // PATRÓN para toda mecánica nueva: nada aparece solo ni se construye desde
+  // una ventana. El juego avisa de que hay algo nuevo, su casilla se marca con
+  // NEW y el jugador va a su panel, lee para qué sirve y lo construye él.
   const UNLOCK = {
-    drill: { title: 'YOU FOUND A VEIN!', from: ['pick'], to: ['raw'], text: 'Picking the rock only <b>finds</b> the cheese. To get it out you need a drill.', then: 'Next: tap DRILL to pull Raw Cheese out of the vein.', button: 'BUILD THE CHEESE DRILL' },
-    refinery: { title: 'RAW CHEESE IS PILING UP', from: ['raw'], to: ['base'], text: 'Raw Cheese is not ready to use yet. The Refinery presses <b>2 Raw into 1 Cheese Base</b>.', then: 'Next: tap REFINE.', button: 'BUILD THE REFINERY' },
-    cheesery: { title: 'YOU HAVE CHEESE BASE', from: ['base'], to: ['lot'], text: 'Base is the main ingredient. In the Cheesery you mix it with three more things to make a <b>real cheese</b>.', then: 'Next: discover your first recipe.', button: 'BUILD THE CHEESERY' },
-    shop: { title: 'YOUR FIRST CHEESE!', from: ['lot'], to: ['coin'], text: 'Now it needs a place to be sold. A shop turns cheese into <b>coins</b>.', then: 'Next: tap SELL.', button: 'OPEN THE CHEESE SHOP' },
+    drill: { why: 'You found a vein! Picking the rock only finds the cheese. A drill gets it out.', then: 'Now tap DRILL to pull Raw Cheese out of the vein' },
+    refinery: { why: 'Raw Cheese is not ready to use. The Refinery presses 2 Raw into 1 Cheese Base.', then: 'Now tap REFINE to press your Raw Cheese' },
+    cheesery: { why: 'Base is the main ingredient. The Cheesery mixes it with three more things into a real cheese.', then: 'Now discover your first recipe' },
+    shop: { why: 'Your cheese needs a place to be sold. A shop turns cheese into coins.', then: 'Now tap SELL' },
   };
-  let unlockSeenAt = 0;
+  let announced = null;
   function checkUnlocks() {
     const id = CM.construction.nextReady(state);
-    if (!id) return void (unlockSeenAt = 0);
-    if (!$('modal').hidden) return;
-    // Un respiro para que se vea lo que acaba de pasar antes de la tarjeta.
-    if (!unlockSeenAt) return void (unlockSeenAt = performance.now());
-    if (performance.now() - unlockSeenAt < 1300) return;
-    unlockSeenAt = 0;
-    const u = UNLOCK[id];
-    const base = baseOfZone();
-    closePanel();
+    if (!id) return void (announced = null);
+    if (announced === id) return;
+    announced = id;
     play('reveal');
-    showModal(
-      '<h2>' + u.title + '</h2><div class="hero">' + I.img(u.from[0], base, 'huge') + '<span class="harrow"></span>' + I.img(u.to[0], base, 'huge') + '</div><p class="lead">' + u.text + '</p><p class="hint">' + u.then + '</p><div class="row"><button class="buy" data-m="ok">' + u.button + '</button></div>',
-      {
-        ok() {
-          report(CM.construction.build(state, id));
-          select(id);
-          dirty = true;
-        },
-      }
-    );
+    banner('NEW: ' + B.buildings[id].name.toUpperCase() + '!');
+    toast('Something new to build. Tap ' + tiles[id].querySelector('b').textContent + ' below', true);
   }
   // Tras la primera venta: para qué sirven las monedas.
   function firstSaleCard() {
