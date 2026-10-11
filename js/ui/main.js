@@ -230,6 +230,11 @@
         dirty = true;
         break;
       }
+      case 'dismissed':
+        play('click');
+        toast(ev.name + ' left the colony' + (ev.post && !state.mice.some((m) => m.post === ev.post) ? '. ' + CM.mice.postLabel(ev.post) + ' has no mouse now' : ''), true);
+        dirty = true;
+        break;
       case 'promoted': {
         const mouse = CM.mice.byId(state, ev.id);
         play('goal');
@@ -606,7 +611,7 @@
       if (m.book) side += P.btn('open:cheese', 'RECIPES', { cls: 'buy calm small' });
       // Quién trabaja en este puesto.
       const worker = CM.mice.at(state, skill, ui.zone);
-      if (state.built.house) side += P.btn('open:mice', worker ? P.esc(worker.name) + ' · LV ' + CM.mice.level(worker) : 'NO MOUSE HERE', { cls: 'buy calm small' + (worker ? '' : ' warn') });
+      if (state.built.house) side += P.btn(worker ? 'open:mice:' + worker.id : 'open:mice', worker ? (CM.mice.promoteInfo(state, worker).can ? 'PROMOTE ' + P.esc(worker.name).toUpperCase() : P.esc(worker.name) + ' · LV ' + CM.mice.level(worker)) : 'NO MOUSE HERE', { cls: 'buy calm small' + (worker ? (CM.mice.promoteInfo(state, worker).can ? ' ready' : '') : ' warn') });
     }
     if (side !== ui.dockHtml) {
       ui.dockHtml = side;
@@ -834,6 +839,7 @@
       return CM.mice.assign(state, id, skill ? skill + ':' + zone : '');
     },
     promote: (id) => CM.mice.promote(state, id),
+    dismiss: (id) => void confirmDismiss(id),
     managers: () => void (state.settings.managersBuy = !state.settings.managersBuy),
     tab: (name) => void (ui.cheeseTab = name),
     pick: (part, value) => void (ui.combo[part] = value),
@@ -843,7 +849,16 @@
     uncook: (zoneId) => CM.cheesery.unassign(state, zoneId),
     cheeseTap: (zoneId) => CM.cheesery.tap(state, zoneId),
     rename: (id) => void askRecipeName(id, false),
-    open: (name) => void openPanel(name),
+    // Con un ratón: abre MICE con su ficha desplegada y a la vista.
+    open: (name, id) => {
+      openPanel(name);
+      if (!id) return;
+      ui.moving = id;
+      setTimeout(() => {
+        const card = document.querySelector('[data-mouse="' + id + '"]');
+        if (card) card.scrollIntoView({ block: 'start' });
+      }, 0);
+    },
     sound: () => {
       sfx.toggleMute();
       muteLabel();
@@ -1022,6 +1037,30 @@
     });
   }
 
+  function confirmDismiss(id) {
+    const m = CM.mice.byId(state, id);
+    if (!m) return;
+    const K = CM.mice;
+    const now = K.recruitCost(state);
+    const after = Math.round(B.mice.recruitCost * Math.pow(B.mice.recruitGrowth, state.mice.length - 1));
+    const waiting = state.mice.find((x) => x !== m && !x.post && !x.rest);
+    const post = !m.post ? '' : waiting ? ' ' + P.esc(waiting.name) + ' takes over ' + K.postLabel(m.post) + '.' : ' ' + K.postLabel(m.post) + ' is left with no mouse: you work it by hand until you recruit another.';
+    showModal(
+      '<h2>DISMISS ' + P.esc(m.name).toUpperCase() + '?</h2><div class="hero"><img class="pix face big" alt="" src="' + CM.mouseUrl(m) + '"></div><p class="hint"><b>LV ' + K.level(m) + ' ' + B.mice.ranks[m.rank].name + '.</b> It leaves for good: its level and rank are lost and nothing is refunded.' + post + '</p><p class="hint">Your next recruit will cost ' + CM.fmt(after) + ' coins instead of ' + CM.fmt(now) + '.</p><div class="row"><button class="close" data-m="no">KEEP</button><button class="danger" data-m="ok">DISMISS</button></div>',
+      {
+        no() {},
+        ok() {
+          ui.moving = null;
+          K.dismiss(state, id);
+          drainEvents();
+          ui.dockHtml = null;
+          ui.lanesKey = null;
+          dirty = true;
+        },
+      }
+    );
+  }
+
   function confirmReset() {
     showModal('<h2>RESET GAME?</h2><p class="hint">All progress will be lost.</p><div class="row"><button class="close" data-m="no">CANCEL</button><button class="danger" data-m="ok">RESET</button></div>', {
       no() {},
@@ -1156,8 +1195,8 @@
     const next = CM.zones.next(state);
     const colony = next && state.coins >= next.unlockCost;
     $('nav-colony').querySelector('.dot').classList.toggle('on', !!colony);
-    // MICE avisa si hay casa por construir, candidatos por elegir, o un puesto libre y monedas para reclutar.
-    const mice = CM.construction.buildInfo(state, 'house').canBuild || state.candidates.length > 0 || (state.built.house && !!CM.mice.freePost(state) && state.coins >= CM.mice.recruitCost(state));
+    // MICE avisa si hay casa por construir, candidatos por elegir, un puesto libre y monedas para reclutar, o un ascenso que ya se puede pagar.
+    const mice = CM.construction.buildInfo(state, 'house').canBuild || state.candidates.length > 0 || (state.built.house && !!CM.mice.freePost(state) && state.coins >= CM.mice.recruitCost(state)) || state.mice.some((m) => CM.mice.promoteInfo(state, m).can);
     $('nav-mice').querySelector('.dot').classList.toggle('on', !!mice);
     set($('nav-mice'), 'goal', GOAL_AT[CM.sim.objective(state).id] === 'mice');
     const n = buyable();

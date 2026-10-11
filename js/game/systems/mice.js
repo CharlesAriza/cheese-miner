@@ -1,7 +1,7 @@
 // RATONES: la plantilla. Cada ratón es un personaje con nombre, un rasgo
 // bueno, una manía, un oficio favorito, nivel propio y rango.
 // Una etapa de una línea está automatizada si tiene un ratón en su puesto.
-// Los ratones nunca se van: el que no trabaja espera en la Mouse House.
+// Un ratón solo se va si el jugador lo despide; el que no trabaja espera en la Mouse House.
 (function () {
   const B = CM.BALANCE;
   const q = CM.q;
@@ -149,28 +149,52 @@
       return CM.ok();
     },
     // Recoloca a toda la plantilla: cada puesto, por prioridad, se lleva al mejor que quede.
-    bestFit(s) {
+    bestFitPlan(s) {
       const pool = s.mice.slice();
-      pool.forEach((m) => {
-        m.post = '';
-        m.rest = false;
-      });
+      const plan = {};
       for (const p of this.posts(s)) {
         if (!pool.length) break;
         let best = 0;
         for (let i = 1; i < pool.length; i++) if (this.score(pool[i], p.skill) > this.score(pool[best], p.skill)) best = i;
-        pool.splice(best, 1)[0].post = p.key;
+        plan[pool.splice(best, 1)[0].id] = p.key;
+      }
+      return plan;
+    },
+    // Cuántos ratones cambiarían de sitio con BEST FIT (0: ya están bien).
+    bestFitMoves(s) {
+      const plan = this.bestFitPlan(s);
+      return s.mice.filter((m) => (plan[m.id] || '') !== m.post).length;
+    },
+    bestFit(s) {
+      const plan = this.bestFitPlan(s);
+      for (const m of s.mice) {
+        m.post = plan[m.id] || '';
+        m.rest = false;
       }
       CM.emit(s, 'assigned', { all: true });
+      return CM.ok();
+    },
+
+    // --- Despedir ---
+    // El ratón se va para siempre: se pierden su nivel y su rango y no se
+    // devuelve nada. Su puesto lo ocupa el primero que esté esperando.
+    dismiss(s, id) {
+      const i = s.mice.findIndex((m) => m.id === id);
+      if (i < 0) return CM.fail('invalid');
+      const m = s.mice.splice(i, 1)[0];
+      CM.emit(s, 'dismissed', { name: m.name, post: m.post });
+      this.fillEmpty(s);
       return CM.ok();
     },
 
     // --- Ascender ---
     promoteInfo(s, m) {
       const next = M.ranks[m.rank + 1];
-      if (!next) return { maxed: true };
+      if (!next) return { maxed: true, why: 'top' };
       const levelOk = level(m) >= next.level;
-      return { next, levelOk, cost: next.cost, can: levelOk && s.coins >= next.cost };
+      const can = levelOk && s.coins >= next.cost;
+      // `why` dice qué falta: 'level', 'coins' o nada ('ok').
+      return { next, levelOk, cost: next.cost, can, why: can ? 'ok' : levelOk ? 'coins' : 'level', levelsLeft: Math.max(0, next.level - level(m)) };
     },
     promote(s, id) {
       const m = this.byId(s, id);

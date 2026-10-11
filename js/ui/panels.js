@@ -243,9 +243,56 @@
   // ---------- RATONES ----------
   const M = B.mice;
   const traitChip = (id) => '<span class="stat ' + (M.traits[id].good ? 'tgood' : 'tquirk') + '">' + M.traits[id].name + '</span>';
-  const traitText = (ids) => ids.map((id) => M.traits[id].name + ': ' + M.traits[id].desc.toLowerCase()).join('. ');
   const face = (m, cls) => '<img class="pix ' + (cls || 'face') + '" alt="" src="' + CM.mouseUrl(m) + '">';
-  const pct = (n) => Math.round(n * 100) + '%';
+  const signed = (n) => (n < 0 ? '-' : '+') + Math.round(Math.abs(n) * 100) + '%';
+  const times = (n) => 'x' + (Math.round(n * 100) / 100).toFixed(2);
+  const plural = (n, word) => n + ' ' + (n === 1 ? word : word === 'mouse' ? 'mice' : word + 's');
+
+  // Lo que hace un ratón en un puesto, en valores reales («2 Raw every 2.1s»).
+  function mouseRate(s, m, skill, zone) {
+    const sp = CM.mice.speed(m, skill);
+    const y = CM.mice.yieldMult(m);
+    const every = (ms) => ' every ' + secs(Math.max(200, ms / sp));
+    if (skill === 'mining') return 'a swing' + every(q.minerInterval(s));
+    if (skill === 'drilling') return round1(q.drillYield(s, zone) * y) + ' Raw' + every(q.drillDuration(s));
+    if (skill === 'refining') return round1(q.refineBatch(s) * q.refineMult(s) * y) + ' Base' + every(q.refineDuration(s));
+    if (skill === 'trading') return 'a sale' + every(q.sellDuration(s));
+    const recipe = CM.cheesery.laneRecipe(s, zone);
+    return recipe ? 'a cheese' + every(CM.cheesery.jobTime(s, CM.cheesery.parseKey(recipe.key), recipe)) : 'cooks ' + times(sp) + ' as fast as by hand';
+  }
+  // De dónde sale su velocidad en un oficio.
+  function speedParts(m, skill) {
+    const K = CM.mice;
+    const lv = K.level(m);
+    const out = [];
+    if (lv > 1) out.push('level ' + lv + ' ' + signed(M.perLevel * (lv - 1)));
+    if (M.ranks[m.rank].bonus) out.push(M.ranks[m.rank].name + ' ' + signed(M.ranks[m.rank].bonus));
+    if (m.fav === skill) out.push('loves this job ' + signed(M.favoriteBonus));
+    for (const id of m.traits) if (M.traits[id].eff.speed) out.push(M.traits[id].name + ' ' + signed(M.traits[id].eff.speed));
+    return out;
+  }
+  const traitList = (m) =>
+    '<ul class="traits">' +
+    m.traits.map((id) => '<li>' + traitChip(id) + M.traits[id].desc + '</li>').join('') +
+    (m.fav ? '<li><span class="stat">Loves ' + B.skills[m.fav].name + '</span>' + Math.round(M.favoriteBonus * 100) + '% faster on a ' + B.skills[m.fav].name + ' post</li>' : '') +
+    '</ul>';
+
+  // Qué le falta a un ratón para ascender: siempre lo dice.
+  function promoteBlock(s, m) {
+    const K = CM.mice;
+    const pr = K.promoteInfo(s, m);
+    if (pr.maxed) return '<div class="mrank top"><b>TOP RANK</b><small>' + (K.level(m) >= M.maxLevel ? 'Max level too: this mouse cannot get any better.' : 'It still gets faster with every level, up to LV ' + M.maxLevel + '.') + '</small></div>';
+    const [skill, zone] = m.post ? m.post.split(':') : [];
+    const gain = pr.next.manager ? 'Buys upgrades of its job on its own' : '';
+    let after = '';
+    if (skill) after = 'Then: ' + mouseRate(s, Object.assign({}, m, { rank: m.rank + 1 }), skill, zone);
+    const what = [after, gain].filter(Boolean).join('. ');
+    if (pr.why === 'level') {
+      const stuck = !m.post ? ' It only levels up while it works on a post.' : '';
+      return '<div class="mrank wait"><div><b>' + pr.next.name.toUpperCase() + ' AT LV ' + pr.next.level + '</b><small>' + plural(pr.levelsLeft, 'level') + ' to go, then ' + CM.fmt(pr.cost) + ' coins.' + stuck + '</small></div></div>';
+    }
+    return '<div class="mrank ' + (pr.can ? 'go' : 'wait') + '"><div><b>' + (pr.can ? 'READY FOR ' : 'SAVE UP FOR ') + pr.next.name.toUpperCase() + '</b><small>' + (pr.can ? what : 'Level is enough. You need ' + CM.fmt(pr.cost - s.coins) + ' more coins.' + (what ? ' ' + what : '')) + '</small></div>' + btn('promote:' + m.id, 'PROMOTE<br>' + coin(pr.cost), { off: !pr.can, cls: 'buy', cost: pr.cost }) + '</div>';
+  }
 
   function micePanel(s, ui) {
     const K = CM.mice;
@@ -253,50 +300,80 @@
       const info = CM.construction.buildInfo(s, 'house');
       if (!info.condOk) return '<p class="hint">Mice do the work for you. First: ' + esc(info.condText.toLowerCase()) + '.</p>';
       return (
-        '<p class="lead">A <b>mouse on a post</b> does that job on its own, even while you are away.</p><p class="hint">Every mouse is one of a kind: its own look, a good trait, a quirk and a favourite job. They level up as they work and never leave.</p>' +
+        '<p class="lead">A <b>mouse on a post</b> does that job on its own, even while you are away.</p><p class="hint">Every mouse is one of a kind: its own look, a good trait, a quirk and a favourite job. They level up as they work and stay until you dismiss them.</p>' +
         btn('build:house', 'BUILD THE MOUSE HOUSE<br>It is free', { cls: 'buy wide' })
       );
     }
+    const posts = K.posts(s);
+    const free = posts.filter((p) => !s.mice.some((m) => m.post === p.key));
     let h = '';
     // Candidatos pendientes: se elige uno de tres.
     if (s.candidates.length) {
-      h += '<h3>CHOOSE ONE</h3><p class="hint">Already paid. Pick the one you like; it goes straight to the best free post.</p>';
+      const dest = free[0];
+      h += '<h3>CHOOSE ONE OF THREE</h3><p class="hint">Already paid. ' + (dest ? 'The one you pick goes straight to <b>' + K.postLabel(dest.key) + '</b>.' : 'Every post has a mouse, so the one you pick waits in the house until you move it.') + '</p>';
       s.candidates.forEach((c, i) => {
-        h += '<div class="mouse cand">' + face(c) + '<div class="info"><b>' + esc(c.name) + '</b><div>' + c.traits.map(traitChip).join('') + '<span class="stat">Loves ' + B.skills[c.fav].name + '</span></div><small>' + traitText(c.traits) + '. ' + pct(M.favoriteBonus) + ' faster at ' + B.skills[c.fav].name + '.</small></div><div class="side">' + btn('choose:' + i, 'CHOOSE', { cls: 'buy' }) + '</div></div>';
+        const as = Object.assign({ xp: 0, rank: 0 }, c);
+        h +=
+          '<div class="mouse cand"><div class="mhead">' + face(c) + '<div class="info"><b>' + esc(c.name) + '</b>' + traitList(c) + '</div></div>' +
+          '<div class="mfoot"><small class="mjob">' + (dest ? 'There: <b>' + mouseRate(s, as, dest.skill, dest.zone) + '</b>' + (c.fav === dest.skill ? ' · loves it' : '') : 'Waits in the house') + '</small>' + btn('choose:' + i, 'CHOOSE', { cls: 'buy' }) + '</div></div>';
       });
       return h;
     }
-    const cost = K.recruitCost(s);
-    const free = K.posts(s).filter((p) => !s.mice.some((m) => m.post === p.key));
-    h += btn('recruit', 'RECRUIT A MOUSE<br>' + coin(cost), { off: s.coins < cost, cls: 'buy wide serveall', cost });
-    h += '<p class="hint">' + s.mice.length + ' mice · ' + (free.length ? free.length + ' post' + (free.length === 1 ? '' : 's') + ' with no mouse: ' + free.slice(0, 3).map((p) => K.postLabel(p.key)).join(', ') + (free.length > 3 ? '...' : '') : 'every post has a mouse') + '</p>';
-    if (s.mice.length > 1) h += '<div class="tabs">' + btn('bestfit', 'BEST FIT: PLACE EVERYONE FOR ME', { cls: 'buy' }) + '</div>';
-    if (s.mice.some((m) => M.ranks[m.rank].manager)) h += row('Managers buy upgrades', 'They buy the cheapest upgrade of their job on their own', btn('managers', s.settings.managersBuy ? 'ON' : 'OFF', { cls: 'buy' }));
 
-    const sorted = s.mice.slice().sort((a, b) => (a.post ? 0 : -1) - (b.post ? 0 : -1) || K.level(b) - K.level(a));
+    const staffed = posts.length - free.length;
+    const waiting = s.mice.filter((m) => !m.post);
+    const ready = s.mice.filter((m) => K.promoteInfo(s, m).can).length;
+    h +=
+      '<div class="msum"><div><b>' + s.mice.length + '</b><small>' + (s.mice.length === 1 ? 'mouse' : 'mice') + '</small></div><div class="' + (free.length ? 'warn' : 'good') + '"><b>' + staffed + '/' + posts.length + '</b><small>posts with a mouse</small></div><div class="' + (ready ? 'good' : '') + '"><b>' + ready + '</b><small>can be promoted</small></div></div>';
+
+    const cost = K.recruitCost(s);
+    const goes = free.length ? 'Goes to ' + K.postLabel(free[0].key) : 'Every post is taken: it would wait in the house';
+    h += btn('recruit', 'RECRUIT A MOUSE · ' + coin(cost) + '<br><small>' + goes + '</small>', { off: s.coins < cost, cls: 'buy wide serveall', cost });
+    if (free.length) h += '<p class="hint note warn">' + plural(free.length, 'post') + ' with no mouse (you work ' + (free.length === 1 ? 'it' : 'them') + ' by hand): ' + free.slice(0, 3).map((p) => K.postLabel(p.key)).join(', ') + (free.length > 3 ? ' and ' + (free.length - 3) + ' more' : '') + '.</p>';
+    else if (s.mice.length) h += '<p class="hint note">Every post has a mouse. More posts open with each new rock. Recruit anyway to swap in a better mouse.</p>';
+    if (s.mice.length > 1) {
+      const moves = K.bestFitMoves(s);
+      h += moves ? btn('bestfit', 'BEST FIT: PLACE EVERYONE FOR ME<br><small>Moves ' + plural(moves, 'mouse') + ' to where they work best</small>', { cls: 'buy wide calm' }) : '<p class="hint note good">Best fit: everyone is already where they work best.</p>';
+    }
+    if (s.mice.some((m) => M.ranks[m.rank].manager)) h += row('Managers buy upgrades', 'They buy the cheapest upgrade of their job on their own', btn('managers', s.settings.managersBuy ? 'ON' : 'OFF', { cls: 'buy' }));
+    if (!s.mice.length) return h + '<p class="hint">No mice yet. Your first recruit will take over a stage so you do not have to tap it.</p>';
+
+    // Primero los que esperan en la casa; el resto, en el orden de la cadena.
+    const order = (m) => (m.post ? 1 + posts.findIndex((p) => p.key === m.post) : 0);
+    const sorted = s.mice.slice().sort((a, b) => order(a) - order(b));
     for (const m of sorted) {
       const p = K.xpProgress(m);
-      const skill = m.post ? m.post.split(':')[0] : '';
-      const pr = K.promoteInfo(s, m);
-      const where = m.post ? K.postLabel(m.post) + ' · ' + pct(K.speed(m, skill)) + ' speed' : 'Resting in the house';
-      let promote = '';
-      if (!pr.maxed) promote = pr.levelOk ? btn('promote:' + m.id, 'PROMOTE<br>' + coin(pr.cost), { off: !pr.can, cls: 'buy', cost: pr.cost }) : '<span class="tag lock">' + pr.next.name + '<br>at LV ' + pr.next.level + '</span>';
+      const [skill, zone] = m.post ? m.post.split(':') : [];
+      const open = ui.moving === m.id;
+      let job;
+      if (skill) job = '<b>' + K.postLabel(m.post) + '</b> · ' + mouseRate(s, m, skill, zone);
+      else if (m.rest) job = '<b>Resting in the house</b> · you sent it to rest. Tap MANAGE to give it a post';
+      else job = '<b>Waiting in the house</b> · every post is taken. Tap MANAGE to swap it in';
+      const pips = M.ranks.map((r, i) => '<i class="' + (i <= m.rank ? 'on' : '') + '"></i>').join('');
       h +=
-        '<div class="mouse' + (m.post ? '' : ' idle') + '"><div class="mhead">' + face(m) + '<div class="info"><b>' + esc(m.name) + ' <span class="rank">LV ' + p.level + ' · ' + M.ranks[m.rank].name + '</span></b>' + xpBar(p) + '<div>' + m.traits.map(traitChip).join('') + (m.fav ? '<span class="stat">Loves ' + B.skills[m.fav].name + '</span>' : '') + '</div><small>' + where + '</small></div></div>' +
-        '<div class="mfoot">' + btn('move:' + m.id, ui.moving === m.id ? 'CANCEL' : 'MOVE', { cls: 'mini' }) + promote + '</div>';
-      // Elegir puesto: cada opción dice cuánto rendiría ahí y a quién desplazaría.
-      if (ui.moving === m.id) {
-        h += '<div class="posts">';
-        for (const post of K.posts(s)) {
+        '<div class="mouse' + (m.post ? '' : ' idle') + (open ? ' open' : '') + '" data-mouse="' + m.id + '"><div class="mhead">' + face(m) + '<div class="info"><b>' + esc(m.name) + ' <span class="rank">' + M.ranks[m.rank].name + '</span><span class="pips">' + pips + '</span></b>' +
+        '<div class="lvl"><span>LV ' + p.level + '</span>' + xpBar(p) + '<span>' + (p.maxed ? 'MAX' : p.cur + '/' + p.need) + '</span></div><div>' + m.traits.map(traitChip).join('') + (m.fav ? '<span class="stat">Loves ' + B.skills[m.fav].name + '</span>' : '') + '</div></div></div>' +
+        '<p class="mjob">' + job + '</p>' + promoteBlock(s, m) +
+        '<div class="mfoot">' + btn('move:' + m.id, open ? 'CLOSE' : 'MANAGE: MOVE · DETAILS · DISMISS', { cls: 'mini wide' }) + '</div>';
+      if (open) {
+        h += '<div class="mdetail"><h4>WHAT MAKES ' + esc(m.name).toUpperCase() + ' SPECIAL</h4>' + traitList(m);
+        if (skill) {
+          const parts = speedParts(m, skill);
+          h += '<p class="hint">Works ' + times(K.speed(m, skill)) + ' as fast as you by hand' + (parts.length ? ': ' + parts.join(', ') : '') + '.' + (m.fav && m.fav !== skill ? ' It would be faster on a ' + B.skills[m.fav].name + ' post.' : '') + '</p>';
+        }
+        if (!p.maxed) h += '<p class="hint">' + (m.post ? (p.need - p.cur) + ' more jobs to reach LV ' + (p.level + 1) + '. Each level makes it ' + Math.round(M.perLevel * 100) + '% faster.' : 'It does not level up while it is in the house.') + '</p>';
+        // Elegir puesto: cada opción dice cuánto rendiría ahí y a quién desplazaría.
+        h += '<h4>MOVE TO</h4><div class="posts">';
+        for (const post of posts) {
           const other = s.mice.find((x) => x.post === post.key && x !== m);
           const here = m.post === post.key;
-          h += btn(here ? 'noop' : 'post:' + m.id + ':' + post.key, '<span>' + K.postLabel(post.key) + (here ? ' (here)' : other ? ' · swaps with ' + esc(other.name) : ' · free') + '</span><span>' + pct(K.score(m, post.skill)) + (m.fav === post.skill ? ' loves it' : '') + '</span>', { cls: 'deliver' + (here ? ' open' : ''), off: here });
+          h += btn(here ? 'noop' : 'post:' + m.id + ':' + post.key, '<span>' + K.postLabel(post.key) + '<small>' + (here ? 'it works here now' : other ? 'swaps places with ' + esc(other.name) : 'free post') + (m.fav === post.skill ? ' · loves it' : '') + '</small></span><span>' + mouseRate(s, m, post.skill, post.zone) + '</span>', { cls: 'deliver' + (here ? ' open' : ''), off: here });
         }
-        h += btn('post:' + m.id + ':', '<span>Rest in the house</span><span></span>', { cls: 'deliver calmrow' }) + '</div>';
+        if (m.post) h += btn('post:' + m.id + ':', '<span>Rest in the house<small>its post is left empty</small></span><span></span>', { cls: 'deliver calmrow' });
+        h += '</div><h4>LET IT GO</h4><p class="hint">It leaves for good. Its level and rank are lost and nothing is refunded.</p>' + btn('dismiss:' + m.id, 'DISMISS ' + esc(m.name).toUpperCase(), { cls: 'danger wide' }) + '</div>';
       }
       h += '</div>';
     }
-    if (!s.mice.length) h += '<p class="hint">No mice yet. Your first recruit will take over a stage so you do not have to tap it.</p>';
     return h;
   }
 

@@ -544,6 +544,56 @@
     valid(s);
   });
 
+  test('mice: dismissing, best-fit preview and why a mouse cannot be promoted', () => {
+    const s = fresh();
+    CM.dev.unlockBuildings(s);
+    s.devUsed = false;
+    const a = staff(s, 'drilling', 'cheddar');
+    const b = staff(s, 'refining', 'cheddar', { fav: 'drilling' });
+    const c = staff(s, 'mining', 'cheddar', { post: '' });
+    // Por qué no asciende
+    eq(CM.mice.promoteInfo(s, a).why, 'level', 'low level: says level');
+    eq(CM.mice.promoteInfo(s, a).levelsLeft, B.mice.ranks[1].level - 1, 'and how many levels are left');
+    a.xp = 1e4;
+    s.coins = 0;
+    eq(CM.mice.promoteInfo(s, a).why, 'coins', 'enough level, no coins: says coins');
+    s.coins = B.mice.ranks[1].cost;
+    eq(CM.mice.promoteInfo(s, a).why, 'ok', 'ready');
+    eq(CM.mice.promoteInfo(s, Object.assign({}, a, { rank: B.mice.ranks.length - 1 })).why, 'top', 'top rank says so');
+    // BEST FIT: avisa de cuántos moverá y, una vez hecho, de que no hay nada que mover
+    truthy(CM.mice.bestFitMoves(s) > 0, 'best fit would move someone');
+    const before = s.mice.map((m) => m.post).join();
+    CM.mice.bestFitMoves(s);
+    eq(s.mice.map((m) => m.post).join(), before, 'previewing moves nobody');
+    CM.mice.bestFit(s);
+    eq(CM.mice.bestFitMoves(s), 0, 'after best fit there is nothing left to move');
+    // Despedir
+    const coins = s.coins;
+    const cost3 = CM.mice.recruitCost(s);
+    const gone = s.mice.find((m) => m.post === 'trading:all');
+    eq(CM.mice.dismiss(s, 'nope').reason, 'invalid', 'unknown mouse');
+    eq(CM.mice.dismiss(s, gone.id).ok, true, 'dismiss');
+    eq(s.mice.length, 2, 'one mouse less');
+    eq(CM.mice.byId(s, gone.id), null, 'it is gone');
+    eq(s.coins, coins, 'nothing is refunded');
+    truthy(CM.mice.recruitCost(s) < cost3, 'the next recruit is cheaper again');
+    // El que esperaba ocupa el puesto libre; el que descansa, no
+    const d = staff(s, 'mining', 'cheddar', { post: '' });
+    const working = s.mice.find((m) => m.post && m !== d);
+    CM.mice.dismiss(s, working.id);
+    eq(d.post, 'trading:all', 'a waiting mouse takes the best free post right away');
+    CM.mice.assign(s, d.id, '');
+    const e = s.mice.find((m) => m !== d);
+    const post = e.post;
+    CM.mice.dismiss(s, e.id);
+    eq(d.post, '', 'a resting mouse stays resting');
+    truthy(post && !CM.mice.at(s, post.split(':')[0], 'cheddar'), 'and the post is empty');
+    run(s, 5000);
+    valid(s);
+    const back = CM.storage.parse(JSON.stringify(s), 1000000);
+    eq(back.mice.length, 1, 'a dismissed mouse stays gone after a reload');
+  });
+
   test('every mouse has its own look, and old saves get one', () => {
     const s = fresh();
     s.built.house = true;
