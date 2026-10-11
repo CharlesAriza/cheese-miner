@@ -4,7 +4,7 @@
 
 ## Pruebas automáticas
 
-Ejecutadas abriendo `tests.html` en el navegador. **19 de 19 pasan.**
+Ejecutadas abriendo `tests.html` en el navegador. **22 de 22 pasan.**
 
 | Caso del contrato | Prueba | Resultado |
 | --- | --- | --- |
@@ -24,6 +24,9 @@ Ejecutadas abriendo `tests.html` en el navegador. **19 de 19 pasan.**
 | 13 | De partida nueva a primera venta, tres roles y segundo yacimiento, sin dev tools | pasa |
 | 13 (extra) | Un jugador lento también completa el circuito | pasa |
 | — | El Cheesemaker cocina solo la receta asignada, de uno en uno, y para sin base o sin hueco | pasa |
+| — | Regateo: un sobreprecio rechazado pierde al cliente pero nunca el queso ni monedas | pasa |
+| — | Los clientes se van al agotar la paciencia; la reputación desbloquea compradores | pasa |
+| — | La mejora de la Cheesery y la maestría aceleran los lotes; la maestría sube el valor | pasa |
 | — | Salvaguarda anti-bloqueo del siguiente yacimiento | pasa |
 | — | La fórmula de stats coincide con la documentada, con sinergias | pasa |
 | — | Las dev tools marcan la partida y no rompen invariantes | pasa |
@@ -37,6 +40,7 @@ Hechas sobre el juego real, pulsando los controles de la interfaz:
 - Flujo completo desde cero con la interfaz de cadena y panel de estación: veta → taladro → refinería → Cheesery → receta con nombre → Market → venta.
 - Contratar al Cheesemaker abre el Recipe Book; al asignarle una receta fabrica lotes solo hasta llenar el almacén.
 - Abrir una zona muestra la explicación de qué se ha comprado y permite viajar; el paisaje y los iconos cambian de color.
+- Tienda: elegir queso muestra los cuatro precios con su probabilidad; una venta con sobreprecio cobró lo anunciado, consumió el queso y sumó reputación.
 - Doble clic en una venta: se cobró una sola vez.
 - Contratar sin camas libres: se rechaza con mensaje.
 - Recarga de la página: se conservan monedas, receta renombrada y trabajadores.
@@ -63,7 +67,8 @@ Hechas sobre el juego real, pulsando los controles de la interfaz:
 - **Arte placeholder.** Todo está dibujado por código. Es coherente y legible, pero queda lejos de la referencia aprobada. Necesita sprites reales (ver README).
 - **Sin TypeScript ni Vite**, por no haber Node en el equipo de desarrollo.
 - **Un solo guardado por navegador.** No hay sincronización entre dispositivos.
-- **Los tres primeros pedidos son del vecino**, porque los demás compradores aparecen con las ventas.
+- **Los primeros clientes son todos vecinos**, porque los demás aparecen al subir la reputación.
+- **La tienda no tiene mostrador ni vista interior propia**: los clientes se ven en la escena delante del puesto y en el panel.
 - **Fuente pixel desde Google Fonts.** Sin conexión se usa una monoespaciada del sistema.
 
 ## Pendiente
@@ -72,4 +77,5 @@ Hechas sobre el juego real, pulsando los controles de la interfaz:
 - Sustituir placeholders por sprites finales.
 - Ajustar el balance con datos de playtests reales.
 - Decidir si Blue entra como tercera zona.
-- Volver a medir el ritmo: el bot de las pruebas no usa al Cheesemaker.
+- Volver a medir el ritmo: el bot de las pruebas no usa al Cheesemaker, el regateo ni la mejora de la Cheesery.
+- Siguiente paso acordado: zonas con profundidad y puestos en paralelo.

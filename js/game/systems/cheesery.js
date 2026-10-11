@@ -39,6 +39,22 @@
   const lotTime = (combo) =>
     B.cheesery.baseTimeMs + B.treatments[combo.treatment].timeMs + B.maturations[combo.maturation].timeMs;
 
+  // Maestría de una receta (1..n) según los lotes fabricados.
+  function masteryLevel(recipe) {
+    const made = (recipe && recipe.made) || 0;
+    let level = 1;
+    B.cheesery.masteryAt.forEach((need, i) => {
+      if (made >= need) level = i + 1;
+    });
+    return level;
+  }
+  // Tiempo real por lote: receta, nivel de la Cheesery y maestría.
+  function jobTime(s, combo, recipe) {
+    const speed = Math.pow(B.cheesery.durationFactorPerLevel, s.levels.cheesery);
+    const mastery = 1 - B.cheesery.masteryTime * (masteryLevel(recipe) - 1);
+    return Math.max(500, Math.round(lotTime(combo) * speed * mastery));
+  }
+
   function defaultName(combo) {
     return [B.maturations[combo.maturation].adj, B.treatments[combo.treatment].adj, B.ingredients[combo.ingredient].adj, B.bases[combo.base].name]
       .filter(Boolean)
@@ -71,7 +87,7 @@
       s.coins -= coinCost;
       s.totals.coinsSpent += coinCost;
     }
-    const total = lotTime(combo);
+    const total = jobTime(s, combo, recipeId ? CM.cheesery.recipe(s, recipeId) : null);
     s.jobs.cheesery = { kind, key: keyOf(combo), recipeId, lotsLeft: lots, remaining: total, total };
     CM.emit(s, 'cheeseStart', { kind, lots, source: source || 'manual', used: baseCost, base: combo.base });
     return CM.ok();
@@ -84,12 +100,20 @@
     parseKey,
     computeStats,
     lotTime,
+    jobTime,
+    masteryLevel,
     defaultName,
     unlockedBases,
     allCombos,
     recipe: (s, id) => s.recipes.find((r) => r.id === id) || null,
     recipeByKey: (s, key) => s.recipes.find((r) => r.key === key) || null,
-    statsOf: (recipe) => computeStats(parseKey(recipe.key)),
+    // Stats de una receta del libro: las de la fórmula más el extra de Value por maestría.
+    statsOf(recipe) {
+      const st = computeStats(parseKey(recipe.key));
+      st.mastery = masteryLevel(recipe);
+      st.value = Math.round(st.value * (1 + B.cheesery.masteryValue * (st.mastery - 1)));
+      return st;
+    },
 
     experiment(s, combo) {
       if (!parseKey(keyOf(combo))) return CM.fail('invalid');
@@ -149,17 +173,20 @@
       const job = s.jobs.cheesery;
       let recipe = job.recipeId ? this.recipe(s, job.recipeId) : null;
       if (job.kind === 'experiment') {
-        recipe = { id: 'r' + s.nextId++, key: job.key, name: defaultName(parseKey(job.key)), at: s.clock };
+        recipe = { id: 'r' + s.nextId++, key: job.key, name: defaultName(parseKey(job.key)), at: s.clock, made: 0 };
         s.recipes.push(recipe);
         s.totals.recipes += 1;
         job.recipeId = recipe.id;
         CM.emit(s, 'recipeDiscovered', { recipeId: recipe.id });
       }
+      const before = masteryLevel(recipe);
+      recipe.made = (recipe.made || 0) + 1;
       s.lots[recipe.id] = (s.lots[recipe.id] || 0) + 1;
       s.totals.lotsProduced += 1;
       job.lotsLeft -= 1;
       CM.emit(s, 'lotDone', { recipeId: recipe.id });
-      if (job.lotsLeft > 0) job.remaining = job.total;
+      if (masteryLevel(recipe) > before) CM.emit(s, 'masteryUp', { recipeId: recipe.id, level: masteryLevel(recipe) });
+      if (job.lotsLeft > 0) job.remaining = job.total = jobTime(s, parseKey(job.key), recipe);
       else s.jobs.cheesery = null;
     },
 

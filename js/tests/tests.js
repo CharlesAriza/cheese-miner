@@ -261,15 +261,17 @@
     const recipe = s.recipes[0];
     const order = s.orders[0];
     eq(order.buyer, 'neighbor', 'first slot is the neighbor');
-    const quote = CM.merchant.quote(order, recipe);
+    const quote = CM.merchant.quote(s, order, recipe, 'fair');
     const stats = CM.cheesery.statsOf(recipe);
     eq(quote.unit, Math.round(stats.value * B.merchant.buyers.neighbor.priceMult * (quote.bonus ? 1.25 : 1)), 'price');
+    eq(quote.chance, 1, 'a fair price is always accepted');
     eq(CM.merchant.deliver(s, order.id, 'nope').reason, 'unknown-recipe', 'unknown lot');
     eq(CM.merchant.deliver(s, order.id, recipe.id).ok, true, 'deliver');
     eq(s.coins, quote.total, 'coins');
     eq(s.lots[recipe.id], 0, 'lot consumed');
     run(s, B.merchant.cooldownMs + STEP);
     eq(CM.merchant.deliver(s, s.orders[0].id, recipe.id).reason, 'no-lots', 'no lots left');
+    eq(s.rep, B.merchant.stances.fair.rep, 'reputation earned once');
     // Un pedido exigente rechaza una receta que no cumple.
     const picky = { id: 'x', buyer: 'collector', qty: 1, req: { funk: 99, maturation: 'aged' } };
     eq(CM.merchant.matches(picky, recipe), false, 'requirements are enforced');
@@ -279,7 +281,7 @@
   test('[10b] every generated order can be met by some recipe in the alpha', () => {
     const s = withLot();
     s.deposits.gouda.unlocked = true;
-    s.totals.lotsSold = 99;
+    s.rep = 999;
     const combos = CM.cheesery.allCombos(CM.cheesery.unlockedBases(s));
     const seen = {};
     for (let i = 0; i < 300; i++) {
@@ -435,6 +437,68 @@
     const loaded = CM.storage.parse(JSON.stringify(s), 1);
     eq(loaded.cookRecipe, recipe.id, 'assignment persists');
     valid(s);
+  });
+
+  test('haggling: a refused markup loses the customer but never the cheese or coins', () => {
+    const s = withLot();
+    const recipe = s.recipes[0];
+    let sold = 0;
+    let refused = 0;
+    for (let i = 0; i < 200; i++) {
+      s.lots[recipe.id] = 1;
+      run(s, B.merchant.cooldownMs + STEP);
+      const order = s.orders[0];
+      const q0 = CM.merchant.quote(s, order, recipe, 'premium');
+      truthy(q0.chance > 0 && q0.chance < 1, 'chance is a real probability');
+      truthy(q0.unit > CM.merchant.quote(s, order, recipe, 'fair').unit, 'markup pays more');
+      const coins = s.coins;
+      const r = CM.merchant.deliver(s, order.id, recipe.id, 'premium');
+      if (r.sold) {
+        sold += 1;
+        eq(s.coins, coins + q0.total, 'paid the quoted price');
+        eq(s.lots[recipe.id], 0, 'cheese consumed');
+      } else {
+        refused += 1;
+        eq(s.coins, coins, 'no coins on refusal');
+        eq(s.lots[recipe.id], 1, 'cheese kept on refusal');
+      }
+      eq(CM.merchant.deliver(s, order.id, recipe.id, 'fair').reason, 'order-gone', 'customer is gone either way');
+    }
+    truthy(sold > 10 && refused > 10, 'both outcomes happen (' + sold + ' sold, ' + refused + ' refused)');
+    eq(s.totals.markupSales, sold, 'markup sales counted');
+    valid(s);
+  });
+
+  test('customers leave when their patience runs out; reputation unlocks buyers', () => {
+    const s = withLot();
+    const first = s.orders[0].id;
+    run(s, B.merchant.buyers.neighbor.patienceMs + STEP);
+    truthy(CM.merchant.find(s, first) < 0, 'customer left');
+    truthy(s.totals.walkouts >= 1, 'walkout counted');
+    eq(CM.merchant.unlockedBuyers(s).join(','), 'neighbor', 'only the neighbor at level 1');
+    s.rep = B.merchant.repLevels[2];
+    eq(CM.merchant.repLevel(s), 3, 'level');
+    eq(CM.merchant.unlockedBuyers(s).join(','), 'neighbor,restaurant,collector', 'buyers at level 3');
+    const recipe = s.recipes[0];
+    const low = CM.merchant.quote({ rep: 0 }, { buyer: 'neighbor', qty: 1, req: {} }, recipe, 'fair').unit;
+    truthy(CM.merchant.quote(s, { buyer: 'neighbor', qty: 1, req: {} }, recipe, 'fair').unit >= low, 'reputation never lowers prices');
+  });
+
+  test('cheesery upgrade and recipe mastery make lots faster; mastery adds value', () => {
+    const s = withLot();
+    const recipe = s.recipes[0];
+    const base = CM.cheesery.jobTime(s, COMBO, recipe);
+    eq(base, CM.cheesery.lotTime(COMBO), 'level 1, mastery 1: base time');
+    s.coins = 10000;
+    eq(CM.construction.upgrade(s, 'cheesery').ok, true, 'upgrade');
+    truthy(CM.cheesery.jobTime(s, COMBO, recipe) < base, 'upgrade is faster');
+    eq(q.isAutomated(s, 'cheesemaker'), false, 'upgrade does not automate');
+    const value = CM.cheesery.statsOf(recipe).value;
+    recipe.made = B.cheesery.masteryAt[2];
+    eq(CM.cheesery.masteryLevel(recipe), 3, 'mastery level');
+    truthy(CM.cheesery.statsOf(recipe).value > value, 'mastery adds value');
+    truthy(CM.cheesery.jobTime(s, COMBO, recipe) < CM.cheesery.jobTime(s, COMBO, null), 'mastery is faster');
+    eq(CM.storage.parse(JSON.stringify(s), 1).recipes[0].made, recipe.made, 'mastery persists');
   });
 
   test('softlock guard: with nothing left to extract or sell, the next deposit is affordable', () => {

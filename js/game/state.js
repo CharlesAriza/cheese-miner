@@ -40,14 +40,15 @@
       inv: { raw: perBase(), base: perBase() },
       lots: {}, // recipeId -> lotes en almacén
       built: { drill: false, refinery: false, storage: false, house: false, cheesery: false, market: false },
-      levels: { pickaxe: 0, drill: 0, refinery: 0, storage: 0, house: 0 }, // machineLevel
+      levels: { pickaxe: 0, drill: 0, refinery: 0, cheesery: 0, storage: 0, house: 0 }, // machineLevel
       workers: { miner: 0, driller: 0, refiner: 0, cheesemaker: 0 }, // workerCount
       cookRecipe: '', // id de la receta asignada al Cheesemaker
       jobs: { drill: null, refinery: null, cheesery: null },
       minerAcc: 0,
       combo: 0,
       lastHitAt: -1e9,
-      recipes: [], // { id, key, name, at }
+      recipes: [], // { id, key, name, at, made }
+      rep: 0, // puntos de reputación de la tienda
       orders: [],
       totals: {
         hits: 0,
@@ -58,6 +59,8 @@
         baseConsumed: 0,
         lotsProduced: 0,
         lotsSold: 0,
+        markupSales: 0,
+        walkouts: 0,
         coinsEarned: 0,
         coinsSpent: 0,
         recipes: 0,

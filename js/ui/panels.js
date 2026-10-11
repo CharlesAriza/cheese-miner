@@ -37,7 +37,7 @@
     'base-locked': 'You have not opened that zone yet',
     'no-lots': 'Not enough of that cheese',
     'no-match': 'That cheese does not meet the order',
-    'order-gone': 'That order is gone',
+    'order-gone': 'That customer already left',
     'not-in-alpha': 'Not available in the alpha',
     'empty-name': 'Type a name first',
     idle: 'Nothing is being made',
@@ -155,7 +155,7 @@
         h += '<div class="result">' + I.img('lot', combo.base, 'big') + '<div><b>' + esc(known.name) + '</b><div>' + statLine(C.statsOf(known)) + '</div><small>Already in your Recipe Book</small></div></div>';
       } else {
         const can = !job && s.inv.base[combo.base] >= B.cheesery.experimentBase && s.coins >= coins && q.lotsSpace(s) >= 1;
-        h += '<div class="result"><div><b>Unknown cheese</b><div><span class="stat">Taste ?</span><span class="stat">Funk ?</span><span class="stat">Aroma ?</span><span class="stat">Value ?</span></div><small>Costs ' + B.cheesery.experimentBase + ' ' + B.bases[combo.base].name + ' Base' + (coins ? ' + ' + coins + ' coins' : '') + ' · ' + secs(C.lotTime(combo)) + ' · gives the recipe and 1 cheese</small></div></div>';
+        h += '<div class="result"><div><b>Unknown cheese</b><div><span class="stat">Taste ?</span><span class="stat">Funk ?</span><span class="stat">Aroma ?</span><span class="stat">Value ?</span></div><small>Costs ' + B.cheesery.experimentBase + ' ' + B.bases[combo.base].name + ' Base' + (coins ? ' + ' + coins + ' coins' : '') + ' · ' + secs(C.jobTime(s, combo, null)) + ' · gives the recipe and 1 cheese</small></div></div>';
         h += btn('experiment', 'EXPERIMENT', { off: !can, cls: 'buy wide' });
       }
       return h;
@@ -170,9 +170,11 @@
       const coins = B.ingredients[combo.ingredient].coinCost;
       const max = Math.max(0, Math.min(B.cheesery.maxQueue, Math.floor(s.inv.base[combo.base] / B.cheesery.lotBase), q.lotsSpace(s), coins ? Math.floor(s.coins / coins) : 99));
       const cooking = hasCook && s.cookRecipe === r.id;
+      const made = r.made || 0;
+      const nextAt = B.cheesery.masteryAt[st.mastery];
       h +=
         '<div class="recipe' + (cooking ? ' cooking' : '') + '"><div class="rhead">' + I.img('lot', combo.base, 'big') + '<b>' + esc(r.name) + '</b>' + btn('rename:' + r.id, 'RENAME', { cls: 'mini' }) + '</div><small>' + comboLine(combo) + (st.synergies.length ? ' · Synergy: ' + st.synergies.join(', ') : '') + '</small><div>' + statLine(st) +
-        '</div><div class="rfoot"><span>In stock: ' + (s.lots[r.id] || 0) + ' · ' + B.cheesery.lotBase + ' Base' + (coins ? ' + ' + coins + 'c' : '') + ' each · ' + secs(C.lotTime(combo)) + '</span><span>' +
+        '</div><small class="mastery">Mastery LV ' + st.mastery + (nextAt ? ' · ' + made + '/' + nextAt + ' made for the next level (more value, faster)' : ' · MAX') + '</small><div class="rfoot"><span>In stock: ' + (s.lots[r.id] || 0) + ' · ' + B.cheesery.lotBase + ' Base' + (coins ? ' + ' + coins + 'c' : '') + ' each · ' + secs(C.jobTime(s, combo, r)) + '</span><span>' +
         btn('make:' + r.id + ':1', 'MAKE 1', { off: job || max < 1, cls: 'buy' }) + btn('make:' + r.id + ':' + Math.max(1, max), 'MAKE ' + (max > 1 ? max : 'MAX'), { off: job || max < 2, cls: 'buy' }) + '</span></div>' +
         (hasCook ? btn(cooking ? 'cook:' : 'cook:' + r.id, cooking ? 'COOKING THIS · TAP TO STOP' : 'COOK THIS', { cls: 'wide ' + (cooking ? 'on' : '') }) : '') + '</div>';
     }
@@ -191,26 +193,41 @@
     return out.join('');
   }
 
-  function marketPanel(s) {
-    let h = '<p class="hint">Give each buyer a cheese that meets what they want. Better buyers show up as you sell.</p>';
-    for (let i = 0; i < B.merchant.slots; i++) {
+  function marketPanel(s, ui) {
+    const M = B.merchant;
+    const rep = CM.merchant.repProgress(s);
+    const nextBuyer = Object.keys(M.buyers).find((id) => M.buyers[id].unlockRep === rep.level + 1);
+    let h =
+      '<div class="rep"><div class="rhead"><b>Reputation LV ' + rep.level + '</b><span>' + (rep.maxed ? 'MAX' : rep.cur + '/' + rep.need) + '</span></div><div class="bar"><i style="width:' + Math.round((rep.cur / rep.need) * 100) + '%"></i></div><small>Prices +' + Math.round(M.repPricePerLevel * (rep.level - 1) * 100) + '%' +
+      (nextBuyer ? ' · LV ' + (rep.level + 1) + ' brings the ' + M.buyers[nextBuyer].name : '') + ' · fair deals and discounts build reputation fastest</small></div>';
+    for (let i = 0; i < M.slots; i++) {
       const order = s.orders[i];
       if (!order || !order.id) {
         h += '<div class="order wait">Next customer in ' + Math.ceil(((order && order.cooldown) || 0) / 1000) + 's</div>';
         continue;
       }
-      const buyer = B.merchant.buyers[order.buyer];
-      h += '<div class="order"><div class="rhead"><b>' + buyer.name + ' · wants ' + order.qty + ' cheese' + (order.qty > 1 ? 's' : '') + '</b>' + btn('decline:' + order.id, 'DECLINE', { cls: 'mini' }) + '</div><small>' + buyer.blurb + ' · pays x' + buyer.priceMult + '</small><div>' + wants(order) + '</div>';
+      const buyer = M.buyers[order.buyer];
+      h += '<div class="order"><div class="rhead"><img class="pix face" alt="" src="' + CM.mouseUrl(order.buyer) + '"><b>' + buyer.name + ' · wants ' + order.qty + ' cheese' + (order.qty > 1 ? 's' : '') + '</b>' + btn('decline:' + order.id, 'SEND AWAY', { cls: 'mini' }) + '</div><div class="bar pat"><i data-patience="' + order.id + '"></i></div><small>' + buyer.blurb + '</small><div>' + wants(order) + '</div>';
       const stocked = s.recipes
         .filter((r) => (s.lots[r.id] || 0) > 0)
-        .map((r) => ({ r, ok: CM.merchant.matches(order, r), enough: s.lots[r.id] >= order.qty, quote: CM.merchant.quote(order, r) }))
+        .map((r) => ({ r, ok: CM.merchant.matches(order, r), enough: s.lots[r.id] >= order.qty, quote: CM.merchant.quote(s, order, r, 'fair') }))
         .sort((a, b) => (b.ok && b.enough ? b.quote.total : -1) - (a.ok && a.enough ? a.quote.total : -1));
       if (!stocked.length) h += '<small class="none">You have no cheese to sell. Make some in the Cheesery.</small>';
       stocked.forEach((x, n) => {
         const good = x.ok && x.enough;
-        const why = !x.ok ? 'does not match' : !x.enough ? 'need ' + order.qty : coin(x.quote.total) + (x.quote.bonus ? ' bonus!' : '');
         const base = CM.cheesery.parseKey(x.r.key).base;
-        h += btn('deliver:' + order.id + ':' + x.r.id, '<span>' + I.img('lot', base) + esc(x.r.name) + ' x' + s.lots[x.r.id] + (good && n === 0 && stocked.length > 1 ? ' · BEST' : '') + '</span><span>' + why + '</span>', { off: !good, cls: 'deliver' });
+        const open = good && ui.offer && ui.offer.order === order.id && ui.offer.recipe === x.r.id;
+        const why = !x.ok ? 'does not match' : !x.enough ? 'need ' + order.qty : open ? 'pick a price' : coin(x.quote.total) + (x.quote.bonus ? ' loves it!' : '');
+        h += btn('offer:' + order.id + ':' + x.r.id, '<span>' + I.img('lot', base) + esc(x.r.name) + ' x' + s.lots[x.r.id] + (good && n === 0 && stocked.length > 1 ? ' · BEST' : '') + '</span><span>' + why + '</span>', { off: !good, cls: 'deliver' + (open ? ' open' : '') });
+        if (!open) return;
+        // Regateo: cuatro precios, con la probabilidad de que acepte a la vista.
+        h += '<div class="haggle">';
+        for (const id of Object.keys(M.stances)) {
+          const qt = CM.merchant.quote(s, order, x.r, id);
+          const pct = Math.round(qt.chance * 100);
+          h += btn('sell:' + order.id + ':' + x.r.id + ':' + id, M.stances[id].label + '<br>' + coin(qt.total) + '<small>' + (pct >= 100 ? 'always says yes' : pct + '% says yes') + ' · +' + M.stances[id].rep * order.qty + ' rep</small>', { cls: 'stance ' + id });
+        }
+        h += '</div><small class="none">If they say no, they leave. You keep the cheese.</small>';
       });
       h += '</div>';
     }
@@ -250,7 +267,7 @@
     statLine,
     comboLine,
     workerStatus,
-    TITLES: { colony: 'COLONY', cheese: 'CHEESERY', market: 'MARKET', options: 'OPTIONS', dev: 'PLAYTEST TOOLS' },
+    TITLES: { colony: 'COLONY', cheese: 'CHEESERY', market: 'CHEESE SHOP', options: 'OPTIONS', dev: 'PLAYTEST TOOLS' },
     render(name, s, ui) {
       return { colony: colonyPanel, cheese: cheesePanel, market: marketPanel, options: optionsPanel, dev: devPanel }[name](s, ui);
     },

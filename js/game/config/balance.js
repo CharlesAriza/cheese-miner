@@ -88,7 +88,7 @@ CM.BALANCE = {
     drill: { name: 'Cheese Drill', cost: 0, requires: { total: 'veinsFound', min: 1, text: 'Reveal a cheese vein first' } },
     refinery: { name: 'Refinery', cost: 0, requires: { total: 'rawProduced', min: 4, text: 'Drill 4 Raw Cheese first' } },
     cheesery: { name: 'Cheesery', cost: 0, requires: { total: 'baseProduced', min: 3, text: 'Refine 3 Cheese Base first' } },
-    market: { name: 'Market', cost: 0, requires: { total: 'recipes', min: 1, text: 'Discover a recipe first' } },
+    market: { name: 'Cheese Shop', cost: 0, requires: { total: 'recipes', min: 1, text: 'Discover a recipe first' } },
     storage: { name: 'Storage', cost: 90 },
     house: { name: 'Mouse House', cost: 120 },
   },
@@ -98,6 +98,7 @@ CM.BALANCE = {
     pickaxe: { name: 'Pickaxe', maxLevel: 5, base: 60, growth: 1.8 },
     drill: { name: 'Cheese Drill', maxLevel: 5, base: 80, growth: 1.8 },
     refinery: { name: 'Refinery', maxLevel: 5, base: 80, growth: 1.8 },
+    cheesery: { name: 'Cheesery', maxLevel: 5, base: 100, growth: 1.8 }, // solo velocidad
     storage: { name: 'Storage', maxLevel: 2, base: 200, growth: 2.2 },
     house: { name: 'Mouse House', maxLevel: 2, base: 200, growth: 2 },
   },
@@ -117,6 +118,11 @@ CM.BALANCE = {
     baseTimeMs: 10000, // tiempo por lote antes de tratamiento y maduración
     maxQueue: 5, // lotes máximos por encargo
     boostMs: 300,
+    durationFactorPerLevel: 0.85, // cada nivel de la Cheesery acorta el tiempo por lote
+    // Maestría: lotes fabricados de una receta para alcanzar los niveles 1, 2, 3...
+    masteryAt: [0, 3, 8, 15, 25],
+    masteryValue: 0.08, // +8 % de Value por nivel de maestría
+    masteryTime: 0.06, // -6 % de tiempo por nivel de maestría
   },
 
   ingredients: {
@@ -144,15 +150,33 @@ CM.BALANCE = {
   valueWeights: { taste: 3, funk: 2, aroma: 2 },
 
   merchant: {
-    slots: 3, // pedidos visibles a la vez; el primero siempre es del vecino
-    cooldownMs: 20000, // espera hasta que llega otro cliente a ese hueco
+    slots: 3, // clientes en la tienda a la vez; el primero siempre es un vecino
+    cooldownMs: 15000, // espera hasta que entra otro cliente en ese hueco
+    cooldownPerRepMs: 1000, // cada nivel de reputación acorta esa espera
+    cooldownMinMs: 7000,
     reqSlack: 1, // margen que se resta a las stats de la receta objetivo
+    // Puntos de reputación necesarios para cada nivel (el índice 0 es el nivel 1).
+    repLevels: [0, 6, 16, 32, 55, 85, 125, 180],
+    repPricePerLevel: 0.03, // +3 % de precio por nivel de reputación
+    // Regateo: precio y probabilidad base de que el cliente acepte.
+    stances: {
+      discount: { label: 'DISCOUNT', priceMult: 0.8, chance: 1, rep: 3 },
+      fair: { label: 'FAIR PRICE', priceMult: 1, chance: 1, rep: 2 },
+      markup: { label: 'MARKUP', priceMult: 1.25, chance: 0.55, rep: 1 },
+      premium: { label: 'BIG MARKUP', priceMult: 1.5, chance: 0.25, rep: 1 },
+    },
+    fitChancePerPoint: 0.05, // cada punto de stat por encima de lo pedido
+    fitChanceMax: 0.3,
+    bonusChance: 0.15, // si el queso cumple la preferencia del cliente
+    repChancePerLevel: 0.03,
+    chanceMax: 0.95,
     buyers: {
-      // unlockSales: ventas totales necesarias para que aparezca
+      // unlockRep: nivel de reputación necesario; patienceMs: cuánto espera
       neighbor: {
         name: 'Neighbor',
         blurb: 'Buys any cheese, pays little',
-        unlockSales: 0,
+        unlockRep: 1,
+        patienceMs: 90000,
         priceMult: 0.8,
         qty: [1, 1],
         reqStats: [],
@@ -161,7 +185,8 @@ CM.BALANCE = {
       restaurant: {
         name: 'Restaurant',
         blurb: 'Wants tasty, aromatic cheese in bulk',
-        unlockSales: 2,
+        unlockRep: 2,
+        patienceMs: 120000,
         priceMult: 1.3,
         qty: [2, 3],
         reqStats: ['taste', 'aroma'],
@@ -169,7 +194,8 @@ CM.BALANCE = {
       collector: {
         name: 'Collector',
         blurb: 'Pays well for funky aged cheese',
-        unlockSales: 4,
+        unlockRep: 3,
+        patienceMs: 150000,
         priceMult: 1.6,
         qty: [1, 1],
         reqStats: ['funk'],
@@ -178,7 +204,8 @@ CM.BALANCE = {
       premium: {
         name: 'Premium Client',
         blurb: 'Only the finest aged cheese',
-        unlockSales: 7,
+        unlockRep: 4,
+        patienceMs: 150000,
         priceMult: 2,
         qty: [1, 2],
         reqStats: ['taste', 'aroma', 'value'],

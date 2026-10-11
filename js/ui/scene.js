@@ -65,7 +65,16 @@
     refiner: makeSprite(MOUSE_ROWS, mousePalette('#4a8fe8', '#2b5cab', '#dff3ff'), '#2a1d2e'),
     merchant: makeSprite(MOUSE_ROWS, mousePalette('#5fcf6a', '#2f8f44', '#fff3a0'), '#2a1d2e'),
     cheesemaker: makeSprite(MOUSE_ROWS, mousePalette('#ffffff', '#c9d0df', '#ffffff'), '#2a1d2e'),
+    // Clientes de la tienda: el sombrero indica el tipo de comprador.
+    neighbor: makeSprite(MOUSE_ROWS, mousePalette('#c9975a', '#8b5a2b', '#e6bb80'), '#2a1d2e'),
+    restaurant: makeSprite(MOUSE_ROWS, mousePalette('#f4f4f4', '#d93a4f', '#f4f4f4'), '#2a1d2e'),
+    collector: makeSprite(MOUSE_ROWS, mousePalette('#9a5fd0', '#5f3590', '#ffe55c'), '#2a1d2e'),
+    premium: makeSprite(MOUSE_ROWS, mousePalette('#ffd43a', '#b8860b', '#ffffff'), '#2a1d2e'),
   };
+  // Mismo sprite para los paneles (retratos de clientes y trabajadores).
+  const mouseUrls = {};
+  CM.mouseUrl = (kind) => mouseUrls[kind] || (mouseUrls[kind] = (MICE[kind] || MICE.player).toDataURL());
+
   const MOUSE_W = MICE.player.width;
   const MOUSE_H = MICE.player.height;
 
@@ -249,7 +258,8 @@
           burst(center('cheesery'), groundY - 30, 16, YELLOWS, 100, 70);
           break;
         case 'sale':
-          burst(center('market'), groundY - 24, 24, COINS, 120, 90);
+          burst(center('market'), groundY - 24, ev.stance === 'premium' ? 44 : 24, COINS, 120, 90);
+          if (ev.stance === 'premium' || ev.stance === 'markup') fx.shake = Math.max(fx.shake, 3);
           break;
         case 'built':
           fx.popAt[ev.id] = now;
@@ -386,6 +396,12 @@
         R(x + 4 + i * 8, y + 20, 6, 5, '#c97a08');
         R(x + 5 + i * 8, y + 21, 4, 3, '#ffcf2e');
       }
+      // Clientes esperando delante del mostrador.
+      state.orders.forEach((o, i) => {
+        if (!o || !o.id) return;
+        const hurry = o.patience < o.patienceMax * 0.25;
+        drawMouseSprite(MICE[o.buyer], x + 12 + i * 10, groundY - MOUSE_H + 3 + (((now / (hurry ? 120 : 520) + i) | 0) % 2), true, null);
+      });
       const waiting = state.orders.filter((o) => o && o.id).length;
       if (waiting && ((now / 400) | 0) % 2) {
         R(x + 30, y - 8, 7, 8, '#2b1d12');

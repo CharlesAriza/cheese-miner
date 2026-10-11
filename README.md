@@ -1,6 +1,6 @@
 # Cheese Miner · Internal Playtest Alpha
 
-Juego web de gestión con ratones: picar revela vetas, el Cheese Drill extrae Raw Cheese, la Refinery lo convierte en Cheese Base, la Cheesery hace lotes de queso y el Market los vende. Con las monedas se construye, se mejora, se contrata y se abren yacimientos.
+Juego web de gestión con ratones: picar revela vetas, el Cheese Drill extrae Raw Cheese, la Refinery lo convierte en Cheese Base, la Cheesery hace quesos y tú los vendes en tu propia tienda, regateando con cada cliente. Con las monedas se construye, se mejora, se contrata y se abren yacimientos.
 
 El contrato del proyecto está en [CLAUDE.md](CLAUDE.md).
 
@@ -15,7 +15,7 @@ La interfaz está en inglés; la documentación, en español.
 
 ## Controles
 
-La pantalla se organiza en torno a la **cadena de producción**: cinco casillas (ROCK → DRILL → REFINE → CHEESE → SELL) que muestran el estado de cada estación. Al tocar una, el panel de debajo enseña qué hace, por qué está parada si lo está, su botón de acción, su mejora y su trabajador.
+La pantalla se organiza en torno a la **cadena de producción**: cinco casillas (ROCK → DRILL → REFINE → CHEESE → SHOP) que muestran el estado de cada estación. Al tocar una, el panel de debajo enseña qué hace, por qué está parada si lo está, su botón de acción, su mejora y su trabajador.
 
 | Acción | Cómo |
 | --- | --- |
@@ -24,7 +24,7 @@ La pantalla se organiza en torno a la **cadena de producción**: cinco casillas 
 | Repetir sin machacar | Mantener pulsado el botón grande |
 | Mejorar la máquina o contratar a su trabajador | Botones a la derecha del botón grande |
 | Recetas, experimentos y cocinero | Estación CHEESE → botón grande |
-| Pedidos y ventas | Estación SELL → botón grande |
+| Atender clientes y regatear | Estación SHOP → botón grande, elegir queso y luego precio |
 | Zonas, almacén, Mouse House y todos los trabajadores | **COLONY** |
 | Moverse por la colonia | Arrastrar la escena hacia los lados |
 | Sonido, exportar, importar, reiniciar, dev tools | **OPTIONS** |
@@ -43,8 +43,8 @@ La simulación avanza en pasos fijos de 100 ms y no depende del render. La inter
 | `js/game/state.js` | Modelo único de datos, consultas derivadas, validación de invariantes |
 | `js/game/systems/production.js` | Mining, Drilling, Refining |
 | `js/game/systems/colony.js` | Construcción, mejoras, trabajadores, yacimientos |
-| `js/game/systems/cheesery.js` | Fórmula de recetas, experimentos, lotes, Recipe Book |
-| `js/game/systems/merchant.js` | Compradores, pedidos, ventas |
+| `js/game/systems/cheesery.js` | Fórmula de recetas, experimentos, lotes, Recipe Book, maestría, Cheesemaker |
+| `js/game/systems/merchant.js` | Tienda: clientes, paciencia, regateo, reputación |
 | `js/game/simulation.js` | Reloj, automatización, hitos, progreso offline |
 | `js/storage.js` | Guardado versionado, exportar e importar |
 | `js/playtest/` | Telemetría local y herramientas de desarrollo |
@@ -54,6 +54,8 @@ La simulación avanza en pasos fijos de 100 ms y no depende del render. La inter
 Diferencias con el contrato:
 
 - Hay un cuarto trabajador, el **Cheesemaker**, que cocina sin parar la receta que se le asigne. El contrato solo definía Miner, Driller y Refiner; se añadió a petición del propietario. Vender sigue siendo manual.
+- El Merchant es ahora una **tienda propia**: los clientes entran, esperan con paciencia limitada y se regatea el precio. La reputación sustituye al número de ventas para desbloquear compradores.
+- Las recetas tienen **maestría** y la Cheesery tiene mejora de velocidad.
 - Se pedía TypeScript + Vite, pero el equipo de desarrollo no tiene Node. Se usó JavaScript sin compilación, con la misma separación de responsabilidades. Migrar a TypeScript más adelante no cambia el diseño.
 
 ## Sustituir los gráficos

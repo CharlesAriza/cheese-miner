@@ -65,7 +65,13 @@
     s.deposits[B.deposits[0].id].unlocked = true;
 
     s.recipes = s.recipes.filter((r) => isObj(r) && typeof r.id === 'string' && CM.cheesery.parseKey(r.key));
-    s.recipes.forEach((r) => (r.name = String(r.name || CM.cheesery.defaultName(CM.cheesery.parseKey(r.key))).slice(0, 24)));
+    s.recipes.forEach((r) => {
+      r.name = String(r.name || CM.cheesery.defaultName(CM.cheesery.parseKey(r.key))).slice(0, 24);
+      r.made = nat(r.made);
+    });
+    s.rep = nat(s.rep);
+    // Partidas anteriores a la tienda: la reputación se deduce de lo ya vendido.
+    if (s.rep === 0 && s.totals.lotsSold > 0) s.rep = s.totals.lotsSold * 2;
     const lots = {};
     for (const r of s.recipes) if (nat(s.lots[r.id]) > 0) lots[r.id] = nat(s.lots[r.id]);
     s.lots = lots;
@@ -85,6 +91,12 @@
     s.orders = s.orders
       .slice(0, B.merchant.slots)
       .map((o) => (isObj(o) && o.id && B.merchant.buyers[o.buyer] && o.qty > 0 && isObj(o.req) ? o : isObj(o) && o.cooldown > 0 ? { cooldown: o.cooldown } : null));
+    s.orders.forEach((o) => {
+      if (!o || !o.id) return;
+      const max = B.merchant.buyers[o.buyer].patienceMs;
+      o.patienceMax = max;
+      o.patience = o.patience > 0 ? Math.min(o.patience, max) : max;
+    });
     const fresh = CM.telemetry.create();
     for (const k of Object.keys(fresh)) if (typeof s.metrics[k] !== typeof fresh[k]) s.metrics[k] = fresh[k];
     return s;

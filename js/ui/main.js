@@ -17,6 +17,7 @@
     panel: null,
     station: 'rock',
     cheeseTab: 'experiment',
+    offer: null,
     combo: { base: 'cheddar', ingredient: 'herbs', treatment: 'washed', maturation: 'fresh' },
     lastHtml: '',
     dockHtml: '',
@@ -193,9 +194,36 @@
         buzz(20);
         fly(I.url('lot', base), $('res-lots'), 'market', ev.qty);
         fly(I.url('coin'), 'market', $('res-coins'), 6, () => bump('res-coins'));
-        float(I.img('coin') + '+' + ev.coins + (ev.bonus ? ' BONUS!' : ''), 'market', 'coins');
+        float(I.img('coin') + '+' + ev.coins + (ev.stance === 'premium' ? ' JACKPOT!' : ev.stance === 'markup' ? ' NICE DEAL!' : ev.bonus ? ' LOVED IT!' : ''), 'market', 'coins' + (ev.stance === 'premium' || ev.stance === 'markup' ? ' big' : ''));
+        if (ev.stance === 'premium' || ev.stance === 'markup') {
+          toast('Deal! They paid ' + ev.coins + ' coins', true);
+          scene.celebrate();
+        }
         tileBump('market');
         dirty = true;
+        break;
+      }
+      case 'haggleFail':
+        play('denied');
+        float('NO DEAL!', 'market', 'crit');
+        toast('Too expensive: the ' + B.merchant.buyers[ev.buyer].name + ' walked out. You kept the cheese');
+        break;
+      case 'customerLeft':
+        float('left...', 'market', 'search dim');
+        break;
+      case 'repUp': {
+        const newcomer = Object.keys(B.merchant.buyers).find((id) => B.merchant.buyers[id].unlockRep === ev.level);
+        play('reveal');
+        scene.celebrate();
+        banner('SHOP REPUTATION LV ' + ev.level + '!');
+        toast(newcomer ? 'New customers: the ' + B.merchant.buyers[newcomer].name + ' will visit your shop' : 'Customers now pay more', true);
+        break;
+      }
+      case 'masteryUp': {
+        const recipe = CM.cheesery.recipe(state, ev.recipeId);
+        play('crit');
+        float('MASTERY LV ' + ev.level + '!', 'cheesery', 'lot');
+        toast((recipe ? recipe.name : 'Recipe') + ' mastered to LV ' + ev.level + ': worth more, cooks faster', true);
         break;
       }
       case 'purchase':
@@ -283,7 +311,7 @@
   // ---------- Cadena de estaciones ----------
   const BUILDING = { drill: 'drill', refinery: 'refinery', cheesery: 'cheesery', market: 'market' };
   const WORKER = { rock: 'miner', drill: 'driller', refinery: 'refiner', cheesery: 'cheesemaker' };
-  const UPGRADE = { rock: 'pickaxe', drill: 'drill', refinery: 'refinery' };
+  const UPGRADE = { rock: 'pickaxe', drill: 'drill', refinery: 'refinery', cheesery: 'cheesery' };
 
   function select(st, quiet) {
     ui.station = st;
@@ -331,7 +359,7 @@
   }
 
   // Qué estación pide el objetivo actual.
-  const GOAL_AT = { vein: 'rock', drill: 'drill', raw: 'drill', refinery: 'refinery', base: 'refinery', cheesery: 'cheesery', recipe: 'cheesery', market: 'market', sale: 'market', house: 'colony', worker: 'colony', allRoles: 'colony', deposit2: 'colony', cook: 'colony' };
+  const GOAL_AT = { markup: 'market', rep3: 'market', vein: 'rock', drill: 'drill', raw: 'drill', refinery: 'refinery', base: 'refinery', cheesery: 'cheesery', recipe: 'cheesery', market: 'market', sale: 'market', house: 'colony', worker: 'colony', allRoles: 'colony', deposit2: 'colony', cook: 'colony' };
 
   const BUBBLE = { 'storage-full': 'FULL!', 'no-vein': 'NO VEIN', depleted: 'EMPTY', 'no-raw': 'NO RAW', 'no-recipe': 'NO RECIPE', 'no-material': 'NO BASE' };
   const bubbles = {};
@@ -362,10 +390,10 @@
       set(tile, 'goal', goalAt === st && ui.station !== st);
       set(tile.querySelector('.mini > i'), 'width', Math.round(info.progress * 100) + '%');
       const auto = WORKER[st] && state.workers[WORKER[st]] > 0;
-      set(tile.querySelector('em'), 'text', info.state === 'locked' ? 'LOCK' : info.state === 'build' ? 'BUILD' : st === 'market' && info.ready ? info.ready + ' SELL' : canInvest(st) ? 'UP!' : auto ? 'AUTO' : '');
+      set(tile.querySelector('em'), 'text', info.state === 'locked' ? 'LOCK' : info.state === 'build' ? 'BUILD' : st === 'market' && info.ready ? info.ready + ' HERE' : canInvest(st) ? 'UP!' : auto ? 'AUTO' : '');
       // Aviso sobre el edificio solo cuando está parado por algo.
       const reason = info.reason !== 'no-vein' && (info.state === 'blocked' || (auto && info.state === 'waiting')) ? BUBBLE[info.reason] : '';
-      if (st !== 'rock') bubble(st, st === 'market' && info.ready ? 'SELL!' : reason || '', st === 'market' && info.ready ? 'good' : 'bad');
+      if (st !== 'rock') bubble(st, st === 'market' && info.ready ? 'CUSTOMER!' : reason || '', st === 'market' && info.ready ? 'good' : 'bad');
     }
     const def = q.depDef(state.activeDeposit);
     const d = q.dep(state);
@@ -381,7 +409,8 @@
     const up = UPGRADE[st];
     if (up && (st === 'rock' || state.built[st])) {
       const u = CM.construction.upgradeInfo(state, up);
-      h += u.maxed ? '<span class="tag">' + (st === 'rock' ? 'PICK' : 'LEVEL') + ' MAX</span>' : P.btn('upgrade:' + up, (st === 'rock' ? 'PICK' : 'UPGRADE') + ' LV' + (u.level + 2) + '<br>' + P.coin(u.cost), { off: !u.canUpgrade, cls: 'buy' });
+      const word = st === 'rock' ? 'PICK' : st === 'cheesery' ? 'FASTER' : 'UPGRADE';
+      h += u.maxed ? '<span class="tag">' + (st === 'rock' ? 'PICK' : 'LEVEL') + ' MAX</span>' : P.btn('upgrade:' + up, word + ' LV' + (u.level + 2) + '<br>' + P.coin(u.cost), { off: !u.canUpgrade, cls: 'buy' });
     }
     const role = WORKER[st];
     if (role && (st === 'rock' || state.built[st])) {
@@ -469,7 +498,7 @@
       const job = state.jobs.cheesery;
       const cook = state.workers.cheesemaker > 0;
       const recipe = CM.cheesery.recipe(state, state.cookRecipe);
-      m.title = 'Cheesery · ' + state.recipes.length + ' recipe' + (state.recipes.length === 1 ? '' : 's');
+      m.title = 'Cheesery LV ' + (state.levels.cheesery + 1) + ' · ' + state.recipes.length + ' recipe' + (state.recipes.length === 1 ? '' : 's');
       if (job) {
         const r = job.recipeId ? CM.cheesery.recipe(state, job.recipeId) : null;
         m.status = (job.kind === 'experiment' && !r ? 'Experimenting with a new combination' : 'Making ' + (r ? r.name : 'cheese')) + (cook ? ' · automated' : '');
@@ -487,18 +516,18 @@
         m.sub = state.recipes.length ? 'Open the Recipe Book' : 'Discover your first recipe';
         m.mode = info.state === 'ready' ? 'hot' : '';
       }
-      m.side = P.btn('open:cheese', (cook ? 'COOK: ' + (recipe ? P.esc(recipe.name) : 'choose') : 'RECIPES') + '<br>open book', { cls: 'buy' }) + m.side;
+      if (job || cook) m.side = P.btn('open:cheese', (cook ? 'COOK: ' + (recipe ? P.esc(recipe.name) : 'choose') : 'RECIPE BOOK') + '<br>open', { cls: 'buy' }) + m.side;
       return m;
     }
 
     const n = info.ready || 0;
     const waiting = state.orders.filter((o) => o && o.id).length;
-    m.title = 'Market · ' + waiting + ' buyer' + (waiting === 1 ? '' : 's') + ' waiting';
-    m.status = n ? n + ' order' + (n === 1 ? '' : 's') + ' you can fill right now' : q.lotsTotal(state) ? 'None of your cheese fits these orders' : 'You have no cheese to sell yet';
+    m.title = 'Cheese Shop · reputation LV ' + CM.merchant.repLevel(state);
+    m.status = waiting + ' customer' + (waiting === 1 ? '' : 's') + ' inside · ' + (n ? n + ' you can serve right now' : q.lotsTotal(state) ? 'none of your cheese fits what they want' : 'you have no cheese to sell yet');
     m.tone = n ? 'good' : 'warn';
     m.kind = 'open:market';
-    m.label = 'SELL';
-    m.sub = n ? n + ' ready!' : 'See the orders';
+    m.label = 'SERVE';
+    m.sub = n ? n + ' waiting for you!' : 'See your customers';
     m.mode = n ? 'hot' : '';
     m.side = '';
     return m;
@@ -638,7 +667,12 @@
     cook: (id) => CM.cheesery.assign(state, id || ''),
     cheeseTap: () => CM.cheesery.tap(state),
     rename: (id) => void askRecipeName(id, false),
-    deliver: (orderId, recipeId) => CM.merchant.deliver(state, orderId, recipeId),
+    // Elegir queso abre los precios; elegir precio hace la oferta.
+    offer: (orderId, recipeId) => void (ui.offer = ui.offer && ui.offer.order === orderId && ui.offer.recipe === recipeId ? null : { order: orderId, recipe: recipeId }),
+    sell: (orderId, recipeId, stance) => {
+      ui.offer = null;
+      return CM.merchant.deliver(state, orderId, recipeId, stance);
+    },
     decline: (orderId) => CM.merchant.decline(state, orderId),
     open: (name) => void openPanel(name),
     sound: () => void sfx.toggleMute(),
@@ -874,6 +908,12 @@
     updateChain();
     updateDock();
     document.querySelectorAll('[data-job]').forEach((el) => (el.style.width = Math.round(progress(state.jobs[el.dataset.job]) * 100) + '%'));
+    document.querySelectorAll('[data-patience]').forEach((el) => {
+      const o = state.orders.find((x) => x && x.id === el.dataset.patience);
+      const left = o ? o.patience / o.patienceMax : 0;
+      el.style.width = Math.round(left * 100) + '%';
+      el.classList.toggle('low', left < 0.25);
+    });
   }
 
   // Aviso en COLONY: solo cuando hay algo nuevo que se puede comprar ahí.

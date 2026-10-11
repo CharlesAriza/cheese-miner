@@ -25,7 +25,10 @@
 - [ ] Construí la refinería y obtuve Cheese Base.
 - [ ] Descubrí una receta y le puse nombre.
 - [ ] Fabriqué un lote de una receta conocida.
-- [ ] Vendí un lote y recibí monedas.
+- [ ] Vendí un queso a un cliente y recibí monedas.
+- [ ] Regateé con sobreprecio al menos una vez (aceptado o rechazado).
+- [ ] Subí la reputación de la tienda y llegó un tipo de cliente nuevo.
+- [ ] Contraté al Cheesemaker y le asigné una receta.
 - [ ] Contraté un Miner, un Driller y un Refiner.
 - [ ] Mejoré al menos una máquina.
 - [ ] Noté un cuello de botella y entendí cómo resolverlo.
@@ -52,15 +55,16 @@
 
 7. ¿Qué compraste primero con tus monedas y por qué?
 8. ¿Dudaste alguna vez entre dos compras? ¿Entre cuáles?
-9. ¿Elegiste recetas pensando en un comprador concreto, o vendiste lo que tenías?
-10. ¿Algún pedido te pareció imposible o injusto?
+9. ¿Elegiste recetas pensando en un cliente concreto, o vendiste lo que tenías?
+10. ¿Cuándo arriesgaste con sobreprecio y cuándo no? ¿Te pareció justo el resultado?
+11. ¿Algún cliente pedía algo imposible o injusto?
 
 **Sensaciones**
 
-11. ¿Qué fue lo más satisfactorio de la sesión?
-12. ¿Qué fue lo más confuso o frustrante?
-13. ¿Seguirías jugando después de los 45 minutos? ¿Qué esperarías encontrar?
-14. ¿Qué te pareció el aspecto visual, sabiendo que es provisional?
+12. ¿Qué fue lo más satisfactorio de la sesión?
+13. ¿Qué fue lo más confuso o frustrante?
+14. ¿Seguirías jugando después de los 45 minutos? ¿Qué esperarías encontrar?
+15. ¿Qué te pareció el aspecto visual, sabiendo que es provisional?
 
 ## Al terminar
 

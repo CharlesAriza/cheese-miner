@@ -11,7 +11,7 @@ Se empieza con 0 monedas. Para que el circuito sea jugable desde cero, los cuatr
 | Cheese Drill | gratis | revelar una veta |
 | Refinery | gratis | haber extraído 4 Raw Cheese |
 | Cheesery | gratis | haber refinado 3 Cheese Base |
-| Market | gratis | haber descubierto una receta |
+| Cheese Shop | gratis | haber descubierto una receta |
 | Storage | 90 | ninguna |
 | Mouse House | 120 | ninguna |
 
@@ -45,6 +45,7 @@ Coste de mejora: `base × crecimiento ^ nivel`.
 | Pickaxe | 60 | 1,8 | 6 |
 | Cheese Drill | 80 | 1,8 | 6 |
 | Refinery | 80 | 1,8 | 6 |
+| Cheesery (solo velocidad: tiempo por lote ×0,85 por nivel) | 100 | 1,8 | 6 |
 | Storage | 200 | 2,2 | 3 |
 | Mouse House | 200 | 2 | 3 |
 
@@ -76,7 +77,8 @@ El Cheesemaker fabrica de uno en uno lotes de la receta asignada mientras haya C
 
 - Experimento: 3 Cheese Base, da la receta y 1 lote de muestra.
 - Lote de receta conocida: 2 Cheese Base. Hasta 5 lotes por encargo.
-- Tiempo por lote: 10 s + tratamiento + maduración.
+- Tiempo por lote: 10 s + tratamiento + maduración, reducido por el nivel de la Cheesery y por la maestría.
+- Maestría de receta: niveles 2, 3, 4 y 5 al fabricar 3, 8, 15 y 25 lotes. Cada nivel da +8 % de Value y −6 % de tiempo.
 
 | Componente | Taste | Funk | Aroma | Extra |
 | --- | --- | --- | --- | --- |
@@ -93,16 +95,29 @@ Sinergias: Cheddar + Smoked (+2 Taste), Gouda + Herbs (+2 Aroma), Washed + Aged 
 
 **Value = (Taste × 3 + Funk × 2 + Aroma × 2) × multiplicador de maduración**, redondeado.
 
-## Merchant
+## Cheese Shop
 
-Tres pedidos a la vez; el primero siempre es del vecino. Tras vender o rechazar, el hueco tarda 20 s en traer otro cliente. Cada pedido exigente se genera a partir de una receta que existe con las bases abiertas (con 1 punto de margen), así que siempre es alcanzable.
+Hasta tres clientes a la vez; el primero siempre es un vecino. Cada uno espera un tiempo y se va si no se le atiende. Tras una venta, un rechazo o una marcha, el hueco tarda 15 s en traer otro cliente (1 s menos por nivel de reputación, mínimo 7 s). Cada petición exigente se genera a partir de una receta que existe con las bases abiertas (con 1 punto de margen), así que siempre es alcanzable.
 
-| Comprador | Aparece tras | Precio | Lotes | Exige |
-| --- | --- | --- | --- | --- |
-| Neighbor | 0 ventas | ×0,8 (×1,25 extra si Taste ≥ 8) | 1 | nada |
-| Restaurant | 2 ventas | ×1,3 | 2–3 | Taste y Aroma mínimos |
-| Collector | 4 ventas | ×1,6 | 1 | Funk mínimo, solo Aged |
-| Premium Client | 7 ventas | ×2 | 1–2 | Taste, Aroma y Value mínimos, solo Aged |
+| Cliente | Reputación | Precio | Quesos | Paciencia | Exige |
+| --- | --- | --- | --- | --- | --- |
+| Neighbor | LV 1 | ×0,8 (×1,25 extra si Taste ≥ 8) | 1 | 90 s | nada |
+| Restaurant | LV 2 | ×1,3 | 2–3 | 120 s | Taste y Aroma mínimos |
+| Collector | LV 3 | ×1,6 | 1 | 150 s | Funk mínimo, solo Aged |
+| Premium Client | LV 4 | ×2 | 1–2 | 150 s | Taste, Aroma y Value mínimos, solo Aged |
+
+**Regateo.** Al elegir un queso se ofrecen cuatro precios:
+
+| Oferta | Precio | Probabilidad base | Reputación por queso |
+| --- | --- | --- | --- |
+| Discount | ×0,8 | siempre acepta | +3 |
+| Fair price | ×1 | siempre acepta | +2 |
+| Markup | ×1,25 | 55 % | +1 |
+| Big markup | ×1,5 | 25 % | +1 |
+
+A la probabilidad se suman +5 % por cada punto de Taste, Funk o Aroma por encima de lo pedido (hasta +30 %), +15 % si el queso cumple la preferencia del cliente y +3 % por nivel de reputación, con tope del 95 %. Si rechaza, se va: no se cobra y el queso se conserva. No hay barra de energía.
+
+**Reputación.** Puntos para los niveles 1 a 8: 0, 6, 16, 32, 55, 85, 125, 180. Cada nivel sube los precios un 3 %.
 
 ## Offline
 
@@ -118,9 +133,9 @@ Un bot que juega sin pausas y sin dev tools (ver `tests.html`):
 | Hito | Bot rápido (1 tap / 0,4 s) | Bot lento (1 tap / 1,5 s) |
 | --- | --- | --- |
 | Primera venta | 1,5 min | 2,6 min |
-| Primer trabajador | 5,6 min | 9,4 min |
-| Segundo yacimiento | 14,6 min | 19,6 min |
-| Primer yacimiento agotado | 20,7 min | 24,4 min |
-| Los tres roles contratados | 23,7 min | 27,4 min |
+| Primer trabajador | 5,7 min | 10 min |
+| Segundo yacimiento | 13,2 min | 16,6 min |
+| Primer yacimiento agotado | 18 min | 21,4 min |
+| Los tres roles contratados | 20,3 min | 23,7 min |
 
-El bot no lee menús ni duda. Una persona tardará más: la estimación de 30–60 minutos está sin confirmar hasta hacer playtests reales.
+El bot siempre vende a precio justo y no usa al Cheesemaker ni la mejora de la Cheesery. No lee menús ni duda. Una persona tardará más: la estimación de 30–60 minutos está sin confirmar hasta hacer playtests reales.

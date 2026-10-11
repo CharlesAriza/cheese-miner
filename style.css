@@ -1272,6 +1272,79 @@ button {
   background: #ff9a1f;
 }
 
+.rep {
+  margin-bottom: 8px;
+  padding: 8px;
+  background: var(--bg);
+  border: 2px solid #ffe55c;
+  border-radius: 6px;
+}
+
+.rep .rhead span {
+  font-size: 8px;
+  color: var(--muted);
+}
+
+.pix.face {
+  width: 34px;
+  margin-right: 6px;
+}
+
+.bar.pat {
+  height: 6px;
+  margin: 6px 0;
+}
+
+.bar.pat i {
+  background: #5fcf6a;
+  transition: none;
+}
+
+.bar.pat i.low {
+  background: #ff5a7a;
+}
+
+.panel button.deliver.open {
+  background: #ff9a1f;
+}
+
+.haggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.panel button.stance {
+  padding: 8px 4px;
+  background: #3fa860;
+}
+
+.panel button.stance.discount {
+  background: #4a6fd6;
+}
+
+.panel button.stance.markup {
+  background: #d98a14;
+}
+
+.panel button.stance.premium {
+  background: #d93a4f;
+}
+
+.stance small {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  color: #ffffffdd;
+}
+
+.mastery {
+  display: block;
+  margin-top: 4px;
+  color: #ffe55c !important;
+}
+
 @keyframes spend {
   0% {
     opacity: 0;
