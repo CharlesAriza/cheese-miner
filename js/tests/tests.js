@@ -65,7 +65,8 @@
     s.totals.baseProduced = 10;
     eq(CM.construction.build(s, 'cheesery').ok, true, 'build cheesery');
     eq(CM.cheesery.experiment(s, COMBO).ok, true, 'experiment');
-    run(s, CM.cheesery.jobTime(s, COMBO, null));
+    run(s, CM.cheesery.labTime(s));
+    s.lab.auto = false; // las pruebas deciden cuándo investiga el laboratorio
     eq(CM.construction.build(s, 'shop').ok, true, 'build shop');
     run(s, STEP);
     return s;
@@ -431,9 +432,10 @@
     eq(s.inv.raw.gouda, 0, 'all the gouda raw was used');
     // Dos encargos a la vez, uno por línea.
     s.skills.cheesemaking.xp = q.xpForLevel(1);
-    eq(CM.cheesery.experiment(s, Object.assign({}, COMBO, { base: 'gouda' })).ok, true, 'experiment on the gouda line');
-    eq(CM.cheesery.produce(s, s.recipes[0].id, 1).ok, true, 'cheddar line cooks at the same time');
-    truthy(s.zones.gouda.cookJob && s.zones.cheddar.cookJob, 'both lines are busy');
+    eq(CM.cheesery.experiment(s, Object.assign({}, COMBO, { base: 'gouda' })).ok, true, 'research a gouda recipe in the lab');
+    eq(CM.cheesery.produce(s, s.recipes[0].id, 1).ok, true, 'the cheddar line cooks at the same time');
+    truthy(s.lab.job && !s.zones.gouda.cookJob && s.zones.cheddar.cookJob, 'the lab researches next to production, without taking a line');
+    eq(CM.cheesery.experiment(s, Object.assign({}, COMBO, { base: 'gouda' })).reason, 'lab-busy', 'one research at a time');
     run(s, 30000);
     eq(s.recipes.length, 2, 'gouda recipe discovered');
     const gouda = s.recipes[1];
@@ -578,7 +580,7 @@
     eq(s.mice.length, 2, 'one mouse less');
     eq(CM.mice.byId(s, gone.id), null, 'it is gone');
     eq(s.coins, coins, 'nothing is refunded');
-    truthy(CM.mice.recruitCost(s) < cost3, 'the next recruit is cheaper again');
+    eq(CM.mice.recruitCost(s), cost3, 'dismissing does not make the next recruit cheaper');
     // El que esperaba ocupa el puesto libre; el que descansa, no
     const d = staff(s, 'mining', 'cheddar', { post: '' });
     const working = s.mice.find((m) => m.post && m !== d);
@@ -874,6 +876,43 @@
     eq(CM.storage.parse(JSON.stringify(one), 1000000).mice[0].traits.join(), 'fast,dreamer', 'a single Fast Dreamer mouse is left alone');
   });
 
+  test('cheese lab: research runs next to production and can carry on by itself', () => {
+    const s = withCheese();
+    const first = s.recipes[0];
+    eq(s.recipes.length, 1, 'one recipe from the first research');
+    eq(s.lots[first.id], 1, 'research gives one cheese');
+    // Con un ratón cocinando, investigar no para la quesería
+    staff(s, 'cheesemaking');
+    s.inv.base.cheddar = 40;
+    run(s, 2000);
+    truthy(s.zones.cheddar.cookJob, 'the cheesemaker is cooking');
+    eq(CM.cheesery.experiment(s, Object.assign({}, COMBO, { treatment: 'smoked' })).reason, 'part-locked', 'locked parts cannot be researched');
+    s.skills.cheesemaking.xp = q.xpForLevel(5);
+    const made = s.totals.lotsProduced;
+    eq(CM.cheesery.experiment(s, Object.assign({}, COMBO, { treatment: 'smoked' })).ok, true, 'research while the line cooks');
+    truthy(CM.cheesery.labTime(s) > B.cheesery.labBaseMs, 'each new recipe takes a bit longer');
+    run(s, CM.cheesery.labTime(s) + 1000);
+    eq(s.recipes.length, 2, 'the recipe is discovered');
+    truthy(s.totals.lotsProduced > made + 1, 'and the line kept producing meanwhile');
+    eq(s.lab.job, null, 'with auto off the lab stops');
+    // Solo: prueba la más prometedora que puede pagar, y reclama la base que le falta
+    s.lab.auto = true;
+    s.coins = 100;
+    run(s, 4000);
+    truthy(s.lab.job, 'on auto it starts the next one');
+    const pick = CM.cheesery.parseKey(s.lab.job.key);
+    eq(pick.ingredient, 'pepper', 'the most promising part it can use at this level');
+    s.inv.base.cheddar = 0;
+    run(s, CM.cheesery.labTime(s) + 3000);
+    eq(s.lab.want, 'cheddar', 'with no base left it asks for some');
+    s.inv.base.cheddar = B.cheesery.experimentBase + 1;
+    run(s, 4200);
+    truthy(s.lab.job, 'the lab takes its base before the cheesemaker does');
+    const back = CM.storage.parse(JSON.stringify(s), 1000000);
+    eq(JSON.stringify(back.lab.job), JSON.stringify(s.lab.job), 'research survives a reload');
+    valid(s);
+  });
+
   test('every mouse has its own look, and old saves get one', () => {
     const s = fresh();
     s.built.house = true;
@@ -1029,6 +1068,10 @@
   // `opts.state`: partida de la que continuar (para partidas muy largas, por tramos).
   function playBot(tapEveryMs, limitMs, stopAt, snapshots, smart, focus, opts) {
     const skip = (opts && opts.skip) || [];
+    // Jugador casual: `maxRecipes` recetas como mucho por queso, `buyEveryMs` entre compras,
+    // `idleAfterAuto` deja de tocar cuando las cinco etapas tienen ratón.
+    const casual = opts || {};
+    const buyEvery = casual.buyEveryMs || 2000;
     const SKILL_OF = { mine: 'mining', drill: 'drilling', refine: 'refining', cook: 'cheesemaking', shop: 'trading' };
     const counts = { mine: 0, drill: 0, refine: 0, cook: 0, shop: 0 };
     const s = (opts && opts.state) || fresh();
@@ -1040,7 +1083,7 @@
     while (s.clock < limitMs && s.goalsDone[stopAt] === undefined) {
       CM.sim.step(s, STEP);
       for (const id of CM.construction.order) CM.construction.build(s, id);
-      if (s.clock - lastBuy >= 2000) {
+      if (s.clock - lastBuy >= buyEvery) {
         lastBuy = s.clock;
         const next = CM.zones.next(s);
         if (next) CM.zones.unlock(s, next.id);
@@ -1088,7 +1131,7 @@
           } else for (const skill of ORDER) if (skip.indexOf(skill) < 0) CM.tree.buyAll(s, skill);
         }
       }
-      if (s.clock - lastTap >= tapEveryMs) {
+      if (s.clock - lastTap >= tapEveryMs && !(casual.idleAfterAuto && s.goalsDone.allAuto !== undefined)) {
         lastTap = s.clock;
         const zone = q.openZones(s).find((z) => CM.mining.status(s, z.id) === 'ready');
         const drillable = q.openZones(s).find((z) => CM.drilling.status(s, z.id) === 'ready');
@@ -1099,13 +1142,15 @@
         else if (CM.shop.status(s) === 'ready' && !q.auto(s, 'trading', 'all')) CM.shop.tap(s);
         else if (zone) CM.mining.hit(s, zone.id, 'manual');
       }
-      // En cada línea: descubre recetas de su queso y, si no quedan asequibles, fabrica la mejor.
-      if (s.built.cheesery) {
+      // Recetas: la primera de cada queso la investiga a mano; después el laboratorio sigue solo
+      // (o no, si el perfil dice que este jugador no investiga). La producción va aparte.
+      if (s.built.cheesery && s.clock % 1000 === 0) {
+        if (casual.maxRecipes !== undefined) s.lab.auto = false;
         for (const def of q.openZones(s)) {
-          if (s.zones[def.id].cookJob) continue;
-          const unknown = CM.cheesery.allCombos([def.base]).find((c) => !CM.cheesery.recipeByKey(s, CM.cheesery.keyOf(c)) && CM.cheesery.experiment(s, c).ok);
           const mine = s.recipes.filter((r) => CM.cheesery.parseKey(r.key).base === def.base).sort((a, b) => CM.cheesery.valueOf(s, b) - CM.cheesery.valueOf(s, a));
-          if (unknown || !mine.length) continue;
+          const wants = casual.maxRecipes === undefined ? !mine.length : mine.length < casual.maxRecipes;
+          if (wants && !s.lab.job) CM.cheesery.allCombos([def.base]).find((c) => !CM.cheesery.recipeByKey(s, CM.cheesery.keyOf(c)) && CM.cheesery.experiment(s, c).ok);
+          if (s.zones[def.id].cookJob || !mine.length) continue;
           if (q.auto(s, 'cheesemaking', def.id)) continue; // su ratón cocina solo la mejor
           for (const r of mine) if (CM.cheesery.produce(s, r.id, Math.max(1, Math.min(3, CM.cheesery.maxLots(s, r)))).ok) break;
         }
@@ -1153,11 +1198,12 @@
     notes.push('smart mice at 4 h: ' + s.mice.map((m) => K.level(m) + (K.isLegend(m) ? '*' : '') + ' x' + (m.post ? Math.round(K.speed(m, m.post.split(':')[0], s, m.post.split(':')[1]) * K.yieldMult(m, m.post.split(':')[0], s, m.post.split(':')[1]) * 100) / 100 : 0)).join(', '));
   });
 
-  test('pace report: a player who invests only in whatever is the bottleneck', () => {
-    const { snaps, mins, share } = playBot(400, 4 * 60 * 60 * 1000, 'never', [60, 120, 180, 240], false, true);
-    snaps.forEach((line) => notes.push('focus ' + line));
-    notes.push('focus rocks opened at (min): ' + ['zone2', 'zone3', 'zone4', 'zone5', 'zone6'].map((k) => (mins[k] === undefined ? '-' : mins[k])).join(' / '));
-    notes.push('focus bottleneck share: ' + share);
+  // El perfil de referencia para los precios: alguien que toca poco, compra de vez en
+  // cuando, deja de tocar al automatizar y deja al laboratorio investigar solo.
+  test('pace report: a casual player', () => {
+    const { snaps, mins } = playBot(1500, 4 * 60 * 60 * 1000, 'never', [5, 10, 20, 30, 45, 60, 120, 180, 240], false, false, { buyEveryMs: 20000, idleAfterAuto: true });
+    snaps.forEach((line) => notes.push('casual ' + line));
+    notes.push('casual goals (min): ' + ['sale', 'mouse', 'allAuto', 'promote', 'zone2', 'zone3', 'zone4', 'zone5', 'zone6'].map((k) => k + ' ' + (mins[k] === undefined ? '-' : mins[k])).join(', '));
   });
 
   test('a slow player (1 tap / 1.5 s) also gets there', () => {

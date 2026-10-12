@@ -3594,3 +3594,172 @@ button {
 .lanegroup.parmesan #lane-name {
   background: #e3bf78;
 }
+
+/* Laboratorio de recetas */
+.labbox {
+  margin: 8px 0;
+  padding: 8px;
+  font-family: var(--text);
+  background: var(--bg);
+  border-radius: 8px;
+}
+
+.labbox > b {
+  display: block;
+  font-family: var(--pixel);
+  font-size: 8px;
+  font-weight: normal;
+  color: #8ff3ff;
+}
+
+.labbox > small {
+  display: block;
+  margin: 3px 0 6px;
+  font-size: 11px;
+  color: #a79fc0;
+}
+
+/* ---------- Gestión de ratones: filas compactas y hojas de asignación ---------- */
+.panel button.mrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 5px 8px;
+  font-family: var(--text);
+  text-align: left;
+  background: var(--bg);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.mrow .pix.face {
+  flex: none;
+  width: 34px;
+}
+
+.mrow .mmain {
+  flex: 1;
+  min-width: 0;
+}
+
+.mrow b {
+  display: block;
+  font-size: 13px;
+}
+
+.mrow b i {
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+  color: var(--quiet);
+}
+
+.mrow small {
+  display: block;
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--quiet);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mtraits {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.mtraits .stat {
+  font-size: 11px;
+}
+
+.mtraits.wide {
+  margin: 4px 0;
+  white-space: normal;
+}
+
+.more {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--quiet);
+}
+
+.mrow .mright {
+  flex: none;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: right;
+  color: var(--pick);
+}
+
+.mrow .mright small {
+  font-size: 9px;
+}
+
+.panel button.mrow.free {
+  border-color: #6c6488;
+  border-style: dashed;
+}
+
+.panel button.mrow.cur {
+  background: #24405a;
+  border-color: var(--pick);
+  border-style: solid;
+}
+
+.warn {
+  font-style: normal;
+  color: #ffd43a;
+}
+
+.sheetbox,
+.idlebox {
+  margin: 0 0 10px;
+  padding: 8px;
+  background: var(--panel);
+  border: 2px solid var(--pick);
+  border-radius: 10px;
+}
+
+.idlebox {
+  border-color: #ffd43a;
+}
+
+.idlebox > b {
+  font-size: 8px;
+  font-weight: normal;
+  color: #ffd43a;
+}
+
+.shead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.shead b {
+  flex: 1;
+  font-size: 8px;
+  font-weight: normal;
+  line-height: 1.5;
+  color: var(--pick);
+}
+
+.panel .shead button {
+  min-width: 0;
+  padding: 8px;
+}
+
+.pcell em.warn {
+  color: #6c6488;
+}
+
+.panel .tabs.sorts button {
+  padding: 7px 4px;
+  font-size: 7px;
+}
+

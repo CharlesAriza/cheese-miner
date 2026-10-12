@@ -32,6 +32,7 @@
     'already-built': 'Already built',
     'max-level': 'Already at max rank',
     'no-house': 'Build the Mouse House first',
+    'lab-busy': 'The lab is already researching a recipe',
     'mouse-level': 'That mouse needs more levels first',
     'empty-post': 'Nobody works here: recruit a mouse, or select one and tap this post',
     invalid: 'That is not possible',
@@ -165,6 +166,13 @@
     h += '<div class="tabs">' + btn('tab:experiment', 'NEW RECIPE', { cls: ui.cheeseTab === 'experiment' ? 'on' : '' }) + btn('tab:book', 'RECIPE BOOK ' + s.recipes.length + '/' + C.totalCombos(), { cls: ui.cheeseTab === 'book' ? 'on' : '' }) + '</div>';
 
     if (ui.cheeseTab === 'experiment') {
+      // El laboratorio: investiga a la vez que la quesería produce.
+      const lab = s.lab.job;
+      const labCombo = lab ? C.parseKey(lab.key) : null;
+      h += '<div class="labbox"><b>CHEESE LAB</b><small>Research runs next to production: your cheesemakers never stop for it.</small>';
+      h += lab ? '<div class="jobbar">' + I.img('lot', labCombo.base) + '<span>Researching ' + esc(C.defaultName(labCombo)) + '</span><div class="bar"><i data-job="lab"></i></div></div>' : '<p class="hint">' + (s.lab.auto && s.recipes.length ? (C.labPick(s) ? 'Starting the next one...' : 'Nothing left it can research right now: it needs ' + B.cheesery.experimentBase + ' Cheese Base, or a higher Cheesemaking level for new parts.') : 'Idle. Pick four parts below and discover a recipe.') + '</p>';
+      if (s.recipes.length) h += row('Keep researching on its own', 'Tries the most promising untested recipe of your best cheese. Costs ' + B.cheesery.experimentBase + ' Cheese Base each', btn('labauto', s.lab.auto ? 'ON' : 'OFF', { cls: 'buy' }));
+      h += '</div>';
       const combo = ui.combo;
       for (const p of C.PARTS) if (C.partLocked(s, p, combo[p])) combo[p] = Object.keys(B[C.TABLES[p]]).find((id) => !C.partLocked(s, p, id));
       const groups = [
@@ -187,10 +195,10 @@
       if (known) {
         h += '<div class="result">' + I.img('lot', combo.base, 'big') + '<div><b>' + esc(known.name) + '</b><div>' + valueTag(s, known) + '</div><small>Already in your Recipe Book</small></div></div>';
       } else {
-        const can = !laneOf(combo.base).cookJob && s.inv.base[combo.base] >= B.cheesery.experimentBase && s.coins >= coins;
+        const can = !s.lab.job && s.inv.base[combo.base] >= B.cheesery.experimentBase && s.coins >= coins;
         const syn = C.formula(combo).synergies;
         h += '<div class="result"><div><b>Undiscovered cheese</b><small>' + (syn.length ? 'These go well together! ' : '') + 'Costs ' + B.cheesery.experimentBase + ' ' + B.bases[combo.base].name + ' Base' + (coins ? ' + ' + coins + ' coins' : '') + ' · ' + secs(C.jobTime(s, combo, null)) + ' · you get the recipe and 1 cheese</small></div></div>';
-        h += btn('experiment', 'DISCOVER IT', { off: !can, cls: 'buy wide' });
+        h += btn('experiment', s.lab.job ? 'THE LAB IS BUSY' : 'DISCOVER IT', { off: !can, cls: 'buy wide' });
       }
       return h + '<p class="hint">Cheesemaking LV ' + level + '. Higher levels unlock better ingredients.</p>';
     }
@@ -357,40 +365,48 @@
   CM.mouseRate = mouseRate;
   CM.traitDesc = traitDesc;
 
-  // ---------- La colonia dibujada: cada roca, su línea de puestos ----------
+  // ---------- Gestión de la colonia ----------
+  // Dos vistas: por roca (los puestos, en rejilla) y la lista completa de ratones.
+  // Todo se hace desde aquí: tocar un puesto enseña quién podría ocuparlo, tocar un
+  // ratón enseña a qué puestos puede ir. Un toque más y queda asignado.
   const POST_NAME = { mining: 'MINE', drilling: 'DRILL', refining: 'REFINE', cheesemaking: 'CHEESE', trading: 'SELL' };
   const hearts = (a) => (a ? '<i class="hrt">' + (a === 2 ? '&#9829;&#9829;' : '&#9829;') + '</i>' : '');
-  // Lo único que se avisa bajo el nombre: un rasgo por elegir o un ascenso que ya se puede pagar.
   const todo = (s, m) => (m.offer ? '<small class="todo">NEW TRAIT</small>' : CM.mice.promoteInfo(s, m).can ? '<small class="todo up">PROMOTE</small>' : '');
-  // Un puesto: quién está, o hueco. Con un ratón seleccionado, cada puesto es un destino.
-  function postCell(s, ui, skill, zone) {
-    const K = CM.mice;
-    const m = K.at(s, skill, zone);
-    const sel = ui.sel ? K.byId(s, ui.sel) : null;
-    // Un toque abre la ficha. Solo al mover (desde la ficha) los puestos pasan a ser destinos.
-    let act = m ? (ui.moveMode ? 'sel:' + m.id : 'card:' + m.id) : 'emptypost';
-    let cls = 'pcell' + (m ? '' : ' none') + (m && !sel && m.offer ? ' has' : m && !sel && K.promoteInfo(s, m).can ? ' has up' : '');
-    if (sel && sel === m) {
-      act = 'unsel';
-      cls += ' sel';
-    } else if (sel) {
-      act = 'post:' + sel.id + ':' + K.postKey(skill, zone);
-      cls += ' target';
-    }
-    let body = m ? face(m) + '<b>' + esc(m.name) + '</b>' : '<span class="hole">+</span>';
-    // Cómo le iría ahí al ratón seleccionado; si no hay selección, lo que tenga pendiente.
-    if (sel && sel !== m) body += '<em>' + times(K.score(sel, skill)) + hearts(sel.aff[skill]) + '</em>';
-    else if (m) body += todo(s, m);
-    return '<button data-act="' + act + '" class="' + cls + '">' + body + '</button>';
+  // Lo que rinde un ratón por sí solo en un oficio (lo que mira BEST FIT): sin vecinos ni combinaciones.
+  const power = (m, skill) => times(CM.mice.score(m, skill));
+  // Rasgos de un vistazo: los dos de nacimiento y cuántos más lleva.
+  function brief(m) {
+    const all = CM.mice.traitsOf(m);
+    return all.slice(0, 2).map((t) => traitChip(t.id, t.grade)).join('') + (all.length > 2 ? '<span class="more">+' + (all.length - 2) + '</span>' : '');
   }
   const comboNote = (c, what) => '<p class="cnote"><b>' + c.name + '</b>' + (what ? ' · ' + what : '') + ': ' + c.desc.charAt(0).toLowerCase() + c.desc.slice(1) + '</p>';
 
-  function linesView(s, ui) {
+  // Un puesto en la rejilla: quién está y cuánto rinde ahí.
+  function postCell(s, ui, skill, zone) {
+    const K = CM.mice;
+    const key = K.postKey(skill, zone);
+    const m = K.at(s, skill, zone);
+    const on = ui.pick && ui.pick.type === 'post' && ui.pick.key === key;
+    const cls = 'pcell' + (m ? '' : ' none') + (on ? ' sel' : '') + (m && m.offer ? ' has' : m && K.promoteInfo(s, m).can ? ' has up' : '');
+    const body = m ? face(m) + '<b>' + esc(m.name) + '</b><em>' + power(m, skill) + hearts(m.aff[skill]) + '</em>' : '<span class="hole">+</span><em class="warn">empty</em>';
+    return '<button data-act="pickpost:' + key + '" class="' + cls + '">' + body + '</button>';
+  }
+  // Fila compacta de un ratón: retrato, nombre y nivel, dónde está, rasgos y un dato a la derecha.
+  function mouseRow(s, m, act, right, sub, cls) {
+    const K = CM.mice;
+    const where = m.post ? K.postLabel(m.post) : m.rest ? 'resting' : 'no post';
+    return (
+      '<button data-act="' + act + '" class="mrow' + (m.post ? '' : ' free') + (cls ? ' ' + cls : '') + '">' + face(m) +
+      '<span class="mmain"><b>' + esc(m.name) + ' <i>LV ' + K.level(m) + '</i></b><small>' + (sub || where) + '</small><span class="mtraits">' + brief(m) + '</span></span>' +
+      '<span class="mright">' + right + '</span></button>'
+    );
+  }
+
+  function rocksView(s, ui) {
     const K = CM.mice;
     const cols = K.CHAIN.slice(0, 4);
     let h = '<div class="colony"><div class="crow head"><span></span>' + cols.map((k) => '<span>' + POST_NAME[k] + '</span>').join('') + '</div>';
     for (const z of q.openZones(s)) {
-      // Una misma combinación entre varios vecinos seguidos se cuenta una vez, con todos los implicados.
       const found = {};
       const mark = (l, a, b) => {
         const f = found[l.id] || (found[l.id] = { link: l, jobs: [] });
@@ -413,16 +429,54 @@
       h += '</div>' + notes;
     }
     if (s.built.shop) h += '<div class="crow"><span class="rock">' + I.img('coin') + '<small>Shop</small></span>' + postCell(s, ui, 'trading', 'all') + '</div>';
-    // La casa: los que no tienen puesto.
-    const home = s.mice.filter((m) => !m.post);
-    const sel = ui.sel ? K.byId(s, ui.sel) : null;
-    if (home.length || (sel && sel.post)) {
-      h += '<div class="crow"><span class="rock"><small>House</small></span>';
-      for (const m of home) h += '<button data-act="' + (sel === m ? 'unsel' : sel ? 'noop' : ui.moveMode ? 'sel:' + m.id : 'card:' + m.id) + '" class="pcell' + (sel === m ? ' sel' : !sel && m.offer ? ' has' : !sel && K.promoteInfo(s, m).can ? ' has up' : '') + '">' + face(m) + '<b>' + esc(m.name) + '</b>' + (sel ? '' : todo(s, m)) + '</button>';
-      if (sel && sel.post) h += '<button data-act="post:' + sel.id + ':" class="pcell none target"><span class="hole">z</span><em>rest</em></button>';
-      h += '</div>';
-    }
     return h + '</div>';
+  }
+
+  // Tras tocar un puesto: quién está y quién podría ocuparlo, del que mejor rinde ahí al que peor.
+  function postSheet(s, ui, key) {
+    const K = CM.mice;
+    const [skill, zone] = key.split(':');
+    const now = K.at(s, skill, zone);
+    let h = '<div class="sheetbox"><div class="shead"><b>' + K.postLabel(key).toUpperCase() + '</b>' + btn('unpick', 'CLOSE', { cls: 'close' }) + '</div>';
+    h += now ? mouseRow(s, now, 'card:' + now.id, power(now, skill) + hearts(now.aff[skill]), 'works here · ' + mouseRate(s, now, skill, zone), 'cur') : '<p class="hint">Nobody works here: you do it by hand.</p>';
+    const others = s.mice.filter((m) => m !== now).sort((a, b) => K.score(b, skill) - K.score(a, skill));
+    if (others.length) h += '<p class="hint">Tap a mouse to put it here' + (now ? ' (it swaps places with ' + esc(now.name) + ')' : '') + '. Best on its own first.</p>';
+    for (const m of others) {
+      const sp = m.spec[skill] ? ' · ' + T[m.spec[skill]].name + ' ' + ROMAN[K.gradeOf(m, skill)] : '';
+      h += mouseRow(s, m, 'post:' + m.id + ':' + key, power(m, skill) + hearts(m.aff[skill]), (m.post ? 'now at ' + K.postLabel(m.post) : 'free') + sp);
+    }
+    if (now) h += btn('post:' + now.id + ':', 'SEND ' + esc(now.name).toUpperCase() + ' TO REST', { cls: 'close wide' });
+    return h + '</div>';
+  }
+  // Tras tocar un ratón: a qué puestos puede ir, del que mejor le va al que peor.
+  function mouseSheet(s, ui, m) {
+    const K = CM.mice;
+    let h = '<div class="sheetbox"><div class="shead"><b>' + esc(m.name).toUpperCase() + ' · LV ' + K.level(m) + '</b>' + btn('card:' + m.id, 'FULL CARD', { cls: 'buy' }) + btn('unpick', 'CLOSE', { cls: 'close' }) + '</div>';
+    h += '<div class="mtraits wide">' + chipsOf(m) + '</div><p class="hint">Tap a post to send it there. Best for it first.</p>';
+    const posts = K.posts(s).slice().sort((a, b) => K.score(m, b.skill) - K.score(m, a.skill));
+    for (const p of posts) {
+      const other = K.at(s, p.skill, p.zone);
+      const here = other === m;
+      const sp = m.spec[p.skill] ? ' · ' + T[m.spec[p.skill]].name + ' ' + ROMAN[K.gradeOf(m, p.skill)] : '';
+      h += btn(here ? 'noop' : 'post:' + m.id + ':' + p.key, '<span>' + K.postLabel(p.key) + hearts(m.aff[p.skill]) + '<small>' + (here ? 'it works here now' : other ? 'swaps with ' + esc(other.name) + ' (' + power(other, p.skill) + ')' : 'free post') + sp + '</small></span><span>' + power(m, p.skill) + '</span>', { cls: 'deliver' + (here ? ' open' : ''), off: here });
+    }
+    if (m.post) h += btn('post:' + m.id + ':', 'SEND TO REST', { cls: 'close wide' });
+    return h + '</div>';
+  }
+  // La lista completa: todos los ratones, ordenables, con lo que rinden donde están.
+  function rosterView(s, ui) {
+    const K = CM.mice;
+    const sort = ui.miceSort || 'post';
+    const posts = K.posts(s);
+    const where = (m) => (m.post ? posts.findIndex((p) => p.key === m.post) : -1);
+    const here = (m) => (m.post ? K.score(m, m.post.split(':')[0]) : 0);
+    const by = { post: (a, b) => where(a) - where(b), level: (a, b) => K.level(b) - K.level(a), power: (a, b) => here(b) - here(a) }[sort];
+    let h = '<div class="tabs sorts">' + [['post', 'BY POST'], ['level', 'BY LEVEL'], ['power', 'BY OUTPUT']].map((o) => btn('micesort:' + o[0], o[1], { cls: 'chip' + (sort === o[0] ? ' on' : '') })).join('') + '</div>';
+    for (const m of s.mice.slice().sort(by)) {
+      const skill = m.post ? m.post.split(':')[0] : '';
+      h += mouseRow(s, m, 'pickmouse:' + m.id, (skill ? power(m, skill) + hearts(m.aff[skill]) : '<i class="warn">FREE</i>') + todo(s, m), '', ui.pick && ui.pick.type === 'mouse' && ui.pick.id === m.id ? 'cur' : '');
+    }
+    return h;
   }
 
   // La ficha de un ratón: retrato, y cada rasgo en una línea con lo que hace.
@@ -461,7 +515,7 @@
       t.sets.forEach((d) => (h += comboNote(d, 'whole rock')));
     }
     h += '<h4>RANK</h4>' + promoteBlock(s, m);
-    h += '<div class="tabs">' + btn('movefrom:' + m.id, 'MOVE', { cls: 'buy' }) + btn('dismiss:' + m.id, 'DISMISS', { cls: 'close' }) + '</div>';
+    h += '<div class="tabs">' + btn('pickmouse:' + m.id, 'MOVE', { cls: 'buy' }) + btn('dismiss:' + m.id, 'DISMISS', { cls: 'close' }) + '</div>';
     return h;
   }
 
@@ -519,33 +573,43 @@
     const shown = ui.card ? K.byId(s, ui.card) : null;
     if (shown) return cardView(s, ui, shown);
 
-    const sel = ui.sel ? K.byId(s, ui.sel) : null;
-    if (ui.moveMode) {
-      h += '<div class="selbar"><div><b>' + (sel ? 'MOVING ' + esc(sel.name).toUpperCase() : 'MOVE MICE') + '</b><small>' + (sel ? 'Tap the post where it should work. The number is how it would do there on its own.' : 'Tap a mouse, then the post where it should work.') + '</small></div>' + btn('movemode', 'DONE', { cls: 'buy' }) + '</div>';
-    } else {
-      // Lo pendiente, arriba del todo y resaltado: de uno en uno, se resuelve aquí mismo.
-      const picks = s.mice.filter((x) => x.offer);
-      const promos = s.mice.filter((x) => !x.offer && K.promoteInfo(s, x).can);
-      if (picks.length) {
-        const m = picks[0];
-        h += '<div class="due"><div class="who">' + face(m) + '<div><b>' + esc(m.name) + '</b><small>' + (m.post ? K.postLabel(m.post) : 'in the house') + ' · LV ' + K.level(m) + (picks.length > 1 ? ' · 1 of ' + picks.length + ' mice with a new trait' : '') + '</small></div></div>' + pickBox(s, m) + '</div>';
-      } else if (promos.length) {
-        const m = promos[0];
-        const pr = K.promoteInfo(s, m);
-        const [skill, zone] = m.post ? m.post.split(':') : [];
-        const next = Object.assign({}, m, { rank: m.rank + 1 });
-        h += '<div class="due promo">' + face(m) + '<div><b>' + esc(m.name) + ' can be a ' + pr.next.name + '</b>' + (skill ? mouseRate(s, m, skill, zone) + ' &gt; <span class="tok">' + mouseRate(s, next, skill, zone) + '</span>' : 'Works faster for good') + (promos.length > 1 ? '<br>1 of ' + promos.length + ' ready' : '') + '</div>' + btn('promote:' + m.id, 'PROMOTE<br>' + coin(pr.cost), { cls: 'buy' }) + '</div>';
-      }
+    // Lo pendiente, arriba del todo y resaltado: de uno en uno, se resuelve aquí mismo.
+    const picks = s.mice.filter((x) => x.offer);
+    const promos = s.mice.filter((x) => !x.offer && K.promoteInfo(s, x).can);
+    if (picks.length) {
+      const m = picks[0];
+      h += '<div class="due"><div class="who">' + face(m) + '<div><b>' + esc(m.name) + '</b><small>' + (m.post ? K.postLabel(m.post) : 'in the house') + ' · LV ' + K.level(m) + (picks.length > 1 ? ' · 1 of ' + picks.length + ' mice with a new trait' : '') + '</small></div></div>' + pickBox(s, m) + '</div>';
+    } else if (promos.length) {
+      const m = promos[0];
+      const pr = K.promoteInfo(s, m);
+      const [skill, zone] = m.post ? m.post.split(':') : [];
+      const next = Object.assign({}, m, { rank: m.rank + 1 });
+      h += '<div class="due promo">' + face(m) + '<div><b>' + esc(m.name) + ' can be a ' + pr.next.name + '</b>' + (skill ? mouseRate(s, m, skill, zone) + ' &gt; <span class="tok">' + mouseRate(s, next, skill, zone) + '</span>' : 'Works faster for good') + (promos.length > 1 ? '<br>1 of ' + promos.length + ' ready' : '') + '</div>' + btn('promote:' + m.id, 'PROMOTE<br>' + coin(pr.cost), { cls: 'buy' }) + '</div>';
     }
 
-    h += linesView(s, ui);
+    // Sin puesto: a la vista y asignables de un toque.
+    const idle = s.mice.filter((m) => !m.post);
+    if (idle.length) {
+      h += '<div class="idlebox"><b>' + plural(idle.length, 'mouse') + ' WITH NO POST</b>';
+      for (const m of idle) h += mouseRow(s, m, 'pickmouse:' + m.id, '<i class="warn">' + (m.rest ? 'REST' : 'FREE') + '</i>', free.length ? 'tap to give it a post' : 'every post is taken: tap to swap it in', ui.pick && ui.pick.type === 'mouse' && ui.pick.id === m.id ? 'cur' : '');
+      h += '</div>';
+    }
+
+    const view = ui.miceView === 'roster' ? 'roster' : 'rocks';
+    h += '<div class="tabs">' + btn('miceview:rocks', 'BY ROCK', { cls: view === 'rocks' ? 'on' : '' }) + btn('miceview:roster', 'ALL MICE · ' + s.mice.length, { cls: view === 'roster' ? 'on' : '' }) + '</div>';
+    // La hoja del puesto o del ratón tocado sale justo encima de la vista, para no tener que buscarla.
+    const pickedMouse = ui.pick && ui.pick.type === 'mouse' ? K.byId(s, ui.pick.id) : null;
+    if (ui.pick && ui.pick.type === 'post' && posts.some((p) => p.key === ui.pick.key)) h += postSheet(s, ui, ui.pick.key);
+    else if (pickedMouse) h += mouseSheet(s, ui, pickedMouse);
+    else if (s.mice.length) h += '<p class="hint">' + (view === 'rocks' ? 'Tap a post to see who could work there. The number is what each mouse gives on its own.' : 'Tap a mouse to move it or open its card.') + '</p>';
+    h += view === 'rocks' ? rocksView(s, ui) : rosterView(s, ui);
 
     const cost = K.recruitCost(s);
-    h += btn('recruit', 'RECRUIT A MOUSE · ' + coin(cost) + (free.length ? '' : '<br><small>Every post is taken: it would wait in the house</small>'), { off: s.coins < cost, cls: 'buy wide serveall', cost });
+    h += btn('recruit', 'RECRUIT A MOUSE · ' + coin(cost) + '<br><small>' + (free.length ? plural(free.length, 'post') + ' with no mouse' : 'Every post is taken: use it to look for a better mouse') + '. Each recruit costs ' + Math.round((M.recruitGrowth - 1) * 100) + '% more than the last, for good.</small>', { off: s.coins < cost, cls: 'buy wide serveall', cost });
     if (!s.mice.length) return h + '<p class="hint">Your first recruit takes over a stage so you do not have to tap it.</p>';
     const moves = s.mice.length > 1 ? K.bestFitMoves(s) : 0;
-    h += '<div class="tabs">' + (ui.moveMode ? '' : btn('movemode', 'MOVE MICE', { cls: 'close' })) + btn('bestfit', 'BEST FIT' + (moves ? '' : ' &#10003;'), { cls: 'close', off: !moves }) + btn('album', 'ALBUM ' + K.albumCount(s) + '/' + K.albumTotal, { cls: 'close' }) + '</div>';
-    h += '<p class="hint">Tap a mouse to open it, here or out in the colony. Best fit places each one where it works best on its own; combos between mice are yours to find.</p>';
+    h += '<div class="tabs">' + btn('bestfit', 'BEST FIT' + (moves ? '' : ' &#10003;'), { cls: 'close', off: !moves }) + btn('album', 'ALBUM ' + K.albumCount(s) + '/' + K.albumTotal, { cls: 'close' }) + '</div>';
+    h += '<p class="hint">Best fit places each mouse where it works best on its own. Combos between mice are yours to find.</p>';
     if (s.mice.some((m) => M.ranks[m.rank].manager)) h += row('Managers buy upgrades', 'They buy cheap upgrades of their job on their own: never more than ' + Math.round(M.managerBudget * 100) + '% of your coins at once', btn('managers', s.settings.managersBuy ? 'ON' : 'OFF', { cls: 'buy' }));
     return h;
   }

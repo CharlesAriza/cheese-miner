@@ -179,6 +179,18 @@
       const combo = cj ? CM.cheesery.parseKey(cj.key) : null;
       z.cookJob = cj && combo && combo.base === def.base && cj.lotsLeft > 0 && (cj.kind !== 'produce' || CM.cheesery.recipe(s, cj.recipeId)) ? cj : null;
     }
+    s.lab.auto = s.lab.auto === true;
+    s.lab.want = typeof s.lab.want === 'string' && B.bases[s.lab.want] ? s.lab.want : '';
+    s.lab.job = cleanJob(s.lab.job, ['key']);
+    if (s.lab.job && (!CM.cheesery.parseKey(s.lab.job.key) || CM.cheesery.recipeByKey(s, s.lab.job.key))) s.lab.job = null;
+    // Un experimento que estaba ocupando una línea (versiones anteriores) pasa al laboratorio.
+    for (const def of B.zones) {
+      const z = s.zones[def.id];
+      if (z.cookJob && z.cookJob.kind === 'experiment') {
+        if (!s.lab.job && !CM.cheesery.recipeByKey(s, z.cookJob.key)) s.lab.job = { key: z.cookJob.key, remaining: z.cookJob.remaining, total: z.cookJob.total };
+        z.cookJob = null;
+      }
+    }
     s.jobs.shop = cleanJob(s.jobs.shop, ['coins', 'count', 'xp']);
     if (s.jobs.shop && !(s.jobs.shop.coins >= 0 && s.jobs.shop.count > 0)) s.jobs.shop = null;
 

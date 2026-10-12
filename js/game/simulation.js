@@ -107,6 +107,7 @@
         runJob(dt, () => z.refJob, q.auto(s, 'refining', def.id), () => CM.refining.start(s, def.id, 'worker'), () => CM.refining.complete(s, def.id));
         runJob(dt, () => z.cookJob, q.auto(s, 'cheesemaking', def.id), () => CM.cheesery.start(s, def.id), () => CM.cheesery.complete(s, def.id));
       }
+      CM.cheesery.labTick(s, dt);
       runJob(dt, () => s.jobs.shop, q.auto(s, 'trading', 'all'), () => CM.shop.start(s, 'worker'), () => CM.shop.complete(s));
       updateGoals(s);
     },

@@ -19,7 +19,7 @@ Versión del 12-10-2026 (guardado v6). Todas las cifras de este documento salen 
 | --- | --- | --- | --- |
 | Taladro | 2 Raw | 6 s | +1 Raw |
 | Refinería | 2 Base (de 4 Raw) | 6 s | +2 Base |
-| Quesería | 1 queso (de 2 Base) | 6 a 12 s según receta | +1 queso por hornada |
+| Quesería | 1 queso (de 2 Base) | 6 a 9 s según receta | +1 queso por hornada |
 | Tienda | 18 quesos | 2 s | +18 quesos |
 
 - **La quesería cocina por hornadas** (More Moulds).
@@ -88,11 +88,11 @@ Se consume entre el 85 % y el 95 % de lo que se produce en cada etapa. El stock 
 | Roca | Coste | Búsqueda / veta iniciales | Valor de la base |
 | --- | --- | --- | --- |
 | Cheddar | gratis | 30 / 60 | 10 |
-| Gouda | 40 M | 150 / 150 | 24 |
-| Brie | 1.500 M | 400 / 400 | 60 |
-| Emmental | 180.000 M | 1.000 / 1.000 | 150 |
-| Parmesan | 700.000 M | 2.500 / 2.500 | 380 |
-| Blue | 6 B | 6.000 / 6.000 | 950 |
+| Gouda | 200.000 | 150 / 150 | 24 |
+| Brie | 3.000 M | 400 / 400 | 60 |
+| Emmental | 1 B | 1.000 / 1.000 | 150 |
+| Parmesan | 12 B | 2.500 / 2.500 | 380 |
+| Blue | 80 B | 6.000 / 6.000 | 950 |
 
 (M = millones, B = billones.) Por cada nivel de profundidad: búsqueda y veta x1,15, y valor del queso de esa roca x1,03.
 
@@ -120,11 +120,11 @@ No hay almacén con tope. Raw Cheese, Cheese Base y quesos se acumulan sin lími
 
 ## Ratones
 
-- Reclutar: 150 monedas el primero, cada uno un 80 % más que el anterior. Se elige entre tres candidatos.
+- Reclutar: 100 monedas el primero y un 50 % más cada recluta, contando todos los que has reclutado en la partida. Despedir no baja el precio. Cubrir los 25 puestos cuesta 1,7 M en total; cada búsqueda extra sigue subiendo (el recluta 40 cuesta 1.100 M, el 60 3,7 B). Se elige entre tres candidatos.
 - Aspecto: cada ratón guarda un número `look` que decide pelaje (7), gorro (5 formas × 8 colores), accesorio (5) y mochila (5): 7.000 combinaciones. No afecta al juego. El rango se ve en la ropa: bufanda azul (Journeyman), bufanda roja y medalla (Master), traje con corbata dorada (Manager).
 - Rareza de cada candidato: 83 % Common, 15 % Rare (+10 % de velocidad, pelajes Mint y Lilac), 2 % Legendary (+25 %, dos rasgos buenos y ninguna manía, pelaje dorado y corona).
 - Álbum: 138 piezas (10 pelajes, 6 gorros, 4 accesorios, 72 rasgos, 46 combinaciones). No se pierden al despedir. Cada pieza: +1 % al precio de venta.
-- Despedir: gratis y sin reembolso. El precio de reclutar depende de cuántos ratones tienes, así que despedir abarata el siguiente (cambiar un ratón cuesta lo que costó su hueco).
+- Despedir: gratis y sin reembolso, y no abarata el siguiente recluta.
 - Un puesto por etapa y por roca (minería, taladro, refinado, quesería) más un tendero común: 5 con una roca, 25 con las seis.
 - Velocidad en su puesto: +1 % por nivel, más rango, rareza, afinidad y rasgos (ver abajo).
 - Nivel del ratón: 12 acciones para el nivel 2, un 15 % más cada nivel, máximo 60. Un golpe de minería cuenta un cuarto de acción.
@@ -192,13 +192,15 @@ El aspecto de cada edificio cambia al sumar 3, 8, 16, 30 y 50 rangos en la rama 
 | Honey | ×1,7 | 10 monedas | 12 |
 | Truffle | ×2,6 | 60 monedas | 25 |
 | Washed | ×1 | — | 1 |
-| Smoked | ×1,35 | +1 s | 3 |
-| Brined | ×1,8 | +2 s | 16 |
+| Smoked | ×1,35 | +0,5 s | 3 |
+| Brined | ×1,8 | +1 s | 16 |
 | Fresh | ×1 | — | 1 |
-| Aged | ×1,6 | +2 s | 8 |
-| Vintage | ×2,8 | +4 s | 30 |
+| Aged | ×1,6 | +1 s | 8 |
+| Vintage | ×2,8 | +2 s | 30 |
 
-Una hornada tarda 6 s más los extras de la receta: de 6 a 12 s antes de mejoras y maestría.
+Una hornada tarda 6 s más los extras de la receta: de 6 a 9 s antes de mejoras y maestría.
+
+**Cheese Lab.** Las recetas se investigan en una línea aparte, a la vez que la quesería produce. La primera tarda 12 s y cada una un 3 % más que la anterior (la número 50, un minuto; la 100, cuatro; la 150, 17; la 216, casi dos horas). Tras la primera receta el laboratorio sigue solo, probando la combinación de mayor valor que pueda pagar del queso más valioso; se puede apagar. Si le falta Cheese Base, la quesería de ese queso le deja juntar la suya antes de seguir.
 
 Sinergias: Cheddar + Smoked ×1,2; Gouda + Honey ×1,25; Brie + Truffle ×1,25; Emmental + Aged ×1,25; Parmesan + Vintage ×1,3; Blue + Brined ×1,3; Pepper + Smoked ×1,15; Truffle + Vintage ×1,4.
 
@@ -216,33 +218,30 @@ Se simula el tiempo real desde el último guardado, con tope de 4 horas (ampliab
 
 ## Ritmo medido
 
-Un bot que juega sin pausas y sin dev tools (1 tap cada 0,4 s), que recluta al primer candidato, elige siempre el primer rasgo, asciende cuando puede, compra las mejoras de más barata a más cara y ahorra para cada ratón y cada roca.
+**El perfil de referencia es el jugador casual**, no el experto: toca una vez cada 1,5 s, compra mejoras cada 20 s (la más barata primero), deja de tocar cuando las cinco etapas tienen ratón, recluta al primer candidato, elige siempre el primer rasgo y deja que el laboratorio investigue solo. Los precios de las rocas están calibrados para él.
 
-| Hito | Antes del rebalanceo | Ahora |
-| --- | --- | --- |
-| Primera venta | 1,2 min | 1,1 min |
-| Primer ratón | 2,1 min | 1,6 min |
-| Un ratón en las cinco etapas | 10,7 min | 9,8 min |
-| Primer ascenso | 23,2 min | 17 min |
-| Segunda roca | 36 min | 36 min |
-| Tercera roca | 66 min | 63 min |
-| Cuarta roca | 124 min | 117 min |
-| Quinta roca | 164 min | 180 min |
-| Sexta roca | 265 min | 290 min |
+| Hito | Casual | Experto (2,5 toques por segundo, compra cada 2 s) | Optimizando ratones |
+| --- | --- | --- | --- |
+| Primera venta | 1,8 min | 1,2 min | — |
+| Primer ratón | 1,7 min | 1 min | — |
+| Un ratón en las cinco etapas | 10 min | 8 min | — |
+| Primer ascenso | 21 min | 15 min | — |
+| Segunda roca | 31 min | 18 min | 18 min |
+| Tercera roca | 56 min | 32 min | 28 min |
+| Cuarta roca | 84 min | 77 min | 43 min |
+| Quinta roca | 126 min | 120 min | 59 min |
+| Sexta roca | 191 min | 181 min | 80 min |
 
-Un bot que además optimiza sus ratones (mejor candidato, mejor rasgo para su puesto, recoloca) abre las rocas a los 23, 37, 75, 95 y 143 minutos, y a las 4 h ha ganado unas 18 veces más.
+Casual, a lo largo de cuatro horas:
 
-Niveles (Mining / Drilling / Refining / Cheesemaking / Trading) y monedas del bot normal:
-
-| Tiempo | Niveles | Rocas | Monedas ganadas | Quesos hechos |
+| Tiempo | Niveles (Mining / Drilling / Refining / Cheesemaking / Trading) | Rocas | Recetas | Monedas ganadas |
 | --- | --- | --- | --- | --- |
-| 10 min | 2 / 11 / 10 / 13 / 12 | 1 | 4.074 | 72 |
-| 30 min | 6 / 28 / 23 / 30 / 28 | 1 | 17,3 M | 5.556 |
-| 1 h | 15 / 45 / 40 / 45 / 42 | 2 | 1.800 M | 119.000 |
-| 2 h | 27 / 61 / 55 / 56 / 49 | 4 | 308.000 M | 1,2 M |
-| 4 h | 42 / 73 / 67 / 67 / 59 | 5 | 6,8 B | 7,2 M |
-| 5 h | 47 / 77 / 70 / 70 / 63 | 6 | 16,6 B | 11,8 M |
+| 10 min | 2 / 11 / 9 / 9 / 7 | 1 | 6 | 1.292 |
+| 30 min | 4 / 22 / 17 / 24 / 21 | 1 | 18 | 299.000 |
+| 1 h | 16 / 40 / 34 / 47 / 43 | 3 | 57 | 10.100 M |
+| 2 h | 35 / 60 / 54 / 66 / 58 | 4 | 90 | 14,5 B |
+| 4 h | 50 / 73 / 68 / 79 / 70 | 6 | 117 | 460 B |
 
-Las monedas son mucho más altas que antes del rebalanceo porque el queso sale por hornadas; lo que se ha mantenido son los tiempos. Los niveles de habilidad suben más deprisa que antes (los ciclos son más cortos y la experiencia se gana por ciclo).
+**Por qué se cambió la referencia.** Con los precios anteriores, calibrados con el experto, el jugador casual sin recetas tenía a los 30 minutos unos cientos de monedas y 9.600 ganadas, y no abría la segunda roca ni en 90 minutos. La diferencia venía sobre todo de las recetas: el experto las descubría antes de automatizar y el casual no podía, porque investigar paraba la quesería.
 
-**Aviso sobre estas medidas.** Dos partidas del bot con un cambio mínimo pueden diferir en un factor dos, porque el azar de candidatos y rasgos se desvía. Las comparaciones fiables de este documento son las que parten de la misma partida guardada.
+**Aviso sobre estas medidas.** Dos partidas del bot con un cambio mínimo pueden diferir en un factor dos, porque el azar de candidatos y rasgos se desvía. Las medidas de «Equilibrio de la cadena» y «Stocks a largo plazo» son anteriores al laboratorio y a los precios nuevos de las rocas: valen para las proporciones entre etapas, no para las cifras absolutas. Con recetas buenas la quesería limita más a menudo (unas cuatro de cada cinco veces en la partida casual), por un factor entre 1 y 2.

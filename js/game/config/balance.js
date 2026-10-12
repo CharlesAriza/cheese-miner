@@ -58,11 +58,11 @@ CM.BALANCE = {
   // a la vista. (Cada roca tendrá además su propio edificio o mecánica.)
   zones: [
     { id: 'cheddar', base: 'cheddar', name: 'Cheddar Rock', unlockCost: 0, hits: 30, capacity: 60 },
-    { id: 'gouda', base: 'gouda', name: 'Gouda Rock', unlockCost: 40000000, hits: 150, capacity: 150 },
-    { id: 'brie', base: 'brie', name: 'Brie Rock', unlockCost: 1500000000, hits: 400, capacity: 400 },
-    { id: 'emmental', base: 'emmental', name: 'Emmental Rock', unlockCost: 180000000000, hits: 1000, capacity: 1000 },
-    { id: 'parmesan', base: 'parmesan', name: 'Parmesan Rock', unlockCost: 700000000000, hits: 2500, capacity: 2500 },
-    { id: 'blue', base: 'blue', name: 'Blue Rock', unlockCost: 6000000000000, hits: 6000, capacity: 6000 },
+    { id: 'gouda', base: 'gouda', name: 'Gouda Rock', unlockCost: 200000, hits: 150, capacity: 150 },
+    { id: 'brie', base: 'brie', name: 'Brie Rock', unlockCost: 3000000000, hits: 400, capacity: 400 },
+    { id: 'emmental', base: 'emmental', name: 'Emmental Rock', unlockCost: 1000000000000, hits: 1000, capacity: 1000 },
+    { id: 'parmesan', base: 'parmesan', name: 'Parmesan Rock', unlockCost: 12000000000000, hits: 2500, capacity: 2500 },
+    { id: 'blue', base: 'blue', name: 'Blue Rock', unlockCost: 80000000000000, hits: 6000, capacity: 6000 },
   ],
   depth: {
     // Búsqueda y veta crecen al mismo ritmo: más hondo todo es más grande y más
@@ -82,6 +82,10 @@ CM.BALANCE = {
   // Cheesemaking que hace falta para usar ese componente.
   cheesery: {
     batch: 1, // quesos por hornada (sube con More Moulds)
+    // Laboratorio: cada receta nueva tarda un 3 % más que la anterior. Las primeras
+    // salen en segundos; completar el libro entero es un objetivo de muchas horas.
+    labBaseMs: 12000,
+    labGrowth: 1.03,
     experimentBase: 3, // Cheese Base que cuesta descubrir una receta (da 1 queso)
     lotBase: 2, // Cheese Base por queso de una receta conocida
     baseTimeMs: 6000,
@@ -99,13 +103,13 @@ CM.BALANCE = {
   },
   treatments: {
     washed: { name: 'Washed', adj: 'Washed', mult: 1, timeMs: 0, level: 1 },
-    smoked: { name: 'Smoked', adj: 'Smoked', mult: 1.35, timeMs: 1000, level: 3 },
-    brined: { name: 'Brined', adj: 'Brined', mult: 1.8, timeMs: 2000, level: 16 },
+    smoked: { name: 'Smoked', adj: 'Smoked', mult: 1.35, timeMs: 500, level: 3 },
+    brined: { name: 'Brined', adj: 'Brined', mult: 1.8, timeMs: 1000, level: 16 },
   },
   maturations: {
     fresh: { name: 'Fresh', adj: '', mult: 1, timeMs: 0, level: 1 },
-    aged: { name: 'Aged', adj: 'Aged', mult: 1.6, timeMs: 2000, level: 8 },
-    vintage: { name: 'Vintage', adj: 'Vintage', mult: 2.8, timeMs: 4000, level: 30 },
+    aged: { name: 'Aged', adj: 'Aged', mult: 1.6, timeMs: 1000, level: 8 },
+    vintage: { name: 'Vintage', adj: 'Vintage', mult: 2.8, timeMs: 2000, level: 30 },
   },
   synergies: [
     { when: { base: 'cheddar', treatment: 'smoked' }, mult: 1.2, label: 'Smoked Cheddar' },
@@ -157,8 +161,8 @@ CM.BALANCE = {
   // Cada ratón es un personaje: un rasgo bueno, una manía, un oficio favorito,
   // nivel propio y rango. Un puesto con ratón trabaja solo.
   mice: {
-    recruitCost: 150, // coste del primero
-    recruitGrowth: 1.8, // cada ratón cuesta un 80 % más que el anterior
+    recruitCost: 100, // coste del primero
+    recruitGrowth: 1.5, // cada recluta cuesta un 50 % más que el anterior, para siempre (despedir no lo baja)
     candidates: 3, // se elige uno de tres
     managerBudget: 0.1, // un gerente solo compra mejoras que cuesten hasta el 10 % de tus monedas
     // Rareza de cada candidato. Un raro es más rápido y tiene pelajes propios;
@@ -235,7 +239,7 @@ CM.BALANCE = {
   retiredNodes: { 'colony.silo': { cost: 40, growth: 1.55 }, 'colony.racks': { cost: 40, growth: 1.55 }, 'colony.shelves': { cost: 40, growth: 1.55 } },
 
   // Monedas que se regalan una sola vez al cumplir cada objetivo.
-  goalRewards: { vein: 0, drill: 5, raw: 5, refinery: 10, base: 10, cheesery: 15, recipe: 15, shop: 20, sale: 20, node: 30, house: 40, mouse: 60, promote: 500, level5: 80, allAuto: 400, zone2: 5000000, depth3: 300, recipes8: 1500, level25: 5000, zone3: 100000000, zone4: 10000000000, zone5: 80000000000, zone6: 500000000000 },
+  goalRewards: { vein: 0, drill: 5, raw: 5, refinery: 10, base: 10, cheesery: 15, recipe: 15, shop: 20, sale: 20, node: 30, house: 40, mouse: 60, promote: 500, level5: 80, allAuto: 400, zone2: 20000, depth3: 300, recipes8: 1500, level25: 5000, zone3: 300000000, zone4: 100000000000, zone5: 1000000000000, zone6: 8000000000000 },
 
   offline: {
     baseHours: 4, // máximo de ausencia que se simula (ampliable en el árbol de colonia)

@@ -85,6 +85,8 @@
       album: {}, // 'fur:3', 'hat:1', 'trait:fast'... piezas vistas en ratones reclutados; no se pierden
       settings: { managersBuy: true },
       jobs: { shop: null },
+      // Investigación de recetas: va aparte de la producción, en paralelo.
+      lab: { job: null, auto: false, want: '' },
       recipes: [], // { id, key, name, at, made }
       combo: 0,
       lastHitAt: -1e9,

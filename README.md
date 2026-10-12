@@ -46,11 +46,17 @@ Los primeros pasos van a fuego lento. Cuando se desbloquea un edificio nuevo de 
 - **Se les nota.** Algunos rasgos cambian el dibujo: ojos que brillan, cinta en la frente, gafas de buceo, capa, patas doradas.
 - **Álbum.** Cada pelaje, gorro, accesorio, rasgo y combinación que consigues queda apuntado para siempre y sube un 1 % el precio de todas tus ventas.
 
-**La pantalla MICE** dibuja la colonia: la tienda y una línea por roca con sus puestos (MINE, DRILL, REFINE, CHEESE) y el retrato de quien trabaja en cada uno; los huecos se ven vacíos y las combinaciones activas se marcan en rosa. Lo pendiente sale arriba del todo y resaltado, de uno en uno, para resolverlo de un toque sin navegar: el rasgo nuevo de un ratón con sus opciones, o un ascenso que ya puedes pagar. Tocar un ratón abre su ficha, tanto aquí como en la escena (un toque suelto sobre el ratón que trabaja). **MOVE MICE** pone la rejilla en modo colocar: tocas un ratón y luego un puesto, las veces que haga falta (si está ocupado, se cambian). Al reclutar, los tres candidatos salen como cartas lado a lado. Al volver tras un rato fuera, el resumen dice también qué ratones han subido de nivel, de grado de especialidad o tienen rasgo nuevo. La ficha: retrato grande, cada rasgo en una línea con lo que hace, oficios con su afinidad (corazones) y especialidad, rango y despido. Bajo el nombre, `NEW TRAIT` avisa de un rasgo por elegir y `PROMOTE` de un ascenso que ya puedes pagar. El color solo significa algo: verde bueno, rojo manía, dorado legendario, cian selección o pendiente.
+**La pantalla MICE** tiene dos vistas. **BY ROCK** es una rejilla con una fila por roca y una columna por oficio: en cada puesto ves quién está y cuánto rinde ahí por sí solo. **ALL MICE** es la lista completa, ordenable por puesto, nivel o rendimiento, con nivel, puesto, rasgos principales y afinidad de cada ratón. Arriba salen siempre lo pendiente (un rasgo por elegir o un ascenso que ya puedes pagar, resoluble ahí mismo) y los ratones sin puesto.
+
+- **Tocar un puesto** abre sus candidatos: todos los ratones ordenados por lo que rendirían ahí, con su afinidad y su especialidad. Tocar uno lo asigna; si el puesto estaba ocupado, se intercambian.
+- **Tocar un ratón** (en la lista o sin puesto) abre los puestos a los que puede ir, del mejor al peor para él. Tocar uno lo manda ahí. Desde esa hoja se abre su ficha completa.
+- El número que acompaña a cada ratón es lo que rinde por sí solo; no cuenta vecinos ni combinaciones, que siguen siendo cosa tuya.
 
 Al reclutar eliges uno de tres y va él solo al mejor puesto libre. **BEST FIT** recoloca a toda la plantilla mirando a cada ratón por separado; no tiene en cuenta vecinos ni combinaciones, eso es cosa tuya. Los rasgos nunca se eligen solos. Cada ficha dice qué hace el ratón en valores reales («2 Raw every 2.1s»), qué le falta para ascender y qué ganará; **MANAGE** despliega sus rasgos, casillas, especialidades, rangos, los puestos a los que puede ir y el botón para despedirlo (se pierde todo lo suyo y no se devuelve nada).
 
 El ratón de Cheesemaking cocina por su cuenta la receta más valiosa que conozcas de su queso; fijar otra a mano es opcional.
+
+**Cheese Lab.** Las recetas se investigan aparte de la producción: la quesería no se para. La primera la descubres tú eligiendo cuatro componentes; desde ahí el laboratorio sigue solo, probando la combinación más prometedora que pueda pagar (se puede apagar en la pestaña NEW RECIPE). Cada receta nueva tarda un poco más que la anterior.
 
 Bajo la escena se ve el subsuelo de la roca que estás mirando: baja contigo, cambia de material cada cinco niveles y el pozo llega hasta tu profundidad, con carteles numerados. La casilla que pide el objetivo actual parpadea.
 

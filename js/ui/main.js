@@ -841,9 +841,8 @@
     $('sheet-body').scrollTop = 0;
     if (name === 'cheese') scene.focus('cheesery');
     if (name === 'mice') {
-      ui.sel = null;
+      ui.pick = null;
       ui.card = null;
-      ui.moveMode = false;
       ui.miceTab = '';
       if (state.built.house) scene.focus('house');
     }
@@ -915,30 +914,31 @@
     recruit: () => CM.mice.offer(state),
     choose: (i) => CM.mice.choose(state, Number(i)),
     bestfit: () => CM.mice.bestFit(state),
-    // Colonia: tocar un ratón lo selecciona; tocarlo otra vez (o OPEN) abre su ficha.
-    sel: (id) => void (ui.sel = id),
-    unsel: () => void (ui.sel = null),
-    // Modo mover: tocar un ratón y luego un puesto, las veces que haga falta.
-    movemode: () => {
-      ui.moveMode = !ui.moveMode;
-      ui.sel = null;
+    // Colonia: tocar un puesto enseña candidatos; tocar un ratón, sus puestos posibles.
+    pickpost: (skill, zone) => {
+      const key = skill + ':' + zone;
+      ui.pick = ui.pick && ui.pick.type === 'post' && ui.pick.key === key ? null : { type: 'post', key };
     },
+    pickmouse: (id) => {
+      ui.card = null;
+      ui.pick = ui.pick && ui.pick.type === 'mouse' && ui.pick.id === id ? null : { type: 'mouse', id };
+      $('sheet-body').scrollTop = 0;
+    },
+    unpick: () => void (ui.pick = null),
+    miceview: (v) => {
+      ui.miceView = v;
+      ui.pick = null;
+    },
+    micesort: (v) => void (ui.miceSort = v),
     card: (id) => {
       ui.card = id;
-      ui.sel = null;
-      ui.traitInfo = '';
+      ui.pick = null;
       $('sheet-body').scrollTop = 0;
     },
     back: () => void (ui.card = null),
-    movefrom: (id) => {
-      ui.card = null;
-      ui.moveMode = true;
-      ui.sel = id;
-      $('sheet-body').scrollTop = 0;
-    },
     emptypost: () => CM.fail('empty-post'),
     post: (id, skill, zone) => {
-      ui.sel = null;
+      ui.pick = null;
       return CM.mice.assign(state, id, skill ? skill + ':' + zone : '');
     },
     promote: (id) => CM.mice.promote(state, id),
@@ -950,6 +950,7 @@
     tab: (name) => void (ui.cheeseTab = name),
     pick: (part, value) => void (ui.combo[part] = value),
     experiment: () => CM.cheesery.experiment(state, ui.combo),
+    labauto: () => void (state.lab.auto = !state.lab.auto),
     make: (id, n) => CM.cheesery.produce(state, id, Number(n)),
     cook: (id) => CM.cheesery.assign(state, id),
     uncook: (zoneId) => CM.cheesery.unassign(state, zoneId),
@@ -1233,17 +1234,15 @@
     const m = CM.mice.byId(state, id);
     if (!m) return;
     const K = CM.mice;
-    const now = K.recruitCost(state);
-    const after = Math.round(B.mice.recruitCost * Math.pow(B.mice.recruitGrowth, state.mice.length - 1));
     const waiting = state.mice.find((x) => x !== m && !x.post && !x.rest);
     const post = !m.post ? '' : waiting ? ' ' + P.esc(waiting.name) + ' takes over ' + K.postLabel(m.post) + '.' : ' ' + K.postLabel(m.post) + ' is left with no mouse: you work it by hand until you recruit another.';
     showModal(
-      '<h2>DISMISS ' + P.esc(m.name).toUpperCase() + '?</h2><div class="hero"><img class="pix face big" alt="" src="' + CM.mouseUrl(m) + '"></div><p class="hint"><b>LV ' + K.level(m) + ' ' + B.mice.ranks[m.rank].name + '.</b> It leaves for good: its level, rank and traits are lost and nothing is refunded.' + post + '</p><p class="hint">Your next recruit will cost ' + CM.fmt(after) + ' coins instead of ' + CM.fmt(now) + '.</p><div class="row"><button class="close" data-m="no">KEEP</button><button class="danger" data-m="ok">DISMISS</button></div>',
+      '<h2>DISMISS ' + P.esc(m.name).toUpperCase() + '?</h2><div class="hero"><img class="pix face big" alt="" src="' + CM.mouseUrl(m) + '"></div><p class="hint"><b>LV ' + K.level(m) + ' ' + B.mice.ranks[m.rank].name + '.</b> It leaves for good: its level, rank and traits are lost and nothing is refunded.' + post + '</p><p class="hint">Recruiting does not get cheaper: the next mouse still costs ' + CM.fmt(K.recruitCost(state)) + ' coins.</p><div class="row"><button class="close" data-m="no">KEEP</button><button class="danger" data-m="ok">DISMISS</button></div>',
       {
         no() {},
         ok() {
           ui.card = null;
-          ui.sel = null;
+          ui.pick = null;
           K.dismiss(state, id);
           drainEvents();
           ui.dockHtml = null;
@@ -1354,7 +1353,7 @@
     updateDock();
     document.querySelectorAll('[data-job]').forEach((el) => {
       const zone = state.zones[el.dataset.job.split(':')[1]];
-      el.style.width = Math.round(progress(zone && zone.cookJob) * 100) + '%';
+      el.style.width = Math.round(progress(el.dataset.job === 'lab' ? state.lab.job : zone && zone.cookJob) * 100) + '%';
     });
   }
 

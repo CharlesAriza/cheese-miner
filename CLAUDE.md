@@ -31,6 +31,7 @@ Shop Titans deja de ser referencia.
 - **Sin compilación:** HTML, CSS y JavaScript puros, publicables tal cual en GitHub Pages. El equipo de desarrollo no tiene Node.
 - **Simulación separada del render,** por pasos de tiempo fijos. La economía nunca depende de frames ni de efectos visuales. Acciones atómicas: nada se cobra ni se entrega dos veces.
 - **Balance centralizado** en `js/game/config/balance.js`, siempre provisional.
+- **El ritmo se calibra con el jugador casual, no con el experto.** El bot tiene un perfil casual (pocos toques, compra cada 20 s, deja de tocar al automatizar); los precios de las rocas se ajustan a él. Un bot experto dio por bueno un arranque que para una persona era desesperante.
 - **La cadena se equilibra con una sola ley:** a igual inversión e iguales ratones, cada etapa procesa una cantidad parecida. Antes de tocar el rendimiento de una etapa, medir las cinco con el bot (`tests.html` informa de la capacidad de cada etapa por roca; `tests.html?bot` carga solo el bot para calibrar desde la consola).
 - **Al publicar, cambiar el `?v=` de los enlaces de `index.html`** (hoja de estilos y scripts): si no, el móvil sigue con los archivos viejos en caché.
 - **Nombres de clase CSS propios por pantalla:** antes de añadir una clase, comprobar que no existe ya (un `.lrow` y un `.hot` repetidos rompieron la pantalla principal).
@@ -67,6 +68,12 @@ Entrega A (hecha): rareza (Rare, Legendary), afinidad por oficio, unos 70 rasgos
 Entrega B (hecha): la colonia dibujada (una línea de puestos por roca con el retrato de cada ratón; tocar un ratón y tocar un puesto lo mueve), ficha con cada rasgo en una línea (los iconos y los avisos flotantes se quitaron por recargados; paleta sobria donde el color solo significa bueno, manía, legendario o pendiente), rasgos visibles en el dibujo del ratón, combinaciones entre vecinos de línea y de roca entera. Los legendarios se celebran a pantalla completa y llevan aura dorada; las manías van en rojo; el juego no enseña probabilidades.
 
 Entrega C (pendiente): fusión de dos ratones, mutaciones y linajes.
+
+Gestión (13-10-2026): MICE tiene vista por roca y lista completa; tocar un puesto enseña candidatos y tocar un ratón enseña sus puestos, con asignación e intercambio de un toque. Reclutar cuesta un 50 % más por cada recluta de toda la partida y despedir no lo abarata.
+
+### Cheese Lab
+
+La investigación de recetas va aparte de la producción y en paralelo; tras la primera receta sigue sola. Es el sitio previsto para descubrir combinaciones y, más adelante, mutaciones. Todavía no es un edificio propio.
 
 Quitado respecto a la Alpha: almacén con capacidad, regateo, clientes con paciencia, Taste/Funk/Aroma, reputación, viajar entre zonas, rocas que se agotan y Mouse House con camas.
 

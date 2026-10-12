@@ -352,7 +352,10 @@
     },
 
     // --- Reclutar ---
-    recruitCost: (s) => Math.round(M.recruitCost * Math.pow(M.recruitGrowth, s.mice.length)),
+    // El precio sube con cada ratón reclutado en toda la partida, no con los que tienes:
+    // despedir no lo abarata. Cubrir los puestos es barato; buscar al ratón perfecto, no.
+    recruited: (s) => Math.max(s.totals.miceRecruited, s.mice.length),
+    recruitCost: (s) => Math.round(M.recruitCost * Math.pow(M.recruitGrowth, CM.mice.recruited(s))),
     // Paga y presenta tres candidatos. Se guardan en la partida: recargar no los cambia.
     offer(s) {
       if (!s.built.house) return CM.fail('no-house');
@@ -526,6 +529,8 @@
     dismiss(s, id) {
       const i = s.mice.findIndex((m) => m.id === id);
       if (i < 0) return CM.fail('invalid');
+      // El precio de reclutar no baja: cuenta a todos los que han pasado por la colonia.
+      s.totals.miceRecruited = Math.max(s.totals.miceRecruited, s.mice.length);
       const m = s.mice.splice(i, 1)[0];
       CM.emit(s, 'dismissed', { name: m.name, post: m.post });
       this.fillEmpty(s);
