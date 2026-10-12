@@ -45,7 +45,7 @@ No hay almacén con tope. Raw Cheese, Cheese Base y quesos se acumulan sin lími
 - Reclutar: 150 monedas el primero, cada uno un 80 % más que el anterior. Se elige entre tres candidatos.
 - Aspecto: cada ratón guarda un número `look` que decide pelaje (7), gorro (5 formas × 8 colores), accesorio (5) y mochila (5): 7.000 combinaciones. No afecta al juego. El rango se ve en la ropa: bufanda azul (Journeyman), bufanda roja y medalla (Master), traje con corbata dorada (Manager).
 - Rareza de cada candidato: 83 % Common, 15 % Rare (+10 % de velocidad, pelajes Mint y Lilac), 2 % Legendary (+25 %, dos rasgos buenos y ninguna manía, pelaje dorado y corona).
-- Álbum: 122 piezas (10 pelajes, 6 gorros, 4 accesorios, 72 rasgos, 30 combinaciones). No se pierden al despedir. Cada pieza: +1 % al precio de venta.
+- Álbum: 138 piezas (10 pelajes, 6 gorros, 4 accesorios, 72 rasgos, 46 combinaciones). No se pierden al despedir. Cada pieza: +1 % al precio de venta.
 - Despedir: gratis y sin reembolso. El precio de reclutar depende de cuántos ratones tienes, así que despedir abarata el siguiente (cambiar un ratón cuesta lo que costó su hueco).
 - Un puesto por etapa y por roca (minería, taladro, refinado, quesería) más un tendero común: 5 con una roca, 13 con tres.
 - Velocidad en su puesto: +1 % por nivel, más rango, rareza, afinidad y rasgos (ver abajo).
@@ -67,6 +67,7 @@ Todo está en `js/game/config/traits.js`: 22 rasgos buenos, 13 manías, 12 legen
 - **Legendarios:** pocos y enormes; uno solo viene a doblar lo que rinde el ratón (Golden Paws x3 de cantidad, Time Skipper x2 de velocidad, Midas 50 % de doble).
 - **Volver a tirar:** 250 monedas la primera casilla, x6 cada casilla siguiente, x2 cada tirada sobre la misma elección. En especialidades: 1.000, x2 por tirada.
 - **Especialidades:** 200, 2.000 y 20.000 trabajos; el efecto del rasgo se multiplica por 1, 2 y 3,5.
+- **Combinaciones de equipo:** 10 entre vecinos de línea y 6 de roca entera; dan velocidad, cantidad o suerte a todos los implicados. El tendero cuenta como vecino del quesero de cada roca.
 - **Topes:** suerte de doble 90 %, auras ±60 %, colonia contada hasta 30 ratones, recetas hasta 60.
 - **Velocidad:** (1 + nivel + rango + rareza + afinidad) x (1 + suma de rasgos, combinaciones, profundidad, nivel de habilidad, colonia y auras).
 

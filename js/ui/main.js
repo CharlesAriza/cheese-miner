@@ -266,6 +266,13 @@
       case 'legendOffer':
         legendOffer(CM.mice.byId(state, ev.id));
         break;
+      case 'teamCombo':
+        play('goal');
+        scene.celebrate();
+        banner((ev.rock ? 'ROCK COMBO: ' : 'LINE COMBO: ') + ev.name.toUpperCase() + '!');
+        toast(ev.name + '. ' + ev.desc, true);
+        dirty = true;
+        break;
       case 'combo':
         for (const id of ev.combos) {
           const c = B.mice.combos.find((x) => x.id === id);
@@ -817,7 +824,9 @@
     $('sheet-body').scrollTop = 0;
     if (name === 'cheese') scene.focus('cheesery');
     if (name === 'mice') {
-      ui.moving = null;
+      ui.sel = null;
+      ui.card = null;
+      ui.traitInfo = '';
       ui.miceTab = '';
       if (state.built.house) scene.focus('house');
     }
@@ -889,9 +898,25 @@
     recruit: () => CM.mice.offer(state),
     choose: (i) => CM.mice.choose(state, Number(i)),
     bestfit: () => CM.mice.bestFit(state),
-    move: (id) => void (ui.moving = ui.moving === id ? null : id),
+    // Colonia: tocar un ratón lo selecciona; tocarlo otra vez (o OPEN) abre su ficha.
+    sel: (id) => void (ui.sel = id),
+    unsel: () => void (ui.sel = null),
+    card: (id) => {
+      ui.card = id;
+      ui.sel = null;
+      ui.traitInfo = '';
+      $('sheet-body').scrollTop = 0;
+    },
+    back: () => void (ui.card = null),
+    movefrom: (id) => {
+      ui.card = null;
+      ui.sel = id;
+      $('sheet-body').scrollTop = 0;
+    },
+    tinfo: (kind, id) => void (ui.traitInfo = kind + ':' + id),
+    emptypost: () => CM.fail('empty-post'),
     post: (id, skill, zone) => {
-      ui.moving = null;
+      ui.sel = null;
       return CM.mice.assign(state, id, skill ? skill + ':' + zone : '');
     },
     promote: (id) => CM.mice.promote(state, id),
@@ -911,12 +936,7 @@
     // Con un ratón: abre MICE con su ficha desplegada y a la vista.
     open: (name, id) => {
       openPanel(name);
-      if (!id) return;
-      ui.moving = id;
-      setTimeout(() => {
-        const card = document.querySelector('[data-mouse="' + id + '"]');
-        if (card) card.scrollIntoView({ block: 'start' });
-      }, 0);
+      if (id) ui.card = id;
     },
     sound: () => {
       sfx.toggleMute();
@@ -1189,7 +1209,8 @@
       {
         no() {},
         ok() {
-          ui.moving = null;
+          ui.card = null;
+          ui.sel = null;
           K.dismiss(state, id);
           drainEvents();
           ui.dockHtml = null;

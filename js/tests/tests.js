@@ -798,6 +798,54 @@
     eq(moved.mice[0].learned.length, 0, 'and the new fields start empty');
   });
 
+  test('team combos: neighbours in a line and the four mice of a rock', () => {
+    const s = fresh();
+    CM.dev.unlockBuildings(s);
+    s.devUsed = false;
+    const a = staff(s, 'drilling', 'cheddar', { traits: ['fast'] });
+    const b = staff(s, 'refining', 'cheddar', { traits: ['fast'] });
+    const link = B.mice.links.find((l) => l.id === 'assembly');
+    eq(CM.mice.linksAt(s, 'drilling', 'cheddar', 'refining', 'cheddar').map((l) => l.id).join(), 'assembly', 'two Fast neighbours form Assembly Line');
+    const alone = CM.mice.speed(a, 'drilling');
+    truthy(Math.abs(CM.mice.speed(a, 'drilling', s, 'cheddar') - alone - link.eff.speed) < 1e-9, 'and both get its effect');
+    truthy(Math.abs(CM.mice.speed(b, 'refining', s, 'cheddar') - alone - link.eff.speed) < 1e-9, 'the other one too');
+    eq(CM.mice.speed(a, 'drilling'), alone, 'BEST FIT does not see it');
+    CM.events.length = 0;
+    CM.mice.scan(s);
+    truthy(s.album['link:assembly'] && CM.events.some((e) => e.type === 'teamCombo' && e.name === link.name), 'forming it discovers it');
+    CM.events.length = 0;
+    CM.mice.scan(s);
+    eq(CM.events.length, 0, 'only once');
+    // No son vecinos si hay un puesto en medio
+    CM.mice.assign(s, b.id, 'cheesemaking:cheddar');
+    eq(CM.mice.linksAt(s, 'drilling', 'cheddar', 'refining', 'cheddar').length, 0, 'not neighbours any more');
+    eq(CM.mice.speed(a, 'drilling', s, 'cheddar'), alone, 'the effect is gone');
+    // El tendero es vecino del quesero
+    const k = staff(s, 'trading', 'all', { traits: ['fast'] });
+    truthy(CM.mice.speed(k, 'trading', s, 'all') > CM.mice.speed(k, 'trading'), 'the shopkeeper links with the cheesemaker');
+    // Dos legendarios seguidos
+    a.traits = ['midas'];
+    b.traits = ['timeskipper'];
+    CM.mice.assign(s, b.id, 'refining:cheddar');
+    truthy(CM.mice.linksAt(s, 'drilling', 'cheddar', 'refining', 'cheddar').some((l) => l.id === 'court'), 'two legends side by side form Royal Court');
+    // De roca: hacen falta los cuatro puestos
+    eq(CM.mice.setsAt(s, 'cheddar').length, 0, 'no rock combo with empty posts');
+    const c = staff(s, 'mining', 'cheddar');
+    const d = staff(s, 'cheesemaking', 'cheddar');
+    truthy(CM.mice.setsAt(s, 'cheddar').some((x) => x.id === 'family'), 'four mice with the same fur: Family Business');
+    truthy(CM.mice.setsAt(s, 'cheddar').some((x) => x.id === 'crown'), 'a legend on the rock: Under the Crown');
+    const before = CM.mice.speed(c, 'mining', s, 'cheddar');
+    truthy(before > CM.mice.speed(c, 'mining'), 'the miner gets the rock combos');
+    [a, b, c, d].forEach((m) => (m.aff = { [m.post.split(':')[0]]: 1 }));
+    truthy(CM.mice.setsAt(s, 'cheddar').some((x) => x.id === 'dreamteam'), 'everyone likes their job: Dream Team');
+    CM.mice.dismiss(s, d.id);
+    eq(CM.mice.setsAt(s, 'cheddar').length, 0, 'losing one breaks the rock combos');
+    truthy(CM.mice.speed(c, 'mining', s, 'cheddar') < before, 'and the bonus is gone');
+    run(s, 5000);
+    valid(s);
+    truthy(CM.mice.albumTotal >= 130, 'the album counts team combos: ' + CM.mice.albumTotal);
+  });
+
   test('every mouse has its own look, and old saves get one', () => {
     const s = fresh();
     s.built.house = true;

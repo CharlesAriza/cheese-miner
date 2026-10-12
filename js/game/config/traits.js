@@ -176,4 +176,36 @@
     combo('lunatic', 'Lunatic', ['moonlit', 'nocturnal'], 'Twice as fast again while you are away', { awaySpeed: 1 }),
     combo('dynasty', 'Dynasty', ['kingofmice', 'ambitious'], 'Another 10% faster for each rank', { rankSpeed: 0.1 }),
   ];
+
+  // ---------- Combinaciones entre vecinos de una línea ----------
+  // Dos ratones en puestos seguidos de la misma roca (o el quesero y el
+  // tendero), uno con el rasgo `a` y otro con el `b`. '*legend' vale por
+  // cualquier ratón legendario. El efecto es para los dos.
+  // Efectos admitidos aquí y en las de roca: speed, yield, double, awaySpeed.
+  const link = (id, name, a, b, desc, eff) => ({ id, name, a, b, desc, eff });
+  M.links = [
+    link('assembly', 'Assembly Line', 'fast', 'fast', 'Both work 15% faster', { speed: 0.15 }),
+    link('nightcrew', 'Night Crew', 'nocturnal', 'nocturnal', 'Both work 50% faster while you are away', { awaySpeed: 0.5 }),
+    link('goodcop', 'Good Cop, Bad Cop', 'mentor', 'grumpy', 'Both work 20% faster', { speed: 0.2 }),
+    link('apprentice', 'Master and Apprentice', 'veteran', 'prodigy', 'Both work 15% faster', { speed: 0.15 }),
+    link('streak', 'Lucky Streak', 'lucky', 'lucky', 'Both get another 10% chance to make double', { double: 0.1 }),
+    link('muscle', 'Muscle', 'strong', 'strong', 'Both make 20% more', { yield: 0.2 }),
+    link('oddcouple', 'Odd Couple', 'tidy', 'clumsy', 'Both work 15% faster', { speed: 0.15 }),
+    link('feast', 'Eating Contest', 'glutton', 'glutton', 'They compete: both make 25% more', { yield: 0.25 }),
+    link('gossip', 'Gossip', 'sociable', 'shy', 'Both work 20% faster while you are away', { awaySpeed: 0.2 }),
+    link('court', 'Royal Court', '*legend', '*legend', 'Two legends side by side: both work 50% faster', { speed: 0.5 }),
+  ];
+
+  // ---------- Combinaciones de roca ----------
+  // Miran a los cuatro ratones de una roca (picar, taladrar, refinar, cocinar),
+  // con los cuatro puestos ocupados. El efecto es para los cuatro.
+  const set = (id, name, desc, eff, test) => ({ id, name, desc, eff, test });
+  M.sets = [
+    set('dreamteam', 'Dream Team', 'Everyone on this rock likes their job: all work 20% faster', { speed: 0.2 }, (line) => line.every((x) => x.aff > 0)),
+    set('oldguard', 'Old Guard', 'Four Masters or better on this rock: all work 30% faster', { speed: 0.3 }, (line) => line.every((x) => x.m.rank >= 2)),
+    set('specialists', 'Specialists', 'All four have the speciality of their job: all make 25% more', { yield: 0.25 }, (line) => line.every((x) => x.spec)),
+    set('family', 'Family Business', 'Four mice with the same fur: all work 25% faster', { speed: 0.25 }, (line) => line.every((x) => x.fur === line[0].fur)),
+    set('crown', 'Under the Crown', 'A legendary mouse leads this rock: all work 10% faster', { speed: 0.1 }, (line) => line.some((x) => x.legend)),
+    set('nightfactory', 'Night Factory', 'All four are better while you are away: another 50% faster then', { awaySpeed: 0.5 }, (line) => line.every((x) => x.night)),
+  ];
 })();

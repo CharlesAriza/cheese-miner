@@ -96,7 +96,9 @@
   // `p` son las piezas (CM.mice.parts): pelaje, gorro, color, accesorio y mochila.
   function mouseSprite(p, rank) {
     const r = Math.min(3, rank || 0);
-    const key = [p.fur, p.hat, p.hatColor, p.acc, p.pack, r].join(':');
+    const marks = p.marks ? p.marks.split(',') : [];
+    const has = (k) => marks.indexOf(k) >= 0;
+    const key = [p.fur, p.hat, p.hatColor, p.acc, p.pack, r, p.marks || ''].join(':');
     if (spriteCache[key]) return spriteCache[key];
     const fur = FURS[p.fur];
     const hat = HATS[p.hat];
@@ -105,7 +107,9 @@
     const pal = mousePalette(hc[0], hc[1], p.hat === 5 ? '#e2462f' : '#fff3a0');
     pal.G = fur[0];
     pal.E = fur[1];
-    pal.B = PACKS[p.pack];
+    pal.B = has('cape') ? '#b3263a' : PACKS[p.pack];
+    if (has('glow')) pal.K = '#ffe55c';
+    if (has('goldpaws')) pal.F = '#ffcf2e';
     if (r >= 3) pal.h = '#ffcf2e';
     const c = makeSprite(hat.concat(MOUSE_ROWS.slice(4)), pal, '#2a1d2e');
     const g = c.getContext('2d');
@@ -134,6 +138,28 @@
       px(9, 8, 2, 1, '#ff7a9c');
       px(13, 5, 1, 1, fur[1]);
     }
+    // Rasgos que se ven: cada uno, un gesto simple.
+    if (has('belly')) px(12, 11, 2, 3, '#ffffff');
+    if (has('headband')) {
+      px(5, 4, 9, 1, '#e2462f');
+      px(4, 4, 1, 2, '#e2462f');
+    }
+    if (has('goggles')) {
+      px(5, 5, 5, 1, '#1b1622');
+      px(10, 4, 3, 3, '#1b1622');
+      px(11, 5, 1, 1, '#3fd0ff');
+    }
+    if (has('clover')) px(1, 5, 2, 2, '#3fbf5a');
+    if (has('zzz')) {
+      px(16, 0, 3, 1, '#bfe8fd');
+      px(17, 1, 1, 1, '#bfe8fd');
+      px(16, 2, 3, 1, '#bfe8fd');
+    }
+    if (has('bolt')) {
+      px(0, 14, 2, 1, '#ffe55c');
+      px(0, 16, 3, 1, '#ffe55c');
+    }
+    if (has('cape')) px(3, 9, 4, 1, '#ffcf2e');
     const scarf = SCARVES[r];
     if (scarf) {
       px(5, 9, 8, 2, scarf[0]);
@@ -161,7 +187,7 @@
   const portraits = {};
   const urlOf = (p, rank) => {
     const c = mouseSprite(p, rank);
-    const key = [p.fur, p.hat, p.hatColor, p.acc, p.pack, rank].join(':');
+    const key = [p.fur, p.hat, p.hatColor, p.acc, p.pack, rank, p.marks || ''].join(':');
     return portraits[key] || (portraits[key] = c.toDataURL());
   };
   CM.mouseUrl = (m) => urlOf(CM.mice.parts(m), Math.min(3, m.rank || 0));

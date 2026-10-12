@@ -67,6 +67,46 @@
     return (fxCache[sig] = sum);
   }
   const trait = (m, key, skill) => fx(m, skill || '')[key] || 0;
+  const hasTrait = (m, id) => (id === '*legend' ? m.rarity === 2 || traitsOf(m).some((t) => T[t.id].kind === 'legend') : traitsOf(m).some((t) => t.id === id));
+
+  // ---------- Combinaciones de vecinos y de roca ----------
+  const mouseAt = (s, skill, zone) => s.mice.find((x) => x.post === postKey(skill, zone)) || null;
+  const linksBetween = (x, y) => (x && y ? M.links.filter((l) => (hasTrait(x, l.a) && hasTrait(y, l.b)) || (hasTrait(x, l.b) && hasTrait(y, l.a))) : []);
+  // Vecinos de un puesto: el anterior y el siguiente de su línea. El tendero
+  // es vecino del quesero de cada roca.
+  function neighbours(s, skill, zone) {
+    const i = CHAIN.indexOf(skill);
+    if (skill === 'trading') return q.openZones(s).map((z) => mouseAt(s, 'cheesemaking', z.id));
+    return [i > 0 ? mouseAt(s, CHAIN[i - 1], zone) : null, mouseAt(s, CHAIN[i + 1], zone)];
+  }
+  function setsOf(s, zone) {
+    const line = CHAIN.slice(0, 4).map((skill) => {
+      const m = mouseAt(s, skill, zone);
+      return m && { m, aff: (m.aff && m.aff[skill]) || 0, spec: !!m.spec[skill], fur: parts(m).fur, legend: hasTrait(m, '*legend'), night: trait(m, 'awaySpeed', skill) > 0 };
+    });
+    return line.every(Boolean) ? M.sets.filter((d) => d.test(line)) : [];
+  }
+  // Lo que un puesto recibe de las combinaciones de vecinos y de roca. Se
+  // recalcula solo cuando cambia la plantilla.
+  let teamKey = '';
+  let teamMap = {};
+  function team(s, skill, zone) {
+    const key = s.mice.map((m) => m.id + m.post + m.rank + m.learned.length + Object.keys(m.spec).join('')).join('|');
+    if (key !== teamKey) {
+      teamKey = key;
+      teamMap = {};
+    }
+    const pk = postKey(skill, zone);
+    if (teamMap[pk]) return teamMap[pk];
+    const out = { eff: {}, links: [], sets: [] };
+    const me = mouseAt(s, skill, zone);
+    if (me) {
+      for (const n of neighbours(s, skill, zone)) for (const l of linksBetween(me, n)) if (out.links.indexOf(l) < 0) out.links.push(l);
+      if (skill !== 'trading') out.sets = setsOf(s, zone);
+      for (const c of out.links.concat(out.sets)) for (const k of Object.keys(c.eff)) out.eff[k] = (out.eff[k] || 0) + c.eff[k];
+    }
+    return (teamMap[pk] = out);
+  }
   const affinity = (m, skill) => M.affinity[(m.aff && m.aff[skill]) || 0] || M.affinity[0];
 
   // Lo que le dan sus vecinos de línea (auras). Con `s` y `zone`.
@@ -98,6 +138,8 @@
       mult += (f.levelSpeed || 0) * Math.floor(q.level(s, skill) / 10);
       mult += (f.crowdSpeed || 0) * Math.min(s.mice.length, M.caps.crowd);
       mult += auraFor(s, skill, zone);
+      const te = team(s, skill, zone).eff;
+      mult += (te.speed || 0) + (CM.away ? te.awaySpeed || 0 : 0);
     }
     return Math.max(0.2, power * mult);
   }
@@ -109,10 +151,11 @@
       const depth = s.zones[zone] ? s.zones[zone].depth : 0;
       y += clamp((f.depthYield || 0) * depth, -0.5, M.caps.depth * 3);
       y += (f.recipeYield || 0) * Math.min(s.recipes.length, M.caps.recipes);
+      y += team(s, skill, zone).eff.yield || 0;
     }
     return Math.max(0.2, y);
   }
-  const doubleChance = (m, skill) => clamp(trait(m, 'double', skill), 0, M.caps.double);
+  const doubleChance = (m, skill, s, zone) => clamp(trait(m, 'double', skill) + (s ? team(s, skill, zone).eff.double || 0 : 0), 0, M.caps.double);
 
   function pick(s, list) {
     return list[Math.floor(CM.rand(s) * list.length)];
@@ -144,10 +187,18 @@
   const FUR_NAMES = ['White', 'Grey', 'Brown', 'Cream', 'Charcoal', 'Peach', 'Blue', 'Mint', 'Lilac', 'Golden'];
   const HAT_NAMES = ['Helmet', 'Cap', 'Bobble hat', 'Top hat', 'Bow', 'Crown'];
   const ACC_NAMES = ['', 'Glasses', 'Eye patch', 'Moustache', 'Blush'];
+  // Rasgos que se ven en el cuerpo del ratón.
+  const MARKS = { nocturnal: 'glow', moonlit: 'glow', lucky: 'clover', midas: 'goldpaws', goldenpaws: 'goldpaws', glutton: 'belly', strong: 'headband', heavyhands: 'headband', dreamer: 'zzz', lazy: 'zzz', fast: 'bolt', wired: 'bolt', timeskipper: 'bolt', kingofmice: 'cape', conductor: 'cape', ancient: 'cape', deepdiver: 'goggles', abyssal: 'goggles' };
+  function marksOf(m) {
+    const out = {};
+    if (Array.isArray(m.traits)) for (const t of traitsOf(m)) if (MARKS[t.id]) out[MARKS[t.id]] = true;
+    return Object.keys(out).sort().join(',');
+  }
   function parts(m) {
     const n = (m.look || 0) >>> 0;
     const r = m.rarity || 0;
-    return { fur: r === 2 ? 9 : r === 1 ? 7 + (n % 2) : n % 7, hat: r === 2 ? 5 : (n >> 3) % 5, hatColor: (n >> 6) % 8, acc: (n >> 9) % 5, pack: (n >> 12) % 5, rarity: r };
+    return {
+      marks: marksOf(m), fur: r === 2 ? 9 : r === 1 ? 7 + (n % 2) : n % 7, hat: r === 2 ? 5 : (n >> 3) % 5, hatColor: (n >> 6) % 8, acc: (n >> 9) % 5, pack: (n >> 12) % 5, rarity: r };
   }
   // El álbum: todo lo coleccionable, por categorías. Las combinaciones no
   // enseñan su nombre hasta que se forman.
@@ -160,6 +211,8 @@
     { kind: 'trait', title: 'QUIRKS', items: traitItems('quirk') },
     { kind: 'trait', title: 'JOB TRAITS', items: traitItems('job') },
     { kind: 'trait', title: 'LEGENDARY TRAITS', items: traitItems('legend', 2) },
+    { kind: 'combo', title: 'LINE COMBOS', items: M.links.map((c) => ({ key: 'link:' + c.id, name: c.name, desc: [c.a, c.b].map((id) => (id === '*legend' ? 'a legendary mouse' : T[id].name)).join(' next to ') + ': ' + c.desc, rarity: 0 })) },
+    { kind: 'combo', title: 'ROCK COMBOS', items: M.sets.map((c) => ({ key: 'set:' + c.id, name: c.name, desc: c.desc, rarity: 0 })) },
     { kind: 'combo', title: 'COMBOS', items: M.combos.map((c) => ({ key: 'combo:' + c.id, name: c.name, desc: c.needs.map((id) => T[id].name).join(' + ') + ': ' + c.desc, rarity: 0 })) },
   ];
   const ALBUM_KEYS = {};
@@ -267,11 +320,11 @@
     // Ratón de un puesto con sus multiplicadores, o null si está vacío.
     work(s, skill, zone) {
       const m = this.at(s, skill, zone);
-      return m ? { m, skill, speed: speed(m, skill, s, zone), yield: yieldMult(m, skill, s, zone) } : null;
+      return m ? { m, skill, speed: speed(m, skill, s, zone), yield: yieldMult(m, skill, s, zone), double: doubleChance(m, skill, s, zone) } : null;
     },
     // Cantidad de un ciclo concreto: con suerte, sale doble.
     out(s, w) {
-      const chance = doubleChance(w.m, w.skill);
+      const chance = w.double === undefined ? doubleChance(w.m, w.skill) : w.double;
       return w.yield * (chance > 0 && CM.rand(s) < chance ? 2 : 1);
     },
     // Tras completar una acción: experiencia para el ratón. Devuelve el
@@ -388,6 +441,24 @@
     },
     // Ratones con una elección pendiente.
     choosing: (s) => s.mice.filter((m) => m.offer),
+    hasTrait,
+    team,
+    // Para dibujar la plantilla: combinaciones activas entre dos puestos y en una roca.
+    linksAt: (s, skillA, zoneA, skillB, zoneB) => linksBetween(mouseAt(s, skillA, zoneA), mouseAt(s, skillB, zoneB)),
+    setsAt: (s, zone) => setsOf(s, zone),
+    // Apunta en el álbum las combinaciones de vecinos y de roca que estén activas.
+    scan(s) {
+      for (const p of this.posts(s)) {
+        const t = team(s, p.skill, p.zone);
+        for (const c of t.links.map((l) => ['link:', l]).concat(t.sets.map((d) => ['set:', d]))) {
+          const key = c[0] + c[1].id;
+          if (s.album[key]) continue;
+          s.album[key] = true;
+          CM.emit(s, 'teamCombo', { name: c[1].name, desc: c[1].desc, rock: c[0] === 'set:' });
+          CM.emit(s, 'album', { keys: [key] });
+        }
+      }
+    },
     // Legendario de nacimiento o con algún rasgo legendario: se le nota.
     isLegend: (m) => m.rarity === 2 || traitsOf(m).some((t) => T[t.id].kind === 'legend'),
 
@@ -418,6 +489,7 @@
       m.post = key || '';
       m.rest = !key;
       CM.emit(s, 'assigned', { id: m.id });
+      this.scan(s);
       return CM.ok();
     },
     // Recoloca a toda la plantilla: cada puesto, por prioridad, se lleva al mejor que quede.
@@ -444,6 +516,7 @@
         m.rest = false;
       }
       CM.emit(s, 'assigned', { all: true });
+      this.scan(s);
       return CM.ok();
     },
 

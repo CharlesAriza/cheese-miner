@@ -56,7 +56,44 @@
     return cache[key];
   }
 
+  // Símbolo de un rasgo según su efecto principal. El color lo pone la casilla.
+  const GLYPHS = {
+    speed: ['...XX..', '..XX...', '.XXXXX.', '...XX..', '..XX...', '.XX....', '.X.....'],
+    yield: ['..XXX..', '..XXX..', 'XXXXXXX', 'XXXXXXX', 'XXXXXXX', '..XXX..', '..XXX..'],
+    awaySpeed: ['..XXX..', '.XX....', 'XX.....', 'XX.....', 'XX.....', '.XX..X.', '..XXX..'],
+    hereSpeed: ['X..X..X', '.XXXXX.', '.XXXXX.', 'XXXXXXX', '.XXXXX.', '.XXXXX.', 'X..X..X'],
+    double: ['XX...XX', 'XX...XX', '.XX.XX.', '..XXX..', '.XX.XX.', 'XX...XX', 'XX...XX'],
+    skillXp: ['XXXXXXX', 'X..X..X', 'X..X..X', 'X..X..X', 'X..X..X', 'XXXXXXX', '...X...'],
+    mouseXp: ['...X...', '...X...', 'XXXXXXX', '.XXXXX.', '..XXX..', '.XX.XX.', 'X.....X'],
+    jobXp: ['.XXXXX.', '.XXXXX.', '...X...', '...X...', '...X...', '...X...', '...X...'],
+    depthSpeed: ['..XXX..', '..XXX..', '..XXX..', 'XXXXXXX', '.XXXXX.', '..XXX..', '...X...'],
+    levelSpeed: ['...X...', '..XXX..', '.XX.XX.', 'XX.X.XX', '..XXX..', '.XX.XX.', 'XX...XX'],
+    crowdSpeed: ['.XX.XX.', '.XX.XX.', '.......', 'XXX.XXX', 'XXX.XXX', 'XXX.XXX', '.......'],
+    rankSpeed: ['X.....X', '.X...X.', '..XXX..', '.XXXXX.', '.XXXXX.', '.XXXXX.', '..XXX..'],
+    recipeYield: ['......X', '....XXX', '..XXXXX', 'XXXXXXX', 'X.XX.XX', 'XXXXXXX', '.......'],
+    auraNext: ['...X...', '...XX..', 'XXXXXX.', 'XXXXXXX', 'XXXXXX.', '...XX..', '...X...'],
+    auraPrev: ['...X...', '..XX...', '.XXXXXX', 'XXXXXXX', '.XXXXXX', '..XX...', '...X...'],
+    noQuirks: ['.XXXXX.', 'XX...XX', 'X.....X', 'X..X..X', 'X.....X', 'XX...XX', '.XXXXX.'],
+    combo: ['.XX.XX.', 'XXXXXXX', 'XXXXXXX', 'XXXXXXX', '.XXXXX.', '..XXX..', '...X...'],
+    lock: ['..XXX..', '.X...X.', '.X...X.', 'XXXXXXX', 'XXX.XXX', 'XXX.XXX', 'XXXXXXX'],
+  };
+  GLYPHS.depthYield = GLYPHS.depthSpeed;
+  const glyphCache = {};
+  function glyph(key, color) {
+    const k = key + (color || '');
+    if (!glyphCache[k]) glyphCache[k] = CM.makeSprite(GLYPHS[key] || GLYPHS.speed, { X: color || '#ffffff' }, '#1b1622').toDataURL();
+    return glyphCache[k];
+  }
+  // Efecto que más pesa en un rasgo: decide su símbolo.
+  function traitGlyph(def) {
+    if (def.eff.noQuirks) return 'noQuirks';
+    const keys = Object.keys(def.eff).sort((a, b) => Math.abs(def.eff[b]) - Math.abs(def.eff[a]));
+    return keys[0] || 'speed';
+  }
+
   CM.icons = {
+    glyph,
+    traitGlyph,
     TONES,
     url: icon,
     img: (kind, base, cls) => '<img class="pix ' + (cls || '') + '" alt="" src="' + icon(kind, base) + '">',
