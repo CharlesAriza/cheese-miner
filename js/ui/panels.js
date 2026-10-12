@@ -49,12 +49,12 @@
     critMult: (s) => 'crits hit x' + round1(q.critMult(s)),
     minerSpeed: (s) => 'a swing every ' + secs(q.minerInterval(s)),
     veinCap: (s) => CM.fmt(q.veinCapacity(s, B.zones[0].id)) + ' Raw in a ' + B.zones[0].name + ' vein',
-    richDepth: (s) => 'each depth level makes that rock\'s cheese worth +' + Math.round((B.depth.richness + q.mods(s)('richDepth')) * 100) + '%',
+    richDepth: (s) => 'each depth level multiplies that rock\'s cheese value by ' + (1 + B.depth.richness + q.mods(s)('richDepth')).toFixed(3),
     drillYield: (s) => round1(q.drillYield(s, B.zones[0].id)) + ' Raw per cycle',
     drillRich: (s) => round1(q.drillYield(s, B.zones[0].id)) + ' Raw per cycle',
     drillSpeed: (s) => 'a cycle every ' + secs(q.drillDuration(s)),
     refBatch: (s) => round1(q.refineBatch(s) * q.refineMult(s)) + ' Base per cycle',
-    refBonus: (s) => round1(q.refineBatch(s) * q.refineMult(s)) + ' Base from ' + q.refineBatch(s) * B.refinery.rawPerBase + ' Raw',
+    refBonus: (s) => round1(q.refineBatch(s) * q.refineMult(s)) + ' Base from ' + round1(q.refineBatch(s) * q.skillMult(s, 'refining') * B.refinery.rawPerBase) + ' Raw',
     refSpeed: (s) => 'a cycle every ' + secs(q.refineDuration(s)),
     cheeseBatch: (s) => q.cheeseBatch(s) + ' cheese per batch',
     cheeseSpeed: (s) => 'a plain cheese in ' + secs(B.cheesery.baseTimeMs / (1 + q.mods(s)('cheeseSpeed'))),
@@ -289,15 +289,18 @@
     const K = CM.mice;
     const sp = K.speed(m, skill, s, zone);
     const y = K.yieldMult(m, skill, s, zone) * (1 + K.doubleChance(m, skill));
-    const every = (ms) => ' every ' + secs(Math.max(200, ms / sp));
-    if (skill === 'mining') return (y === 1 ? 'a swing' : 'a x' + round1(y) + ' swing') + every(q.minerInterval(s));
-    if (skill === 'drilling') return round1(q.drillYield(s, zone) * y) + ' Raw' + every(q.drillDuration(s));
-    if (skill === 'refining') return round1(q.refineBatch(s) * q.refineMult(s) * y) + ' Base' + every(q.refineDuration(s));
-    if (skill === 'trading') return (y === 1 ? 'a sale' : 'a x' + (Math.round(y * 100) / 100) + ' sale') + every(q.sellDuration(s));
+    // Con el ciclo en su mínimo, la velocidad de más sale como cantidad.
+    const rate = (ms, amount, unit, one) => {
+      const c = CM.cycle(ms / sp);
+      const n = amount * c.mult;
+      return (one && Math.abs(n - 1) < 0.005 ? one : (n >= 100 ? CM.fmt(Math.round(n)) : round1(n)) + ' ' + unit) + ' every ' + secs(c.total);
+    };
+    if (skill === 'mining') return (y === 1 ? 'a swing' : 'a x' + round1(y) + ' swing') + ' every ' + secs(q.minerInterval(s) / sp);
+    if (skill === 'drilling') return rate(q.drillDuration(s), q.drillYield(s, zone) * y, 'Raw');
+    if (skill === 'refining') return rate(q.refineDuration(s), q.refineBatch(s) * q.refineMult(s) * y, 'Base');
+    if (skill === 'trading') return rate(q.sellDuration(s), q.sellCount(s), 'cheese sold');
     const recipe = CM.cheesery.laneRecipe(s, zone);
-    const made = y * q.cheeseBatch(s) * q.skillMult(s, 'cheesemaking');
-    const n = made === 1 ? 'a cheese' : round1(made) + ' cheese';
-    return recipe ? n + every(CM.cheesery.jobTime(s, CM.cheesery.parseKey(recipe.key), recipe)) : 'cooks ' + times(sp) + ' as fast as by hand';
+    return recipe ? rate(CM.cheesery.jobTime(s, CM.cheesery.parseKey(recipe.key), recipe), y * q.cheeseBatch(s) * q.skillMult(s, 'cheesemaking'), 'cheese', 'a cheese') : 'cooks ' + times(sp) + ' as fast as by hand';
   }
   // Lista de todo lo que hace especial a un ratón, explicado.
   function traitList(m) {

@@ -58,18 +58,18 @@ CM.BALANCE = {
   // a la vista. (Cada roca tendrá además su propio edificio o mecánica.)
   zones: [
     { id: 'cheddar', base: 'cheddar', name: 'Cheddar Rock', unlockCost: 0, hits: 30, capacity: 60 },
-    { id: 'gouda', base: 'gouda', name: 'Gouda Rock', unlockCost: 160000000, hits: 150, capacity: 150 },
-    { id: 'brie', base: 'brie', name: 'Brie Rock', unlockCost: 3500000000, hits: 400, capacity: 400 },
-    { id: 'emmental', base: 'emmental', name: 'Emmental Rock', unlockCost: 400000000000, hits: 1000, capacity: 1000 },
-    { id: 'parmesan', base: 'parmesan', name: 'Parmesan Rock', unlockCost: 1800000000000, hits: 2500, capacity: 2500 },
-    { id: 'blue', base: 'blue', name: 'Blue Rock', unlockCost: 12000000000000, hits: 6000, capacity: 6000 },
+    { id: 'gouda', base: 'gouda', name: 'Gouda Rock', unlockCost: 40000000, hits: 150, capacity: 150 },
+    { id: 'brie', base: 'brie', name: 'Brie Rock', unlockCost: 1500000000, hits: 400, capacity: 400 },
+    { id: 'emmental', base: 'emmental', name: 'Emmental Rock', unlockCost: 180000000000, hits: 1000, capacity: 1000 },
+    { id: 'parmesan', base: 'parmesan', name: 'Parmesan Rock', unlockCost: 700000000000, hits: 2500, capacity: 2500 },
+    { id: 'blue', base: 'blue', name: 'Blue Rock', unlockCost: 6000000000000, hits: 6000, capacity: 6000 },
   ],
   depth: {
     // Búsqueda y veta crecen al mismo ritmo: más hondo todo es más grande y más
     // lento, pero picar y taladrar siguen pesando lo mismo el uno frente al otro.
     hitsGrowth: 1.15, // búsqueda necesaria por nivel de profundidad
     capacityGrowth: 1.15, // tamaño de la veta por nivel de profundidad
-    richness: 0.03, // +3 % al VALOR del queso de esa roca por nivel de profundidad
+    richness: 0.03, // cada nivel de profundidad multiplica por 1,03 el VALOR del queso de esa roca
   },
 
   // ---------- MÁQUINAS ----------
@@ -84,7 +84,7 @@ CM.BALANCE = {
     batch: 1, // quesos por hornada (sube con More Moulds)
     experimentBase: 3, // Cheese Base que cuesta descubrir una receta (da 1 queso)
     lotBase: 2, // Cheese Base por queso de una receta conocida
-    baseTimeMs: 5000,
+    baseTimeMs: 6000,
     maxQueue: 10,
     boostMs: 300,
     masteryAt: [0, 5, 15, 40, 100, 250, 600, 1500], // quesos hechos para cada nivel de maestría
@@ -130,7 +130,7 @@ CM.BALANCE = {
   // Vender es un ciclo como los demás. El nivel de Trading trae mejores
   // compradores, que multiplican el precio de todo.
   shop: {
-    perSale: 12, // quesos por ciclo (la tienda atiende a todas las rocas)
+    perSale: 18, // quesos por ciclo (la tienda atiende a todas las rocas)
     durationMs: 2000,
     boostMs: 250,
     buyers: [
@@ -196,13 +196,13 @@ CM.BALANCE = {
       { id: 'swing', branch: 'power', name: 'Heavy Swing', desc: 'Critical hits are 0.5x stronger', level: 6, max: 30, cost: 150, growth: 1.45, eff: { critMult: 0.5 } },
       { id: 'paws', branch: 'auto', name: 'Quick Paws', desc: 'The mouse mining each rock swings 10% faster', level: 10, max: 30, cost: 300, growth: 1.42, eff: { minerSpeed: 0.1 } },
       { id: 'sense', branch: 'special', name: 'Vein Sense', desc: 'Every vein holds 4% more cheese', level: 8, max: 40, cost: 200, growth: 1.4, eff: { veinCap: 0.04 } },
-      { id: 'deep', branch: 'special', name: 'Deep Riches', desc: 'Each depth level adds another 1% to the value of that rock\'s cheese', level: 20, max: 25, cost: 2000, growth: 1.6, eff: { richDepth: 0.01 } },
+      { id: 'deep', branch: 'special', name: 'Deep Riches', desc: 'Each depth level is worth another 0.1% on that rock\'s cheese', level: 20, max: 25, cost: 2000, growth: 1.6, eff: { richDepth: 0.001 } },
     ],
     drilling: [
       { id: 'bit', branch: 'power', name: 'Bigger Bit', desc: '+1 Raw Cheese per cycle', level: 1, max: 999, cost: 50, growth: 3, eff: { drillYield: 1 } },
       { id: 'motor', branch: 'power', name: 'Turbo Motor', desc: 'Drills run 8% faster', level: 4, max: 40, cost: 70, growth: 1.4, eff: { drillSpeed: 0.08 } },
       { id: 'shift', branch: 'auto', name: 'Night Shift', desc: 'Drills run another 10% faster', level: 12, max: 30, cost: 400, growth: 1.45, eff: { drillSpeed: 0.1 } },
-      { id: 'rich', branch: 'special', name: 'Rich Extraction', desc: '1.5% more Raw Cheese from every cycle', level: 9, max: 50, cost: 250, growth: 1.38, eff: { drillRich: 0.015 } },
+      { id: 'rich', branch: 'special', name: 'Rich Extraction', desc: '2.5% more Raw Cheese from every cycle', level: 9, max: 50, cost: 250, growth: 1.38, eff: { drillRich: 0.025 } },
     ],
     refining: [
       { id: 'vat', branch: 'power', name: 'Bigger Vat', desc: '+2 Cheese Base per cycle', level: 1, max: 999, cost: 50, growth: 3, eff: { refBatch: 2 } },
@@ -217,7 +217,7 @@ CM.BALANCE = {
     ],
     trading: [
       { id: 'prices', branch: 'power', name: 'Better Prices', desc: 'Sell everything for 6% more', level: 1, max: 80, cost: 40, growth: 1.36, eff: { price: 0.06 } },
-      { id: 'counter', branch: 'power', name: 'Bigger Counter', desc: '+12 cheese sold per cycle', level: 1, max: 999, cost: 50, growth: 3, eff: { sellCount: 12 } },
+      { id: 'counter', branch: 'power', name: 'Bigger Counter', desc: '+18 cheese sold per cycle', level: 1, max: 999, cost: 50, growth: 3, eff: { sellCount: 18 } },
       { id: 'quick', branch: 'auto', name: 'Quick Sales', desc: 'Sales are 10% faster', level: 5, max: 40, cost: 100, growth: 1.4, eff: { sellSpeed: 0.1 } },
       { id: 'sign', branch: 'special', name: 'Fancy Sign', desc: 'Another 10% on every price', level: 15, max: 40, cost: 900, growth: 1.55, eff: { price: 0.1 } },
     ],

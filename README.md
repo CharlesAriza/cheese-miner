@@ -56,7 +56,7 @@ Bajo la escena se ve el subsuelo de la roca que estás mirando: baja contigo, ca
 
 No hay almacén con tope: todo se acumula sin límite en la despensa, cada queso por separado.
 
-Cada roca abierta es una línea de producción completa y todas trabajan a la vez: se pica, se taladra, se refina y se cocina cada queso por separado. Debajo del panel hay una fila por queso con su recorrido (Raw → Base → queso), el progreso de cada paso y una frase que dice qué le pasa. Los tres contadores de arriba son los del queso que estás mirando; tocas una fila para cambiar. Una roca nunca se agota: al vaciar su veta baja un nivel de profundidad, y cuanto más hondo, más vale el queso que sale de ella.
+Cada roca abierta es una línea de producción completa y todas trabajan a la vez: se pica, se taladra, se refina y se cocina cada queso por separado. Debajo del panel hay una fila por queso con su recorrido (Raw → Base → queso), el progreso de cada paso y una frase que dice qué le pasa. Los tres contadores de arriba son los del queso que estás mirando; tocas una fila para cambiar. Una roca nunca se agota: al vaciar su veta baja un nivel de profundidad, y cuanto más hondo, más vale el queso que sale de ella (cada nivel multiplica su valor por 1,03).
 
 **La cadena está equilibrada entre sus etapas.** Taladro, refinería, quesería y tienda tienen cada una su mejora de tamaño con el mismo precio; la quesería cocina por hornadas. Si una etapa va por detrás, las anteriores acumulan lo que no puede procesar: esa pila es la señal de dónde conviene invertir o poner a tu mejor ratón. El cuello de botella cambia de etapa según lo que mejores.
 

@@ -9,68 +9,102 @@ Todas las cifras están en `js/game/config/balance.js` y son provisionales. Se c
 - La experiencia se gana **por acción completada, no por unidad producida**: sacar más por ciclo da más queso, no más niveles. Base: 0,4 por golpe (Mining), 5 por ciclo de taladro, 6 por ciclo de refinado, 8 por queso cocinado, 5 por venta.
 - Lo difícil da más: la experiencia se multiplica por (valor de la base ÷ 10)^0,7 y por +5 % por nivel de profundidad en minería y taladro, y por (valor de fórmula ÷ 10)^0,5 en quesería y comercio.
 
-## Equilibrio de la cadena (rebalanceo del 12-10-2026)
+## Equilibrio de la cadena
 
-**El problema.** Medido con el bot a las 4 h, en quesos por minuto que cada etapa de la roca Cheddar podía procesar: picar 196.000, taladrar 15.200.000, refinar 56.000, cocinar 67. La quesería iba mil veces por debajo de la refinería y doscientas mil por debajo del taladro. Causas:
+Versión del 12-10-2026 (guardado v6). Todas las cifras de este documento salen de `balance.js` y de las simulaciones de esa misma versión.
 
-- Taladro y refinería tenían mejoras de cantidad (+1 por rango, hasta 100) y varios multiplicadores (riqueza por profundidad, Rich Extraction, Double Press, nivel de habilidad). La quesería solo tenía velocidad: siempre un queso por ciclo.
-- Las mejores recetas tardaban hasta 62 s por queso, y el ratón quesero elige siempre la más valiosa.
-- Picar se frenaba solo: la búsqueda crecía un 22 % por nivel de profundidad y la veta un 15 %, así que cuanto más hondo, menos Raw por golpe.
+**La regla: la misma ley en todas las etapas.** A igual inversión e iguales ratones, cada etapa procesa una cantidad parecida, y lo que una etapa gana en cantidad lo tiene que recibir de la anterior.
 
-**La regla nueva: la misma ley en todas las etapas.** A igual inversión e iguales ratones, cada etapa procesa una cantidad parecida.
+| Etapa | Por ciclo | Ciclo | Mejora de tamaño (50 monedas, x3 por rango, sin tope) |
+| --- | --- | --- | --- |
+| Taladro | 2 Raw | 6 s | +1 Raw |
+| Refinería | 2 Base (de 4 Raw) | 6 s | +2 Base |
+| Quesería | 1 queso (de 2 Base) | 6 a 12 s según receta | +1 queso por hornada |
+| Tienda | 18 quesos | 2 s | +18 quesos |
 
-| Etapa | Por ciclo | Mejora de tamaño (50 monedas, x3 por rango, sin tope) |
-| --- | --- | --- |
-| Taladro | 2 Raw | +1 Raw |
-| Refinería | 2 Base (de 4 Raw) | +2 Base |
-| Quesería | 1 queso (de 2 Base) | +1 queso por hornada (**nuevo: More Moulds**) |
-| Tienda | 12 quesos cada 2 s | +12 quesos |
+- **La quesería cocina por hornadas** (More Moulds).
+- **El nivel de habilidad y el ratón agrandan la tanda, y la tanda gasta lo que le toca.** En refinería y quesería, más nivel o un ratón que rinde más significa tandas mayores que consumen más Raw o más Base. Solo Double Press saca más Base del mismo Raw, y solo la suerte (rasgos de doble) da quesos de más sin gastar. Antes estas bonificaciones fabricaban producto sin materia prima y el excedente crecía sin fin.
+- **La velocidad nunca se desperdicia.** Un ciclo no baja de 0,4 s; la velocidad que sobra se convierte en cantidad en ese ciclo.
+- **La profundidad multiplica el valor del queso de esa roca:** x1,03 por nivel, compuesto. Cada nivel cuesta un 15 % más de búsqueda y de veta que el anterior. Así picar y taladrar rinden siempre, limiten o no.
+- **Búsqueda y veta crecen igual** y todas las rocas nuevas tienen una veta tan grande como su búsqueda, así que picar y taladrar pesan lo mismo a cualquier profundidad.
+- **La tienda atiende a todas las rocas.**
 
-- **La quesería cocina por hornadas.** Es la palanca que faltaba.
-- **El nivel de Cheesemaking da quesos de más** (como Drilling y Refining dan más Raw y Base), no más valor.
-- **Recetas más rápidas:** de 8 a 62 s pasa a de 5 a 11 s. Las recetas siguen cambiando tiempo por valor, pero ya no hunden la capacidad.
-- **La profundidad sube el valor del queso** (+3 % por nivel), no la cantidad de Raw. Así picar y taladrar importan siempre: cuanto más hondo, más vale todo lo que sale de esa roca.
-- **Búsqueda y veta crecen igual** (15 % por nivel) y todas las rocas nuevas tienen la misma relación entre veta y búsqueda. Picar y taladrar pesan lo mismo el uno frente al otro a cualquier profundidad.
-- **Rich Extraction y Double Press** bajan a +1,5 % y +2 % por rango; el ratón minero golpea cada 4,5 s.
-- **La tienda** atiende a todas las rocas, así que mueve más queso por venta y puede quedarse corta: Trading también limita.
+### Antes y después (bot, 4 h, roca Cheddar, quesos por minuto que cada etapa puede procesar)
 
-**El resultado**, mismo bot, a las 4 h (quesos por minuto):
-
-| Roca | Picar | Taladrar | Refinar | Cocinar |
+| | Picar | Taladrar | Refinar | Cocinar |
 | --- | --- | --- | --- | --- |
-| Cheddar | 160.000 | 147.000 | 30.500 | **26.700** |
-| Gouda | 97.900 | 128.000 | **34.700** | 54.100 |
-| Brie | 87.700 | 85.800 | 40.500 | **30.500** |
-| Emmental | 70.300 | 47.300 | 41.300 | **32.000** |
-| Parmesan | 80.500 | 53.300 | **31.800** | 31.900 |
+| Antes del rebalanceo | 196.000 | 15.200.000 | 56.000 | 67 |
+| Ahora | 43.500 | 52.600 | 23.800 | 19.200 |
 
-Tienda 123.000 frente a 175.000 que cocinan las cinco rocas. En negrita, la etapa que limita esa roca. A lo largo de la partida limita la quesería el 60 % de las veces, la refinería el 24 %, la tienda el 11 %, picar el 3 % y el taladro el 1 %. El stock de Cheese Base pasa de equivaler a 46 días de consumo a unas 3 horas.
+Ahora, en todas las rocas a las 4 h (en negrita, la etapa que limita):
 
-**Lo que no se consigue del todo:** con un jugador que compra parejo, la quesería sigue siendo la que más veces limita, aunque ahora por un factor de 1,5 a 3 y no de mil. El taladro y la mina van algo sobrados en Cheddar.
+| Roca | Picar | Taladrar | Refinar | Cocinar | Raw / Base en stock |
+| --- | --- | --- | --- | --- | --- |
+| Cheddar | 43.500 | 52.600 | 23.800 | **19.200** | 3,9 M / 721.000 |
+| Gouda | 21.000 | **19.800** | 36.900 | 20.400 | 1 / 1 |
+| Brie | **14.500** | 17.600 | 48.300 | 29.600 | 1 / 0 |
+| Emmental | 19.400 | **12.800** | 21.600 | 28.500 | 195 / 1 |
+| Parmesan | **11.500** | 11.700 | 15.600 | 12.400 | 1 / 107 |
+
+Tienda: 128.000 frente a 110.000 que cocinan las cinco rocas.
+
+A lo largo de 5 h, la etapa que limita es el taladro el 43 % de las veces, la quesería el 25 %, picar el 24 %, la refinería el 6 % y la tienda el 3 %.
+
+### Cuánto rinde un ratón el doble de rápido en cada etapa
+
+Desde la misma partida a las 4 h, sin comprar nada más, durante una hora:
+
+| Etapa con ratones al doble | Monedas | Quesos |
+| --- | --- | --- |
+| Mining | +23 % | +19 % |
+| Drilling | +24 % | +19 % |
+| Refining | 0 % | 0 % |
+| Cheesemaking | +29 % | +29 % |
+| Trading | 0 % | 0 % |
+
+En ese momento la refinería y la tienda iban sobradas; en otra partida o más adelante cambia (a las 24 h la tienda es la que limita). No hay una etapa que convenga siempre.
+
+Sin invertir nada en una habilidad durante 4 h (medido antes de los últimos ajustes; sirve como orden de magnitud), las monedas ganadas caen entre mil y doscientas mil veces, sea cual sea la habilidad.
+
+### Stocks a largo plazo
+
+Mismo bot, continuando la partida. "Cobertura" es cuánto duraría el stock al ritmo de consumo de ese momento.
+
+| | Raw por min (entra / se gasta) | Base por min | Queso por min (hecho / vendido) | Cobertura de Raw | de Base | Queso sin vender |
+| --- | --- | --- | --- | --- | --- | --- |
+| 4 h | 79.200 / 62.700 | 62.300 / 59.300 | 29.900 / 29.900 | 63 min | 12 min | nada |
+| 8 h | 276.000 / 223.000 | 223.000 / 204.000 | 104.000 / 104.000 | 75 min | 26 min | nada |
+| 12 h | 395.000 / 331.000 | 331.000 / 297.000 | 151.000 / 150.000 | 97 min | 46 min | 1 min de ventas |
+| 24 h | 537.000 / 469.000 | 469.000 / 411.000 | 209.000 / 197.000 | 173 min | 135 min | 42 min de ventas |
+
+Se consume entre el 85 % y el 95 % de lo que se produce en cada etapa. El stock crece despacio: de una a tres horas de cobertura, no días. Antes del rebalanceo, la Cheese Base acumulada a las 4 h equivalía a 46 días de consumo.
+
+**Tienda.** La capacidad teórica de las queserías supera a la de la tienda desde las 8 h (218.000 frente a 168.000), pero lo que de verdad se fabrica lo limitan las etapas de arriba, así que la tienda vende todo hasta las 12 h. A partir de ahí empieza a quedarse queso sin vender; a las 24 h vende el 94 % de lo que se hace.
+
+**Límite conocido.** Las mejoras de tamaño triplican su precio en cada rango. A las 24 h el bot lleva 28 o 29 rangos de cada una y el siguiente cuesta varias horas de ingresos por un 3,5 % más. La partida se frena mucho a partir de las 8 h; no hay contenido pensado para ese tramo todavía.
 
 ## Zonas y profundidad
 
-| Roca | Coste | Búsqueda y veta iniciales | Valor de la base |
+| Roca | Coste | Búsqueda / veta iniciales | Valor de la base |
 | --- | --- | --- | --- |
 | Cheddar | gratis | 30 / 60 | 10 |
-| Gouda | 160 M | 150 / 150 | 24 |
-| Brie | 3.500 M | 400 / 400 | 60 |
-| Emmental | 400.000 M | 1.000 / 1.000 | 150 |
-| Parmesan | 1,8 B | 2.500 / 2.500 | 380 |
-| Blue | 12 B | 6.000 / 6.000 | 950 |
+| Gouda | 40 M | 150 / 150 | 24 |
+| Brie | 1.500 M | 400 / 400 | 60 |
+| Emmental | 180.000 M | 1.000 / 1.000 | 150 |
+| Parmesan | 700.000 M | 2.500 / 2.500 | 380 |
+| Blue | 6 B | 6.000 / 6.000 | 950 |
 
-(M = millones, B = billones.) Los costes son mucho más altos que antes porque el queso sale por hornadas y se gana mucho más: lo que se ha mantenido son los **tiempos**. Con el bot, las rocas se abren a los 35, 63, 124, 172 y 248 minutos (antes 36, 66, 124, 164 y 265). Optimizando ratones: 27, 47, 75, 102 y 147. Los primeros minutos van algo más rápidos que antes: el primer ratón llega al minuto 1,5 (antes 2,1) y las cinco etapas con ratón al 6,4 (antes 10,7).
-
-Por cada nivel de profundidad: búsqueda y veta x1,15, y +3 % al valor del queso de esa roca.
+(M = millones, B = billones.) Por cada nivel de profundidad: búsqueda y veta x1,15, y valor del queso de esa roca x1,03.
 
 ## Máquinas de partida
 
 | Etapa | Valor inicial |
 | --- | --- |
+| Pico | 1 de búsqueda por golpe; el ratón minero golpea cada 4,5 s |
 | Taladro | 2 Raw cada 6 s |
 | Refinería | 4 Raw → 2 Base cada 6 s, en cada línea |
-| Quesería | 8 s por queso, más tratamiento y maduración |
-| Tienda | 1 queso cada 4 s |
+| Quesería | 1 queso cada 6 s, más tratamiento y maduración |
+| Tienda | 18 quesos cada 2 s |
 
 ## Líneas en paralelo
 
@@ -115,40 +149,41 @@ Todo está en `js/game/config/traits.js`: 22 rasgos buenos, 13 manías, 12 legen
 - **Topes:** suerte de doble 90 %, auras ±60 %, colonia contada hasta 30 ratones, recetas hasta 60.
 - **Velocidad:** (1 + nivel + rango + rareza + afinidad) x (1 + suma de rasgos, combinaciones, profundidad, nivel de habilidad, colonia y auras).
 
-Medido el 12-10-2026 con dos bots: uno elige siempre la primera opción; el otro optimiza rasgos, candidatos y colocación. Con seis rocas, a las 4 h el primero ha ganado 23,9 MM y el segundo 214 MM (unas nueve veces más), con ratones que rinden entre x5 y x14. Los gerentes solo compran mejoras que cuesten hasta el 10 % de tus monedas, para no gastarse lo que ahorras para la siguiente roca. Sin partidas reales todavía.
+Las medidas con el bot están en «Equilibrio de la cadena» y «Ritmo medido». Los gerentes solo compran mejoras que cuesten hasta el 10 % de tus monedas.
 
 ## Árboles
 
-Coste de un nudo: `coste × crecimiento ^ rango`. El nivel indicado es el de la habilidad que hace falta.
+Coste de un nudo: `coste × crecimiento ^ rango`. El nivel indicado es el de la habilidad que hace falta. La descripción es la que muestra el juego.
 
 | Árbol | Nudo | Rama | Nivel | Rangos | Coste inicial | Crecimiento | Efecto por rango |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Mining | Sharper Pick | potencia | 1 | 80 | 12 | 1,3 | +1 búsqueda por golpe |
-| Mining | Heavy Swing | potencia | 6 | 30 | 150 | 1,45 | críticos +0,5× |
-| Mining | Quick Paws | ritmo | 10 | 30 | 300 | 1,42 | mineros +10 % rápidos |
-| Mining | Vein Sense | especial | 8 | 40 | 200 | 1,4 | vetas +10 % |
-| Mining | Deep Riches | especial | 20 | 25 | 2.000 | 1,6 | +2 % de Raw por nivel de profundidad |
-| Drilling | Bigger Bit | potencia | 1 | 100 | 18 | 1,28 | +1 Raw por ciclo |
-| Drilling | Turbo Motor | potencia | 4 | 40 | 70 | 1,4 | +8 % velocidad |
-| Drilling | Night Shift | ritmo | 12 | 30 | 400 | 1,45 | +10 % velocidad |
-| Drilling | Rich Extraction | especial | 9 | 50 | 250 | 1,38 | +6 % Raw |
-| Refining | Bigger Vat | potencia | 1 | 100 | 18 | 1,28 | +1 Base por ciclo |
-| Refining | Hot Furnace | potencia | 4 | 40 | 70 | 1,4 | +8 % velocidad |
-| Refining | Twin Burners | ritmo | 12 | 30 | 400 | 1,45 | +10 % velocidad |
-| Refining | Double Press | especial | 9 | 50 | 250 | 1,38 | +5 % Base con el mismo Raw |
-| Cheesemaking | Faster Curds | potencia | 1 | 60 | 30 | 1,33 | +8 % velocidad |
-| Cheesemaking | Cheese Cellar | especial | 5 | 80 | 150 | 1,38 | +8 % valor |
-| Trading | Better Prices | potencia | 1 | 80 | 40 | 1,36 | +6 % precio |
-| Trading | Bigger Counter | potencia | 2 | 40 | 50 | 1,5 | +1 queso por venta |
-| Trading | Quick Sales | ritmo | 5 | 40 | 100 | 1,4 | +10 % velocidad |
-| Trading | Fancy Sign | especial | 15 | 40 | 900 | 1,55 | +10 % precio |
-| Colonia | Night Lamp | especial | — | 10 | 500 | 2,2 | +2 horas offline |
+| Mining | Sharper Pick | potencia | 1 | 80 | 12 | 1,3 | +1 search power per hit |
+| Mining | Heavy Swing | potencia | 6 | 30 | 150 | 1,45 | Critical hits are 0.5x stronger |
+| Mining | Quick Paws | ritmo | 10 | 30 | 300 | 1,42 | The mouse mining each rock swings 10% faster |
+| Mining | Vein Sense | especial | 8 | 40 | 200 | 1,4 | Every vein holds 4% more cheese |
+| Mining | Deep Riches | especial | 20 | 25 | 2.000 | 1,6 | Each depth level is worth another 0.1% on that rock's cheese |
+| Drilling | Bigger Bit | potencia | 1 | sin tope | 50 | 3 | +1 Raw Cheese per cycle |
+| Drilling | Turbo Motor | potencia | 4 | 40 | 70 | 1,4 | Drills run 8% faster |
+| Drilling | Night Shift | ritmo | 12 | 30 | 400 | 1,45 | Drills run another 10% faster |
+| Drilling | Rich Extraction | especial | 9 | 50 | 250 | 1,38 | 2.5% more Raw Cheese from every cycle |
+| Refining | Bigger Vat | potencia | 1 | sin tope | 50 | 3 | +2 Cheese Base per cycle |
+| Refining | Hot Furnace | potencia | 4 | 40 | 70 | 1,4 | Refines 8% faster |
+| Refining | Twin Burners | ritmo | 12 | 30 | 400 | 1,45 | Refines another 10% faster |
+| Refining | Double Press | especial | 9 | 50 | 250 | 1,38 | 2% more Cheese Base from the same Raw |
+| Cheesemaking | More Moulds | potencia | 1 | sin tope | 50 | 3 | +1 cheese per batch |
+| Cheesemaking | Faster Curds | potencia | 1 | 60 | 30 | 1,33 | Cheese cooks 8% faster |
+| Cheesemaking | Cheese Cellar | especial | 5 | 80 | 150 | 1,38 | Every cheese is worth 8% more |
+| Trading | Better Prices | potencia | 1 | 80 | 40 | 1,36 | Sell everything for 6% more |
+| Trading | Bigger Counter | potencia | 1 | sin tope | 50 | 3 | +18 cheese sold per cycle |
+| Trading | Quick Sales | ritmo | 5 | 40 | 100 | 1,4 | Sales are 10% faster |
+| Trading | Fancy Sign | especial | 15 | 40 | 900 | 1,55 | Another 10% on every price |
+| Colonia | Night Lamp | especial | — | 10 | 500 | 2,2 | Your mice keep working 2 more hours while you are away |
 
 El aspecto de cada edificio cambia al sumar 3, 8, 16, 30 y 50 rangos en la rama de potencia de su árbol.
 
 ## Recetas
 
-**Valor = valor de la base × ingrediente × tratamiento × maduración × sinergias.** Después se aplican maestría, Cheese Cellar y nivel de Cheesemaking.
+**Valor = valor de la base × ingrediente × tratamiento × maduración × sinergias.** Después se aplican maestría, Cheese Cellar y la profundidad de la roca. El nivel de Cheesemaking ya no sube el valor: agranda la hornada.
 
 | Componente | Multiplicador | Extra | Nivel de Cheesemaking |
 | --- | --- | --- | --- |
@@ -157,15 +192,17 @@ El aspecto de cada edificio cambia al sumar 3, 8, 16, 30 y 50 rangos en la rama 
 | Honey | ×1,7 | 10 monedas | 12 |
 | Truffle | ×2,6 | 60 monedas | 25 |
 | Washed | ×1 | — | 1 |
-| Smoked | ×1,35 | +4 s | 3 |
-| Brined | ×1,8 | +9 s | 16 |
+| Smoked | ×1,35 | +1 s | 3 |
+| Brined | ×1,8 | +2 s | 16 |
 | Fresh | ×1 | — | 1 |
-| Aged | ×1,6 | +12 s | 8 |
-| Vintage | ×2,8 | +45 s | 30 |
+| Aged | ×1,6 | +2 s | 8 |
+| Vintage | ×2,8 | +4 s | 30 |
 
-Sinergias: Cheddar + Smoked ×1,2; Gouda + Honey ×1,25; Blue + Brined ×1,3; Pepper + Smoked ×1,15; Truffle + Vintage ×1,4.
+Una hornada tarda 6 s más los extras de la receta: de 6 a 12 s antes de mejoras y maestría.
 
-- Descubrir una receta cuesta 3 Cheese Base y da un queso. Fabricar una conocida cuesta 2.
+Sinergias: Cheddar + Smoked ×1,2; Gouda + Honey ×1,25; Brie + Truffle ×1,25; Emmental + Aged ×1,25; Parmesan + Vintage ×1,3; Blue + Brined ×1,3; Pepper + Smoked ×1,15; Truffle + Vintage ×1,4.
+
+- Descubrir una receta cuesta 3 Cheese Base y da un queso. Fabricar una conocida cuesta 2 por queso.
 - Maestría: niveles al fabricar 5, 15, 40, 100, 250, 600 y 1.500 quesos. Cada nivel da +10 % de valor y −5 % de tiempo.
 - Rangos por valor: Common, Fine (30), Rare (120), Epic (500), Legendary (2.500).
 
@@ -179,27 +216,33 @@ Se simula el tiempo real desde el último guardado, con tope de 4 horas (ampliab
 
 ## Ritmo medido
 
-Un bot que juega sin pausas y sin dev tools (1 tap cada 0,4 s), que recluta al primer candidato, asciende cuando puede y ahorra para cada ratón y cada roca:
+Un bot que juega sin pausas y sin dev tools (1 tap cada 0,4 s), que recluta al primer candidato, elige siempre el primer rasgo, asciende cuando puede, compra las mejoras de más barata a más cara y ahorra para cada ratón y cada roca.
 
-| Hito | Objetivo | Medido |
+| Hito | Antes del rebalanceo | Ahora |
 | --- | --- | --- |
-| Primera venta | — | 1,2 min |
-| Primer ratón | 2–3 min | 2,1 min |
-| Un ratón en las cinco etapas | 10–15 min | 12,8 min |
-| Primer ascenso | — | 19,6 min |
-| Segunda roca | 30–45 min | 41 min |
-| Nivel 25 en una habilidad | 1 hora | unos 60 min |
+| Primera venta | 1,2 min | 1,1 min |
+| Primer ratón | 2,1 min | 1,6 min |
+| Un ratón en las cinco etapas | 10,7 min | 9,8 min |
+| Primer ascenso | 23,2 min | 17 min |
+| Segunda roca | 36 min | 36 min |
+| Tercera roca | 66 min | 63 min |
+| Cuarta roca | 124 min | 117 min |
+| Quinta roca | 164 min | 180 min |
+| Sexta roca | 265 min | 290 min |
 
-Niveles (Mining / Drilling / Refining / Cheesemaking / Trading) a lo largo de cuatro horas:
+Un bot que además optimiza sus ratones (mejor candidato, mejor rasgo para su puesto, recoloca) abre las rocas a los 23, 37, 75, 95 y 143 minutos, y a las 4 h ha ganado unas 18 veces más.
 
-| Tiempo | Niveles | Rocas | Recetas | Monedas ganadas |
+Niveles (Mining / Drilling / Refining / Cheesemaking / Trading) y monedas del bot normal:
+
+| Tiempo | Niveles | Rocas | Monedas ganadas | Quesos hechos |
 | --- | --- | --- | --- | --- |
-| 10 min | 5 / 10 / 11 / 10 / 8 | 1 | 8 | 3,1K |
-| 30 min | 13 / 17 / 19 / 18 / 13 | 1 | 8 | 9,5K |
-| 1 h | 22 / 24 / 25 / 25 / 20 | 2 | 26 | 43K |
-| 2 h | 36 / 35 / 40 / 38 / 33 | 2 | 26 | 5,3M |
-| 4 h | 48 / 39 / 50 / 48 / 44 | 2 | 26 | 66M |
+| 10 min | 2 / 11 / 10 / 13 / 12 | 1 | 4.074 | 72 |
+| 30 min | 6 / 28 / 23 / 30 / 28 | 1 | 17,3 M | 5.556 |
+| 1 h | 15 / 45 / 40 / 45 / 42 | 2 | 1.800 M | 119.000 |
+| 2 h | 27 / 61 / 55 / 56 / 49 | 4 | 308.000 M | 1,2 M |
+| 4 h | 42 / 73 / 67 / 67 / 59 | 5 | 6,8 B | 7,2 M |
+| 5 h | 47 / 77 / 70 / 70 / 63 | 6 | 16,6 B | 11,8 M |
 
-Entre la primera y la segunda hora los ingresos se multiplican por más de cien: es cuando el Gouda y los ingredientes caros entran en juego. Por eso la tercera roca cuesta 150 millones; el bot no llega a ella en cuatro horas (estimado: unas cinco).
+Las monedas son mucho más altas que antes del rebalanceo porque el queso sale por hornadas; lo que se ha mantenido son los tiempos. Los niveles de habilidad suben más deprisa que antes (los ciclos son más cortos y la experiencia se gana por ciclo).
 
-Sin medir: la tercera roca, el nivel 50 y todo lo posterior. El bot se queda con el primer candidato y no elige rasgos, así que una persona que elija bien irá algo por delante.
+**Aviso sobre estas medidas.** Dos partidas del bot con un cambio mínimo pueden diferir en un factor dos, porque el azar de candidatos y rasgos se desvía. Las comparaciones fiables de este documento son las que parten de la misma partida guardada.

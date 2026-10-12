@@ -1004,7 +1004,7 @@
       const recipe = CM.cheesery.laneRecipe(s, z);
       const mineRaw = mi.sp ? (q.veinCapacity(s, z) / q.veinHits(s, z)) * q.pickPower(s) * mi.y * (mi.sp / (q.minerInterval(s) / 1000)) : 0;
       const drillRaw = dr.sp ? (q.drillYield(s, z) * dr.y) / (q.drillDuration(s) / 1000 / dr.sp) : 0;
-      const cheesePerRaw = (q.refineMult(s) * re.y) / B.refinery.rawPerBase / B.cheesery.lotBase;
+      const cheesePerRaw = (1 + q.mods(s)('refBonus')) / B.refinery.rawPerBase / B.cheesery.lotBase;
       const refine = re.sp ? ((q.refineBatch(s) * q.refineMult(s) * re.y) / (q.refineDuration(s) / 1000 / re.sp) / B.cheesery.lotBase) * 60 : 0;
       const batch = q.cheeseBatch ? q.cheeseBatch(s) : 1;
       const cook = co.sp && recipe ? ((batch * co.y * q.skillMult(s, 'cheesemaking')) / (CM.cheesery.jobTime(s, CM.cheesery.parseKey(recipe.key), recipe) / 1000 / co.sp)) * 60 : 0;
@@ -1025,10 +1025,13 @@
   // `smart`: un jugador que optimiza sus ratones (elige el rasgo que más rinde en
   // su puesto, se queda el mejor candidato y recoloca). Sirve para medir el techo.
   // `focus`: además, solo invierte en las habilidades que en ese momento limitan alguna roca.
-  function playBot(tapEveryMs, limitMs, stopAt, snapshots, smart, focus) {
+  // `opts.skip`: habilidades en las que no compra mejoras (para medir cuánto aporta cada una).
+  // `opts.state`: partida de la que continuar (para partidas muy largas, por tramos).
+  function playBot(tapEveryMs, limitMs, stopAt, snapshots, smart, focus, opts) {
+    const skip = (opts && opts.skip) || [];
     const SKILL_OF = { mine: 'mining', drill: 'drilling', refine: 'refining', cook: 'cheesemaking', shop: 'trading' };
     const counts = { mine: 0, drill: 0, refine: 0, cook: 0, shop: 0 };
-    const s = fresh();
+    const s = (opts && opts.state) || fresh();
     const snaps = [];
     const chains = [];
     let lastTap = -1e9;
@@ -1082,7 +1085,7 @@
           if (focus && lows.length) {
             for (const k of lows) CM.tree.buyAll(s, SKILL_OF[k]);
             CM.tree.buyAll(s, 'colony');
-          } else for (const skill of ORDER) CM.tree.buyAll(s, skill);
+          } else for (const skill of ORDER) if (skip.indexOf(skill) < 0) CM.tree.buyAll(s, skill);
         }
       }
       if (s.clock - lastTap >= tapEveryMs) {

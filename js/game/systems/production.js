@@ -61,10 +61,11 @@
       // El rendimiento puede tener decimales: lo que sobra se guarda para el siguiente ciclo.
       // Si lo arranca un ratón, cuentan su velocidad y su rendimiento.
       const w = source === 'worker' ? CM.mice.work(s, 'drilling', zoneId) : null;
-      const wanted = q.drillYield(s, zoneId) * (w ? CM.mice.out(s, w) : 1) + z.carry;
+      const cyc = CM.cycle(q.drillDuration(s) / (w ? w.speed : 1));
+      const wanted = q.drillYield(s, zoneId) * (w ? CM.mice.out(s, w) : 1) * cyc.mult + z.carry;
       const amount = Math.max(1, Math.min(Math.floor(wanted), z.veinRemaining));
       z.carry = Math.max(0, Math.min(1, wanted - Math.floor(wanted)));
-      const total = Math.max(200, Math.round(q.drillDuration(s) / (w ? w.speed : 1)));
+      const total = cyc.total;
       z.veinRemaining -= amount;
       z.drillJob = { remaining: total, total, amount, source };
       CM.emit(s, 'drillStart', { zone: zoneId, source });
@@ -105,12 +106,15 @@
   // Cada línea refina su propio queso, a la vez que las demás.
   CM.refining = {
     // Plan del siguiente ciclo de una línea: cuántas tandas entran y cuánta base sale.
-    plan(s, zoneId, mouseYield) {
+    plan(s, zoneId, mouseYield, cycleMult) {
       const z = s.zones[zoneId];
       const base = q.zoneDef(zoneId).base;
-      const batches = Math.min(q.refineBatch(s), Math.floor(s.inv.raw[base] / B.refinery.rawPerBase));
+      // El nivel de Refining y el ratón agrandan la tanda (y gastan el Raw que le toca); solo
+      // Double Press saca más Base del mismo Raw. Así lo que entra y lo que sale van a la par.
+      const size = q.refineBatch(s) * q.skillMult(s, 'refining') * (mouseYield || 1) * (cycleMult || 1);
+      const batches = Math.min(Math.max(1, Math.floor(size)), Math.floor(s.inv.raw[base] / B.refinery.rawPerBase));
       if (batches < 1) return null;
-      const wanted = batches * q.refineMult(s) * (mouseYield || 1) + z.refCarry;
+      const wanted = batches * (1 + q.mods(s)('refBonus')) + z.refCarry;
       return { base, batches, amount: Math.floor(wanted), carry: wanted - Math.floor(wanted) };
     },
     status(s, zoneId) {
@@ -126,9 +130,10 @@
       if (st !== 'ready') return CM.fail(st);
       const z = s.zones[zoneId];
       const w = source === 'worker' ? CM.mice.work(s, 'refining', zoneId) : null;
-      const plan = this.plan(s, zoneId, w ? CM.mice.out(s, w) : 1);
+      const cyc = CM.cycle(q.refineDuration(s) / (w ? w.speed : 1));
+      const plan = this.plan(s, zoneId, w ? CM.mice.out(s, w) : 1, cyc.mult);
       const used = plan.batches * B.refinery.rawPerBase;
-      const total = Math.max(200, Math.round(q.refineDuration(s) / (w ? w.speed : 1)));
+      const total = cyc.total;
       s.inv.raw[plan.base] -= used;
       s.totals.rawConsumed += used;
       z.stats.rawUsed += used;

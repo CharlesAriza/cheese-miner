@@ -142,6 +142,12 @@
     return Math.max(1, Math.min(B.xp.maxLevel, raw));
   }
 
+  // Un ciclo no puede durar menos que este mínimo. Si las mejoras y el ratón lo
+  // harían más corto, la velocidad que sobra se convierte en cantidad: así la
+  // velocidad nunca deja de servir.
+  const MIN_CYCLE_MS = 400;
+  CM.cycle = (ms) => (ms >= MIN_CYCLE_MS ? { total: Math.round(ms), mult: 1 } : { total: MIN_CYCLE_MS, mult: MIN_CYCLE_MS / Math.max(1, ms) });
+
   const q = {
     mods,
     xpForLevel,
@@ -169,7 +175,9 @@
     veinHits: (s, id) => Math.round(q.zoneDef(id).hits * Math.pow(B.depth.hitsGrowth, s.zones[id].depth)),
     // Riqueza de la roca: cuanto más hondo, más vale el queso que sale de ella.
     // (Antes daba más Raw, que nadie podía gastar. Ahora picar y taladrar suben el valor de toda la línea.)
-    depthRich: (s, id) => 1 + s.zones[id].depth * (B.depth.richness + mods(s)('richDepth')),
+    // Compuesto: cada nivel cuesta un 15 % más de trabajo que el anterior, así que
+    // su premio también se multiplica. Sumado, bajar más dejaba pronto de compensar.
+    depthRich: (s, id) => Math.pow(1 + B.depth.richness + mods(s)('richDepth'), s.zones[id].depth),
     veinCapacity: (s, id) => Math.round(q.zoneDef(id).capacity * Math.pow(B.depth.capacityGrowth, s.zones[id].depth) * (1 + mods(s)('veinCap'))),
 
     rawTotal: (s) => sum(s.inv.raw),

@@ -97,7 +97,7 @@
       s.totals.coinsSpent += coinCost;
     }
     const w = source === 'worker' ? CM.mice.work(s, 'cheesemaking', zoneId) : null;
-    const total = Math.max(200, Math.round(jobTime(s, combo, recipe) / (w ? w.speed : 1)));
+    const total = CM.cycle(jobTime(s, combo, recipe) / (w ? w.speed : 1)).total;
     z.cookJob = { kind, key: keyOf(combo), recipeId: recipe ? recipe.id : null, lotsLeft: lots, per: per || 1, remaining: total, total, source: source || 'manual' };
     CM.emit(s, 'cheeseStart', { zone: zoneId, kind, lots: lots * (per || 1), source: source || 'manual', used: baseCost, base: combo.base });
     return CM.ok();
@@ -132,15 +132,15 @@
       const recipe = this.recipe(s, recipeId);
       if (!recipe) return CM.fail('unknown-recipe');
       const n = Math.max(1, Math.min(B.cheesery.maxQueue, Math.floor(lots) || 1));
-      const per = this.batchFor(s, recipe, n);
+      const per = this.batchFor(s, recipe, n, q.skillMult(s, 'cheesemaking'));
       return startJob(s, 'produce', parseKey(recipe.key), recipe, n, B.cheesery.lotBase * n * per, 'manual', per);
     },
     // Quesos por hornada ahora mismo: lo que den los moldes, o menos si no llega la base o las monedas.
-    batchFor(s, recipe, cycles) {
+    batchFor(s, recipe, cycles, cycleMult) {
       const combo = parseKey(recipe.key);
       const coin = B.ingredients[combo.ingredient].coinCost;
       const c = cycles || 1;
-      return Math.max(1, Math.min(q.cheeseBatch(s), Math.floor(s.inv.base[combo.base] / (B.cheesery.lotBase * c)), coin ? Math.floor(s.coins / (coin * c)) : Infinity));
+      return Math.max(1, Math.min(Math.floor(q.cheeseBatch(s) * (cycleMult || 1)), Math.floor(s.inv.base[combo.base] / (B.cheesery.lotBase * c)), coin ? Math.floor(s.coins / (coin * c)) : Infinity));
     },
     // Cuántos quesos de una receta se pueden encargar ahora mismo.
     maxLots(s, recipe) {
@@ -189,7 +189,11 @@
     start(s, zoneId) {
       const recipe = this.laneRecipe(s, zoneId);
       if (!recipe) return CM.fail('no-recipe');
-      const per = this.batchFor(s, recipe, 1);
+      // Si el ciclo ya no puede ser más corto, la velocidad que sobra agranda la hornada.
+      const w = CM.mice.at(s, 'cheesemaking', zoneId);
+      const speed = w ? CM.mice.speed(w, 'cheesemaking', s, zoneId) : 1;
+      const size = q.skillMult(s, 'cheesemaking') * (w ? CM.mice.yieldMult(w, 'cheesemaking', s, zoneId) : 1);
+      const per = this.batchFor(s, recipe, 1, size * CM.cycle(jobTime(s, parseKey(recipe.key), recipe) / speed).mult);
       return startJob(s, 'produce', parseKey(recipe.key), recipe, 1, B.cheesery.lotBase * per, 'worker', per);
     },
     // Estado: not-built, running, no-recipe, no-base, no-coins, ready, idle.
@@ -235,17 +239,12 @@
       job.lotsLeft -= 1;
       const w = job.source === 'worker' ? CM.mice.work(s, 'cheesemaking', zoneId) : null;
       const xm = w ? CM.mice.reward(s, 'cheesemaking', zoneId) : 1;
-      // El nivel de la habilidad y el ratón dan quesos de más sobre la hornada; lo
-      // que no llega a un queso entero se guarda para la siguiente.
-      if (job.kind !== 'experiment') {
-        z.cookCarry += n * (q.skillMult(s, 'cheesemaking') * (w ? CM.mice.out(s, w) : 1) - 1);
-        const extra = Math.max(-n, Math.trunc(z.cookCarry));
-        if (extra) {
-          z.cookCarry -= extra;
-          s.lots[recipe.id] += extra;
-          s.totals.lotsProduced += extra;
-          z.stats.lots += extra;
-        }
+      // El nivel de la habilidad y el ratón ya agrandaron la hornada al empezar
+      // (gastando su Base). Aquí solo queda la suerte: a veces la hornada sale doble.
+      if (w && job.kind !== 'experiment' && CM.mice.out(s, w) > w.yield * 1.5) {
+        s.lots[recipe.id] += n;
+        s.totals.lotsProduced += n;
+        z.stats.lots += n;
       }
       CM.skills.addXp(s, 'cheesemaking', B.xp.perCheese * recipeXp(recipe) * xm);
       CM.emit(s, 'lotDone', { zone: zoneId, recipeId: recipe.id, source: job.source });
@@ -277,7 +276,9 @@
       if (st !== 'ready') return CM.fail(st);
       // Se venden primero los quesos más caros.
       const stock = s.recipes.filter((r) => (s.lots[r.id] || 0) > 0).sort((a, b) => this.price(s, b) - this.price(s, a));
-      let left = q.sellCount(s);
+      const w = source === 'worker' ? CM.mice.work(s, 'trading', 'all') : null;
+      const cyc = CM.cycle(q.sellDuration(s) / (w ? w.speed : 1));
+      let left = Math.floor(q.sellCount(s) * cyc.mult);
       let coins = 0;
       let count = 0;
       let top = stock[0].id;
@@ -290,8 +291,7 @@
         count += n;
         left -= n;
       }
-      const w = source === 'worker' ? CM.mice.work(s, 'trading', 'all') : null;
-      const total = Math.max(200, Math.round(q.sellDuration(s) / (w ? w.speed : 1)));
+      const total = cyc.total;
       if (w) coins = Math.max(1, Math.round(coins * CM.mice.out(s, w)));
       // Una venta es una acción: la experiencia depende de lo mejor que vendes, no de cuántos.
       const xp = B.xp.perSale * recipeXp(stock[0]);
