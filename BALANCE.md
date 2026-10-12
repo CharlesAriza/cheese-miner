@@ -9,20 +9,59 @@ Todas las cifras están en `js/game/config/balance.js` y son provisionales. Se c
 - La experiencia se gana **por acción completada, no por unidad producida**: sacar más por ciclo da más queso, no más niveles. Base: 0,4 por golpe (Mining), 5 por ciclo de taladro, 6 por ciclo de refinado, 8 por queso cocinado, 5 por venta.
 - Lo difícil da más: la experiencia se multiplica por (valor de la base ÷ 10)^0,7 y por +5 % por nivel de profundidad en minería y taladro, y por (valor de fórmula ÷ 10)^0,5 en quesería y comercio.
 
+## Equilibrio de la cadena (rebalanceo del 12-10-2026)
+
+**El problema.** Medido con el bot a las 4 h, en quesos por minuto que cada etapa de la roca Cheddar podía procesar: picar 196.000, taladrar 15.200.000, refinar 56.000, cocinar 67. La quesería iba mil veces por debajo de la refinería y doscientas mil por debajo del taladro. Causas:
+
+- Taladro y refinería tenían mejoras de cantidad (+1 por rango, hasta 100) y varios multiplicadores (riqueza por profundidad, Rich Extraction, Double Press, nivel de habilidad). La quesería solo tenía velocidad: siempre un queso por ciclo.
+- Las mejores recetas tardaban hasta 62 s por queso, y el ratón quesero elige siempre la más valiosa.
+- Picar se frenaba solo: la búsqueda crecía un 22 % por nivel de profundidad y la veta un 15 %, así que cuanto más hondo, menos Raw por golpe.
+
+**La regla nueva: la misma ley en todas las etapas.** A igual inversión e iguales ratones, cada etapa procesa una cantidad parecida.
+
+| Etapa | Por ciclo | Mejora de tamaño (50 monedas, x3 por rango, sin tope) |
+| --- | --- | --- |
+| Taladro | 2 Raw | +1 Raw |
+| Refinería | 2 Base (de 4 Raw) | +2 Base |
+| Quesería | 1 queso (de 2 Base) | +1 queso por hornada (**nuevo: More Moulds**) |
+| Tienda | 12 quesos cada 2 s | +12 quesos |
+
+- **La quesería cocina por hornadas.** Es la palanca que faltaba.
+- **El nivel de Cheesemaking da quesos de más** (como Drilling y Refining dan más Raw y Base), no más valor.
+- **Recetas más rápidas:** de 8 a 62 s pasa a de 5 a 11 s. Las recetas siguen cambiando tiempo por valor, pero ya no hunden la capacidad.
+- **La profundidad sube el valor del queso** (+3 % por nivel), no la cantidad de Raw. Así picar y taladrar importan siempre: cuanto más hondo, más vale todo lo que sale de esa roca.
+- **Búsqueda y veta crecen igual** (15 % por nivel) y todas las rocas nuevas tienen la misma relación entre veta y búsqueda. Picar y taladrar pesan lo mismo el uno frente al otro a cualquier profundidad.
+- **Rich Extraction y Double Press** bajan a +1,5 % y +2 % por rango; el ratón minero golpea cada 4,5 s.
+- **La tienda** atiende a todas las rocas, así que mueve más queso por venta y puede quedarse corta: Trading también limita.
+
+**El resultado**, mismo bot, a las 4 h (quesos por minuto):
+
+| Roca | Picar | Taladrar | Refinar | Cocinar |
+| --- | --- | --- | --- | --- |
+| Cheddar | 160.000 | 147.000 | 30.500 | **26.700** |
+| Gouda | 97.900 | 128.000 | **34.700** | 54.100 |
+| Brie | 87.700 | 85.800 | 40.500 | **30.500** |
+| Emmental | 70.300 | 47.300 | 41.300 | **32.000** |
+| Parmesan | 80.500 | 53.300 | **31.800** | 31.900 |
+
+Tienda 123.000 frente a 175.000 que cocinan las cinco rocas. En negrita, la etapa que limita esa roca. A lo largo de la partida limita la quesería el 60 % de las veces, la refinería el 24 %, la tienda el 11 %, picar el 3 % y el taladro el 1 %. El stock de Cheese Base pasa de equivaler a 46 días de consumo a unas 3 horas.
+
+**Lo que no se consigue del todo:** con un jugador que compra parejo, la quesería sigue siendo la que más veces limita, aunque ahora por un factor de 1,5 a 3 y no de mil. El taladro y la mina van algo sobrados en Cheddar.
+
 ## Zonas y profundidad
 
-| Roca | Coste | Búsqueda inicial | Veta inicial | Valor de la base |
-| --- | --- | --- | --- | --- |
-| Cheddar | gratis | 30 | 60 | 10 |
-| Gouda | 15.000 | 150 | 120 | 24 |
-| Brie | 1.200.000 | 800 | 240 | 60 |
-| Emmental | 60.000.000 | 4.000 | 480 | 150 |
-| Parmesan | 700.000.000 | 20.000 | 960 | 380 |
-| Blue | 12.000.000.000 | 100.000 | 1.920 | 950 |
+| Roca | Coste | Búsqueda y veta iniciales | Valor de la base |
+| --- | --- | --- | --- |
+| Cheddar | gratis | 30 / 60 | 10 |
+| Gouda | 160 M | 150 / 150 | 24 |
+| Brie | 3.500 M | 400 / 400 | 60 |
+| Emmental | 400.000 M | 1.000 / 1.000 | 150 |
+| Parmesan | 1,8 B | 2.500 / 2.500 | 380 |
+| Blue | 12 B | 6.000 / 6.000 | 950 |
 
-Con el bot (12-10-2026), un jugador que no optimiza abre las rocas a los 36, 66, 124, 164 y 265 minutos; uno que optimiza sus ratones, a los 38, 64, 92, 114 y 170.
+(M = millones, B = billones.) Los costes son mucho más altos que antes porque el queso sale por hornadas y se gana mucho más: lo que se ha mantenido son los **tiempos**. Con el bot, las rocas se abren a los 35, 63, 124, 172 y 248 minutos (antes 36, 66, 124, 164 y 265). Optimizando ratones: 27, 47, 75, 102 y 147. Los primeros minutos van algo más rápidos que antes: el primer ratón llega al minuto 1,5 (antes 2,1) y las cinco etapas con ratón al 6,4 (antes 10,7).
 
-Por cada nivel de profundidad: búsqueda ×1,22, veta ×1,15 y +8 % de Raw Cheese por ciclo.
+Por cada nivel de profundidad: búsqueda y veta x1,15, y +3 % al valor del queso de esa roca.
 
 ## Máquinas de partida
 

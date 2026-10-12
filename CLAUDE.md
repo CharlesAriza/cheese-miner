@@ -31,6 +31,7 @@ Shop Titans deja de ser referencia.
 - **Sin compilación:** HTML, CSS y JavaScript puros, publicables tal cual en GitHub Pages. El equipo de desarrollo no tiene Node.
 - **Simulación separada del render,** por pasos de tiempo fijos. La economía nunca depende de frames ni de efectos visuales. Acciones atómicas: nada se cobra ni se entrega dos veces.
 - **Balance centralizado** en `js/game/config/balance.js`, siempre provisional.
+- **La cadena se equilibra con una sola ley:** a igual inversión e iguales ratones, cada etapa procesa una cantidad parecida. Antes de tocar el rendimiento de una etapa, medir las cinco con el bot (`tests.html` informa de la capacidad de cada etapa por roca; `tests.html?bot` carga solo el bot para calibrar desde la consola).
 - **Al publicar, cambiar el `?v=` de los enlaces de `index.html`** (hoja de estilos y scripts): si no, el móvil sigue con los archivos viejos en caché.
 - **Nombres de clase CSS propios por pantalla:** antes de añadir una clase, comprobar que no existe ya (un `.lrow` y un `.hot` repetidos rompieron la pantalla principal).
 - **Pruebas en el navegador** (`tests.html`). No afirmar que algo está probado si no se ha ejecutado.

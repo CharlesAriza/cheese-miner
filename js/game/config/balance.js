@@ -39,7 +39,7 @@ CM.BALANCE = {
     comboWindowMs: 650, // golpes manuales más seguidos que esto hacen combo
     critEvery: 5, // cada N golpes de combo, golpe crítico
     critMultiplier: 3,
-    minerIntervalMs: 1500, // cada ratón minero da un golpe cada N ms en cada roca
+    minerIntervalMs: 4500, // cada ratón minero da un golpe cada N ms en cada roca
   },
 
   // ---------- ZONAS ----------
@@ -58,16 +58,18 @@ CM.BALANCE = {
   // a la vista. (Cada roca tendrá además su propio edificio o mecánica.)
   zones: [
     { id: 'cheddar', base: 'cheddar', name: 'Cheddar Rock', unlockCost: 0, hits: 30, capacity: 60 },
-    { id: 'gouda', base: 'gouda', name: 'Gouda Rock', unlockCost: 15000, hits: 150, capacity: 120 },
-    { id: 'brie', base: 'brie', name: 'Brie Rock', unlockCost: 1200000, hits: 800, capacity: 240 },
-    { id: 'emmental', base: 'emmental', name: 'Emmental Rock', unlockCost: 60000000, hits: 4000, capacity: 480 },
-    { id: 'parmesan', base: 'parmesan', name: 'Parmesan Rock', unlockCost: 700000000, hits: 20000, capacity: 960 },
-    { id: 'blue', base: 'blue', name: 'Blue Rock', unlockCost: 12000000000, hits: 100000, capacity: 1920 },
+    { id: 'gouda', base: 'gouda', name: 'Gouda Rock', unlockCost: 160000000, hits: 150, capacity: 150 },
+    { id: 'brie', base: 'brie', name: 'Brie Rock', unlockCost: 3500000000, hits: 400, capacity: 400 },
+    { id: 'emmental', base: 'emmental', name: 'Emmental Rock', unlockCost: 400000000000, hits: 1000, capacity: 1000 },
+    { id: 'parmesan', base: 'parmesan', name: 'Parmesan Rock', unlockCost: 1800000000000, hits: 2500, capacity: 2500 },
+    { id: 'blue', base: 'blue', name: 'Blue Rock', unlockCost: 12000000000000, hits: 6000, capacity: 6000 },
   ],
   depth: {
-    hitsGrowth: 1.22, // búsqueda necesaria por nivel de profundidad
+    // Búsqueda y veta crecen al mismo ritmo: más hondo todo es más grande y más
+    // lento, pero picar y taladrar siguen pesando lo mismo el uno frente al otro.
+    hitsGrowth: 1.15, // búsqueda necesaria por nivel de profundidad
     capacityGrowth: 1.15, // tamaño de la veta por nivel de profundidad
-    richness: 0.08, // +8 % de Raw Cheese por ciclo por nivel de profundidad
+    richness: 0.03, // +3 % al VALOR del queso de esa roca por nivel de profundidad
   },
 
   // ---------- MÁQUINAS ----------
@@ -79,9 +81,10 @@ CM.BALANCE = {
   // Valor = valor de la base x multiplicadores. `level` es el nivel de
   // Cheesemaking que hace falta para usar ese componente.
   cheesery: {
+    batch: 1, // quesos por hornada (sube con More Moulds)
     experimentBase: 3, // Cheese Base que cuesta descubrir una receta (da 1 queso)
     lotBase: 2, // Cheese Base por queso de una receta conocida
-    baseTimeMs: 8000,
+    baseTimeMs: 5000,
     maxQueue: 10,
     boostMs: 300,
     masteryAt: [0, 5, 15, 40, 100, 250, 600, 1500], // quesos hechos para cada nivel de maestría
@@ -96,13 +99,13 @@ CM.BALANCE = {
   },
   treatments: {
     washed: { name: 'Washed', adj: 'Washed', mult: 1, timeMs: 0, level: 1 },
-    smoked: { name: 'Smoked', adj: 'Smoked', mult: 1.35, timeMs: 4000, level: 3 },
-    brined: { name: 'Brined', adj: 'Brined', mult: 1.8, timeMs: 9000, level: 16 },
+    smoked: { name: 'Smoked', adj: 'Smoked', mult: 1.35, timeMs: 1000, level: 3 },
+    brined: { name: 'Brined', adj: 'Brined', mult: 1.8, timeMs: 2000, level: 16 },
   },
   maturations: {
     fresh: { name: 'Fresh', adj: '', mult: 1, timeMs: 0, level: 1 },
-    aged: { name: 'Aged', adj: 'Aged', mult: 1.6, timeMs: 12000, level: 8 },
-    vintage: { name: 'Vintage', adj: 'Vintage', mult: 2.8, timeMs: 45000, level: 30 },
+    aged: { name: 'Aged', adj: 'Aged', mult: 1.6, timeMs: 2000, level: 8 },
+    vintage: { name: 'Vintage', adj: 'Vintage', mult: 2.8, timeMs: 4000, level: 30 },
   },
   synergies: [
     { when: { base: 'cheddar', treatment: 'smoked' }, mult: 1.2, label: 'Smoked Cheddar' },
@@ -127,8 +130,8 @@ CM.BALANCE = {
   // Vender es un ciclo como los demás. El nivel de Trading trae mejores
   // compradores, que multiplican el precio de todo.
   shop: {
-    perSale: 1, // quesos por ciclo
-    durationMs: 4000,
+    perSale: 12, // quesos por ciclo (la tienda atiende a todas las rocas)
+    durationMs: 2000,
     boostMs: 250,
     buyers: [
       { level: 1, name: 'Neighbors', mult: 1 },
@@ -192,28 +195,29 @@ CM.BALANCE = {
       { id: 'pick', branch: 'power', name: 'Sharper Pick', desc: '+1 search power per hit', level: 1, max: 80, cost: 12, growth: 1.3, eff: { pickPower: 1 } },
       { id: 'swing', branch: 'power', name: 'Heavy Swing', desc: 'Critical hits are 0.5x stronger', level: 6, max: 30, cost: 150, growth: 1.45, eff: { critMult: 0.5 } },
       { id: 'paws', branch: 'auto', name: 'Quick Paws', desc: 'The mouse mining each rock swings 10% faster', level: 10, max: 30, cost: 300, growth: 1.42, eff: { minerSpeed: 0.1 } },
-      { id: 'sense', branch: 'special', name: 'Vein Sense', desc: 'Every vein holds 10% more cheese', level: 8, max: 40, cost: 200, growth: 1.4, eff: { veinCap: 0.1 } },
-      { id: 'deep', branch: 'special', name: 'Deep Riches', desc: 'Each depth level gives 2% more raw', level: 20, max: 25, cost: 2000, growth: 1.6, eff: { richDepth: 0.02 } },
+      { id: 'sense', branch: 'special', name: 'Vein Sense', desc: 'Every vein holds 4% more cheese', level: 8, max: 40, cost: 200, growth: 1.4, eff: { veinCap: 0.04 } },
+      { id: 'deep', branch: 'special', name: 'Deep Riches', desc: 'Each depth level adds another 1% to the value of that rock\'s cheese', level: 20, max: 25, cost: 2000, growth: 1.6, eff: { richDepth: 0.01 } },
     ],
     drilling: [
-      { id: 'bit', branch: 'power', name: 'Bigger Bit', desc: '+1 Raw Cheese per cycle', level: 1, max: 100, cost: 18, growth: 1.28, eff: { drillYield: 1 } },
+      { id: 'bit', branch: 'power', name: 'Bigger Bit', desc: '+1 Raw Cheese per cycle', level: 1, max: 999, cost: 50, growth: 3, eff: { drillYield: 1 } },
       { id: 'motor', branch: 'power', name: 'Turbo Motor', desc: 'Drills run 8% faster', level: 4, max: 40, cost: 70, growth: 1.4, eff: { drillSpeed: 0.08 } },
       { id: 'shift', branch: 'auto', name: 'Night Shift', desc: 'Drills run another 10% faster', level: 12, max: 30, cost: 400, growth: 1.45, eff: { drillSpeed: 0.1 } },
-      { id: 'rich', branch: 'special', name: 'Rich Extraction', desc: '6% more Raw Cheese from every cycle', level: 9, max: 50, cost: 250, growth: 1.38, eff: { drillRich: 0.06 } },
+      { id: 'rich', branch: 'special', name: 'Rich Extraction', desc: '1.5% more Raw Cheese from every cycle', level: 9, max: 50, cost: 250, growth: 1.38, eff: { drillRich: 0.015 } },
     ],
     refining: [
-      { id: 'vat', branch: 'power', name: 'Bigger Vat', desc: '+1 Cheese Base per cycle', level: 1, max: 100, cost: 18, growth: 1.28, eff: { refBatch: 1 } },
+      { id: 'vat', branch: 'power', name: 'Bigger Vat', desc: '+2 Cheese Base per cycle', level: 1, max: 999, cost: 50, growth: 3, eff: { refBatch: 2 } },
       { id: 'furnace', branch: 'power', name: 'Hot Furnace', desc: 'Refines 8% faster', level: 4, max: 40, cost: 70, growth: 1.4, eff: { refSpeed: 0.08 } },
       { id: 'burners', branch: 'auto', name: 'Twin Burners', desc: 'Refines another 10% faster', level: 12, max: 30, cost: 400, growth: 1.45, eff: { refSpeed: 0.1 } },
-      { id: 'press', branch: 'special', name: 'Double Press', desc: '5% more Cheese Base from the same Raw', level: 9, max: 50, cost: 250, growth: 1.38, eff: { refBonus: 0.05 } },
+      { id: 'press', branch: 'special', name: 'Double Press', desc: '2% more Cheese Base from the same Raw', level: 9, max: 50, cost: 250, growth: 1.38, eff: { refBonus: 0.02 } },
     ],
     cheesemaking: [
+      { id: 'moulds', branch: 'power', name: 'More Moulds', desc: '+1 cheese per batch', level: 1, max: 999, cost: 50, growth: 3, eff: { cheeseBatch: 1 } },
       { id: 'curds', branch: 'power', name: 'Faster Curds', desc: 'Cheese cooks 8% faster', level: 1, max: 60, cost: 30, growth: 1.33, eff: { cheeseSpeed: 0.08 } },
       { id: 'cellar', branch: 'special', name: 'Cheese Cellar', desc: 'Every cheese is worth 8% more', level: 5, max: 80, cost: 150, growth: 1.38, eff: { cheeseValue: 0.08 } },
     ],
     trading: [
       { id: 'prices', branch: 'power', name: 'Better Prices', desc: 'Sell everything for 6% more', level: 1, max: 80, cost: 40, growth: 1.36, eff: { price: 0.06 } },
-      { id: 'counter', branch: 'power', name: 'Bigger Counter', desc: '+1 cheese sold per cycle', level: 2, max: 40, cost: 50, growth: 1.5, eff: { sellCount: 1 } },
+      { id: 'counter', branch: 'power', name: 'Bigger Counter', desc: '+12 cheese sold per cycle', level: 1, max: 999, cost: 50, growth: 3, eff: { sellCount: 12 } },
       { id: 'quick', branch: 'auto', name: 'Quick Sales', desc: 'Sales are 10% faster', level: 5, max: 40, cost: 100, growth: 1.4, eff: { sellSpeed: 0.1 } },
       { id: 'sign', branch: 'special', name: 'Fancy Sign', desc: 'Another 10% on every price', level: 15, max: 40, cost: 900, growth: 1.55, eff: { price: 0.1 } },
     ],
@@ -231,7 +235,7 @@ CM.BALANCE = {
   retiredNodes: { 'colony.silo': { cost: 40, growth: 1.55 }, 'colony.racks': { cost: 40, growth: 1.55 }, 'colony.shelves': { cost: 40, growth: 1.55 } },
 
   // Monedas que se regalan una sola vez al cumplir cada objetivo.
-  goalRewards: { vein: 0, drill: 5, raw: 5, refinery: 10, base: 10, cheesery: 15, recipe: 15, shop: 20, sale: 20, node: 30, house: 40, mouse: 60, promote: 500, level5: 80, allAuto: 400, zone2: 1000, depth3: 300, recipes8: 1500, level25: 5000, zone3: 20000, zone4: 2000000, zone5: 80000000, zone6: 2000000000 },
+  goalRewards: { vein: 0, drill: 5, raw: 5, refinery: 10, base: 10, cheesery: 15, recipe: 15, shop: 20, sale: 20, node: 30, house: 40, mouse: 60, promote: 500, level5: 80, allAuto: 400, zone2: 5000000, depth3: 300, recipes8: 1500, level25: 5000, zone3: 100000000, zone4: 10000000000, zone5: 80000000000, zone6: 500000000000 },
 
   offline: {
     baseHours: 4, // máximo de ausencia que se simula (ampliable en el árbol de colonia)

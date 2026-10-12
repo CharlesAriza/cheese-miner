@@ -2,7 +2,7 @@
 (function () {
   const B = CM.BALANCE;
 
-  CM.SAVE_VERSION = 5;
+  CM.SAVE_VERSION = 6;
   CM.events = []; // cola que consume la UI para dar feedback
   CM.muted = false; // true durante la simulación offline: no hay feedback visual
 
@@ -167,6 +167,9 @@
     lotsOfBase: (s, base) => s.recipes.reduce((a, r) => a + (r.key.split('+')[0] === base ? s.lots[r.id] || 0 : 0), 0),
     openZones: (s) => B.zones.filter((z) => s.zones[z.id].unlocked),
     veinHits: (s, id) => Math.round(q.zoneDef(id).hits * Math.pow(B.depth.hitsGrowth, s.zones[id].depth)),
+    // Riqueza de la roca: cuanto más hondo, más vale el queso que sale de ella.
+    // (Antes daba más Raw, que nadie podía gastar. Ahora picar y taladrar suben el valor de toda la línea.)
+    depthRich: (s, id) => 1 + s.zones[id].depth * (B.depth.richness + mods(s)('richDepth')),
     veinCapacity: (s, id) => Math.round(q.zoneDef(id).capacity * Math.pow(B.depth.capacityGrowth, s.zones[id].depth) * (1 + mods(s)('veinCap'))),
 
     rawTotal: (s) => sum(s.inv.raw),
@@ -181,10 +184,10 @@
     // Raw Cheese por ciclo en una zona (puede tener decimales; se acumulan).
     drillYield(s, id) {
       const m = mods(s);
-      const depthBonus = 1 + s.zones[id].depth * (B.depth.richness + m('richDepth'));
-      return (B.drill.yield + m('drillYield')) * depthBonus * (1 + m('drillRich')) * q.skillMult(s, 'drilling');
+      return (B.drill.yield + m('drillYield')) * (1 + m('drillRich')) * q.skillMult(s, 'drilling');
     },
     drillDuration: (s) => Math.max(300, Math.round(B.drill.durationMs / (1 + mods(s)('drillSpeed')))),
+    cheeseBatch: (s) => B.cheesery.batch + mods(s)('cheeseBatch'),
     refineBatch: (s) => B.refinery.batch + mods(s)('refBatch'),
     refineMult: (s) => (1 + mods(s)('refBonus')) * q.skillMult(s, 'refining'),
     refineDuration: (s) => Math.max(300, Math.round(B.refinery.durationMs / (1 + mods(s)('refSpeed')))),

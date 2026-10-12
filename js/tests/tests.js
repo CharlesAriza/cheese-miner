@@ -7,6 +7,8 @@
   const notes = [];
 
   function test(name, fn) {
+    // tests.html?bot carga solo el bot, para calibrar desde la consola.
+    if (location.search.indexOf('bot') >= 0) return;
     CM.events.length = 0;
     try {
       fn();
@@ -168,7 +170,7 @@
       staff(s, 'mining', z);
       staff(s, 'drilling', z);
     }
-    run(s, 10 * 60 * 1000);
+    run(s, 20 * 60 * 1000); // un minero sin mejoras tarda unos 11 minutos en dar con la primera veta de Gouda
     truthy(s.inv.raw.cheddar > 0 && s.inv.raw.gouda > 0, 'both rocks produced raw');
     truthy(s.zones.gouda.depth > 0 || s.zones.gouda.veinRevealed || s.zones.gouda.discover > 0, 'gouda progressed on its own');
     valid(s);
@@ -521,7 +523,7 @@
     eq(CM.cheesery.status(s, 'cheddar'), 'no-base', 'stops without base');
     s.inv.base.cheddar = 41;
     run(s, 30 * 60 * 1000);
-    eq(s.lots[recipe.id], 3 + 20, 'cooks every pair of base it has, with no cheese cap');
+    truthy(s.lots[recipe.id] >= 3 + 20 && s.lots[recipe.id] <= 3 + 22, 'cooks every pair of base it has, with no cheese cap (its skill level adds the odd extra cheese): ' + s.lots[recipe.id]);
     eq(s.inv.base.cheddar, 1, 'only the odd base is left');
     eq(s.totals.lotsSold, 0, 'the cheesemaker never sells');
     staff(s, 'trading');
@@ -982,11 +984,53 @@
   });
 
   // Un bot juega desde cero usando solo las acciones del jugador, sin dev tools.
+  // Capacidad de cada etapa de una roca, en quesos por minuto, para ver cuál
+  // limita a las demás. mine = lo que da la veta si el taladro no esperase;
+  // drill, refine y cook = lo que cada máquina podría procesar con entrada de
+  // sobra; shop = lo que la tienda puede vender (compartida por todas las rocas).
+  function chainReport(s) {
+    const K = CM.mice;
+    const per = (m, skill, zone) => (m ? { sp: K.speed(m, skill, s, zone), y: K.yieldMult(m, skill, s, zone) * (1 + K.doubleChance(m, skill, s, zone)) } : { sp: 0, y: 1 });
+    const out = [];
+    const lows = [];
+    const f = (n) => (n >= 100 ? CM.fmt(Math.round(n)) : Math.round(n * 10) / 10);
+    let cookTotal = 0;
+    for (const def of q.openZones(s)) {
+      const z = def.id;
+      const mi = per(K.at(s, 'mining', z), 'mining', z);
+      const dr = per(K.at(s, 'drilling', z), 'drilling', z);
+      const re = per(K.at(s, 'refining', z), 'refining', z);
+      const co = per(K.at(s, 'cheesemaking', z), 'cheesemaking', z);
+      const recipe = CM.cheesery.laneRecipe(s, z);
+      const mineRaw = mi.sp ? (q.veinCapacity(s, z) / q.veinHits(s, z)) * q.pickPower(s) * mi.y * (mi.sp / (q.minerInterval(s) / 1000)) : 0;
+      const drillRaw = dr.sp ? (q.drillYield(s, z) * dr.y) / (q.drillDuration(s) / 1000 / dr.sp) : 0;
+      const cheesePerRaw = (q.refineMult(s) * re.y) / B.refinery.rawPerBase / B.cheesery.lotBase;
+      const refine = re.sp ? ((q.refineBatch(s) * q.refineMult(s) * re.y) / (q.refineDuration(s) / 1000 / re.sp) / B.cheesery.lotBase) * 60 : 0;
+      const batch = q.cheeseBatch ? q.cheeseBatch(s) : 1;
+      const cook = co.sp && recipe ? ((batch * co.y * q.skillMult(s, 'cheesemaking')) / (CM.cheesery.jobTime(s, CM.cheesery.parseKey(recipe.key), recipe) / 1000 / co.sp)) * 60 : 0;
+      cookTotal += cook;
+      const stages = { mine: mineRaw * cheesePerRaw * 60, drill: drillRaw * cheesePerRaw * 60, refine, cook };
+      const low = Object.keys(stages).sort((a, b) => stages[a] - stages[b])[0];
+      lows.push(low);
+      out.push(B.bases[def.base].name + ' d' + s.zones[z].depth + ': ' + Object.keys(stages).map((k) => (k === low ? '[' + k + ' ' + f(stages[k]) + ']' : k + ' ' + f(stages[k]))).join(' ') + ' | raw ' + CM.fmt(s.inv.raw[def.base]) + ' base ' + CM.fmt(s.inv.base[def.base]));
+    }
+    const kp = per(K.at(s, 'trading', 'all'), 'trading', 'all');
+    const shop = kp.sp ? (q.sellCount(s) / (q.sellDuration(s) / 1000 / kp.sp)) * 60 : 0;
+    out.push('shop ' + f(shop) + ' vs cooks ' + f(cookTotal) + ' cheese/min, unsold ' + CM.fmt(q.lotsTotal(s)));
+    if (shop < cookTotal) lows.push('shop');
+    out.lows = lows;
+    return out;
+  }
+
   // `smart`: un jugador que optimiza sus ratones (elige el rasgo que más rinde en
   // su puesto, se queda el mejor candidato y recoloca). Sirve para medir el techo.
-  function playBot(tapEveryMs, limitMs, stopAt, snapshots, smart) {
+  // `focus`: además, solo invierte en las habilidades que en ese momento limitan alguna roca.
+  function playBot(tapEveryMs, limitMs, stopAt, snapshots, smart, focus) {
+    const SKILL_OF = { mine: 'mining', drill: 'drilling', refine: 'refining', cook: 'cheesemaking', shop: 'trading' };
+    const counts = { mine: 0, drill: 0, refine: 0, cook: 0, shop: 0 };
     const s = fresh();
     const snaps = [];
+    const chains = [];
     let lastTap = -1e9;
     let lastBuy = -1e9;
     const ORDER = ['drilling', 'refining', 'trading', 'cheesemaking', 'mining', 'colony'];
@@ -1030,7 +1074,16 @@
         // siguiente roca cuando su economía ya da para ella.
         const mouse = s.built.house && !!CM.mice.freePost(s) && s.totals.coinsEarned > CM.mice.recruitCost(s) * 0.6;
         const saving = mouse || (next && s.totals.coinsEarned > next.unlockCost * 0.5);
-        if (!saving) for (const skill of ORDER) CM.tree.buyAll(s, skill);
+        if (!saving) {
+          // (se mira cada 10 s de juego: medir la cadena en cada compra alarga mucho la prueba)
+          if (s.clock % 10000 < 2000 || !playBot.lows) playBot.lows = chainReport(s).lows;
+          const lows = playBot.lows;
+          lows.forEach((k) => (counts[k] += 1));
+          if (focus && lows.length) {
+            for (const k of lows) CM.tree.buyAll(s, SKILL_OF[k]);
+            CM.tree.buyAll(s, 'colony');
+          } else for (const skill of ORDER) CM.tree.buyAll(s, skill);
+        }
       }
       if (s.clock - lastTap >= tapEveryMs) {
         lastTap = s.clock;
@@ -1056,12 +1109,15 @@
       }
       if (s.clock % 5000 === 0) valid(s);
       if (snapshots && snapshots.length && s.clock >= snapshots[0] * 60000) {
-        snaps.push(snapshots.shift() + ' min: levels ' + CM.skills.list.map((k) => q.level(s, k)).join('/') + ', rocks ' + s.totals.zonesUnlocked + ', depth ' + B.zones.map((z) => s.zones[z.id].depth).join('/') + ', recipes ' + s.recipes.length + ', coins ' + CM.fmt(s.coins) + ', earned ' + CM.fmt(s.totals.coinsEarned));
+        if ([60, 120, 240, 300].indexOf(snapshots[0]) >= 0) chainReport(s).forEach((line) => chains.push(snapshots[0] + ' min · ' + line));
+        snaps.push(snapshots.shift() + ' min: levels ' + CM.skills.list.map((k) => q.level(s, k)).join('/') + ', rocks ' + s.totals.zonesUnlocked + ', depth ' + B.zones.map((z) => s.zones[z.id].depth).join('/') + ', recipes ' + s.recipes.length + ', coins ' + CM.fmt(s.coins) + ', earned ' + CM.fmt(s.totals.coinsEarned) + ', cheese made/sold ' + CM.fmt(s.totals.lotsProduced) + '/' + CM.fmt(s.totals.lotsSold));
       }
     }
     const mins = {};
     Object.keys(s.goalsDone).forEach((k) => (mins[k] = Math.round(s.goalsDone[k] / 6000) / 10));
-    return { s, mins, snaps };
+    const all = Object.keys(counts).reduce((a, k) => a + counts[k], 0) || 1;
+    const share = Object.keys(counts).map((k) => k + ' ' + Math.round((counts[k] / all) * 100) + '%').join(', ');
+    return { s, mins, snaps, chains, share };
   }
 
   test('a new game reaches full automation, depth 3 and a second rock without dev tools', () => {
@@ -1078,17 +1134,27 @@
 
   // No comprueba nada: mide el ritmo de una partida larga para ajustar el balance.
   test('pace report: four hours of an ideal player', () => {
-    const { snaps, mins } = playBot(400, 6 * 60 * 60 * 1000, 'never', [2, 5, 10, 15, 30, 45, 60, 120, 180, 240, 300, 360]);
+    const { snaps, mins, chains, share } = playBot(400, 5 * 60 * 60 * 1000, 'never', [2, 5, 10, 15, 30, 45, 60, 120, 180, 240, 300]);
     snaps.forEach((line) => notes.push('pace ' + line));
+    chains.forEach((line) => notes.push('chain ' + line));
+    notes.push('pace bottleneck share: ' + share);
     notes.push('pace rocks opened at (min): ' + ['zone2', 'zone3', 'zone4', 'zone5', 'zone6'].map((k) => (mins[k] === undefined ? '-' : mins[k])).join(' / '));
   });
 
   test('pace report: four hours of a player who optimises the mice', () => {
-    const { s, snaps, mins } = playBot(400, 4 * 60 * 60 * 1000, 'never', [30, 60, 120, 180, 240], true);
+    const { s, snaps, mins, chains } = playBot(400, 4 * 60 * 60 * 1000, 'never', [30, 60, 120, 180, 240], true);
     snaps.forEach((line) => notes.push('smart ' + line));
+    chains.forEach((line) => notes.push('smartchain ' + line));
     notes.push('smart rocks opened at (min): ' + ['zone2', 'zone3', 'zone4', 'zone5', 'zone6'].map((k) => (mins[k] === undefined ? '-' : mins[k])).join(' / '));
     const K = CM.mice;
     notes.push('smart mice at 4 h: ' + s.mice.map((m) => K.level(m) + (K.isLegend(m) ? '*' : '') + ' x' + (m.post ? Math.round(K.speed(m, m.post.split(':')[0], s, m.post.split(':')[1]) * K.yieldMult(m, m.post.split(':')[0], s, m.post.split(':')[1]) * 100) / 100 : 0)).join(', '));
+  });
+
+  test('pace report: a player who invests only in whatever is the bottleneck', () => {
+    const { snaps, mins, share } = playBot(400, 4 * 60 * 60 * 1000, 'never', [60, 120, 180, 240], false, true);
+    snaps.forEach((line) => notes.push('focus ' + line));
+    notes.push('focus rocks opened at (min): ' + ['zone2', 'zone3', 'zone4', 'zone5', 'zone6'].map((k) => (mins[k] === undefined ? '-' : mins[k])).join(' / '));
+    notes.push('focus bottleneck share: ' + share);
   });
 
   test('a slow player (1 tap / 1.5 s) also gets there', () => {
@@ -1097,6 +1163,9 @@
     truthy(s.goalsDone.allAuto !== undefined && s.goalsDone.zone2 !== undefined, 'automation and second rock');
     valid(s);
   });
+
+  // Para calibrar el balance desde la consola sin repetir toda la batería.
+  window.CM_BOT = { playBot, chainReport };
 
   const failed = results.filter((r) => !r.ok).length;
   document.getElementById('out').textContent =

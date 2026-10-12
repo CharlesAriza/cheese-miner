@@ -239,6 +239,21 @@
     data.version = 5;
   }
 
+  // v5 -> v6: rebalanceo de la cadena. Las mejoras de tamaño (taladro, refinería
+  // y mostrador) cambian de precio y de efecto, así que se devuelve lo que
+  // costaron y el jugador las vuelve a comprar con la escala nueva.
+  const OLD_SIZE = { 'drilling.bit': [18, 1.28], 'refining.vat': [18, 1.28], 'trading.counter': [50, 1.5] };
+  function migrate5(data) {
+    const nodes = isObj(data.nodes) ? data.nodes : (data.nodes = {});
+    let refund = 0;
+    for (const key of Object.keys(OLD_SIZE)) {
+      for (let r = 0; r < Math.min(200, nat(nodes[key])); r++) refund += Math.round(OLD_SIZE[key][0] * Math.pow(OLD_SIZE[key][1], r));
+      delete nodes[key];
+    }
+    data.coins = (Number.isFinite(data.coins) ? data.coins : 0) + refund;
+    data.version = 6;
+  }
+
   // Convierte texto JSON en un estado válido, o null si no sirve.
   function parse(text, now) {
     let data;
@@ -250,6 +265,7 @@
     if (isObj(data) && isObj(data.save)) data = data.save; // archivo exportado
     if (isObj(data) && data.version === 3) migrate3(data);
     if (isObj(data) && data.version === 4) migrate4(data);
+    if (isObj(data) && data.version === 5) migrate5(data);
     if (!isObj(data) || data.version !== CM.SAVE_VERSION) return null;
     const s = CM.createState(now);
     try {

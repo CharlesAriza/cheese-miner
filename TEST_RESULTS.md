@@ -4,7 +4,7 @@
 
 ## Pruebas automáticas
 
-Ejecutadas abriendo `tests.html` en el navegador. **34 de 34 pasan.**
+Ejecutadas abriendo `tests.html` en el navegador. **35 de 35 pasan.**
 
 | Prueba | Resultado |
 | --- | --- |

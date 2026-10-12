@@ -49,15 +49,16 @@
     critMult: (s) => 'crits hit x' + round1(q.critMult(s)),
     minerSpeed: (s) => 'a swing every ' + secs(q.minerInterval(s)),
     veinCap: (s) => CM.fmt(q.veinCapacity(s, B.zones[0].id)) + ' Raw in a ' + B.zones[0].name + ' vein',
-    richDepth: (s) => '+' + Math.round((B.depth.richness + q.mods(s)('richDepth')) * 100) + '% Raw for each depth level',
+    richDepth: (s) => 'each depth level makes that rock\'s cheese worth +' + Math.round((B.depth.richness + q.mods(s)('richDepth')) * 100) + '%',
     drillYield: (s) => round1(q.drillYield(s, B.zones[0].id)) + ' Raw per cycle',
     drillRich: (s) => round1(q.drillYield(s, B.zones[0].id)) + ' Raw per cycle',
     drillSpeed: (s) => 'a cycle every ' + secs(q.drillDuration(s)),
     refBatch: (s) => round1(q.refineBatch(s) * q.refineMult(s)) + ' Base per cycle',
     refBonus: (s) => round1(q.refineBatch(s) * q.refineMult(s)) + ' Base from ' + q.refineBatch(s) * B.refinery.rawPerBase + ' Raw',
     refSpeed: (s) => 'a cycle every ' + secs(q.refineDuration(s)),
+    cheeseBatch: (s) => q.cheeseBatch(s) + ' cheese per batch',
     cheeseSpeed: (s) => 'a plain cheese in ' + secs(B.cheesery.baseTimeMs / (1 + q.mods(s)('cheeseSpeed'))),
-    cheeseValue: (s) => 'a plain Cheddar is worth ' + round1(B.bases.cheddar.value * (1 + q.mods(s)('cheeseValue')) * q.skillMult(s, 'cheesemaking')),
+    cheeseValue: (s) => 'a plain Cheddar is worth ' + round1(B.bases.cheddar.value * (1 + q.mods(s)('cheeseValue')) * q.depthRich(s, B.zones[0].id)),
     price: (s) => 'customers pay x' + Math.round(q.priceMult(s) * 100) / 100,
     sellCount: (s) => q.sellCount(s) + ' cheese per sale',
     sellSpeed: (s) => 'a sale every ' + secs(q.sellDuration(s)),
@@ -105,7 +106,7 @@
       h += '<h3>' + (skill === 'colony' ? 'WHILE YOU ARE AWAY' : br[1]) + '</h3><p class="hint">' + (skill === 'colony' ? 'Only stages with a mouse keep going when the game is closed' : br[2]) + '</p>';
       for (const node of nodes) {
         const info = CM.tree.info(s, skill, node.id);
-        const title = node.name + (node.max > 1 ? ' <span class="rank">' + info.rank + '/' + node.max + '</span>' : '');
+        const title = node.name + (node.max > 1 ? ' <span class="rank">' + info.rank + (node.max >= 500 ? '' : '/' + node.max) + '</span>' : '');
         const sub = node.desc + '<br><span class="st ' + (info.rank ? 'good' : 'dim') + '">' + effectText(s, skill, node, info.rank) + '</span>';
         let right;
         if (info.maxed) right = '<span class="tag">' + (node.max === 1 ? 'HIRED' : 'MAX') + '</span>';
@@ -294,7 +295,8 @@
     if (skill === 'refining') return round1(q.refineBatch(s) * q.refineMult(s) * y) + ' Base' + every(q.refineDuration(s));
     if (skill === 'trading') return (y === 1 ? 'a sale' : 'a x' + (Math.round(y * 100) / 100) + ' sale') + every(q.sellDuration(s));
     const recipe = CM.cheesery.laneRecipe(s, zone);
-    const n = y === 1 ? 'a cheese' : round1(y) + ' cheese';
+    const made = y * q.cheeseBatch(s) * q.skillMult(s, 'cheesemaking');
+    const n = made === 1 ? 'a cheese' : round1(made) + ' cheese';
     return recipe ? n + every(CM.cheesery.jobTime(s, CM.cheesery.parseKey(recipe.key), recipe)) : 'cooks ' + times(sp) + ' as fast as by hand';
   }
   // Lista de todo lo que hace especial a un ratón, explicado.

@@ -52,7 +52,8 @@
   function valueOf(s, recipe) {
     const f = formula(parseKey(recipe.key));
     const mastery = 1 + B.cheesery.masteryValue * (masteryLevel(recipe) - 1);
-    return Math.max(1, Math.round(f.value * mastery * (1 + q.mods(s)('cheeseValue')) * q.skillMult(s, 'cheesemaking')));
+    const zone = q.zoneOfBase(parseKey(recipe.key).base);
+    return Math.max(1, Math.round(f.value * mastery * (1 + q.mods(s)('cheeseValue')) * q.depthRich(s, zone)));
   }
 
   function defaultName(combo) {
@@ -77,8 +78,9 @@
     return out;
   }
 
-  function startJob(s, kind, combo, recipe, lots, baseCost, source) {
-    const coinCost = B.ingredients[combo.ingredient].coinCost * lots;
+  // `per`: quesos por hornada (cada ciclo entrega `per` quesos; los inputs ya vienen multiplicados).
+  function startJob(s, kind, combo, recipe, lots, baseCost, source, per) {
+    const coinCost = B.ingredients[combo.ingredient].coinCost * lots * (per || 1);
     const zoneId = q.zoneOfBase(combo.base);
     const z = s.zones[zoneId];
     if (!s.built.cheesery) return CM.fail('not-built');
@@ -96,8 +98,8 @@
     }
     const w = source === 'worker' ? CM.mice.work(s, 'cheesemaking', zoneId) : null;
     const total = Math.max(200, Math.round(jobTime(s, combo, recipe) / (w ? w.speed : 1)));
-    z.cookJob = { kind, key: keyOf(combo), recipeId: recipe ? recipe.id : null, lotsLeft: lots, remaining: total, total, source: source || 'manual' };
-    CM.emit(s, 'cheeseStart', { zone: zoneId, kind, lots, source: source || 'manual', used: baseCost, base: combo.base });
+    z.cookJob = { kind, key: keyOf(combo), recipeId: recipe ? recipe.id : null, lotsLeft: lots, per: per || 1, remaining: total, total, source: source || 'manual' };
+    CM.emit(s, 'cheeseStart', { zone: zoneId, kind, lots: lots * (per || 1), source: source || 'manual', used: baseCost, base: combo.base });
     return CM.ok();
   }
 
@@ -130,7 +132,15 @@
       const recipe = this.recipe(s, recipeId);
       if (!recipe) return CM.fail('unknown-recipe');
       const n = Math.max(1, Math.min(B.cheesery.maxQueue, Math.floor(lots) || 1));
-      return startJob(s, 'produce', parseKey(recipe.key), recipe, n, B.cheesery.lotBase * n);
+      const per = this.batchFor(s, recipe, n);
+      return startJob(s, 'produce', parseKey(recipe.key), recipe, n, B.cheesery.lotBase * n * per, 'manual', per);
+    },
+    // Quesos por hornada ahora mismo: lo que den los moldes, o menos si no llega la base o las monedas.
+    batchFor(s, recipe, cycles) {
+      const combo = parseKey(recipe.key);
+      const coin = B.ingredients[combo.ingredient].coinCost;
+      const c = cycles || 1;
+      return Math.max(1, Math.min(q.cheeseBatch(s), Math.floor(s.inv.base[combo.base] / (B.cheesery.lotBase * c)), coin ? Math.floor(s.coins / (coin * c)) : Infinity));
     },
     // Cuántos quesos de una receta se pueden encargar ahora mismo.
     maxLots(s, recipe) {
@@ -179,7 +189,8 @@
     start(s, zoneId) {
       const recipe = this.laneRecipe(s, zoneId);
       if (!recipe) return CM.fail('no-recipe');
-      return startJob(s, 'produce', parseKey(recipe.key), recipe, 1, B.cheesery.lotBase, 'worker');
+      const per = this.batchFor(s, recipe, 1);
+      return startJob(s, 'produce', parseKey(recipe.key), recipe, 1, B.cheesery.lotBase * per, 'worker', per);
     },
     // Estado: not-built, running, no-recipe, no-base, no-coins, ready, idle.
     status(s, zoneId) {
@@ -216,26 +227,24 @@
         CM.emit(s, 'recipeDiscovered', { recipeId: recipe.id });
       }
       const before = masteryLevel(recipe);
-      recipe.made = (recipe.made || 0) + 1;
-      s.lots[recipe.id] = (s.lots[recipe.id] || 0) + 1;
-      s.totals.lotsProduced += 1;
-      z.stats.lots += 1;
+      const n = job.kind === 'experiment' ? 1 : Math.max(1, job.per || 1);
+      recipe.made = (recipe.made || 0) + n;
+      s.lots[recipe.id] = (s.lots[recipe.id] || 0) + n;
+      s.totals.lotsProduced += n;
+      z.stats.lots += n;
       job.lotsLeft -= 1;
       const w = job.source === 'worker' ? CM.mice.work(s, 'cheesemaking', zoneId) : null;
       const xm = w ? CM.mice.reward(s, 'cheesemaking', zoneId) : 1;
-      // El rendimiento del ratón se acumula: de vez en cuando sale un queso de más (o de menos).
-      if (w) {
-        z.cookCarry += CM.mice.out(s, w) - 1;
-        if (z.cookCarry >= 1) {
-          z.cookCarry -= 1;
-          s.lots[recipe.id] += 1;
-          s.totals.lotsProduced += 1;
-          z.stats.lots += 1;
-        } else if (z.cookCarry <= -1) {
-          z.cookCarry += 1;
-          s.lots[recipe.id] -= 1;
-          s.totals.lotsProduced -= 1;
-          z.stats.lots -= 1;
+      // El nivel de la habilidad y el ratón dan quesos de más sobre la hornada; lo
+      // que no llega a un queso entero se guarda para la siguiente.
+      if (job.kind !== 'experiment') {
+        z.cookCarry += n * (q.skillMult(s, 'cheesemaking') * (w ? CM.mice.out(s, w) : 1) - 1);
+        const extra = Math.max(-n, Math.trunc(z.cookCarry));
+        if (extra) {
+          z.cookCarry -= extra;
+          s.lots[recipe.id] += extra;
+          s.totals.lotsProduced += extra;
+          z.stats.lots += extra;
         }
       }
       CM.skills.addXp(s, 'cheesemaking', B.xp.perCheese * recipeXp(recipe) * xm);
