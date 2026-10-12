@@ -805,14 +805,16 @@
     const a = staff(s, 'drilling', 'cheddar', { traits: ['fast'] });
     const b = staff(s, 'refining', 'cheddar', { traits: ['fast'] });
     const link = B.mice.links.find((l) => l.id === 'assembly');
-    eq(CM.mice.linksAt(s, 'drilling', 'cheddar', 'refining', 'cheddar').map((l) => l.id).join(), 'assembly', 'two Fast neighbours form Assembly Line');
+    for (const l of B.mice.links) truthy(l.a !== l.b || l.a === '*legend', l.id + ' needs two different traits');
+    eq(CM.mice.linksAt(s, 'drilling', 'cheddar', 'refining', 'cheddar').length, 0, 'repeating the same trait forms nothing');
+    b.traits = ['steady'];
+    CM.mice.assign(s, b.id, 'refining:cheddar');
+    eq(CM.mice.linksAt(s, 'drilling', 'cheddar', 'refining', 'cheddar').map((l) => l.id).join(), 'assembly', 'Fast next to Steady form Assembly Line');
     const alone = CM.mice.speed(a, 'drilling');
     truthy(Math.abs(CM.mice.speed(a, 'drilling', s, 'cheddar') - alone - link.eff.speed) < 1e-9, 'and both get its effect');
-    truthy(Math.abs(CM.mice.speed(b, 'refining', s, 'cheddar') - alone - link.eff.speed) < 1e-9, 'the other one too');
+    truthy(Math.abs(CM.mice.speed(b, 'refining', s, 'cheddar') - CM.mice.speed(b, 'refining') - link.eff.speed) < 1e-9, 'the other one too');
     eq(CM.mice.speed(a, 'drilling'), alone, 'BEST FIT does not see it');
-    CM.events.length = 0;
-    CM.mice.scan(s);
-    truthy(s.album['link:assembly'] && CM.events.some((e) => e.type === 'teamCombo' && e.name === link.name), 'forming it discovers it');
+    truthy(s.album['link:assembly'] && CM.events.some((e) => e.type === 'teamCombo' && e.name === link.name), 'forming it discovers it, as soon as the mouse is placed');
     CM.events.length = 0;
     CM.mice.scan(s);
     eq(CM.events.length, 0, 'only once');
@@ -822,6 +824,8 @@
     eq(CM.mice.speed(a, 'drilling', s, 'cheddar'), alone, 'the effect is gone');
     // El tendero es vecino del quesero
     const k = staff(s, 'trading', 'all', { traits: ['fast'] });
+    b.traits = ['steady'];
+    CM.mice.assign(s, b.id, 'cheesemaking:cheddar');
     truthy(CM.mice.speed(k, 'trading', s, 'all') > CM.mice.speed(k, 'trading'), 'the shopkeeper links with the cheesemaker');
     // Dos legendarios seguidos
     a.traits = ['midas'];
@@ -844,6 +848,28 @@
     run(s, 5000);
     valid(s);
     truthy(CM.mice.albumTotal >= 130, 'the album counts team combos: ' + CM.mice.albumTotal);
+  });
+
+  test('old cloned mice become different from each other, keeping what they earned', () => {
+    const s = fresh();
+    CM.dev.unlockBuildings(s);
+    CM.dev.hireAll(s); // cinco ratones idénticos: Fast y Dreamer
+    eq(new Set(s.mice.map((m) => m.traits.join())).size, 1, 'they start as clones');
+    s.mice[0].xp = 5000;
+    s.mice[0].rank = 1;
+    s.mice[0].learned = ['lucky'];
+    s.mice[0].picks = 1;
+    const back = CM.storage.parse(JSON.stringify(s), 1000000);
+    truthy(new Set(back.mice.map((m) => m.traits.join())).size >= 4, 'after loading they differ: ' + back.mice.map((m) => m.traits.join('+')).join(' / '));
+    truthy(back.mice.every((m) => B.mice.traits[m.traits[0]].kind === 'good' && B.mice.traits[m.traits[1]].kind === 'quirk'), 'each has one good trait and one quirk');
+    truthy(back.mice[0].xp === 5000 && back.mice[0].rank === 1 && back.mice[0].learned.join() === 'lucky', 'level, rank and learned traits are kept');
+    truthy(back.mice.every((m) => m.traits.indexOf('lucky') < 0 || m.learned.indexOf('lucky') < 0), 'no trait is repeated on a mouse');
+    const again = CM.storage.parse(JSON.stringify(back), 1000000);
+    eq(JSON.stringify(again.mice.map((m) => m.traits)), JSON.stringify(back.mice.map((m) => m.traits)), 'loading again changes nothing');
+    const one = fresh();
+    CM.dev.unlockBuildings(one);
+    staff(one, 'drilling', 'cheddar', { traits: ['fast', 'dreamer'] });
+    eq(CM.storage.parse(JSON.stringify(one), 1000000).mice[0].traits.join(), 'fast,dreamer', 'a single Fast Dreamer mouse is left alone');
   });
 
   test('every mouse has its own look, and old saves get one', () => {

@@ -180,18 +180,19 @@
   // ---------- Combinaciones entre vecinos de una línea ----------
   // Dos ratones en puestos seguidos de la misma roca (o el quesero y el
   // tendero), uno con el rasgo `a` y otro con el `b`. '*legend' vale por
-  // cualquier ratón legendario. El efecto es para los dos.
+  // cualquier ratón legendario. El efecto es para los dos. Siempre son dos
+  // rasgos distintos: repetir el mismo rasgo no forma nada.
   // Efectos admitidos aquí y en las de roca: speed, yield, double, awaySpeed.
   const link = (id, name, a, b, desc, eff) => ({ id, name, a, b, desc, eff });
   M.links = [
-    link('assembly', 'Assembly Line', 'fast', 'fast', 'Both work 15% faster', { speed: 0.15 }),
-    link('nightcrew', 'Night Crew', 'nocturnal', 'nocturnal', 'Both work 50% faster while you are away', { awaySpeed: 0.5 }),
+    link('assembly', 'Assembly Line', 'fast', 'steady', 'Both work 15% faster', { speed: 0.15 }),
+    link('nightcrew', 'Night Crew', 'nocturnal', 'sturdy', 'Both work 50% faster while you are away', { awaySpeed: 0.5 }),
     link('goodcop', 'Good Cop, Bad Cop', 'mentor', 'grumpy', 'Both work 20% faster', { speed: 0.2 }),
     link('apprentice', 'Master and Apprentice', 'veteran', 'prodigy', 'Both work 15% faster', { speed: 0.15 }),
-    link('streak', 'Lucky Streak', 'lucky', 'lucky', 'Both get another 10% chance to make double', { double: 0.1 }),
-    link('muscle', 'Muscle', 'strong', 'strong', 'Both make 20% more', { yield: 0.2 }),
+    link('streak', 'Lucky Streak', 'lucky', 'ambitious', 'Both get another 10% chance to make double', { double: 0.1 }),
+    link('muscle', 'Muscle', 'strong', 'heavyhands', 'Both make 20% more', { yield: 0.2 }),
     link('oddcouple', 'Odd Couple', 'tidy', 'clumsy', 'Both work 15% faster', { speed: 0.15 }),
-    link('feast', 'Eating Contest', 'glutton', 'glutton', 'They compete: both make 25% more', { yield: 0.25 }),
+    link('feast', 'Dinner Table', 'glutton', 'picky', 'One eats what the other leaves: both make 25% more', { yield: 0.25 }),
     link('gossip', 'Gossip', 'sociable', 'shy', 'Both work 20% faster while you are away', { awaySpeed: 0.2 }),
     link('court', 'Royal Court', '*legend', '*legend', 'Two legends side by side: both work 50% faster', { speed: 0.5 }),
   ];

@@ -4,7 +4,7 @@
 
 ## Pruebas automáticas
 
-Ejecutadas abriendo `tests.html` en el navegador. **32 de 32 pasan.**
+Ejecutadas abriendo `tests.html` en el navegador. **33 de 33 pasan.**
 
 | Prueba | Resultado |
 | --- | --- |
@@ -24,6 +24,7 @@ Ejecutadas abriendo `tests.html` en el navegador. **32 de 32 pasan.**
 | Rasgos: catálogo, elecciones de nivel, casilla misteriosa y volver a tirar | pasa |
 | Rasgos: afinidad, especialidades con grados, combinaciones, auras y suerte | pasa |
 | Combinaciones de equipo: vecinos de una línea y los cuatro ratones de una roca | pasa |
+| Los ratones clonados de partidas antiguas pasan a ser distintos, conservando lo ganado | pasa |
 | Ratones: cada uno tiene su propio aspecto, y los guardados antiguos reciben uno | pasa |
 | Niveles: curva de experiencia, bloqueo por nivel y comprar todo | pasa |
 | Offline: solo progresa lo automatizado, con tope y una sola vez | pasa |

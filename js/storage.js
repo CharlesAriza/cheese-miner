@@ -123,6 +123,30 @@
       m.post = typeof m.post === 'string' && posts.indexOf(m.post) >= 0 && !taken[m.post] ? m.post : '';
       if (m.post) taken[m.post] = true;
     }
+    // Los ratones heredados de una partida anterior al sistema de ratones eran
+    // clones (todos Fast y Dreamer). Se les da a cada uno un rasgo bueno, una
+    // manía y afinidades propias; conservan nivel, rango y lo aprendido.
+    const clones = s.mice.filter((m) => m.traits.join() === 'fast,dreamer');
+    if (clones.length > 1) {
+      const T = B.mice.traits;
+      const goods = Object.keys(T).filter((k) => T[k].kind === 'good');
+      const quirks = Object.keys(T).filter((k) => T[k].kind === 'quirk');
+      clones.forEach((m, i) => {
+        const h = (m.look + i * 7919) >>> 0;
+        const free = (list, n) => {
+          for (let j = 0; j < list.length; j++) {
+            const id = list[(n + j) % list.length];
+            if (m.learned.indexOf(id) < 0) return id;
+          }
+          return list[0];
+        };
+        m.traits = [free(goods, h + i * 5), free(quirks, (h >> 4) + i * 3)];
+        skillsList.forEach((k, j) => {
+          const r = ((h >> (j * 3)) + i + j) % 8;
+          if (!m.aff[k] && r < 3) m.aff[k] = r === 0 ? 2 : 1;
+        });
+      });
+    }
     s.candidates = (Array.isArray(s.candidates) ? s.candidates : [])
       .filter((c) => isObj(c) && typeof c.name === 'string' && Array.isArray(c.traits) && c.traits.every((t) => B.mice.traits[t]))
       .slice(0, B.mice.candidates);

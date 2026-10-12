@@ -91,7 +91,7 @@
   let teamKey = '';
   let teamMap = {};
   function team(s, skill, zone) {
-    const key = s.mice.map((m) => m.id + m.post + m.rank + m.learned.length + Object.keys(m.spec).join('')).join('|');
+    const key = s.mice.map((m) => m.id + m.post + m.rank + m.traits.join('') + m.learned.join('') + Object.keys(m.spec).join('')).join('|');
     if (key !== teamKey) {
       teamKey = key;
       teamMap = {};
