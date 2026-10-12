@@ -227,17 +227,23 @@
     for (const b of bases) h += cell(I.img('raw', b, 'big'), 'Raw ' + B.bases[b].name, s.inv.raw[b]);
     h += '<h3>CHEESE BASE · from the Refinery, used by the Cheesery</h3>';
     for (const b of bases) h += cell(I.img('base', b, 'big'), B.bases[b].name + ' Base', s.inv.base[b]);
-    h += '<h3>CHEESE · from the Cheesery, sold in the Shop</h3>';
     const stocked = s.recipes.slice().sort((a, b) => CM.shop.price(s, b) - CM.shop.price(s, a));
+    const sold = stocked.filter((r) => q.isSold(s, r));
+    const kept = stocked.filter((r) => !q.isSold(s, r));
+    const want = q.shopBases(s).map((b) => B.bases[b].name);
+    h += '<h3>CHEESE YOUR CUSTOMERS BUY' + (want.length ? ' · ' + want.join(', ') : '') + '</h3>';
     if (!stocked.length) h += '<p class="hint">No recipes yet.</p>';
-    let worth = 0;
-    for (const r of stocked) {
-      const n = s.lots[r.id] || 0;
-      const price = CM.shop.price(s, r);
-      worth += n * price;
-      h += cell(I.img('lot', CM.cheesery.parseKey(r.key).base, 'big'), esc(r.name), n, 'sells for ' + CM.fmt(price) + ' each');
+    for (const r of sold) h += cell(I.img('lot', CM.cheesery.parseKey(r.key).base, 'big'), esc(r.name), s.lots[r.id] || 0, 'sells for ' + CM.fmt(CM.shop.price(s, r)) + ' each');
+    if (kept.length) {
+      let n = 0;
+      let worth = 0;
+      for (const r of kept) {
+        n += s.lots[r.id] || 0;
+        worth += (s.lots[r.id] || 0) * CM.shop.price(s, r);
+      }
+      h += '<h3>CHEESE IN STOCK · ' + CM.fmt(n) + '</h3><p class="hint">Your customers only buy your ' + q.shopKinds(s) + ' finest kinds of cheese. The rest is not sold: it piles up here, worth ' + CM.fmt(worth) + ' coins at shop prices. You will find uses for it.</p>';
+      for (const r of kept) h += cell(I.img('lot', CM.cheesery.parseKey(r.key).base, 'big'), esc(r.name), s.lots[r.id] || 0, 'not sold · worth ' + CM.fmt(CM.shop.price(s, r)) + ' each');
     }
-    if (worth) h += '<p class="hint">Your cheese is worth ' + CM.fmt(worth) + ' coins in total.</p>';
     return h;
   }
 

@@ -22,6 +22,8 @@ Todas las cifras están en `js/game/config/balance.js` y son provisionales. Se c
 
 Con el bot (12-10-2026), un jugador que no optimiza abre las rocas a los 36, 66, 124, 164 y 265 minutos; uno que optimiza sus ratones, a los 38, 64, 92, 114 y 170.
 
+**Clientela:** la tienda vende solo los 2 tipos de queso más valiosos con receta conocida. Con el bot, el stock empieza al cocinar el queso de la tercera roca: unos 1.500 quesos a las 2 h, 15.000 a las 4 h y 29.000 a las 5 h (162.000 a las 4 h para quien optimiza ratones). Los ingresos a las 4 h bajan de 23,9 MM a 9,3 MM, porque el queso de las rocas viejas ya no se convierte en monedas. Las rocas se abren a los 36, 66, 133 y 189 minutos; la quinta, pasadas las 5 h (optimizando: 38, 64, 93, 117 y 176).
+
 Por cada nivel de profundidad: búsqueda ×1,22, veta ×1,15 y +8 % de Raw Cheese por ciclo.
 
 ## Máquinas de partida

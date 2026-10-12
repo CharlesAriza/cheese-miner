@@ -872,6 +872,41 @@
     eq(CM.storage.parse(JSON.stringify(one), 1000000).mice[0].traits.join(), 'fast,dreamer', 'a single Fast Dreamer mouse is left alone');
   });
 
+  test('the shop has limited customers: only your finest kinds sell, the rest piles up', () => {
+    const s = fresh();
+    CM.dev.unlockBuildings(s);
+    CM.dev.unlockZones(s);
+    s.devUsed = false;
+    const mk = (base) => {
+      s.inv.base[base] = 100;
+      eq(CM.cheesery.experiment(s, Object.assign({}, COMBO, { base })).ok, true, 'experiment ' + base);
+      run(s, 60000);
+      return s.recipes[s.recipes.length - 1];
+    };
+    const cheddar = mk('cheddar');
+    eq(q.shopBases(s).join(), 'cheddar', 'with one cheese, customers buy it');
+    const gouda = mk('gouda');
+    eq(q.shopBases(s).join(), 'gouda,cheddar', 'two kinds: both sell');
+    const brie = mk('brie');
+    eq(q.shopBases(s).join(), 'brie,gouda', 'with a third, they buy the two finest');
+    truthy(!q.isSold(s, cheddar) && q.isSold(s, gouda) && q.isSold(s, brie), 'Cheddar is no longer sold');
+    s.lots[cheddar.id] = 50;
+    s.lots[gouda.id] = 3;
+    s.lots[brie.id] = 2;
+    eq(q.lotsForSale(s), 5, 'only the finest count as for sale');
+    for (let i = 0; i < 12; i++) {
+      CM.shop.tap(s);
+      run(s, q.sellDuration(s) + 100);
+    }
+    eq(s.lots[cheddar.id], 50, 'the Cheddar stays in stock');
+    eq(s.lots[gouda.id] + s.lots[brie.id], 0, 'the finest were sold');
+    eq(CM.shop.status(s), 'no-cheese', 'nothing left that customers want');
+    eq(CM.shop.tap(s).reason, 'no-cheese', 'so there is nothing to sell');
+    // Una roca abierta sin receta todavía no desplaza a nadie
+    eq(q.shopBases(s).indexOf('emmental'), -1, 'a rock with no recipe yet changes nothing');
+    valid(s);
+  });
+
   test('every mouse has its own look, and old saves get one', () => {
     const s = fresh();
     s.built.house = true;
@@ -1056,7 +1091,7 @@
       }
       if (s.clock % 5000 === 0) valid(s);
       if (snapshots && snapshots.length && s.clock >= snapshots[0] * 60000) {
-        snaps.push(snapshots.shift() + ' min: levels ' + CM.skills.list.map((k) => q.level(s, k)).join('/') + ', rocks ' + s.totals.zonesUnlocked + ', depth ' + B.zones.map((z) => s.zones[z.id].depth).join('/') + ', recipes ' + s.recipes.length + ', coins ' + CM.fmt(s.coins) + ', earned ' + CM.fmt(s.totals.coinsEarned));
+        snaps.push(snapshots.shift() + ' min: levels ' + CM.skills.list.map((k) => q.level(s, k)).join('/') + ', rocks ' + s.totals.zonesUnlocked + ', depth ' + B.zones.map((z) => s.zones[z.id].depth).join('/') + ', recipes ' + s.recipes.length + ', coins ' + CM.fmt(s.coins) + ', earned ' + CM.fmt(s.totals.coinsEarned) + ', cheese made/sold/stock ' + CM.fmt(s.totals.lotsProduced) + '/' + CM.fmt(s.totals.lotsSold) + '/' + CM.fmt(q.lotsTotal(s)));
       }
     }
     const mins = {};
@@ -1078,7 +1113,7 @@
 
   // No comprueba nada: mide el ritmo de una partida larga para ajustar el balance.
   test('pace report: four hours of an ideal player', () => {
-    const { snaps, mins } = playBot(400, 6 * 60 * 60 * 1000, 'never', [2, 5, 10, 15, 30, 45, 60, 120, 180, 240, 300, 360]);
+    const { snaps, mins } = playBot(400, 5 * 60 * 60 * 1000, 'never', [2, 5, 10, 15, 30, 45, 60, 120, 180, 240, 300]);
     snaps.forEach((line) => notes.push('pace ' + line));
     notes.push('pace rocks opened at (min): ' + ['zone2', 'zone3', 'zone4', 'zone5', 'zone6'].map((k) => (mins[k] === undefined ? '-' : mins[k])).join(' / '));
   });

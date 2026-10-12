@@ -127,6 +127,10 @@ CM.BALANCE = {
   // Vender es un ciclo como los demás. El nivel de Trading trae mejores
   // compradores, que multiplican el precio de todo.
   shop: {
+    // Clientela limitada: tus clientes solo compran tus quesos más finos (los de
+    // tus `kinds` rocas más valiosas con receta conocida). El resto no se vende:
+    // se queda en la despensa y se acumula.
+    kinds: 2,
     perSale: 1, // quesos por ciclo
     durationMs: 4000,
     boostMs: 250,

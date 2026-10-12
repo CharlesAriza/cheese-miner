@@ -56,6 +56,8 @@ Bajo la escena se ve el subsuelo de la roca que estás mirando: baja contigo, ca
 
 No hay almacén con tope: todo se acumula sin límite en la despensa, cada queso por separado.
 
+**La tienda tiene clientela limitada.** Tus clientes solo compran tus dos tipos de queso más finos (los de tus rocas más valiosas con receta conocida). El resto no se vende: se queda en la despensa como stock. Con una o dos rocas se vende todo; al cocinar el queso de la tercera, el Cheddar deja de venderse y empieza a acumularse, y el juego lo avisa. La despensa separa lo que se vende de lo que está en stock. Ese stock será la moneda de los edificios que vayan llegando, de uno en uno.
+
 Cada roca abierta es una línea de producción completa y todas trabajan a la vez: se pica, se taladra, se refina y se cocina cada queso por separado. Debajo del panel hay una fila por queso con su recorrido (Raw → Base → queso), el progreso de cada paso y una frase que dice qué le pasa. Los tres contadores de arriba son los del queso que estás mirando; tocas una fila para cambiar. Una roca nunca se agota: al vaciar su veta baja un nivel de profundidad, y más hondo el queso es más rico.
 
 ## Arquitectura

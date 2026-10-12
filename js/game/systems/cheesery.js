@@ -261,13 +261,13 @@
     status(s) {
       if (!s.built.shop) return 'not-built';
       if (s.jobs.shop) return 'running';
-      return q.lotsTotal(s) > 0 ? 'ready' : 'no-cheese';
+      return q.lotsForSale(s) > 0 ? 'ready' : 'no-cheese';
     },
     start(s, source) {
       const st = this.status(s);
       if (st !== 'ready') return CM.fail(st);
       // Se venden primero los quesos más caros.
-      const stock = s.recipes.filter((r) => (s.lots[r.id] || 0) > 0).sort((a, b) => this.price(s, b) - this.price(s, a));
+      const stock = s.recipes.filter((r) => (s.lots[r.id] || 0) > 0 && q.isSold(s, r)).sort((a, b) => this.price(s, b) - this.price(s, a));
       let left = q.sellCount(s);
       let coins = 0;
       let count = 0;
