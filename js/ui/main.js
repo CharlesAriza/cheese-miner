@@ -787,6 +787,7 @@
   // Escena: arrastrar para desplazar; tocar un edificio lo selecciona y hace su acción.
   const stage = $('scene');
   let drag = null;
+  let lastStageTap = 0;
   const logical = (px) => (px / stage.getBoundingClientRect().width) * scene.W;
   stage.addEventListener('pointerdown', (e) => {
     drag = { x: e.clientX, last: e.clientX, moved: false };
@@ -802,6 +803,20 @@
     const wasDrag = drag && drag.moved;
     drag = null;
     if (wasDrag) return;
+    // Un toque suelto sobre un ratón abre su ficha. Tocando seguido (jugando) no, para no estorbar.
+    const box = stage.getBoundingClientRect();
+    const calm = performance.now() - lastStageTap > 600;
+    lastStageTap = performance.now();
+    const cv = stage.tagName === 'CANVAS' ? stage : stage.querySelector('canvas');
+    const cbox = cv.getBoundingClientRect();
+    // La altura se convierte con la del propio lienzo: puede no escalar igual que el ancho.
+    const mouseId = calm ? scene.mouseAt(((e.clientX - cbox.left) / cbox.width) * cv.width, ((e.clientY - cbox.top) / cbox.height) * cv.height) : null;
+    if (mouseId) {
+      sfx.click();
+      openPanel('mice');
+      ui.card = mouseId;
+      return renderPanel();
+    }
     const id = scene.hitTest(logical(e.clientX - stage.getBoundingClientRect().left));
     if (!id) return;
     if (id === 'storage') return openPanel('stock');
@@ -826,7 +841,7 @@
     if (name === 'mice') {
       ui.sel = null;
       ui.card = null;
-      ui.traitInfo = '';
+      ui.moveMode = false;
       ui.miceTab = '';
       if (state.built.house) scene.focus('house');
     }
@@ -901,6 +916,11 @@
     // Colonia: tocar un ratón lo selecciona; tocarlo otra vez (o OPEN) abre su ficha.
     sel: (id) => void (ui.sel = id),
     unsel: () => void (ui.sel = null),
+    // Modo mover: tocar un ratón y luego un puesto, las veces que haga falta.
+    movemode: () => {
+      ui.moveMode = !ui.moveMode;
+      ui.sel = null;
+    },
     card: (id) => {
       ui.card = id;
       ui.sel = null;
@@ -910,6 +930,7 @@
     back: () => void (ui.card = null),
     movefrom: (id) => {
       ui.card = null;
+      ui.moveMode = true;
       ui.sel = id;
       $('sheet-body').scrollTop = 0;
     },
@@ -1061,6 +1082,16 @@
     if (d.rawProduced) lines.push(I.img('raw', base) + 'Raw Cheese drilled: +' + CM.fmt(d.rawProduced));
     if (d.veinsFound) lines.push('Veins found: ' + d.veinsFound);
     for (const up of sum.levelUps) lines.push(B.skills[up.skill].name + ': level ' + up.from + ' > ' + up.to);
+    // Los ratones: primero los que traen algo que elegir.
+    const news = (sum.mouseNews || []).slice().sort((a, b) => (b.pick ? 1 : 0) - (a.pick ? 1 : 0) || b.to - b.from - (a.to - a.from));
+    for (const n of news.slice(0, 5)) {
+      const bits = [];
+      if (n.to > n.from) bits.push('LV ' + n.from + ' > ' + n.to);
+      for (const sp of n.spec) bits.push(B.mice.traits[sp.trait].name + ' ' + ['', 'I', 'II', 'III'][sp.grade]);
+      if (n.pick) bits.push('<b class="tok">new trait to pick</b>');
+      lines.push(P.esc(n.name) + ': ' + bits.join(' · '));
+    }
+    if (news.length > 5) lines.push('...and ' + (news.length - 5) + ' more mice improved');
     // Sin nada automatizado ni producido no hay nada que contar.
     if (!lines.length && (!sum.automated || sum.simulatedMs < 60000)) return;
     showModal(
@@ -1430,6 +1461,7 @@
   else CM.storage.save(state, Date.now());
   // Acceso para depurar desde la consola del navegador.
   window.CM_DEBUG = {
+    scene,
     get state() {
       return state;
     },

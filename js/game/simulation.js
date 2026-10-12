@@ -135,6 +135,7 @@
       const coins = s.coins;
       const levels = {};
       CM.skills.list.forEach((k) => (levels[k] = q.level(s, k)));
+      const mice = s.mice.map((m) => ({ m, level: CM.mice.level(m), offer: !!m.offer, grades: CM.mice.CHAIN.map((k) => CM.mice.gradeOf(m, k)) }));
       const wasMuted = CM.muted;
       CM.muted = true;
       CM.away = true; // los rasgos Nocturno y Casero solo cuentan aquí
@@ -147,7 +148,15 @@
       for (const k of Object.keys(before)) delta[k] = s.totals[k] - before[k];
       const levelUps = CM.skills.list.filter((k) => q.level(s, k) > levels[k]).map((k) => ({ skill: k, from: levels[k], to: q.level(s, k) }));
       CM.emit(s, 'offlineApplied', { simulatedMs: simulated });
-      return { awayMs: away, simulatedMs: simulated, capped: away > cap, capMs: cap, delta, coins: s.coins - coins, levelUps, automated: AUTO.some((k) => q.isAutomated(s, k)) };
+      // Qué les ha pasado a los ratones mientras tanto.
+      const mouseNews = [];
+      for (const b of mice) {
+        const lv = CM.mice.level(b.m);
+        const spec = CM.mice.CHAIN.filter((k, i) => CM.mice.gradeOf(b.m, k) > b.grades[i]).map((k) => ({ skill: k, trait: b.m.spec[k], grade: CM.mice.gradeOf(b.m, k) }));
+        const pick = !!b.m.offer && !b.offer;
+        if (lv > b.level || spec.length || pick) mouseNews.push({ id: b.m.id, name: b.m.name, from: b.level, to: lv, spec, pick });
+      }
+      return { awayMs: away, simulatedMs: simulated, capped: away > cap, capMs: cap, delta, coins: s.coins - coins, levelUps, mouseNews, automated: AUTO.some((k) => q.isAutomated(s, k)) };
     },
   };
 })();

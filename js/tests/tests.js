@@ -982,7 +982,9 @@
   });
 
   // Un bot juega desde cero usando solo las acciones del jugador, sin dev tools.
-  function playBot(tapEveryMs, limitMs, stopAt, snapshots) {
+  // `smart`: un jugador que optimiza sus ratones (elige el rasgo que más rinde en
+  // su puesto, se queda el mejor candidato y recoloca). Sirve para medir el techo.
+  function playBot(tapEveryMs, limitMs, stopAt, snapshots, smart) {
     const s = fresh();
     const snaps = [];
     let lastTap = -1e9;
@@ -998,9 +1000,32 @@
         // Primero un ratón para cada puesto libre (se queda con el primer candidato
         // y deja que se coloque solo), luego ascensos, luego lo más barato de cada árbol.
         const wantsMouse = s.built.house && !!CM.mice.freePost(s);
-        if (wantsMouse && CM.mice.offer(s).ok) CM.mice.choose(s, 0);
+        const power = (m, skill, zone) => CM.mice.speed(m, skill, s, zone) * CM.mice.yieldMult(m, skill, s, zone) * (1 + CM.mice.doubleChance(m, skill, s, zone));
+        if (wantsMouse && CM.mice.offer(s).ok) {
+          let pickAt = 0;
+          if (smart) {
+            const dest = CM.mice.freePost(s);
+            const val = (c) => power(CM.mice.normalize(Object.assign({ xp: 0, rank: 0 }, c)), dest.skill, dest.zone);
+            s.candidates.forEach((c, i) => {
+              if (val(c) > val(s.candidates[pickAt])) pickAt = i;
+            });
+          }
+          CM.mice.choose(s, pickAt);
+        }
         for (const m of s.mice) CM.mice.promote(s, m.id);
-        for (const m of s.mice) if (m.offer) CM.mice.pickTrait(s, m.id, 0);
+        for (const m of s.mice) {
+          if (!m.offer) continue;
+          let best = 0;
+          if (smart && m.post) {
+            const [skill, zone] = m.post.split(':');
+            const withT = (id) => (m.offer.kind === 'job' ? Object.assign({}, m, { spec: Object.assign({}, m.spec, { [m.offer.skill]: id }) }) : Object.assign({}, m, { learned: m.learned.concat(id) }));
+            m.offer.options.forEach((id, i) => {
+              if (power(withT(id), skill, zone) > power(withT(m.offer.options[best]), skill, zone)) best = i;
+            });
+          }
+          CM.mice.pickTrait(s, m.id, best);
+        }
+        if (smart && s.clock % 60000 < 2000 && s.mice.length > 1) CM.mice.bestFit(s);
         // Ahorra como lo haría una persona: para el siguiente ratón y para la
         // siguiente roca cuando su economía ya da para ella.
         const mouse = s.built.house && !!CM.mice.freePost(s) && s.totals.coinsEarned > CM.mice.recruitCost(s) * 0.6;
@@ -1055,6 +1080,13 @@
   test('pace report: four hours of an ideal player', () => {
     const { snaps } = playBot(400, 4 * 60 * 60 * 1000, 'never', [2, 5, 10, 15, 30, 45, 60, 120, 180, 240]);
     snaps.forEach((line) => notes.push('pace ' + line));
+  });
+
+  test('pace report: four hours of a player who optimises the mice', () => {
+    const { s, snaps } = playBot(400, 4 * 60 * 60 * 1000, 'never', [30, 60, 120, 180, 240], true);
+    snaps.forEach((line) => notes.push('smart ' + line));
+    const K = CM.mice;
+    notes.push('smart mice at 4 h: ' + s.mice.map((m) => K.level(m) + (K.isLegend(m) ? '*' : '') + ' x' + (m.post ? Math.round(K.speed(m, m.post.split(':')[0], s, m.post.split(':')[1]) * K.yieldMult(m, m.post.split(':')[0], s, m.post.split(':')[1]) * 100) / 100 : 0)).join(', '));
   });
 
   test('a slow player (1 tap / 1.5 s) also gets there', () => {

@@ -1008,20 +1008,29 @@
     }
 
     // Ratones en su puesto: los que tienes asignados a la línea que se está mirando.
+    // Dónde está cada ratón dibujado, para poder tocarlo.
+    let staffHits = [];
     function drawStaff(state, now, zoneId) {
+      staffHits = [];
+      const keeper = CM.mice.at(state, 'trading', 'all');
+      if (keeper && state.built.shop) staffHits.push({ id: keeper.id, x: POS.shop + 9, y: groundY - MOUSE_H });
       const beat = (ms) => ((now / ms) | 0) % 2;
       const z = state.zones[zoneId];
       const at = (skill) => CM.mice.at(state, skill, zoneId);
       const miner = at('mining');
       if (miner) {
         const active = !z.veinRevealed;
+        staffHits.push({ id: miner.id, x: POS.rock + 6, y: rockY() - MOUSE_H + 8 });
         drawMouseSprite(rankSprite(miner), POS.rock + 6, rockY() - MOUSE_H + 8 + (active ? 0 : beat(700)), false, active ? swing(((now - fx.minerSwingAt) / 200) % 1.6, -1.1) + 0.5 : null);
       }
       const driller = at('drilling');
+      if (driller && state.built.drill && !away('drilling')) staffHits.push({ id: driller.id, x: POS.drill - 6, y: groundY - MOUSE_H - 8 });
       if (driller && state.built.drill && !away('drilling')) drawMouseSprite(rankSprite(driller), POS.drill - 6, groundY - MOUSE_H - 8 + (z.drillJob ? beat(60) : beat(700)), false, null);
       const refiner = at('refining');
+      if (refiner && state.built.refinery && !away('refining')) staffHits.push({ id: refiner.id, x: POS.refinery + 36, y: groundY - MOUSE_H + 2 });
       if (refiner && state.built.refinery && !away('refining')) drawMouseSprite(rankSprite(refiner), POS.refinery + 36, groundY - MOUSE_H + 2 + (z.refJob ? beat(90) : beat(700)), true, null);
       const cook = at('cheesemaking');
+      if (cook && state.built.cheesery && !away('cheesemaking')) staffHits.push({ id: cook.id, x: POS.cheesery + 38, y: groundY - MOUSE_H + 2 });
       if (cook && state.built.cheesery && !away('cheesemaking')) drawMouseSprite(rankSprite(cook), POS.cheesery + 38, groundY - MOUSE_H + 2 + (z.cookJob ? beat(110) : beat(700)), true, null);
     }
 
@@ -1187,6 +1196,12 @@
         return [(center(id) - fx.cam) / W, top / H];
       },
       // Qué se ha pulsado, dada la X en píxeles lógicos de pantalla.
+      // Ratón dibujado bajo ese punto de la pantalla (coordenadas lógicas), o null.
+      mouseAt(screenX, screenY) {
+        const wx = screenX + fx.cam;
+        const hit = staffHits.find((h) => wx >= h.x - 2 && wx <= h.x + MOUSE_W + 2 && screenY >= h.y - 2 && screenY <= h.y + MOUSE_H + 2);
+        return hit ? hit.id : null;
+      },
       hitTest(screenX) {
         const wx = screenX + fx.cam;
         if (wx >= POS.rock - 2) return 'rock';

@@ -46,7 +46,7 @@
   M.mystery = { legend: 0.06, quirk: 0.25 }; // casilla misteriosa: el resto, un rasgo bueno
   M.rerollCost = 250; // volver a tirar la primera elección
   M.rerollSlotGrowth = 6; // cada casilla siguiente cuesta x6
-  M.rerollGrowth = 2; // cada tirada sobre la misma elección cuesta el doble
+  M.rerollGrowth = 3; // cada tirada sobre la misma elección cuesta el triple
 
   // Rasgos de oficio: trabajos necesarios para cada grado y cuánto multiplica el efecto.
   M.jobGrades = [200, 2000, 20000];

@@ -14,8 +14,8 @@ Todas las cifras están en `js/game/config/balance.js` y son provisionales. Se c
 | Roca | Coste | Búsqueda inicial | Veta inicial | Valor de la base |
 | --- | --- | --- | --- | --- |
 | Cheddar | gratis | 30 | 60 | 10 |
-| Gouda | 6.000 | 150 | 120 | 24 |
-| Blue | 150.000.000 | 800 | 240 | 60 |
+| Gouda | 15.000 | 150 | 120 | 24 |
+| Blue | 1.500.000.000 | 800 | 240 | 60 |
 
 Por cada nivel de profundidad: búsqueda ×1,22, veta ×1,15 y +8 % de Raw Cheese por ciclo.
 
@@ -65,13 +65,13 @@ Todo está en `js/game/config/traits.js`: 22 rasgos buenos, 13 manías, 12 legen
 - **Afinidad:** por cada oficio, 28 % de `Likes` (+7 % de velocidad, se especializa x1,5) y 12 % de `Loves` (+15 %, x2,5). Al menos un oficio le gusta.
 - **Rasgos de nivel:** uno cada 10 niveles, seis como mucho. Tres opciones; cada una tiene un 3 % de salir legendaria (1 % al volver a tirar). Casilla misteriosa: 6 % legendario, 25 % manía, el resto bueno. El juego no enseña estos porcentajes.
 - **Legendarios:** pocos y enormes; uno solo viene a doblar lo que rinde el ratón (Golden Paws x3 de cantidad, Time Skipper x2 de velocidad, Midas 50 % de doble).
-- **Volver a tirar:** 250 monedas la primera casilla, x6 cada casilla siguiente, x2 cada tirada sobre la misma elección. En especialidades: 1.000, x2 por tirada.
+- **Volver a tirar:** 250 monedas la primera casilla, x6 cada casilla siguiente, x3 cada tirada sobre la misma elección. En especialidades: 1.000, x2 por tirada.
 - **Especialidades:** 200, 2.000 y 20.000 trabajos; el efecto del rasgo se multiplica por 1, 2 y 3,5.
 - **Combinaciones de equipo:** 10 entre vecinos de línea (siempre dos rasgos distintos: repetir el mismo no forma nada) y 6 de roca entera; dan velocidad, cantidad o suerte a todos los implicados. El tendero cuenta como vecino del quesero de cada roca.
 - **Topes:** suerte de doble 90 %, auras ±60 %, colonia contada hasta 30 ratones, recetas hasta 60.
 - **Velocidad:** (1 + nivel + rango + rareza + afinidad) x (1 + suma de rasgos, combinaciones, profundidad, nivel de habilidad, colonia y auras).
 
-Medido con el bot, que elige siempre la primera opción y no busca combinaciones: la segunda roca llega en 25 min (antes 41) y la tercera antes de las 4 h (antes no llegaba). Un jugador que optimice irá más rápido. Pendiente de ajustar con partidas reales.
+Medido el 12-10-2026 con dos bots, tras subir el coste de las rocas (Gouda 6.000 > 15.000, Blue 150 M > 1.500 M) para compensar lo que aportan rasgos y álbum: la segunda roca llega a los 36 min y la tercera no se alcanza en 4 h (unas 5 h estimadas). Un bot que elige siempre la primera opción gana 94,8 M en 2 h; otro que optimiza rasgos, candidatos y colocación, 130 M (un 37 % más). A las 4 h los dos van igual (1,9 MM) porque ambos dejan de comprar mejoras mientras ahorran para la tercera roca: esa cifra no sirve para compararlos. Los ratones del bot que optimiza rinden entre x3 y x13 a las 4 h. Sin partidas reales todavía.
 
 ## Árboles
 

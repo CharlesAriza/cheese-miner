@@ -3385,3 +3385,81 @@ button {
   background: #1f3d2a;
   border-color: var(--good);
 }
+
+/* Candidatos: tres cartas lado a lado, para comparar de un vistazo */
+.cands {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.cand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px 5px;
+  font-family: var(--text);
+  text-align: center;
+  background: var(--bg);
+  border-radius: 10px;
+}
+
+.cand .pix.face {
+  width: 64px;
+}
+
+.cand > b {
+  font-family: var(--pixel);
+  font-size: 8px;
+  font-weight: normal;
+}
+
+.cand .rar {
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+  color: #fff;
+}
+
+.cand .rar2 {
+  color: var(--gold);
+}
+
+.cand p {
+  margin: 2px 0 0;
+  line-height: 1.25;
+}
+
+.cand .stat {
+  display: block;
+  margin: 0;
+  font-size: 12px;
+}
+
+.cand small {
+  display: block;
+  font-size: 10px;
+  color: #d6d0e6;
+}
+
+.cand .likes {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--quiet);
+}
+
+.cand .there {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--pick);
+}
+
+.panel .cand button {
+  width: 100%;
+  min-width: 0;
+  margin-top: auto;
+  padding: 9px 2px;
+}
