@@ -2439,9 +2439,8 @@ button {
   color: #8df09a;
 }
 
-.hot,
-.panel button.opt em.hot {
-  color: #ff8ad1;
+.panel .note-hot {
+  color: var(--pick);
 }
 
 .panel .pickbox button.mini {
