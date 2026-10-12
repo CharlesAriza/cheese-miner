@@ -264,7 +264,8 @@
       .map((k) => '<span class="stat aff a' + m.aff[k] + '">' + M.affinity[m.aff[k]].name + ' ' + B.skills[k].name + '</span>')
       .join('');
   const chipsOf = (m) => rareChip(m) + CM.mice.traitsOf(m).map((t) => traitChip(t.id, t.grade)).join('') + affChips(m);
-  const face = (m, cls) => '<img class="pix ' + (cls || 'face') + ' r' + (m.rank || 0) + '" alt="" src="' + CM.mouseUrl(m) + '">';
+  // Retrato sin marco: el brillo dorado de un legendario va en el propio ratón.
+  const face = (m, cls) => '<img class="pix ' + (cls || 'face') + (CM.mice.isLegend(m) ? ' glow' : '') + '" alt="" src="' + CM.mouseUrl(m) + '">';
   // Lo que cambia a la vista con cada rango.
   const RANK_LOOK = ['no scarf', 'a blue scarf', 'a red scarf and a medal', 'a suit, a gold tie and a purple scarf'];
   const signed = (n) => (n < 0 ? '-' : '+') + Math.round(Math.abs(n) * 100) + '%';
@@ -287,26 +288,6 @@
     const n = y === 1 ? 'a cheese' : round1(y) + ' cheese';
     return recipe ? n + every(CM.cheesery.jobTime(s, CM.cheesery.parseKey(recipe.key), recipe)) : 'cooks ' + times(sp) + ' as fast as by hand';
   }
-  // De dónde sale su velocidad en un oficio.
-  function speedParts(s, m, skill, zone) {
-    const K = CM.mice;
-    const lv = K.level(m);
-    const out = [];
-    let power = 1;
-    const part = (label, n) => {
-      if (!n) return;
-      power += n;
-      out.push(label + ' ' + signed(n));
-    };
-    part('level ' + lv, M.perLevel * (lv - 1));
-    part(M.ranks[m.rank].name, M.ranks[m.rank].bonus);
-    part(RARITY[m.rarity || 0].name, RARITY[m.rarity || 0].bonus);
-    part(K.affinity(m, skill).name.toLowerCase() + ' this job', K.affinity(m, skill).speed);
-    part('rank traits', K.trait(m, 'rankSpeed', skill) * m.rank);
-    const rest = K.speed(m, skill, s, zone) / power;
-    if (Math.abs(rest - 1) > 0.004) out.push('traits and neighbours ' + times(rest));
-    return out;
-  }
   // Lista de todo lo que hace especial a un ratón, explicado.
   function traitList(m) {
     const K = CM.mice;
@@ -317,10 +298,9 @@
       h += '<li>' + traitChip(t.id, t.grade) + traitDesc(t.id) + (def.job ? '. Only counts at ' + B.skills[def.job].name + (t.grade > 1 ? ', ' + times(M.gradeMult[t.grade - 1]) + ' as strong as grade I' : '') : '') + '</li>';
     }
     for (const c of K.combosOf(m)) h += '<li><span class="stat tcombo">COMBO · ' + c.name + '</span>' + c.desc + '</li>';
-    for (const k of K.CHAIN) {
-      const a = m.aff && m.aff[k];
-      if (a) h += '<li><span class="stat aff a' + a + '">' + M.affinity[a].name + ' ' + B.skills[k].name + '</span>' + Math.round(M.affinity[a].speed * 100) + '% faster there and specialises ' + M.affinity[a].learn + 'x as fast</li>';
-    }
+    // Afinidades, en una sola línea: corazones junto a cada oficio que le gusta.
+    const likes = K.CHAIN.filter((k) => m.aff && m.aff[k]).sort((a, b) => m.aff[b] - m.aff[a]);
+    if (likes.length) h += '<li class="likes">' + likes.map((k) => B.skills[k].name + hearts(m.aff[k])).join(' &nbsp; ') + '</li>';
     return h + '</ul>';
   }
 
@@ -360,181 +340,103 @@
     }
     return '<div class="mrank ' + (pr.can ? 'go' : 'wait') + '"><div><b>' + (pr.can ? 'READY FOR ' : 'SAVE UP FOR ') + pr.next.name.toUpperCase() + '</b><small>' + (pr.can ? 'A promotion makes it faster for good.' : 'Level is enough. You need ' + CM.fmt(pr.cost - s.coins) + ' more coins.') + '</small>' + gain + '</div>' + btn('promote:' + m.id, 'PROMOTE<br>' + coin(pr.cost), { off: !pr.can, cls: 'buy', cost: pr.cost }) + '</div>';
   }
-  // La escalera de rangos de un ratón: qué da cada uno y cómo se ve.
-  function rankLadder(s, m) {
-    const [skill, zone] = m.post ? m.post.split(':') : [];
-    return (
-      '<div class="ladder">' +
-      M.ranks
-        .map((r, i) => {
-          const as = Object.assign({}, m, { rank: i });
-          const state = i < m.rank ? 'done' : i === m.rank ? 'now' : '';
-          const need = i <= m.rank ? (i === m.rank ? 'current rank' : 'done') : 'LV ' + r.level + ' + ' + CM.fmt(r.cost) + ' coins';
-          return '<div class="' + state + '">' + face(as, 'face mini') + '<span><b>' + r.name + '</b><small>' + (skill ? mouseRate(s, as, skill, zone) : 'works ' + times(1 + r.bonus) + ' as fast') + (r.manager ? ' · buys upgrades on its own' : '') + '</small></span><em>' + need + '</em></div>';
-        })
-        .join('') +
-      '</div>'
-    );
-  }
   CM.mouseRate = mouseRate;
   CM.traitDesc = traitDesc;
 
   // ---------- La colonia dibujada: cada roca, su línea de puestos ----------
-  const POST_ICON = { mining: ['pick', ''], drilling: ['raw', ''], refining: ['base', ''], cheesemaking: ['lot', ''], trading: ['coin', ''] };
   const POST_NAME = { mining: 'MINE', drilling: 'DRILL', refining: 'REFINE', cheesemaking: 'CHEESE', trading: 'SELL' };
-  // Avisos sobre el retrato: rasgo por elegir y ascenso que ya se puede pagar.
-  function badges(s, m) {
-    return (m.offer ? '<i class="bdg pick">!</i>' : '') + (CM.mice.promoteInfo(s, m).can ? '<i class="bdg up">&#9650;</i>' : '');
-  }
+  const hearts = (a) => (a ? '<i class="hrt">' + (a === 2 ? '&#9829;&#9829;' : '&#9829;') + '</i>' : '');
+  // Lo único que se avisa bajo el nombre: un rasgo por elegir o un ascenso que ya se puede pagar.
+  const todo = (s, m) => (m.offer ? '<small class="todo">NEW TRAIT</small>' : CM.mice.promoteInfo(s, m).can ? '<small class="todo up">PROMOTE</small>' : '');
   // Un puesto: quién está, o hueco. Con un ratón seleccionado, cada puesto es un destino.
-  function postCell(s, ui, skill, zone, base) {
+  function postCell(s, ui, skill, zone) {
     const K = CM.mice;
-    const key = K.postKey(skill, zone);
     const m = K.at(s, skill, zone);
     const sel = ui.sel ? K.byId(s, ui.sel) : null;
-    const head = '<span class="phead">' + I.img(POST_ICON[skill][0], base) + POST_NAME[skill] + '</span>';
-    let act, body, cls = 'pcell';
+    let act = m ? 'sel:' + m.id : 'emptypost';
+    let cls = 'pcell' + (m ? '' : ' none');
     if (sel && sel === m) {
       act = 'card:' + m.id;
       cls += ' sel';
     } else if (sel) {
-      act = 'post:' + sel.id + ':' + key;
+      act = 'post:' + sel.id + ':' + K.postKey(skill, zone);
       cls += ' target';
-    } else act = m ? 'sel:' + m.id : 'emptypost';
-    if (m) body = '<span class="pface">' + face(m) + badges(s, m) + '</span><b>' + esc(m.name) + '</b><small>LV ' + K.level(m) + '</small>';
-    else {
-      body = '<span class="pface empty">+</span><b class="warn">EMPTY</b><small>by hand</small>';
-      cls += ' none';
     }
-    // Cómo le iría ahí al ratón seleccionado.
-    if (sel && sel !== m) {
-      const a = sel.aff[skill];
-      body += '<em>' + times(K.score(sel, skill)) + (a ? ' <i class="hrt a' + a + '">' + (a === 2 ? '&#9829;&#9829;' : '&#9829;') + '</i>' : '') + '</em>';
-    }
-    return '<button data-act="' + act + '" class="' + cls + (m ? ' rar' + (m.rarity || 0) + (K.isLegend(m) ? ' leg' : '') : '') + '">' + head + body + '</button>';
+    let body = m ? face(m) + '<b>' + esc(m.name) + '</b>' : '<span class="hole">+</span>';
+    // Cómo le iría ahí al ratón seleccionado; si no hay selección, lo que tenga pendiente.
+    if (sel && sel !== m) body += '<em>' + times(K.score(sel, skill)) + hearts(sel.aff[skill]) + '</em>';
+    else if (m) body += todo(s, m);
+    return '<button data-act="' + act + '" class="' + cls + '">' + body + '</button>';
   }
-  const comboNote = (c, what, rock) => '<p class="cnote' + (rock ? ' rock' : '') + '"><b>' + c.name + '</b>' + (what ? ' · ' + what : '') + '<br>' + c.desc + '</p>';
+  const comboNote = (c, what) => '<p class="cnote"><b>' + c.name + '</b>' + (what ? ' · ' + what : '') + ': ' + c.desc.charAt(0).toLowerCase() + c.desc.slice(1) + '</p>';
 
   function linesView(s, ui) {
     const K = CM.mice;
-    let h = '<div class="lines">';
-    if (s.built.shop) h += '<div class="line shopline"><div class="lhead">' + I.img('coin') + 'SHOP<small>sells the cheese of every rock</small></div><div class="cells one">' + postCell(s, ui, 'trading', 'all', '') + '</div></div>';
+    const cols = K.CHAIN.slice(0, 4);
+    let h = '<div class="lines"><div class="lrow head"><span></span>' + cols.map((k) => '<span>' + POST_NAME[k] + '</span>').join('') + '</div>';
     for (const z of q.openZones(s)) {
-      const skills = K.CHAIN.slice(0, 4).filter((k) => k === 'mining' || s.built[B.skills[k].station]);
-      const sets = K.setsAt(s, z.id);
-      let cells = '';
       let notes = '';
-      skills.forEach((k, i) => {
-        if (i) {
-          const links = K.linksAt(s, skills[i - 1], z.id, k, z.id);
-          cells += '<i class="join' + (links.length ? ' on' : '') + '"></i>';
-          links.forEach((l) => (notes += comboNote(l, B.skills[skills[i - 1]].name + ' + ' + B.skills[k].name)));
-        }
-        cells += postCell(s, ui, k, z.id, z.base);
+      h += '<div class="lrow"><span class="rock">' + I.img('raw', z.base) + '<small>' + B.bases[z.base].name + '</small></span>';
+      cols.forEach((k, i) => {
+        const built = k === 'mining' || s.built[B.skills[k].station];
+        h += built ? postCell(s, ui, k, z.id) : '<span></span>';
+        if (i && built) K.linksAt(s, cols[i - 1], z.id, k, z.id).forEach((l) => (notes += comboNote(l, B.skills[cols[i - 1]].name + ' + ' + B.skills[k].name)));
       });
       if (s.built.shop) K.linksAt(s, 'cheesemaking', z.id, 'trading', 'all').forEach((l) => (notes += comboNote(l, 'Cheesemaking + Shop')));
-      sets.forEach((d) => (notes += comboNote(d, 'whole rock', true)));
-      h += '<div class="line' + (sets.length ? ' set' : '') + '"><div class="lhead">' + I.img('raw', z.base) + B.bases[z.base].name.toUpperCase() + ' ROCK<small>depth ' + s.zones[z.id].depth + '</small></div><div class="cells">' + cells + '</div>' + notes + '</div>';
+      K.setsAt(s, z.id).forEach((d) => (notes += comboNote(d, 'whole rock')));
+      h += '</div>' + notes;
     }
+    if (s.built.shop) h += '<div class="lrow"><span class="rock">' + I.img('coin') + '<small>Shop</small></span>' + postCell(s, ui, 'trading', 'all') + '</div>';
     // La casa: los que no tienen puesto.
     const home = s.mice.filter((m) => !m.post);
     const sel = ui.sel ? K.byId(s, ui.sel) : null;
     if (home.length || (sel && sel.post)) {
-      h += '<div class="line house"><div class="lhead">MOUSE HOUSE<small>' + (home.length ? 'not working' : 'send it here to rest') + '</small></div><div class="cells wrap">';
-      for (const m of home) h += '<button data-act="' + (sel === m ? 'card:' + m.id : sel ? 'noop' : 'sel:' + m.id) + '" class="pcell' + (sel === m ? ' sel' : '') + ' rar' + (m.rarity || 0) + (K.isLegend(m) ? ' leg' : '') + '"><span class="pface">' + face(m) + badges(s, m) + '</span><b>' + esc(m.name) + '</b><small>' + (m.rest ? 'resting' : 'waiting') + '</small></button>';
-      if (sel && sel.post) h += '<button data-act="post:' + sel.id + ':" class="pcell target none"><span class="pface empty">z</span><b>REST</b><small>leaves its post</small></button>';
-      h += '</div></div>';
+      h += '<div class="lrow"><span class="rock"><small>House</small></span>';
+      for (const m of home) h += '<button data-act="' + (sel === m ? 'card:' + m.id : sel ? 'noop' : 'sel:' + m.id) + '" class="pcell' + (sel === m ? ' sel' : '') + '">' + face(m) + '<b>' + esc(m.name) + '</b>' + (sel ? '' : todo(s, m)) + '</button>';
+      if (sel && sel.post) h += '<button data-act="post:' + sel.id + ':" class="pcell none target"><span class="hole">z</span><em>rest</em></button>';
+      h += '</div>';
     }
     return h + '</div>';
   }
 
-  // Casilla de rasgo: símbolo por efecto, color por tipo, nombre debajo.
-  function traitTile(ui, key, cls, glyph, name, sub) {
-    return '<button data-act="tinfo:' + key + '" class="tt ' + cls + (ui.traitInfo === key ? ' on' : '') + '"><img class="pix" alt="" src="' + I.glyph(glyph) + '"><span>' + name + '</span>' + (sub ? '<small>' + sub + '</small>' : '') + '</button>';
-  }
-  // La ficha de un ratón, tipo cromo.
+  // La ficha de un ratón: retrato, y cada rasgo en una línea con lo que hace.
   function cardView(s, ui, m) {
     const K = CM.mice;
     const p = K.xpProgress(m);
-    const lv = p.level;
     const [skill, zone] = m.post ? m.post.split(':') : [];
-    const pips = M.ranks.map((r, i) => '<i class="' + (i <= m.rank ? 'on' : '') + '"></i>').join('');
-    let h = btn('back', '&lt; BACK TO THE COLONY', { cls: 'mini wide' });
+    let h = btn('back', '&lt; BACK', { cls: 'mini' });
     h +=
-      '<div class="mcard rar' + (m.rarity || 0) + (K.isLegend(m) ? ' leg' : '') + '"><div class="mhero">' + face(m, 'face huge') + badges(s, m) + '</div><div class="info"><b class="mname">' + esc(m.name) + '</b>' +
-      '<div><span class="rank">' + M.ranks[m.rank].name + '</span><span class="pips">' + pips + '</span>' + (m.rarity ? ' ' + rareChip(m) : '') + (K.isLegend(m) && !m.rarity ? ' <span class="stat tlegend">&#9733; LEGEND</span>' : '') + '</div>' +
-      '<div class="lvl"><span>LV ' + lv + '</span>' + xpBar(p) + '<span>' + (p.maxed ? 'MAX' : p.cur + '/' + p.need) + '</span></div>' +
+      '<div class="mcard">' + face(m, 'face huge') + '<div class="info"><b class="mname">' + esc(m.name) + '</b>' +
+      '<p class="msub">' + (m.rarity ? RARITY[m.rarity].name + ' · ' : '') + M.ranks[m.rank].name + ' · LV ' + p.level + '</p>' + xpBar(p) +
       '<p class="mjob">' + (skill ? '<b>' + K.postLabel(m.post) + '</b><br>' + mouseRate(s, m, skill, zone) : m.rest ? '<b>Resting in the house</b>' : '<b>Waiting in the house</b><br>every post is taken') + '</p></div></div>';
     h += pickBox(s, m);
 
-    // Rasgos: los que tiene y las casillas que le quedan por llenar.
-    let tiles = '';
-    for (const id of m.traits) tiles += traitTile(ui, 'trait:' + id, KIND_CLS[T[id].kind], I.traitGlyph(T[id]), T[id].name, 'born');
-    for (let i = 0; i < M.traitSlots; i++) {
-      const id = m.learned[i];
-      const at = (i + 1) * M.traitEvery;
-      if (id) tiles += traitTile(ui, 'trait:' + id, KIND_CLS[T[id].kind], I.traitGlyph(T[id]), T[id].name, 'LV ' + at);
-      else if (i === m.learned.length && m.offer && m.offer.kind === 'level') tiles += traitTile(ui, 'slot:' + at, 'tpick', 'mouseXp', 'PICK!', 'above');
-      else tiles += traitTile(ui, 'slot:' + at, 'tlock', 'lock', 'LV ' + at, '');
-    }
-    // (los rasgos de más que dé la casilla misteriosa caben en las mismas casillas)
-    for (const c of K.combosOf(m)) tiles += traitTile(ui, 'combo:' + c.id, 'tcombo', 'combo', c.name, 'combo');
-    h += '<h4>TRAITS</h4><div class="tgrid">' + tiles + '</div>';
+    h += '<h4>TRAITS</h4><ul class="trows">';
+    for (const id of m.traits.concat(m.learned)) if (T[id]) h += '<li>' + traitChip(id) + '<span>' + traitDesc(id) + '</span></li>';
+    for (const c of K.combosOf(m)) h += '<li><span class="stat tcombo">' + c.name + '</span><span>Combo: ' + c.desc.charAt(0).toLowerCase() + c.desc.slice(1) + '</span></li>';
+    h += '</ul>';
+    const nextAt = (m.picks + 1) * M.traitEvery;
+    if (!m.offer || m.offer.kind !== 'level') h += '<p class="hint">' + (m.picks >= M.traitSlots ? 'It has learned all its level traits.' : 'Next trait at LV ' + nextAt + (m.post ? '.' : '. It only levels up on a post.')) + '</p>';
 
-    // Oficios: cuánto le gustan y qué especialidad tiene en cada uno.
-    let jobs = '';
+    h += '<h4>JOBS</h4><div class="jrows">';
     for (const k of K.CHAIN) {
-      const a = m.aff[k] || 0;
       const id = m.spec[k];
       const grade = K.gradeOf(m, k);
       const n = m.jobs[k] || 0;
       const next = M.jobGrades[id ? grade : 0];
-      const pctDone = next ? Math.min(100, Math.round((n / next) * 100)) : 100;
-      const hearts = a ? '<i class="hrt a' + a + '">' + (a === 2 ? '&#9829;&#9829;' : '&#9829;') + '</i>' : '<i class="hrt">&#9825;</i>';
-      jobs +=
-        '<button data-act="tinfo:job:' + k + '" class="jt' + (ui.traitInfo === 'job:' + k ? ' on' : '') + (k === skill ? ' here' : '') + '">' + I.img(POST_ICON[k][0], '') + '<span>' + POST_NAME[k] + '</span>' + hearts +
-        '<small class="' + (id ? 'tjobtxt' : '') + '">' + (id ? T[id].name + ' ' + ROMAN[grade] : !id && n >= M.jobGrades[0] ? 'PICK!' : whole(n) + '/' + M.jobGrades[0]) + '</small><div class="bar xp"><i style="width:' + pctDone + '%"></i></div></button>';
+      const what = id ? traitChip(id, grade) + '<small>' + T[id].desc + (next ? ' · ' + whole(n) + '/' + CM.fmt(next) + ' to ' + ROMAN[grade + 1] : '') + '</small>' : '<small>' + (n >= M.jobGrades[0] ? 'speciality ready to pick' : whole(n) + '/' + M.jobGrades[0] + ' jobs to a speciality') + '</small>';
+      h += '<div class="' + (k === skill ? 'here' : '') + '"><b>' + B.skills[k].name + hearts(m.aff[k]) + '</b><span>' + what + '</span></div>';
     }
-    h += '<h4>JOBS</h4><div class="jgrid">' + jobs + '</div>';
+    h += '</div><p class="hint">&#9829; likes the job, &#9829;&#9829; loves it: a bit faster there, and it specialises sooner.</p>';
 
-    // Explicación de la casilla tocada.
-    h += '<div class="tinfo">' + tileInfo(s, ui, m) + '</div>';
-
-    // Lo que le da su equipo: vecinos y roca.
     if (skill) {
       const t = K.team(s, skill, zone);
-      const parts = speedParts(s, m, skill, zone);
-      h += '<h4>ON ITS POST</h4><p class="hint">Works ' + times(K.speed(m, skill, s, zone)) + ' as fast as you by hand' + (parts.length ? ': ' + parts.join(', ') : '') + '.</p>';
       t.links.forEach((l) => (h += comboNote(l, 'with a neighbour')));
-      t.sets.forEach((d) => (h += comboNote(d, 'whole rock', true)));
+      t.sets.forEach((d) => (h += comboNote(d, 'whole rock')));
     }
-    h += '<h4>RANK</h4>' + promoteBlock(s, m) + rankLadder(s, m);
-    h += '<div class="tabs">' + btn('movefrom:' + m.id, 'MOVE TO ANOTHER POST', { cls: 'buy' }) + btn('dismiss:' + m.id, 'DISMISS', { cls: 'danger' }) + '</div>';
+    h += '<h4>RANK</h4>' + promoteBlock(s, m);
+    h += '<div class="tabs">' + btn('movefrom:' + m.id, 'MOVE', { cls: 'buy' }) + btn('dismiss:' + m.id, 'DISMISS', { cls: 'close' }) + '</div>';
     return h;
-  }
-  function tileInfo(s, ui, m) {
-    const K = CM.mice;
-    const [kind, id] = (ui.traitInfo || '').split(':');
-    if (kind === 'trait' && T[id] && K.hasTrait(m, id)) return traitChip(id) + '<p>' + traitDesc(id) + '.</p>';
-    if (kind === 'combo') {
-      const c = M.combos.find((x) => x.id === id);
-      if (c) return '<span class="stat tcombo">COMBO · ' + c.name + '</span><p>' + c.needs.map((t) => T[t].name).join(' + ') + '. ' + c.desc + '.</p>';
-    }
-    if (kind === 'slot') {
-      const lv = K.level(m);
-      return Number(id) <= lv ? '<p>Ready: pick its new trait in the pink box above.</p>' : '<p>Opens at level ' + id + ' (' + (Number(id) - lv) + ' to go). You will choose one of three traits, or gamble on a mystery one.</p>';
-    }
-    if (kind === 'job' && B.skills[id]) {
-      const a = m.aff[id] || 0;
-      const sp = m.spec[id];
-      const grade = K.gradeOf(m, id);
-      const n = m.jobs[id] || 0;
-      let t = '<b>' + B.skills[id].name + '.</b> ' + (a ? M.affinity[a].name + ' it: ' + Math.round(M.affinity[a].speed * 100) + '% faster there and specialises ' + M.affinity[a].learn + 'x as fast.' : 'No special liking for it.');
-      if (sp) t += '</p><p>' + traitChip(sp, grade) + ' ' + traitDesc(sp) + '. Only counts at this job' + (grade > 1 ? ', ' + times(M.gradeMult[grade - 1]) + ' as strong as grade I' : '') + '. ' + (M.jobGrades[grade] ? whole(n) + ' / ' + CM.fmt(M.jobGrades[grade]) + ' jobs to grade ' + ROMAN[grade + 1] + '.' : 'Top grade.');
-      else t += '</p><p>' + (n >= M.jobGrades[0] ? 'Ready: pick its speciality in the pink box above.' : 'After ' + M.jobGrades[0] + ' jobs here it earns a speciality you choose (' + whole(n) + ' done).');
-      return '<p>' + t + '</p>';
-    }
-    return '<p class="dim">Tap a trait or a job to see what it does.</p>';
   }
 
   function micePanel(s, ui) {
@@ -557,7 +459,7 @@
       s.candidates.forEach((c, i) => {
         const as = K.normalize(Object.assign({ xp: 0, rank: 0 }, c));
         h +=
-          '<div class="mouse cand rar' + (c.rarity || 0) + (c.rarity === 2 ? ' leg' : '') + '"><div class="mhead">' + face(as) + '<div class="info"><b>' + esc(c.name) + '</b>' + traitList(as) + '</div></div>' +
+          '<div class="mouse cand"><div class="mhead">' + face(as) + '<div class="info"><b>' + esc(c.name) + '</b>' + traitList(as) + '</div></div>' +
           '<div class="mfoot"><small class="mjob">' + (dest ? 'There: <b>' + mouseRate(s, as, dest.skill, dest.zone) + '</b>' + (as.aff[dest.skill] ? ' · ' + M.affinity[as.aff[dest.skill]].name.toLowerCase() + ' it' : '') : 'Waits in the house') + '</small>' + btn('choose:' + i, 'CHOOSE', { cls: 'buy' }) + '</div></div>';
       });
       return h;
@@ -565,7 +467,7 @@
 
     // Álbum: lo coleccionado, por categorías.
     if (ui.miceTab === 'album') {
-      h += btn('album', '&lt; BACK TO THE COLONY', { cls: 'mini wide' });
+      h += btn('album', '&lt; BACK', { cls: 'mini' });
       h += '<p class="lead"><b>' + K.albumCount(s) + ' of ' + K.albumTotal + '</b> found. Customers pay <b>' + times(1 + q.albumBonus(s)) + '</b>.</p><p class="hint">Every new fur, hat, accessory, trait and combo on your mice goes in here for good, even if that mouse leaves. Each one raises all your sale prices by ' + Math.round(M.albumPrice * 100) + '%. Combos are found by trying: the right traits on one mouse, on neighbours in a line, or across a whole rock.</p>';
       for (const cat of K.ALBUM) {
         const got = cat.items.filter((it) => s.album[it.key]).length;
@@ -586,31 +488,19 @@
     const shown = ui.card ? K.byId(s, ui.card) : null;
     if (shown) return cardView(s, ui, shown);
 
-    const staffed = posts.length - free.length;
-    const ready = s.mice.filter((m) => K.promoteInfo(s, m).can).length;
-    const picks = s.mice.filter((m) => m.offer).length;
-    h +=
-      '<div class="msum"><div><b>' + s.mice.length + '</b><small>' + (s.mice.length === 1 ? 'mouse' : 'mice') + '</small></div><div class="' + (free.length ? 'warn' : 'good') + '"><b>' + staffed + '/' + posts.length + '</b><small>posts filled</small></div><div class="' + (picks ? 'hot' : '') + '"><b>' + picks + '</b><small>traits to pick</small></div><div class="' + (ready ? 'good' : '') + '"><b>' + ready + '</b><small>to promote</small></div></div>';
-
-    // Barra del ratón seleccionado: qué hacer con él.
+    // Barra del ratón seleccionado, o una sola línea de ayuda.
     const sel = ui.sel ? K.byId(s, ui.sel) : null;
-    if (sel) {
-      const [skill, zone] = sel.post ? sel.post.split(':') : [];
-      h +=
-        '<div class="selbar">' + face(sel, 'face mini') + '<div><b>' + esc(sel.name) + '</b><small>' + (skill ? K.postLabel(sel.post) + ' · ' + mouseRate(s, sel, skill, zone) : 'in the house') + '</small><small class="hot">Tap a post to move it there. The number is how it would do on its own.</small></div><div class="side">' + btn('card:' + sel.id, 'OPEN', { cls: 'buy' }) + btn('unsel', 'X', { cls: 'mini' }) + '</div></div>';
-    } else if (s.mice.length) h += '<p class="hint note">Tap a mouse to select it. Then tap a post to move it there, or OPEN to see its traits.' + (picks ? ' <b class="hot">! = a trait to pick.</b>' : '') + (ready ? ' <b class="okay">&#9650; = ready to promote.</b>' : '') + '</p>';
+    if (sel) h += '<div class="selbar"><div><b>' + esc(sel.name) + '</b><small>Tap a post to move it there</small></div>' + btn('card:' + sel.id, 'OPEN', { cls: 'buy' }) + btn('unsel', 'CANCEL', { cls: 'close' }) + '</div>';
+    else if (s.mice.length) h += '<p class="hint">Tap a mouse, then a post to move it. Tap it twice to open it.</p>';
 
     h += linesView(s, ui);
 
     const cost = K.recruitCost(s);
-    const goes = free.length ? 'Goes to ' + K.postLabel(free[0].key) : 'Every post is taken: it would wait in the house';
-    h += btn('recruit', 'RECRUIT A MOUSE · ' + coin(cost) + '<br><small>' + goes + '</small>', { off: s.coins < cost, cls: 'buy wide serveall', cost });
-    if (!s.mice.length) return h + '<p class="hint">No mice yet. Your first recruit will take over a stage so you do not have to tap it.</p>';
-    if (s.mice.length > 1) {
-      const moves = K.bestFitMoves(s);
-      h += moves ? btn('bestfit', 'BEST FIT: PLACE EVERYONE FOR ME<br><small>Moves ' + plural(moves, 'mouse') + '. Looks at each mouse alone, not at combos</small>', { cls: 'buy wide calm' }) : '<p class="hint note good">Best fit: each mouse is where it works best on its own. Combos between neighbours are yours to find.</p>';
-    }
-    h += btn('album', 'ALBUM · ' + K.albumCount(s) + '/' + K.albumTotal + ' FOUND<br><small>Customers pay ' + times(1 + q.albumBonus(s)) + ' thanks to it</small>', { cls: 'buy wide calm' });
+    h += btn('recruit', 'RECRUIT A MOUSE · ' + coin(cost) + (free.length ? '' : '<br><small>Every post is taken: it would wait in the house</small>'), { off: s.coins < cost, cls: 'buy wide serveall', cost });
+    if (!s.mice.length) return h + '<p class="hint">Your first recruit takes over a stage so you do not have to tap it.</p>';
+    const moves = s.mice.length > 1 ? K.bestFitMoves(s) : 0;
+    h += '<div class="tabs">' + btn('bestfit', 'BEST FIT' + (moves ? '' : ' &#10003;'), { cls: 'close', off: !moves }) + btn('album', 'ALBUM ' + K.albumCount(s) + '/' + K.albumTotal, { cls: 'close' }) + '</div>';
+    h += '<p class="hint">Best fit places each mouse where it works best on its own. Combos between mice are yours to find.</p>';
     if (s.mice.some((m) => M.ranks[m.rank].manager)) h += row('Managers buy upgrades', 'They buy the cheapest upgrade of their job on their own', btn('managers', s.settings.managersBuy ? 'ON' : 'OFF', { cls: 'buy' }));
     return h;
   }

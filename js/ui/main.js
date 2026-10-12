@@ -913,7 +913,6 @@
       ui.sel = id;
       $('sheet-body').scrollTop = 0;
     },
-    tinfo: (kind, id) => void (ui.traitInfo = kind + ':' + id),
     emptypost: () => CM.fail('empty-post'),
     post: (id, skill, zone) => {
       ui.sel = null;
