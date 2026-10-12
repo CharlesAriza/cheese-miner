@@ -93,11 +93,20 @@
   // recalcula solo cuando cambia la plantilla.
   let teamKey = '';
   let teamMap = {};
+  // Dentro de un paso de simulación la plantilla no cambia (y si cambia, quien la cambia
+  // lo avisa con `teamKey = ''`), así que la firma se calcula una vez por paso y no en cada
+  // consulta: con 26 ratones era lo que más tiempo se llevaba al simular horas de ausencia.
+  let frozen = false;
+  let scanSig = '';
+  let scanState = null;
+  const teamSig = (s) => s.mice.map((m) => m.id + m.post + m.rank + m.traits.join('') + m.learned.join('') + Object.keys(m.spec).join('')).join('|');
   function team(s, skill, zone) {
-    const key = s.mice.map((m) => m.id + m.post + m.rank + m.traits.join('') + m.learned.join('') + Object.keys(m.spec).join('')).join('|');
-    if (key !== teamKey) {
-      teamKey = key;
-      teamMap = {};
+    if (!frozen || teamKey === '') {
+      const key = teamSig(s);
+      if (key !== teamKey) {
+        teamKey = key;
+        teamMap = {};
+      }
     }
     const pk = postKey(skill, zone);
     if (teamMap[pk]) return teamMap[pk];
@@ -132,7 +141,8 @@
 
   // Velocidad de un ratón en un oficio. Con `s` y `zone` cuenta también lo que
   // depende de la partida: profundidad, nivel de la habilidad, colonia y auras.
-  function speed(m, skill, s, zone) {
+  // `alone`: sin lo que le dan los demás (auras y combinaciones de equipo), para comparar candidatos.
+  function speed(m, skill, s, zone, alone) {
     const f = fx(m, skill);
     const power = 1 + M.perLevel * (level(m) - 1) + M.ranks[m.rank].bonus + M.rarities[m.rarity || 0].bonus + affinity(m, skill).speed + (f.rankSpeed || 0) * m.rank;
     let mult = 1 + (f.speed || 0) + (CM.away ? f.awaySpeed || 0 : f.hereSpeed || 0);
@@ -141,21 +151,23 @@
       mult += clamp((f.depthSpeed || 0) * depth, -0.5, M.caps.depth);
       mult += (f.levelSpeed || 0) * Math.floor(q.level(s, skill) / 10);
       mult += (f.crowdSpeed || 0) * Math.min(s.mice.length, M.caps.crowd);
-      mult += auraFor(s, skill, zone);
-      const te = team(s, skill, zone).eff;
-      mult += (te.speed || 0) + (CM.away ? te.awaySpeed || 0 : 0);
+      if (!alone) {
+        mult += auraFor(s, skill, zone);
+        const te = team(s, skill, zone).eff;
+        mult += (te.speed || 0) + (CM.away ? te.awaySpeed || 0 : 0);
+      }
     }
     return Math.max(0.2, power * mult);
   }
   // Cantidad por ciclo, sin contar la suerte.
-  function yieldMult(m, skill, s, zone) {
+  function yieldMult(m, skill, s, zone, alone) {
     const f = fx(m, skill || '');
     let y = 1 + (f.yield || 0);
     if (s) {
       const depth = s.zones[zone] ? s.zones[zone].depth : 0;
       y += clamp((f.depthYield || 0) * depth, -0.5, M.caps.depthYield);
       y += (f.recipeYield || 0) * Math.min(s.recipes.length, M.caps.recipes);
-      y += team(s, skill, zone).eff.yield || 0;
+      if (!alone) y += team(s, skill, zone).eff.yield || 0;
     }
     // La tienda cobra por todas las rocas a la vez: sus bonificaciones de cantidad pueden contar solo en parte.
     if (skill === 'trading' && M.tradeYield !== 1) y = 1 + (y - 1) * M.tradeYield;
@@ -271,6 +283,10 @@
         if (!got) continue;
         m.learned.push(got);
       }
+      // Diario de la colonia: lo que van desarrollando, para consultarlo después.
+      s.news.unshift({ at: s.clock, name: m.name, id: m.id, trait: got });
+      if (s.news.length > 40) s.news.length = 40;
+      teamKey = '';
       CM.emit(s, 'traitLearned', { id: m.id, trait: got, auto: true, kind: T[got].kind });
       CM.mice.note(s, m);
     }
@@ -303,6 +319,15 @@
       const fresh = albumKeys(m).filter((k) => !s.album[k]);
       fresh.forEach((k) => (s.album[k] = true));
       return fresh;
+    },
+    // La simulación abre y cierra cada paso: dentro, las combinaciones de equipo no se recalculan.
+    beginStep(s) {
+      frozen = false;
+      team(s, 'trading', 'all');
+      frozen = true;
+    },
+    endStep() {
+      frozen = false;
     },
     // Tras cambiar números de rasgos en caliente (simulaciones de balance).
     resetCache() {
@@ -337,6 +362,16 @@
     // Lo que rinde un ratón en un oficio (para comparar puestos).
     // BEST FIT solo mira al ratón por separado: ni auras ni sinergias de plantilla.
     score: (m, skill) => speed(m, skill) * yieldMult(m, skill) * (1 + doubleChance(m, skill)),
+    // Lo que rendiría en un puesto concreto por sí solo: cuenta su roca, la habilidad y la colonia,
+    // pero no a sus vecinos ni las combinaciones de equipo. Sirve para comparar candidatos sin
+    // prometer lo que depende de con quién acabe trabajando.
+    solo: (m, skill, s, zone) => speed(m, skill, s, zone, true) * yieldMult(m, skill, s, zone, true) * (1 + doubleChance(m, skill)),
+    // Lo que rinde ahora mismo en su puesto, con todo.
+    here(s, m) {
+      if (!m.post) return 0;
+      const [skill, zone] = m.post.split(':');
+      return speed(m, skill, s, zone) * yieldMult(m, skill, s, zone) * (1 + doubleChance(m, skill, s, zone));
+    },
 
     // --- Usado por la producción ---
     // Ratón de un puesto con sus multiplicadores, o null si está vacío.
@@ -456,16 +491,24 @@
         m.traits = m.traits.filter((t) => t !== c.what);
         m.learned = m.learned.filter((t) => t !== c.what);
       } else m.spec[c.what] = c.to;
+      teamKey = '';
       CM.emit(s, 'careDone', { id: m.id, kind: c.kind, what: c.what, to: c.to });
       this.note(s, m);
     },
     hasTrait,
     team,
+    // Los ratones que son vecinos de un puesto (los que cuentan para las combinaciones de línea).
+    neighboursOf: (s, skill, zone) => neighbours(s, skill, zone).filter(Boolean),
     // Para dibujar la plantilla: combinaciones activas entre dos puestos y en una roca.
     linksAt: (s, skillA, zoneA, skillB, zoneB) => linksBetween(mouseAt(s, skillA, zoneA), mouseAt(s, skillB, zoneB)),
     setsAt: (s, zone) => setsOf(s, zone),
     // Apunta en el álbum las combinaciones de vecinos y de roca que estén activas.
     scan(s) {
+      // Solo hay algo nuevo que apuntar si la plantilla ha cambiado desde la última vez.
+      const sig = teamSig(s) + '|' + s.totals.zonesUnlocked + '|' + Object.keys(s.built).filter((k) => s.built[k]).length + '|' + (s.nodes['lab.assistant'] || 0);
+      if (sig === scanSig && s === scanState) return;
+      scanSig = sig;
+      scanState = s;
       for (const p of this.posts(s)) {
         const t = team(s, p.skill, p.zone);
         for (const c of t.links.map((l) => ['link:', l]).concat(t.sets.map((d) => ['set:', d]))) {
@@ -486,6 +529,7 @@
     autoPlace(s, m) {
       const free = this.freePost(s);
       if (free) m.post = free.key;
+      teamKey = '';
       return !!free;
     },
     // Coloca a los que esperan en la casa (salvo a los que el jugador mandó descansar).

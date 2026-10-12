@@ -71,7 +71,11 @@ Rasgos automáticos (14-10-2026): cada 10 niveles el ratón desarrolla un rasgo 
 
 Entrega C (pendiente): fusión de dos ratones, mutaciones y linajes.
 
-Gestión (13-10-2026): MICE tiene vista por roca y lista completa; tocar un puesto enseña candidatos y tocar un ratón enseña sus puestos, con asignación e intercambio de un toque. Reclutar cuesta un 50 % más por cada recluta de toda la partida y despedir no lo abarata.
+Interfaz de MICE (14-10-2026): tres pestañas. **COLONY** agrupa los puestos por roca (plegables: plegada enseña las caras de quien trabaja ahí; desplegada, una tarjeta por puesto con retrato, nombre, nivel y rango, oficio, afinidad y lo que rinde de verdad), con la tienda y el laboratorio como «whole colony» y una línea de avisos arriba (ascensos, ratones sin puesto, la cama). **ROSTER** lista a todos, con orden y filtros plegados. **HOUSE** reúne la cama, reclutar, el diario de la colonia y el álbum. Tocar un puesto abre su selector: quién está y los demás ratones ordenados por lo que harían ahí **por sí solos** (`CM.mice.solo`, sin vecinos ni combinaciones, para no prometer lo que depende de con quién trabajen), con la diferencia frente al actual; un toque asigna o intercambia. La ficha es una hoja de personaje con secciones plegables. Reclutar enseña un candidato a pantalla entera, con los tres arriba para cambiar. El marco del retrato es la rareza (gris, azul, dorado). Las clases CSS de esta pantalla empiezan por `mc-`. Reclutar cuesta un 50 % más por cada recluta de toda la partida y despedir no lo abarata.
+
+Avisos: un rasgo normal es un aviso breve y queda en el diario; uno legendario se celebra a pantalla completa (si llegó con el juego cerrado, al cerrar el resumen de vuelta, que agrupa lo ocurrido).
+
+Rendimiento: la simulación abre y cierra cada paso (`CM.mice.beginStep/endStep`) para no recalcular las combinaciones de equipo en cada consulta; quien cambie la plantilla dentro de un paso debe poner `teamKey = ''`.
 
 ### Cheese Lab
 

@@ -174,6 +174,7 @@
     // Lo que una partida anterior tenía pendiente de elegir (rasgo de nivel o especialidad)
     // se desarrolla solo, y se apunta para contárselo al jugador al entrar.
     s.inbox = Array.isArray(s.inbox) ? s.inbox.filter((n) => isObj(n) && typeof n.name === 'string' && Array.isArray(n.traits) && n.traits.every((t) => TR[t])).slice(0, 60) : [];
+    s.news = Array.isArray(s.news) ? s.news.filter((n) => isObj(n) && typeof n.name === 'string' && TR[n.trait]).slice(0, 40).map((n) => ({ at: nat(n.at), name: n.name.slice(0, 24), id: String(n.id || ''), trait: n.trait })) : [];
     s.mice.forEach((m) => {
       CM.mice.record(s, m);
       if (!CM.mice.pending(m)) return;

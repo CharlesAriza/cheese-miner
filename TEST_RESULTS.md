@@ -4,7 +4,7 @@
 
 ## Pruebas automáticas
 
-Ejecutadas abriendo `tests.html` en el navegador. **38 de 38 pasan.**
+Ejecutadas abriendo `tests.html` en el navegador. **39 de 39 pasan.**
 
 | Prueba | Resultado |
 | --- | --- |
@@ -22,6 +22,7 @@ Ejecutadas abriendo `tests.html` en el navegador. **38 de 38 pasan.**
 | Ratones: despedir, aviso de BEST FIT y motivo por el que un ratón no asciende | pasa |
 | Ratones: rarezas y álbum que sube el precio de venta para siempre | pasa |
 | Rasgos: los ratones los desarrollan solos, según lo que han trabajado | pasa |
+| Datos de la pantalla MICE: rendimiento en solitario y en el puesto, intercambio y diario de la colonia | pasa |
 | Cama de la Mouse House: tratar una manía o reentrenar una especialidad sin dejar el puesto | pasa |
 | Rasgos: afinidad, especialidades con grados, combinaciones, auras y suerte | pasa |
 | Combinaciones de equipo: vecinos de una línea y los cuatro ratones de una roca | pasa |

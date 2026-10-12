@@ -25,6 +25,14 @@
     bookBase: null,
     bookRow: null,
     labTab: 'recipes', // sección del laboratorio a la vista
+    rockOpen: {}, // rocas desplegadas en MICE
+    comboOpen: {}, // rocas con el detalle de sus combinaciones a la vista
+    cardSec: {}, // secciones abiertas de la ficha
+    miceShow: 'all',
+    miceLikes: '',
+    rosterOpts: false,
+    cand: -1,
+    newsAll: false,
     labDirOpen: false,
     labDirCat: null,
     labSeen: false,
@@ -283,9 +291,9 @@
         if (!mouse || !def) break;
         if (ev.kind === 'legend') legendMoment(mouse, ev.trait);
         else {
-          play('reveal');
-          banner(mouse.name.toUpperCase() + ': ' + def.name.toUpperCase() + '!');
-          toast(mouse.name + (def.job ? ' specialised: ' : ' developed a trait: ') + def.name + '. ' + def.desc, true);
+          // Un rasgo normal: un aviso breve, sin franja ni ventana. Queda en el diario de HOUSE.
+          play('bell');
+          toast(mouse.name + (def.job ? ' specialised: ' : ' developed ') + def.name + '. ' + def.desc, true);
         }
         dirty = true;
         break;
@@ -916,6 +924,8 @@
       ui.pick = null;
       ui.card = null;
       ui.miceTab = '';
+      ui.cardSec = {};
+      ui.rosterOpts = false;
       if (state.built.house) scene.focus('house');
     }
     renderPanel();
@@ -989,7 +999,10 @@
     },
     build: (id) => CM.construction.build(state, id),
     recruit: () => CM.mice.offer(state),
-    choose: (i) => CM.mice.choose(state, Number(i)),
+    choose: (i) => {
+      ui.cand = -1;
+      return CM.mice.choose(state, Number(i));
+    },
     bestfit: () => CM.mice.bestFit(state),
     // Colonia: tocar un puesto enseña candidatos; tocar un ratón, sus puestos posibles.
     pickpost: (skill, zone) => {
@@ -1005,18 +1018,54 @@
     miceview: (v) => {
       ui.miceView = v;
       ui.pick = null;
+      $('sheet-body').scrollTop = 0;
     },
+    rocktoggle: (zoneId) => {
+      const zones = q.openZones(state);
+      const open = ui.rockOpen[zoneId] !== undefined ? ui.rockOpen[zoneId] : zones.length <= 2 || zoneId === ui.zone;
+      ui.rockOpen[zoneId] = !open;
+    },
+    rosteropts: () => void (ui.rosterOpts = !ui.rosterOpts),
+    combotoggle: (zoneId) => void (ui.comboOpen[zoneId] = !ui.comboOpen[zoneId]),
+    // Un filtro del roster (también desde los avisos de COLONY y HOUSE).
+    rosterfilter: (v) => {
+      ui.miceView = 'roster';
+      ui.miceShow = v;
+      ui.pick = null;
+    },
+    rosterlikes: (job) => void (ui.miceLikes = ui.miceLikes === job ? '' : job),
+    sec: (id) => {
+      const def = { traits: true, specs: false, combos: null, rank: null }[id];
+      const m = CM.mice.byId(state, ui.card);
+      const auto = id === 'combos' ? !!m && (CM.mice.combosOf(m).length > 0 || (m.post && (() => { const t = CM.mice.team(state, m.post.split(':')[0], m.post.split(':')[1]); return t.links.length + t.sets.length > 0; })())) : id === 'rank' ? !!m && CM.mice.promoteInfo(state, m).can : def;
+      ui.cardSec[id] = !(ui.cardSec[id] !== undefined ? ui.cardSec[id] : auto);
+    },
+    cand: (i) => void (ui.cand = Number(i)),
+    newsall: () => void (ui.newsAll = !ui.newsAll),
     micesort: (v) => void (ui.miceSort = v),
     card: (id) => {
       ui.card = id;
       ui.pick = null;
+      ui.cardSec = {};
+      ui.retrain = null;
       $('sheet-body').scrollTop = 0;
     },
     back: () => void (ui.card = null),
     emptypost: () => CM.fail('empty-post'),
+    // Asignar o intercambiar: un toque. Se cuenta qué ha pasado con los dos.
     post: (id, skill, zone) => {
-      ui.pick = null;
-      return CM.mice.assign(state, id, skill ? skill + ':' + zone : '');
+      const key = skill ? skill + ':' + zone : '';
+      const mover = CM.mice.byId(state, id);
+      const other = key ? state.mice.find((x) => x.post === key && x !== mover) : null;
+      const from = mover ? mover.post : '';
+      const r = CM.mice.assign(state, id, key);
+      if (r.ok) {
+        ui.pick = null;
+        ui.card = null;
+        play('click');
+        toast(!key ? mover.name + ' is resting in the house' : mover.name + ' now works at ' + CM.mice.postLabel(key) + (other ? '. ' + other.name + (from ? ' took ' + CM.mice.postLabel(from) : ' is waiting in the house') : ''), true);
+      }
+      return r;
     },
     promote: (id) => CM.mice.promote(state, id),
     care: (id, kind, what, to) => {
@@ -1230,22 +1279,41 @@
       state.inbox = [];
     }
     for (const up of sum.levelUps) lines.push(B.skills[up.skill].name + ': level ' + up.from + ' > ' + up.to);
-    // Los ratones: primero los que traen algo que elegir.
-    const news = (sum.mouseNews || []).slice().sort((a, b) => (b.grew || []).length - (a.grew || []).length || b.to - b.from - (a.to - a.from));
-    for (const n of news.slice(0, 5)) {
-      const bits = [];
-      if (n.to > n.from) bits.push('LV ' + n.from + ' > ' + n.to);
-      for (const sp of n.spec) bits.push(B.mice.traits[sp.trait].name + ' ' + ['', 'I', 'II', 'III'][sp.grade]);
-      for (const t of n.grew || []) if (B.mice.traits[t]) bits.push('<b class="' + (B.mice.traits[t].kind === 'legend' ? 'tleg' : 'tok') + '">' + B.mice.traits[t].name + '</b>');
-      lines.push(P.esc(n.name) + ': ' + bits.join(' · '));
+    // Los ratones, agrupados: primero lo excepcional (un rasgo legendario), luego la cama,
+    // después quién ha desarrollado algo y, en una sola línea, los que solo subieron de nivel.
+    const news = sum.mouseNews || [];
+    const TR = B.mice.traits;
+    const isLegend = (t) => TR[t] && TR[t].kind === 'legend';
+    let jewel = null;
+    for (const n of news) {
+      for (const t of (n.grew || []).filter(isLegend)) {
+        lines.push('<b class="tleg">&#9733; ' + P.esc(n.name) + ' developed a LEGENDARY trait: ' + TR[t].name + '</b>');
+        jewel = jewel || { id: n.id, trait: t };
+      }
     }
-    if (news.length > 5) lines.push('...and ' + (news.length - 5) + ' more mice improved');
+    if (sum.careDone) {
+      const pat = CM.mice.byId(state, sum.careDone.id);
+      if (pat) lines.push('Mouse House bed: ' + P.esc(pat.name) + (sum.careDone.kind === 'quirk' ? ' is over <b class="tok">' + TR[sum.careDone.what].name + '</b>' : ' retrained to <b class="tok">' + TR[sum.careDone.to].name + '</b>') + '. The bed is free');
+    }
+    const grew = news.filter((n) => (n.grew || []).some((t) => TR[t] && !isLegend(t)));
+    for (const n of grew.slice(0, 4)) lines.push(P.esc(n.name) + ' developed ' + n.grew.filter((t) => TR[t] && !isLegend(t)).map((t) => '<b class="tok">' + TR[t].name + '</b>').join(', '));
+    if (grew.length > 4) lines.push('...and ' + (grew.length - 4) + ' more mice developed traits. They are all in MICE, under HOUSE');
+    const ups = news.filter((n) => n.to > n.from);
+    if (ups.length) lines.push(ups.length === 1 ? P.esc(ups[0].name) + ': LV ' + ups[0].from + ' > ' + ups[0].to : ups.length + ' mice levelled up, ' + P.esc(ups.slice().sort((a, b) => b.to - b.from - (a.to - a.from))[0].name) + ' the most');
+    const grades = news.reduce((a, n) => a + n.spec.length, 0);
+    if (grades) lines.push(grades + (grades === 1 ? ' speciality went up a grade' : ' specialities went up a grade'));
     // Sin nada automatizado ni producido no hay nada que contar.
     if (!lines.length && (!sum.automated || sum.simulatedMs < 60000)) return;
     showModal(
       '<h2>WELCOME BACK</h2><p class="hint">Away ' + (mins < 1 ? 'under a minute' : mins >= 120 ? Math.round(mins / 60) + ' h' : mins + ' min') + (sum.capped ? ' (your mice work up to ' + Math.round(sum.capMs / 3600000) + ' h alone; the Night Lamp in COLONY extends it)' : '') + '</p>' +
         (lines.length ? '<ul class="list plain">' + lines.map((l) => '<li>' + l + '</li>').join('') + '</ul>' : '<p class="hint">Your mice had nothing they could do. Check what is stopped.</p>') + '<div class="row"><button class="buy" data-m="ok">NICE</button></div>',
-      { ok() {} }
+      {
+        // Un legendario descubierto con el juego cerrado se celebra al cerrar el resumen.
+        ok() {
+          const m = jewel && CM.mice.byId(state, jewel.id);
+          if (m) legendMoment(m, jewel.trait);
+        },
+      }
     );
     if (lines.length) scene.celebrate();
   }

@@ -26,7 +26,7 @@ La pantalla es el cuartel general. Abajo está la **cadena**: MINE → DRILL →
 | Ver el árbol entero de una etapa | **ALL UPGRADES** en su panel |
 | Comprar todo lo que alcance en un árbol | **BUY EVERYTHING I CAN AFFORD** |
 | Descubrir y cocinar recetas | Etapa CHEESE → botón grande |
-| Reclutar, colocar y ascender ratones | **MICE**, o tocar la Mouse House |
+| Reclutar, colocar y ascender ratones | **MICE**: COLONY (puestos por roca), ROSTER (todos los ratones) y HOUSE (cama, reclutar, diario, álbum) |
 | Abrir rocas nuevas y ampliar las horas offline | **COLONY** |
 | Ver todo lo que tienes, tipo por tipo | Tocar un contador de arriba, o el almacén |
 | Ver otro queso (escena y contadores) | Tocar su fila en el panel |

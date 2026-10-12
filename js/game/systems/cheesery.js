@@ -119,6 +119,10 @@
     return CM.ok();
   }
 
+  // Memoria de la receta elegida por línea (por partida) y el ingrediente más caro que existe.
+  const laneMemo = new WeakMap();
+  const laneMaxCoin = Math.max(...Object.keys(B.ingredients).map((k) => B.ingredients[k].coinCost));
+
   CM.cheesery = {
     PARTS,
     TABLES,
@@ -466,6 +470,15 @@
       const pinned = this.recipe(s, s.zones[zoneId].cookRecipe);
       if (pinned) return pinned;
       const base = q.zoneDef(zoneId).base;
+      // Con monedas para cualquier ingrediente, la elegida solo cambia al descubrir una receta
+      // o al moverse los precios: se recuerda un par de segundos en vez de recalcular cada hornada.
+      const rich = s.coins >= laneMaxCoin;
+      const stamp = Math.floor(s.clock / 2000) + '|' + s.recipes.length;
+      const memo = rich ? laneMemo.get(s) : null;
+      if (memo && memo[zoneId] && memo[zoneId].stamp === stamp) {
+        const hit = this.recipe(s, memo[zoneId].id);
+        if (hit) return hit;
+      }
       let best = null;
       let top = -Infinity;
       for (const r of s.recipes) {
@@ -476,6 +489,10 @@
           top = value;
           best = r;
         }
+      }
+      if (rich && best) {
+        if (!laneMemo.get(s)) laneMemo.set(s, {});
+        laneMemo.get(s)[zoneId] = { stamp, id: best.id };
       }
       return best;
     },
@@ -578,7 +595,11 @@
       const st = this.status(s);
       if (st !== 'ready') return CM.fail(st);
       // Se venden primero los quesos más caros.
-      const stock = s.recipes.filter((r) => (s.lots[r.id] || 0) > 0).sort((a, b) => this.price(s, b) - this.price(s, a));
+      // (El precio de cada receta se calcula una vez, no en cada comparación de la ordenación.)
+      const priced = s.recipes.filter((r) => (s.lots[r.id] || 0) > 0).map((r) => ({ r, p: this.price(s, r) })).sort((a, b) => b.p - a.p);
+      const prices = {};
+      priced.forEach((x) => (prices[x.r.id] = x.p));
+      const stock = priced.map((x) => x.r);
       const w = source === 'worker' ? CM.mice.work(s, 'trading', 'all') : null;
       const cyc = CM.cycle(q.sellDuration(s) / (w ? w.speed : 1));
       let left = Math.floor(q.sellCount(s) * cyc.mult);
@@ -588,7 +609,7 @@
       for (const r of stock) {
         const n = Math.min(left, s.lots[r.id]);
         if (n <= 0) break;
-        const price = this.price(s, r);
+        const price = prices[r.id];
         s.lots[r.id] -= n;
         coins += price * n;
         count += n;

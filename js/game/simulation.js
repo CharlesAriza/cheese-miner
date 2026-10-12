@@ -92,6 +92,14 @@
     // cocinado; todas a la vez. Después, la tienda, que es común.
     step(s, dt) {
       s.clock += dt;
+      CM.mice.beginStep(s);
+      try {
+        this.run(s, dt);
+      } finally {
+        CM.mice.endStep();
+      }
+    },
+    run(s, dt) {
       // Cada 2 s: los ratones sin puesto ocupan los libres y los gerentes compran.
       if (Math.floor(s.clock / 2000) !== Math.floor((s.clock - dt) / 2000)) {
         CM.mice.fillEmpty(s);
@@ -141,6 +149,7 @@
       const levels = {};
       CM.skills.list.forEach((k) => (levels[k] = q.level(s, k)));
       const mice = s.mice.map((m) => ({ m, level: CM.mice.level(m), had: m.learned.slice(), specs: Object.assign({}, m.spec), grades: CM.mice.CHAIN.map((k) => CM.mice.gradeOf(m, k)) }));
+      const careBefore = s.care ? Object.assign({}, s.care) : null;
       const wasMuted = CM.muted;
       CM.muted = true;
       CM.away = true; // los rasgos Nocturno y Casero solo cuentan aquí
@@ -162,7 +171,7 @@
         const grew = b.m.learned.filter((t) => b.had.indexOf(t) < 0).concat(Object.keys(b.m.spec).filter((k) => !b.specs[k]).map((k) => b.m.spec[k]));
         if (lv > b.level || spec.length || grew.length) mouseNews.push({ id: b.m.id, name: b.m.name, from: b.level, to: lv, spec, grew });
       }
-      return { awayMs: away, simulatedMs: simulated, capped: away > cap, capMs: cap, delta, coins: s.coins - coins, levelUps, mouseNews, strainWaiting: s.lab.found ? { recipeId: s.lab.found.recipeId, strain: s.lab.found.strain } : null, automated: AUTO.some((k) => q.isAutomated(s, k)) };
+      return { awayMs: away, simulatedMs: simulated, capped: away > cap, capMs: cap, delta, coins: s.coins - coins, levelUps, mouseNews, careDone: careBefore && !s.care ? careBefore : null, strainWaiting: s.lab.found ? { recipeId: s.lab.found.recipeId, strain: s.lab.found.strain } : null, automated: AUTO.some((k) => q.isAutomated(s, k)) };
     },
   };
 })();

@@ -89,6 +89,7 @@
       // `dir` es la dirección que marca el jugador: '' (ninguna), 'value', 'fast',
       // 'base:<id>', 'ingredient:<id>', 'treatment:<id>' o 'maturation:<id>'.
       care: null, // la cama de la Mouse House: { id, kind, what, to, remaining, total }
+      news: [], // diario de la colonia: últimos rasgos y especialidades que han desarrollado
       inbox: [], // novedades que contar al jugador al volver (rasgos que llegaron solos)
       lab: { job: null, dir: '', want: '', next: '', strains: false, found: null },
       recipes: [], // { id, key, name, at, made }

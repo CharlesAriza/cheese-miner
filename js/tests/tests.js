@@ -712,6 +712,41 @@
     valid(s);
   });
 
+  test('mice screen data: what a mouse does on its own, what it does in its post, and the colony news', () => {
+    const s = withChain();
+    const K = CM.mice;
+    const a = staff(s, 'drilling', 'cheddar', { traits: ['mentor', 'dreamer'] });
+    const b = staff(s, 'refining', 'cheddar', { traits: ['lucky', 'forgetful'] });
+    const alone = K.solo(b, 'refining', s, 'cheddar');
+    truthy(Math.abs(alone - K.speed(b, 'refining') * K.yieldMult(b, 'refining') * (1 + K.doubleChance(b, 'refining'))) < 1e-9, 'the solo estimate counts only the mouse itself');
+    truthy(K.here(s, b) > alone, 'in its post it also gets what its neighbour gives (' + K.here(s, b).toFixed(2) + ' vs ' + alone.toFixed(2) + ')');
+    eq(K.here(s, Object.assign({}, b, { post: '' })), 0, 'a mouse with no post produces nothing');
+    truthy(K.neighboursOf(s, 'refining', 'cheddar').indexOf(a) >= 0 && K.neighboursOf(s, 'drilling', 'cheddar').indexOf(b) >= 0, 'neighbours are the mice next to it in the line');
+    // Comparar candidatos no mueve a nadie
+    const posts = s.mice.map((m) => m.post).join();
+    K.solo(a, 'refining', s, 'cheddar');
+    eq(s.mice.map((m) => m.post).join(), posts, 'estimating a candidate does not move anybody');
+    // Intercambio en un toque, sin duplicar ni perder a nadie
+    eq(K.assign(s, a.id, 'refining:cheddar').ok, true, 'assign onto a taken post');
+    eq(a.post + '/' + b.post, 'refining:cheddar/drilling:cheddar', 'the two swap places');
+    eq(new Set(s.mice.map((m) => m.post)).size, s.mice.length, 'nobody shares a post');
+    // El diario recoge lo que desarrollan
+    eq(s.news.length, 0, 'the news log starts empty');
+    a.xp = 1e4;
+    K.grow(s, a);
+    truthy(s.news.length >= 1 && s.news[0].name === a.name && a.learned.indexOf(s.news[0].trait) >= 0, 'a developed trait goes into the colony news');
+    const back = CM.storage.parse(JSON.stringify(s), 1000000);
+    eq(back.news.length, s.news.length, 'and the news survive a reload');
+    // Lo que ocurre con el juego cerrado se resume
+    s.built.house = true;
+    s.coins = 1e6;
+    K.careStart(s, b.id, 'quirk', 'forgetful');
+    s.lastSavedAt = 0;
+    const sum = CM.sim.applyOffline(s, B.mice.care.ms + 60000);
+    truthy(sum.careDone && sum.careDone.id === b.id && !s.care, 'the return summary knows a treatment finished');
+    valid(s);
+  });
+
   test('mouse house bed: treat a quirk or retrain a speciality while the mouse keeps working', () => {
     const s = withChain();
     const K = CM.mice;
