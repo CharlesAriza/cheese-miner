@@ -152,8 +152,7 @@ CM.BALANCE = {
       { name: 'Rare', chance: 0.15, bonus: 0.1 },
       { name: 'Legendary', chance: 0.02, bonus: 0.25 },
     ],
-    albumPrice: 0.02, // cada pieza nueva del álbum sube un 2 % el precio de venta, para siempre
-    favoriteBonus: 0.15, // +15 % de velocidad en su oficio favorito
+    albumPrice: 0.01, // cada pieza nueva del álbum sube un 1 % el precio de venta, para siempre
     xpBase: 12, // acciones para pasar del nivel 1 al 2
     xpGrowth: 1.15,
     maxLevel: 60,
@@ -167,17 +166,7 @@ CM.BALANCE = {
       { name: 'Master', level: 25, cost: 150000, bonus: 0.2 },
       { name: 'Manager', level: 40, cost: 20000000, bonus: 0.35, manager: true },
     ],
-    // `good: false` son las manías: pequeñas pegas que hacen distinto a cada ratón.
-    traits: {
-      fast: { name: 'Fast', good: true, desc: 'Works 15% faster', eff: { speed: 0.15 } },
-      strong: { name: 'Strong', good: true, desc: 'Makes 20% more each time', eff: { yield: 0.2 } },
-      nocturnal: { name: 'Nocturnal', good: true, desc: '50% faster while you are away', eff: { awaySpeed: 0.5 } },
-      scholar: { name: 'Scholar', good: true, desc: 'Its work gives 30% more skill xp', eff: { skillXp: 0.3 } },
-      prodigy: { name: 'Prodigy', good: true, desc: 'Levels up 50% faster', eff: { mouseXp: 0.5 } },
-      glutton: { name: 'Glutton', good: false, desc: 'Eats 8% of what it makes', eff: { yield: -0.08 } },
-      dreamer: { name: 'Dreamer', good: false, desc: 'Works 8% slower', eff: { speed: -0.08 } },
-      homebody: { name: 'Homebody', good: false, desc: '30% slower while you are away', eff: { awaySpeed: -0.3 } },
-    },
+    // Los rasgos, las afinidades y las combinaciones están en traits.js.
     names: ['Pip', 'Brie', 'Nibbles', 'Gus', 'Colby', 'Mozza', 'Pepper', 'Squeak', 'Rind', 'Fondue', 'Biscuit', 'Curd', 'Tilly', 'Monty', 'Gruyere', 'Havarti', 'Swiss', 'Feta', 'Ricotta', 'Paneer', 'Jack', 'Stilton', 'Muenster', 'Edam', 'Roque', 'Camem', 'Whey', 'Nacho', 'Truffle', 'Poppy', 'Dot', 'Olive', 'Basil', 'Clover', 'Hazel', 'Rye', 'Oats', 'Maple', 'Juniper', 'Sage'],
   },
 

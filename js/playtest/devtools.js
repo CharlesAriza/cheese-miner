@@ -47,7 +47,7 @@
       s.built.house = true;
       for (let guard = 0; guard < 40 && CM.mice.freePost(s); guard++) {
         const name = B.mice.names[s.mice.length % B.mice.names.length];
-        const m = { id: 'm' + s.nextId++, name, traits: ['fast', 'dreamer'], fav: '', look: (s.nextId * 7919 + s.mice.length * 104729) % 1048576, xp: 0, rank: 0, post: '', rest: false };
+        const m = CM.mice.normalize({ id: 'm' + s.nextId++, name, traits: ['fast', 'dreamer'], aff: {}, look: (s.nextId * 7919 + s.mice.length * 104729) % 1048576, xp: 0, rank: 0, post: '', rest: false });
         s.mice.push(m);
         CM.mice.autoPlace(s, m);
       }

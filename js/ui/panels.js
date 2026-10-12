@@ -242,52 +242,126 @@
 
   // ---------- RATONES ----------
   const M = B.mice;
-  const traitChip = (id) => '<span class="stat ' + (M.traits[id].good ? 'tgood' : 'tquirk') + '">' + M.traits[id].name + '</span>';
+  const T = M.traits;
+  const RARITY = M.rarities;
+  const ROMAN = ['', 'I', 'II', 'III'];
+  const KIND_CLS = { good: 'tgood', quirk: 'tquirk', job: 'tjob', legend: 'tlegend' };
+  const traitChip = (id, grade) => '<span class="stat ' + KIND_CLS[T[id].kind] + '">' + T[id].name + (grade && T[id].job ? ' ' + ROMAN[grade] : '') + '</span>';
+  const rareChip = (m) => (m.rarity ? '<span class="stat rare' + m.rarity + '">' + RARITY[m.rarity].name.toUpperCase() + '</span>' : '');
+  const affChips = (m) =>
+    CM.mice.CHAIN.filter((k) => m.aff && m.aff[k])
+      .sort((a, b) => m.aff[b] - m.aff[a])
+      .map((k) => '<span class="stat aff a' + m.aff[k] + '">' + M.affinity[m.aff[k]].name + ' ' + B.skills[k].name + '</span>')
+      .join('');
+  const chipsOf = (m) => rareChip(m) + CM.mice.traitsOf(m).map((t) => traitChip(t.id, t.grade)).join('') + affChips(m);
   const face = (m, cls) => '<img class="pix ' + (cls || 'face') + ' r' + (m.rank || 0) + '" alt="" src="' + CM.mouseUrl(m) + '">';
   // Lo que cambia a la vista con cada rango.
   const RANK_LOOK = ['no scarf', 'a blue scarf', 'a red scarf and a medal', 'a suit, a gold tie and a purple scarf'];
-  const RARITY = M.rarities;
-  const rareChip = (m) => (m.rarity ? '<span class="stat rare' + m.rarity + '">' + RARITY[m.rarity].name.toUpperCase() + '</span>' : '');
   const signed = (n) => (n < 0 ? '-' : '+') + Math.round(Math.abs(n) * 100) + '%';
   const times = (n) => 'x' + (Math.round(n * 100) / 100).toFixed(2);
   const plural = (n, word) => n + ' ' + (n === 1 ? word : word === 'mouse' ? 'mice' : word + 's');
+  const whole = (n) => CM.fmt(Math.floor(n));
 
   // Lo que hace un ratón en un puesto, en valores reales («2 Raw every 2.1s»).
+  // Las cantidades son la media, contando la suerte de sacar doble.
   function mouseRate(s, m, skill, zone) {
-    const sp = CM.mice.speed(m, skill);
-    const y = CM.mice.yieldMult(m);
+    const K = CM.mice;
+    const sp = K.speed(m, skill, s, zone);
+    const y = K.yieldMult(m, skill, s, zone) * (1 + K.doubleChance(m, skill));
     const every = (ms) => ' every ' + secs(Math.max(200, ms / sp));
-    if (skill === 'mining') return 'a swing' + every(q.minerInterval(s));
+    if (skill === 'mining') return (y === 1 ? 'a swing' : 'a x' + round1(y) + ' swing') + every(q.minerInterval(s));
     if (skill === 'drilling') return round1(q.drillYield(s, zone) * y) + ' Raw' + every(q.drillDuration(s));
     if (skill === 'refining') return round1(q.refineBatch(s) * q.refineMult(s) * y) + ' Base' + every(q.refineDuration(s));
-    if (skill === 'trading') return 'a sale' + every(q.sellDuration(s));
+    if (skill === 'trading') return (y === 1 ? 'a sale' : 'a x' + (Math.round(y * 100) / 100) + ' sale') + every(q.sellDuration(s));
     const recipe = CM.cheesery.laneRecipe(s, zone);
-    return recipe ? 'a cheese' + every(CM.cheesery.jobTime(s, CM.cheesery.parseKey(recipe.key), recipe)) : 'cooks ' + times(sp) + ' as fast as by hand';
+    const n = y === 1 ? 'a cheese' : round1(y) + ' cheese';
+    return recipe ? n + every(CM.cheesery.jobTime(s, CM.cheesery.parseKey(recipe.key), recipe)) : 'cooks ' + times(sp) + ' as fast as by hand';
   }
   // De dónde sale su velocidad en un oficio.
-  function speedParts(m, skill) {
+  function speedParts(s, m, skill, zone) {
     const K = CM.mice;
     const lv = K.level(m);
     const out = [];
-    if (lv > 1) out.push('level ' + lv + ' ' + signed(M.perLevel * (lv - 1)));
-    if (M.ranks[m.rank].bonus) out.push(M.ranks[m.rank].name + ' ' + signed(M.ranks[m.rank].bonus));
-    if (m.rarity) out.push(RARITY[m.rarity].name + ' ' + signed(RARITY[m.rarity].bonus));
-    if (m.fav === skill) out.push('loves this job ' + signed(M.favoriteBonus));
-    for (const id of m.traits) if (M.traits[id].eff.speed) out.push(M.traits[id].name + ' ' + signed(M.traits[id].eff.speed));
+    let power = 1;
+    const part = (label, n) => {
+      if (!n) return;
+      power += n;
+      out.push(label + ' ' + signed(n));
+    };
+    part('level ' + lv, M.perLevel * (lv - 1));
+    part(M.ranks[m.rank].name, M.ranks[m.rank].bonus);
+    part(RARITY[m.rarity || 0].name, RARITY[m.rarity || 0].bonus);
+    part(K.affinity(m, skill).name.toLowerCase() + ' this job', K.affinity(m, skill).speed);
+    part('rank traits', K.trait(m, 'rankSpeed', skill) * m.rank);
+    const rest = K.speed(m, skill, s, zone) / power;
+    if (Math.abs(rest - 1) > 0.004) out.push('traits and neighbours ' + times(rest));
     return out;
   }
-  const traitList = (m) =>
-    '<ul class="traits">' +
-    (m.rarity ? '<li>' + rareChip(m) + Math.round(RARITY[m.rarity].bonus * 100) + '% faster at any job' + (m.rarity === 2 ? ', and no quirk' : '') + '</li>' : '') +
-    m.traits.map((id) => '<li>' + traitChip(id) + M.traits[id].desc + '</li>').join('') +
-    (m.fav ? '<li><span class="stat">Loves ' + B.skills[m.fav].name + '</span>' + Math.round(M.favoriteBonus * 100) + '% faster on a ' + B.skills[m.fav].name + ' post</li>' : '') +
-    '</ul>';
+  // Lista de todo lo que hace especial a un ratón, explicado.
+  function traitList(m) {
+    const K = CM.mice;
+    let h = '<ul class="traits">';
+    if (m.rarity) h += '<li>' + rareChip(m) + Math.round(RARITY[m.rarity].bonus * 100) + '% faster at any job</li>';
+    for (const t of K.traitsOf(m)) {
+      const def = T[t.id];
+      h += '<li>' + traitChip(t.id, t.grade) + def.desc + (def.job ? '. Only counts at ' + B.skills[def.job].name + (t.grade > 1 ? ', ' + times(M.gradeMult[t.grade - 1]) + ' as strong as grade I' : '') : '') + '</li>';
+    }
+    for (const c of K.combosOf(m)) h += '<li><span class="stat tcombo">COMBO · ' + c.name + '</span>' + c.desc + '</li>';
+    for (const k of K.CHAIN) {
+      const a = m.aff && m.aff[k];
+      if (a) h += '<li><span class="stat aff a' + a + '">' + M.affinity[a].name + ' ' + B.skills[k].name + '</span>' + Math.round(M.affinity[a].speed * 100) + '% faster there and specialises ' + M.affinity[a].learn + 'x as fast</li>';
+    }
+    return h + '</ul>';
+  }
+
+  // Elección de rasgo pendiente: las opciones, la casilla misteriosa y volver a tirar.
+  function pickBox(s, m) {
+    const K = CM.mice;
+    const offer = m.offer;
+    if (!offer) return '';
+    const [skill, zone] = m.post ? m.post.split(':') : [];
+    const now = skill ? mouseRate(s, m, skill, zone) : '';
+    const withTrait = (id) => (offer.kind === 'job' ? Object.assign({}, m, { spec: Object.assign({}, m.spec, { [offer.skill]: id }) }) : Object.assign({}, m, { learned: m.learned.concat(id) }));
+    let h = '<div class="pickbox"><b>' + (offer.kind === 'job' ? B.skills[offer.skill].name.toUpperCase() + ' SPECIALITY: PICK ONE' : 'NEW TRAIT: PICK ONE') + '</b><small>' + (offer.kind === 'job' ? 'Earned by working. It only counts at ' + B.skills[offer.skill].name + ' and grows with more work there.' : 'Trait ' + (m.picks + 1) + ' of ' + M.traitSlots + '. It keeps it for good.') + (now ? ' Now: ' + now + '.' : '') + '</small>';
+    offer.options.forEach((id, i) => {
+      const then = skill ? mouseRate(s, withTrait(id), skill, zone) : '';
+      h += btn('trait:' + m.id + ':' + i, '<span>' + traitChip(id) + '<small>' + T[id].desc + '</small>' + (then && then !== now ? '<em>Here: ' + then + '</em>' : skill && T[id].job && T[id].job !== skill ? '<em>No change on this post</em>' : '') + '</span>', { cls: 'opt ' + KIND_CLS[T[id].kind] });
+    });
+    if (offer.kind === 'level') h += btn('trait:' + m.id + ':mystery', '<span><span class="stat tmyst">? MYSTERY TRAIT</span><small>Any trait in the game. ' + Math.round(M.mystery.legend * 100) + '% legendary, ' + Math.round(M.mystery.quirk * 100) + '% a quirk, the rest a good one.</small></span>', { cls: 'opt tmyst' });
+    const cost = K.rerollCost(m);
+    return h + btn('reroll:' + m.id, 'REROLL THESE THREE · ' + coin(cost), { off: s.coins < cost, cls: 'mini wide', cost }) + '</div>';
+  }
+  // Casillas de rasgos de nivel y progreso de cada oficio.
+  function growth(m) {
+    const K = CM.mice;
+    const lv = K.level(m);
+    let h = '<h4>LEVEL TRAITS</h4><div class="slots">';
+    for (let i = 0; i < M.traitSlots; i++) {
+      const id = m.learned[i];
+      const at = (i + 1) * M.traitEvery;
+      h += id ? '<div class="full">' + traitChip(id) + '</div>' : i === m.picks && lv >= at ? '<div class="ready">PICK!</div>' : '<div>LV ' + at + '</div>';
+    }
+    h += '</div><h4>SPECIALITIES</h4><p class="hint">Working a job earns its speciality: a trait of that job with three grades.</p><div class="specs">';
+    for (const k of K.CHAIN) {
+      const jobs = m.jobs[k] || 0;
+      const id = m.spec[k];
+      const grade = K.gradeOf(m, k);
+      const next = M.jobGrades[id ? grade : 0];
+      const aff = m.aff[k] ? ' <i class="aff a' + m.aff[k] + '">' + M.affinity[m.aff[k]].name + '</i>' : '';
+      let right;
+      if (id) right = traitChip(id, grade) + (next ? '<small>' + whole(jobs) + ' / ' + CM.fmt(next) + ' jobs to ' + ROMAN[grade + 1] + '</small>' : '<small>top grade</small>');
+      else right = jobs >= M.jobGrades[0] ? '<small class="hot">ready to pick</small>' : '<small>' + whole(jobs) + ' / ' + M.jobGrades[0] + ' jobs</small>';
+      const pctDone = next ? Math.min(100, Math.round((jobs / next) * 100)) : 100;
+      h += '<div><span><b>' + B.skills[k].name + '</b>' + aff + '</span><span>' + right + '</span><div class="bar xp"><i style="width:' + pctDone + '%"></i></div></div>';
+    }
+    return h + '</div>';
+  }
 
   // Qué le falta a un ratón para ascender: siempre lo dice.
   function promoteBlock(s, m) {
     const K = CM.mice;
     const pr = K.promoteInfo(s, m);
-    if (pr.maxed) return '<div class="mrank top"><b>TOP RANK</b><small>' + (K.level(m) >= M.maxLevel ? 'Max level too: this mouse cannot get any better.' : 'It still gets faster with every level, up to LV ' + M.maxLevel + '.') + '</small></div>';
+    if (pr.maxed) return '<div class="mrank top"><b>TOP RANK</b><small>' + (K.level(m) >= M.maxLevel ? 'Max level too.' : 'It still gets faster with every level, up to LV ' + M.maxLevel + '.') + '</small></div>';
     const [skill, zone] = m.post ? m.post.split(':') : [];
     const next = Object.assign({}, m, { rank: m.rank + 1 });
     // Qué mejora: antes y después en valores reales, y cómo cambia su aspecto.
@@ -326,7 +400,7 @@
       const info = CM.construction.buildInfo(s, 'house');
       if (!info.condOk) return '<p class="hint">Mice do the work for you. First: ' + esc(info.condText.toLowerCase()) + '.</p>';
       return (
-        '<p class="lead">A <b>mouse on a post</b> does that job on its own, even while you are away.</p><p class="hint">Every mouse is one of a kind: its own look, a good trait, a quirk and a favourite job. They level up as they work and stay until you dismiss them.</p>' +
+        '<p class="lead">A <b>mouse on a post</b> does that job on its own, even while you are away.</p><p class="hint">Every mouse is one of a kind: its own look, traits, quirks and jobs it likes. As it works it levels up, learns new traits you choose, and specialises in its job. They stay until you dismiss them.</p>' +
         btn('build:house', 'BUILD THE MOUSE HOUSE<br>It is free', { cls: 'buy wide' })
       );
     }
@@ -338,10 +412,10 @@
       const dest = free[0];
       h += '<h3>CHOOSE ONE OF THREE</h3><p class="hint">Already paid. ' + (dest ? 'The one you pick goes straight to <b>' + K.postLabel(dest.key) + '</b>.' : 'Every post has a mouse, so the one you pick waits in the house until you move it.') + '</p>';
       s.candidates.forEach((c, i) => {
-        const as = Object.assign({ xp: 0, rank: 0 }, c);
+        const as = K.normalize(Object.assign({ xp: 0, rank: 0 }, c));
         h +=
-          '<div class="mouse cand rar' + (c.rarity || 0) + '"><div class="mhead">' + face(c) + '<div class="info"><b>' + esc(c.name) + '</b>' + traitList(c) + '</div></div>' +
-          '<div class="mfoot"><small class="mjob">' + (dest ? 'There: <b>' + mouseRate(s, as, dest.skill, dest.zone) + '</b>' + (c.fav === dest.skill ? ' · loves it' : '') : 'Waits in the house') + '</small>' + btn('choose:' + i, 'CHOOSE', { cls: 'buy' }) + '</div></div>';
+          '<div class="mouse cand rar' + (c.rarity || 0) + '"><div class="mhead">' + face(c) + '<div class="info"><b>' + esc(c.name) + '</b>' + traitList(as) + '</div></div>' +
+          '<div class="mfoot"><small class="mjob">' + (dest ? 'There: <b>' + mouseRate(s, as, dest.skill, dest.zone) + '</b>' + (as.aff[dest.skill] ? ' · ' + M.affinity[as.aff[dest.skill]].name.toLowerCase() + ' it' : '') : 'Waits in the house') + '</small>' + btn('choose:' + i, 'CHOOSE', { cls: 'buy' }) + '</div></div>';
       });
       return h;
     }
@@ -349,25 +423,27 @@
     // Álbum: lo coleccionado, por categorías.
     if (ui.miceTab === 'album') {
       h += btn('album', 'BACK TO MY MICE', { cls: 'mini wide' });
-      h += '<p class="lead"><b>' + K.albumCount(s) + ' of ' + K.albumTotal + '</b> found. Customers pay <b>' + times(1 + q.albumBonus(s)) + '</b>.</p><p class="hint">Every new fur, hat, accessory and trait on a mouse you recruit goes in here for good, even if that mouse leaves. Each one raises all your sale prices by ' + Math.round(M.albumPrice * 100) + '%.</p>';
+      h += '<p class="lead"><b>' + K.albumCount(s) + ' of ' + K.albumTotal + '</b> found. Customers pay <b>' + times(1 + q.albumBonus(s)) + '</b>.</p><p class="hint">Every new fur, hat, accessory, trait and combo on your mice goes in here for good, even if that mouse leaves. Each one raises all your sale prices by ' + Math.round(M.albumPrice * 100) + '%. Combos are found by trying: get the right traits together on one mouse.</p>';
       for (const cat of K.ALBUM) {
         const got = cat.items.filter((it) => s.album[it.key]).length;
-        h += '<h3>' + cat.title + ' · ' + got + '/' + cat.items.length + '</h3><div class="album">';
+        h += '<h3>' + cat.title + ' · ' + got + '/' + cat.items.length + '</h3><div class="album' + (cat.kind === 'combo' ? ' one' : '') + '">';
         for (const it of cat.items) {
           const have = !!s.album[it.key];
-          const pic = cat.kind === 'trait' ? '' : '<img class="pix face mini' + (have ? '' : ' shade') + '" alt="" src="' + CM.partUrl(it.key) + '">';
-          h += '<div class="' + (have ? 'have' : 'miss') + ' rar' + it.rarity + '">' + pic + '<span>' + (have ? it.name : '???') + (it.rarity ? '<small>' + RARITY[it.rarity].name + ' only</small>' : '') + '</span></div>';
+          if (cat.kind === 'combo' && !have) continue;
+          const pic = cat.kind === 'trait' || cat.kind === 'combo' ? '' : '<img class="pix face mini' + (have ? '' : ' shade') + '" alt="" src="' + CM.partUrl(it.key) + '">';
+          h += '<div class="' + (have ? 'have' : 'miss') + ' rar' + it.rarity + '">' + pic + '<span>' + (have ? it.name : '???') + (have && it.desc ? '<small>' + it.desc + '</small>' : it.rarity && cat.kind !== 'trait' ? '<small>' + RARITY[it.rarity].name + ' only</small>' : '') + '</span></div>';
         }
+        if (cat.kind === 'combo' && got < cat.items.length) h += '<div class="miss"><span>' + (cat.items.length - got) + ' more to discover</span></div>';
         h += '</div>';
       }
       return h;
     }
 
     const staffed = posts.length - free.length;
-    const waiting = s.mice.filter((m) => !m.post);
     const ready = s.mice.filter((m) => K.promoteInfo(s, m).can).length;
+    const picks = s.mice.filter((m) => m.offer).length;
     h +=
-      '<div class="msum"><div><b>' + s.mice.length + '</b><small>' + (s.mice.length === 1 ? 'mouse' : 'mice') + '</small></div><div class="' + (free.length ? 'warn' : 'good') + '"><b>' + staffed + '/' + posts.length + '</b><small>posts with a mouse</small></div><div class="' + (ready ? 'good' : '') + '"><b>' + ready + '</b><small>can be promoted</small></div></div>';
+      '<div class="msum"><div><b>' + s.mice.length + '</b><small>' + (s.mice.length === 1 ? 'mouse' : 'mice') + '</small></div><div class="' + (free.length ? 'warn' : 'good') + '"><b>' + staffed + '/' + posts.length + '</b><small>posts filled</small></div><div class="' + (picks ? 'hot' : '') + '"><b>' + picks + '</b><small>traits to pick</small></div><div class="' + (ready ? 'good' : '') + '"><b>' + ready + '</b><small>to promote</small></div></div>';
 
     const cost = K.recruitCost(s);
     const goes = free.length ? 'Goes to ' + K.postLabel(free[0].key) : 'Every post is taken: it would wait in the house';
@@ -376,15 +452,15 @@
     else if (s.mice.length) h += '<p class="hint note">Every post has a mouse. More posts open with each new rock. Recruit anyway to swap in a better mouse.</p>';
     if (s.mice.length > 1) {
       const moves = K.bestFitMoves(s);
-      h += moves ? btn('bestfit', 'BEST FIT: PLACE EVERYONE FOR ME<br><small>Moves ' + plural(moves, 'mouse') + ' to where they work best</small>', { cls: 'buy wide calm' }) : '<p class="hint note good">Best fit: everyone is already where they work best.</p>';
+      h += moves ? btn('bestfit', 'BEST FIT: PLACE EVERYONE FOR ME<br><small>Moves ' + plural(moves, 'mouse') + '. Looks at each mouse alone, not at neighbours</small>', { cls: 'buy wide calm' }) : '<p class="hint note good">Best fit: each mouse is where it works best on its own. Neighbour effects are yours to arrange.</p>';
     }
-    if (s.mice.length) h += btn('album', 'ALBUM · ' + K.albumCount(s) + '/' + K.albumTotal + ' FOUND<br><small>Customers pay ' + times(1 + q.albumBonus(s)) + ' thanks to it. Recruit to find more</small>', { cls: 'buy wide calm' });
+    if (s.mice.length) h += btn('album', 'ALBUM · ' + K.albumCount(s) + '/' + K.albumTotal + ' FOUND<br><small>Customers pay ' + times(1 + q.albumBonus(s)) + ' thanks to it</small>', { cls: 'buy wide calm' });
     h += '<p class="hint">Each candidate: ' + Math.round(RARITY[1].chance * 100) + '% Rare, ' + Math.round(RARITY[2].chance * 100) + '% Legendary.</p>';
     if (s.mice.some((m) => M.ranks[m.rank].manager)) h += row('Managers buy upgrades', 'They buy the cheapest upgrade of their job on their own', btn('managers', s.settings.managersBuy ? 'ON' : 'OFF', { cls: 'buy' }));
     if (!s.mice.length) return h + '<p class="hint">No mice yet. Your first recruit will take over a stage so you do not have to tap it.</p>';
 
-    // Primero los que esperan en la casa; el resto, en el orden de la cadena.
-    const order = (m) => (m.post ? 1 + posts.findIndex((p) => p.key === m.post) : 0);
+    // Primero los que tienen algo que elegir, luego los que esperan; el resto, en el orden de la cadena.
+    const order = (m) => (m.offer ? -1 : m.post ? 1 + posts.findIndex((p) => p.key === m.post) : 0);
     const sorted = s.mice.slice().sort((a, b) => order(a) - order(b));
     for (const m of sorted) {
       const p = K.xpProgress(m);
@@ -395,28 +471,32 @@
       else if (m.rest) job = '<b>Resting in the house</b> · you sent it to rest. Tap MANAGE to give it a post';
       else job = '<b>Waiting in the house</b> · every post is taken. Tap MANAGE to swap it in';
       const pips = M.ranks.map((r, i) => '<i class="' + (i <= m.rank ? 'on' : '') + '"></i>').join('');
+      const combos = K.combosOf(m);
       h +=
-        '<div class="mouse rar' + (m.rarity || 0) + (m.post ? '' : ' idle') + (open ? ' open' : '') + '" data-mouse="' + m.id + '"><div class="mhead">' + face(m) + '<div class="info"><b>' + esc(m.name) + ' <span class="rank">' + M.ranks[m.rank].name + '</span><span class="pips">' + pips + '</span></b>' +
-        '<div class="lvl"><span>LV ' + p.level + '</span>' + xpBar(p) + '<span>' + (p.maxed ? 'MAX' : p.cur + '/' + p.need) + '</span></div><div>' + rareChip(m) + m.traits.map(traitChip).join('') + (m.fav ? '<span class="stat">Loves ' + B.skills[m.fav].name + '</span>' : '') + '</div></div></div>' +
-        '<p class="mjob">' + job + '</p>' + promoteBlock(s, m) +
-        '<div class="mfoot">' + btn('move:' + m.id, open ? 'CLOSE' : 'MANAGE: MOVE · DETAILS · DISMISS', { cls: 'mini wide' }) + '</div>';
+        '<div class="mouse rar' + (m.rarity || 0) + (m.post ? '' : ' idle') + (open ? ' open' : '') + (m.offer ? ' picking' : '') + '" data-mouse="' + m.id + '"><div class="mhead">' + face(m) + '<div class="info"><b>' + esc(m.name) + ' <span class="rank">' + M.ranks[m.rank].name + '</span><span class="pips">' + pips + '</span></b>' +
+        '<div class="lvl"><span>LV ' + p.level + '</span>' + xpBar(p) + '<span>' + (p.maxed ? 'MAX' : p.cur + '/' + p.need) + '</span></div><div>' + chipsOf(m) + combos.map((c) => '<span class="stat tcombo">' + c.name + '</span>').join('') + '</div></div></div>' +
+        '<p class="mjob">' + job + '</p>' + pickBox(s, m) + promoteBlock(s, m) +
+        '<div class="mfoot">' + btn('move:' + m.id, open ? 'CLOSE' : 'MANAGE: TRAITS · MOVE · DISMISS', { cls: 'mini wide' }) + '</div>';
       if (open) {
         h += '<div class="mdetail"><h4>WHAT MAKES ' + esc(m.name).toUpperCase() + ' SPECIAL</h4>' + traitList(m);
         if (skill) {
-          const parts = speedParts(m, skill);
-          h += '<p class="hint">Works ' + times(K.speed(m, skill)) + ' as fast as you by hand' + (parts.length ? ': ' + parts.join(', ') : '') + '.' + (m.fav && m.fav !== skill ? ' It would be faster on a ' + B.skills[m.fav].name + ' post.' : '') + '</p>';
+          const parts = speedParts(s, m, skill, zone);
+          const best = K.CHAIN.filter((k) => (m.aff[k] || 0) > (m.aff[skill] || 0)).sort((a, b) => m.aff[b] - m.aff[a])[0];
+          h += '<p class="hint">Works ' + times(K.speed(m, skill, s, zone)) + ' as fast as you by hand' + (parts.length ? ': ' + parts.join(', ') : '') + '.' + (best ? ' It ' + M.affinity[m.aff[best]].name.toLowerCase() + ' ' + B.skills[best].name + ' more than this job.' : '') + '</p>';
         }
-        if (!p.maxed) h += '<p class="hint">' + (m.post ? (p.need - p.cur) + ' more jobs to reach LV ' + (p.level + 1) + '. Each level makes it ' + Math.round(M.perLevel * 100) + '% faster.' : 'It does not level up while it is in the house.') + '</p>';
+        if (!p.maxed) h += '<p class="hint">' + (m.post ? (p.need - p.cur) + ' more jobs to reach LV ' + (p.level + 1) + '. Each level makes it ' + Math.round(M.perLevel * 100) + '% faster; every ' + M.traitEvery + ' levels it learns a trait.' : 'It does not level up while it is in the house.') + '</p>';
+        h += growth(m);
         h += '<h4>RANKS</h4><p class="hint">Each rank makes it faster for good and changes its outfit.</p>' + rankLadder(s, m);
         // Elegir puesto: cada opción dice cuánto rendiría ahí y a quién desplazaría.
         h += '<h4>MOVE TO</h4><div class="posts">';
         for (const post of posts) {
           const other = s.mice.find((x) => x.post === post.key && x !== m);
           const here = m.post === post.key;
-          h += btn(here ? 'noop' : 'post:' + m.id + ':' + post.key, '<span>' + K.postLabel(post.key) + '<small>' + (here ? 'it works here now' : other ? 'swaps places with ' + esc(other.name) : 'free post') + (m.fav === post.skill ? ' · loves it' : '') + '</small></span><span>' + mouseRate(s, m, post.skill, post.zone) + '</span>', { cls: 'deliver' + (here ? ' open' : ''), off: here });
+          const a = m.aff[post.skill];
+          h += btn(here ? 'noop' : 'post:' + m.id + ':' + post.key, '<span>' + K.postLabel(post.key) + '<small>' + (here ? 'it works here now' : other ? 'swaps places with ' + esc(other.name) : 'free post') + (a ? ' · ' + M.affinity[a].name.toLowerCase() + ' it' : '') + (m.spec[post.skill] ? ' · ' + T[m.spec[post.skill]].name + ' ' + ROMAN[K.gradeOf(m, post.skill)] : '') + '</small></span><span>' + mouseRate(s, m, post.skill, post.zone) + '</span>', { cls: 'deliver' + (here ? ' open' : ''), off: here });
         }
         if (m.post) h += btn('post:' + m.id + ':', '<span>Rest in the house<small>its post is left empty</small></span><span></span>', { cls: 'deliver calmrow' });
-        h += '</div><h4>LET IT GO</h4><p class="hint">It leaves for good. Its level and rank are lost and nothing is refunded.</p>' + btn('dismiss:' + m.id, 'DISMISS ' + esc(m.name).toUpperCase(), { cls: 'danger wide' }) + '</div>';
+        h += '</div><h4>LET IT GO</h4><p class="hint">It leaves for good. Its level, rank and traits are lost and nothing is refunded.</p>' + btn('dismiss:' + m.id, 'DISMISS ' + esc(m.name).toUpperCase(), { cls: 'danger wide' }) + '</div>';
       }
       h += '</div>';
     }

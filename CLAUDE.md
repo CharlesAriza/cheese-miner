@@ -49,7 +49,21 @@ Hecho:
 - Primeros pasos a fuego lento: cada edificio de la cadena se anuncia, su casilla se marca como nueva y el jugador va a su panel a construirlo. Compra rápida de mejoras desde cada etapa, «BUY ALL» global y Cheesemaker que elige la mejor receta.
 - Progreso offline con la misma simulación.
 
-Hito 2, ratones como personajes: Mouse House, reclutar eligiendo uno de tres, rasgo bueno y manía, oficio favorito, nivel propio, cuatro rangos (el gerente compra mejoras solo), un puesto por etapa y roca, colocación automática, BEST FIT y despido voluntario (sin reembolso). Rarezas (Rare, Legendary) y álbum de piezas que sube el precio de venta para siempre. Cada ficha dice en valores reales qué hace el ratón y qué le falta para ascender. Sustituye a los antiguos nudos de ratón de los árboles.
+Hito 2, ratones como personajes: Mouse House, reclutar eligiendo uno de tres, nivel propio, cuatro rangos (el gerente compra mejoras solo), un puesto por etapa y roca, colocación automática, BEST FIT y despido voluntario (sin reembolso). Sustituye a los antiguos nudos de ratón de los árboles.
+
+### Sistema de ratones (en construcción, por entregas)
+
+Aquí la profundidad es deliberada: es el sistema que tiene que sentirse único (referencia: Mewgenics). Reglas propias, acordadas con el propietario:
+
+- **Optimizar es cosa del jugador.** Se automatiza lo tedioso (colocar ratones), nunca las decisiones: los rasgos no se eligen solos, BEST FIT mira a cada ratón por separado y no hay pistas de combinaciones. La interfaz tiene que ponérselo fácil al jugador, no decidir por él.
+- **Apostar sí, perder lo conseguido no.** Se arriesga lo que el jugador decide poner (una casilla de rasgo, monedas, ratones), nunca monedas o queso a doble o nada.
+- **El balance se decide con el bot** y con partidas reales; las cifras son provisionales.
+
+Entrega A (hecha): rareza (Rare, Legendary), afinidad por oficio, unos 70 rasgos (buenos, manías, de oficio con tres grados, legendarios), rasgos de nivel elegidos entre tres, casilla misteriosa, volver a tirar, combinaciones en un mismo ratón, auras entre vecinos de línea y álbum que sube el precio de venta.
+
+Entrega B (pendiente): interfaz nueva (la cadena dibujada con retratos, ficha tipo cromo, rasgos como iconos), rasgos visibles en el dibujo del ratón, combinaciones de vecinos y de plantilla.
+
+Entrega C (pendiente): fusión de dos ratones, mutaciones y linajes.
 
 Quitado respecto a la Alpha: almacén con capacidad, regateo, clientes con paciencia, Taste/Funk/Aroma, reputación, viajar entre zonas, rocas que se agotan y Mouse House con camas.
 

@@ -61,7 +61,7 @@
       // El rendimiento puede tener decimales: lo que sobra se guarda para el siguiente ciclo.
       // Si lo arranca un ratón, cuentan su velocidad y su rendimiento.
       const w = source === 'worker' ? CM.mice.work(s, 'drilling', zoneId) : null;
-      const wanted = q.drillYield(s, zoneId) * (w ? w.yield : 1) + z.carry;
+      const wanted = q.drillYield(s, zoneId) * (w ? CM.mice.out(s, w) : 1) + z.carry;
       const amount = Math.max(1, Math.min(Math.floor(wanted), z.veinRemaining));
       z.carry = Math.max(0, Math.min(1, wanted - Math.floor(wanted)));
       const total = Math.max(200, Math.round(q.drillDuration(s) / (w ? w.speed : 1)));
@@ -126,7 +126,7 @@
       if (st !== 'ready') return CM.fail(st);
       const z = s.zones[zoneId];
       const w = source === 'worker' ? CM.mice.work(s, 'refining', zoneId) : null;
-      const plan = this.plan(s, zoneId, w ? w.yield : 1);
+      const plan = this.plan(s, zoneId, w ? CM.mice.out(s, w) : 1);
       const used = plan.batches * B.refinery.rawPerBase;
       const total = Math.max(200, Math.round(q.refineDuration(s) / (w ? w.speed : 1)));
       s.inv.raw[plan.base] -= used;

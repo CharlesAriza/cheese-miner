@@ -4,7 +4,7 @@
 
 ## Pruebas automáticas
 
-Ejecutadas abriendo `tests.html` en el navegador. **29 de 29 pasan.**
+Ejecutadas abriendo `tests.html` en el navegador. **31 de 31 pasan.**
 
 | Prueba | Resultado |
 | --- | --- |
@@ -21,6 +21,8 @@ Ejecutadas abriendo `tests.html` en el navegador. **29 de 29 pasan.**
 | Ratones: el gerente compra mejoras de su oficio, solo si se le permite | pasa |
 | Ratones: despedir, aviso de BEST FIT y motivo por el que un ratón no asciende | pasa |
 | Ratones: rarezas y álbum que sube el precio de venta para siempre | pasa |
+| Rasgos: catálogo, elecciones de nivel, casilla misteriosa y volver a tirar | pasa |
+| Rasgos: afinidad, especialidades con grados, combinaciones, auras y suerte | pasa |
 | Ratones: cada uno tiene su propio aspecto, y los guardados antiguos reciben uno | pasa |
 | Niveles: curva de experiencia, bloqueo por nivel y comprar todo | pasa |
 | Offline: solo progresa lo automatizado, con tope y una sola vez | pasa |

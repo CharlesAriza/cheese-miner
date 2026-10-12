@@ -91,8 +91,28 @@
     s.mice = s.mice.filter((m) => isObj(m) && typeof m.id === 'string' && typeof m.name === 'string').slice(0, 200);
     for (const m of s.mice) {
       m.name = m.name.slice(0, 16);
-      m.traits = (Array.isArray(m.traits) ? m.traits : []).filter((t) => B.mice.traits[t]).slice(0, 2);
-      m.fav = skillsList.indexOf(m.fav) >= 0 ? m.fav : '';
+      const T = B.mice.traits;
+      m.traits = (Array.isArray(m.traits) ? m.traits : []).filter((t) => T[t] && !T[t].job).slice(0, 2);
+      // Afinidades. Una partida anterior tenía un único oficio favorito.
+      const aff = {};
+      for (const k of skillsList) if (isObj(m.aff) && nat(m.aff[k]) > 0) aff[k] = Math.min(2, nat(m.aff[k]));
+      if (skillsList.indexOf(m.fav) >= 0 && !aff[m.fav]) aff[m.fav] = 2;
+      delete m.fav;
+      m.aff = aff;
+      // Rasgos aprendidos y de oficio.
+      m.learned = (Array.isArray(m.learned) ? m.learned : []).filter((t, i, all) => T[t] && !T[t].job && all.indexOf(t) === i && m.traits.indexOf(t) < 0).slice(0, 12);
+      m.picks = Math.min(nat(m.picks), B.mice.traitSlots, m.learned.length);
+      const spec = {};
+      const jobs = {};
+      for (const k of skillsList) {
+        if (isObj(m.jobs) && pos(m.jobs[k]) > 0) jobs[k] = pos(m.jobs[k]);
+        if (isObj(m.spec) && T[m.spec[k]] && T[m.spec[k]].job === k) spec[k] = m.spec[k];
+      }
+      m.spec = spec;
+      m.jobs = jobs;
+      m.rerolls = Math.min(nat(m.rerolls), 60);
+      const o = m.offer;
+      m.offer = isObj(o) && (o.kind === 'level' || o.kind === 'job') && Array.isArray(o.options) && o.options.length && o.options.every((t) => T[t]) ? { kind: o.kind, skill: o.kind === 'job' ? String(o.skill) : '', options: o.options.slice(0, 3) } : null;
       m.xp = pos(m.xp);
       m.rank = Math.min(nat(m.rank), B.mice.ranks.length - 1);
       m.rest = m.rest === true;
@@ -106,12 +126,24 @@
     s.candidates = (Array.isArray(s.candidates) ? s.candidates : [])
       .filter((c) => isObj(c) && typeof c.name === 'string' && Array.isArray(c.traits) && c.traits.every((t) => B.mice.traits[t]))
       .slice(0, B.mice.candidates);
-    s.candidates.forEach((c) => (c.rarity = Math.min(nat(c.rarity), B.mice.rarities.length - 1)));
+    s.candidates.forEach((c) => {
+      c.rarity = Math.min(nat(c.rarity), B.mice.rarities.length - 1);
+      const aff = {};
+      for (const k of skillsList) if (isObj(c.aff) && nat(c.aff[k]) > 0) aff[k] = Math.min(2, nat(c.aff[k]));
+      if (skillsList.indexOf(c.fav) >= 0 && !aff[c.fav]) aff[c.fav] = 2;
+      delete c.fav;
+      c.aff = aff;
+    });
     // Álbum: solo piezas que existen, más las de los ratones que ya se tienen.
     const album = {};
     for (const k of Object.keys(s.album)) if (CM.mice.albumItem(k)) album[k] = true;
     s.album = album;
-    s.mice.forEach((m) => CM.mice.record(s, m));
+    // Una elección guardada que ya no toca se descarta; las pendientes se preparan.
+    s.mice.forEach((m) => {
+      CM.mice.record(s, m);
+      const p = CM.mice.pending(m);
+      if (m.offer && (!p || p.kind !== m.offer.kind || p.skill !== m.offer.skill)) m.offer = null;
+    });
     s.seed = nat(s.seed) || 1;
 
     // Cada línea solo puede cocinar recetas de su propia base.
@@ -166,7 +198,7 @@
     let n = 0;
     const add = (skill, zone) => {
       const name = B.mice.names[n % B.mice.names.length];
-      mice.push({ id: 'm' + (nat(data.nextId) + 1000 + n), name, traits: ['fast', 'dreamer'], fav: skill, xp: 0, rank: 0, post: skill + ':' + zone, rest: false });
+      mice.push({ id: 'm' + (nat(data.nextId) + 1000 + n), name, traits: ['fast', 'dreamer'], aff: { [skill]: 2 }, xp: 0, rank: 0, post: skill + ':' + zone, rest: false });
       n += 1;
     };
     for (const key of Object.keys(OLD_MICE)) {

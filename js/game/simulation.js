@@ -33,7 +33,7 @@
     z.minerAcc += dt * w.speed;
     for (let guard = 0; z.minerAcc >= interval && guard < 500; guard++) {
       z.minerAcc -= interval;
-      if (!CM.mining.hit(s, zoneId, 'worker', w.yield).ok) {
+      if (!CM.mining.hit(s, zoneId, 'worker', CM.mice.out(s, w)).ok) {
         z.minerAcc = 0;
         break;
       }
@@ -92,6 +92,7 @@
       // Cada 2 s: los ratones sin puesto ocupan los libres y los gerentes compran.
       if (Math.floor(s.clock / 2000) !== Math.floor((s.clock - dt) / 2000)) {
         CM.mice.fillEmpty(s);
+        for (const m of s.mice) if (!m.offer && CM.mice.pending(m)) CM.mice.choice(s, m);
         CM.mice.managersTick(s);
       }
       for (const def of B.zones) {

@@ -51,7 +51,7 @@
   }
   // Pone un ratón sin rasgos en un puesto: rinde exactamente igual que una acción manual.
   function staff(s, skill, zone, extra) {
-    const m = Object.assign({ id: 'm' + s.nextId++, name: 'Test' + s.nextId, traits: [], fav: '', look: 4242, rarity: 0, xp: 0, rank: 0, post: CM.mice.postKey(skill, zone || 'cheddar'), rest: false }, extra || {});
+    const m = CM.mice.normalize(Object.assign({ id: 'm' + s.nextId++, name: 'Test' + s.nextId, traits: [], aff: {}, look: 4242, rarity: 0, xp: 0, rank: 0, post: CM.mice.postKey(skill, zone || 'cheddar'), rest: false }, extra || {}));
     s.mice.push(m);
     return m;
   }
@@ -213,7 +213,7 @@
     eq(JSON.stringify(reloaded.candidates), JSON.stringify(s.candidates), 'reloading does not reroll the candidates');
     for (const c of s.candidates) {
       truthy(B.mice.traits[c.traits[0]].good && (c.rarity === 2 ? B.mice.traits[c.traits[1]].good && c.traits[1] !== c.traits[0] : !B.mice.traits[c.traits[1]].good), 'one good trait and one quirk (a legendary: two good traits)');
-      truthy(CM.skills.list.indexOf(c.fav) >= 0, 'a favourite job');
+      truthy(Object.keys(c.aff).length >= 1 && Object.keys(c.aff).every((k) => CM.skills.list.indexOf(k) >= 0 && (c.aff[k] === 1 || c.aff[k] === 2)), 'likes at least one job');
     }
     const picked = s.candidates[1].name;
     eq(CM.mice.choose(s, 1).ok, true, 'choose');
@@ -232,9 +232,9 @@
     eq(base, 1, 'a plain level 1 mouse works at normal speed');
     truthy(CM.mice.speed(Object.assign({}, plain, { traits: ['fast'] }), 'drilling') > base, 'Fast is faster');
     truthy(CM.mice.speed(Object.assign({}, plain, { traits: ['dreamer'] }), 'drilling') < base, 'Dreamer is slower');
-    truthy(CM.mice.speed(Object.assign({}, plain, { fav: 'drilling' }), 'drilling') > base, 'favourite job is faster');
+    truthy(CM.mice.speed(Object.assign({}, plain, { aff: { drilling: 2 } }), 'drilling') > CM.mice.speed(Object.assign({}, plain, { aff: { drilling: 1 } }), 'drilling') && CM.mice.speed(Object.assign({}, plain, { aff: { drilling: 1 } }), 'drilling') > base, 'loving a job is faster than liking it, and liking it than nothing');
     eq(B.mice.ranks[3].manager, true, 'the last rank is the manager');
-    eq(CM.mice.speed(Object.assign({}, plain, { fav: 'refining' }), 'drilling'), base, 'only in its favourite job');
+    eq(CM.mice.speed(Object.assign({}, plain, { aff: { refining: 2 } }), 'drilling'), base, 'only in that job');
     truthy(CM.mice.yieldMult(Object.assign({}, plain, { traits: ['strong'] })) > 1, 'Strong makes more');
     truthy(CM.mice.yieldMult(Object.assign({}, plain, { traits: ['glutton'] })) < 1, 'Glutton makes less');
     const night = Object.assign({}, plain, { traits: ['nocturnal'] });
@@ -280,9 +280,9 @@
     run(s, 5000);
     truthy(c.post !== '', 'a new idle mouse takes a free post on its own');
     // Best fit: cada puesto, por prioridad, se lleva al mejor que quede.
-    a.fav = 'trading';
-    b.fav = 'drilling';
-    c.fav = 'refining';
+    a.aff = { trading: 2 };
+    b.aff = { drilling: 2 };
+    c.aff = { refining: 2 };
     CM.mice.bestFit(s);
     eq(a.post, 'trading:all', 'the trader goes to the shop');
     eq(b.post, 'drilling:cheddar', 'the driller to the drill');
@@ -549,7 +549,7 @@
     CM.dev.unlockBuildings(s);
     s.devUsed = false;
     const a = staff(s, 'drilling', 'cheddar');
-    const b = staff(s, 'refining', 'cheddar', { fav: 'drilling' });
+    const b = staff(s, 'refining', 'cheddar', { aff: { drilling: 2 } });
     const c = staff(s, 'mining', 'cheddar', { post: '' });
     // Por qué no asciende
     eq(CM.mice.promoteInfo(s, a).why, 'level', 'low level: says level');
@@ -605,7 +605,7 @@
       s.candidates = [];
     }
     truthy(seen[0] > seen[1] && seen[1] > seen[2] && seen[2] > 0, 'common > rare > legendary, and all appear: ' + seen.join('/'));
-    const plain = { traits: [], fav: '', xp: 0, rank: 0, look: 5 };
+    const plain = { traits: [], aff: {}, xp: 0, rank: 0, look: 5 };
     truthy(CM.mice.speed(Object.assign({ rarity: 2 }, plain), 'drilling') > CM.mice.speed(Object.assign({ rarity: 1 }, plain), 'drilling'), 'legendary is faster than rare');
     truthy(CM.mice.speed(Object.assign({ rarity: 1 }, plain), 'drilling') > CM.mice.speed(plain, 'drilling'), 'rare is faster than common');
     eq(CM.mice.parts(Object.assign({ rarity: 2 }, plain)).hat, 5, 'a legendary wears the crown');
@@ -639,6 +639,142 @@
     eq(CM.mice.albumCount(CM.storage.parse(JSON.stringify(t), 1000000)), n, 'unknown pieces are dropped');
   });
 
+  test('traits: catalogue, level choices, mystery slot and rerolls', () => {
+    const T = B.mice.traits;
+    const kinds = { good: 0, quirk: 0, job: 0, legend: 0 };
+    Object.keys(T).forEach((k) => (kinds[T[k].kind] += 1));
+    truthy(kinds.good >= 20 && kinds.quirk >= 12 && kinds.legend >= 12, 'a long catalogue: ' + JSON.stringify(kinds));
+    for (const skill of CM.skills.list) eq(CM.mice.jobTraits(skill).length, 5, 'five job traits for ' + skill);
+    for (const c of B.mice.combos) truthy(c.needs.length >= 2 && c.needs.every((id) => T[id]), 'combo ' + c.id + ' uses real traits');
+    const s = withChain();
+    const m = staff(s, 'drilling', 'cheddar', { traits: ['fast', 'glutton'] });
+    eq(CM.mice.pending(m), null, 'nothing to choose at level 1');
+    m.xp = 1e4; // nivel alto: debe varias elecciones
+    const owed = Math.min(B.mice.traitSlots, Math.floor(CM.mice.level(m) / B.mice.traitEvery));
+    truthy(owed >= 2, 'owes several choices: ' + owed);
+    const offer = CM.mice.choice(s, m);
+    eq(offer.kind, 'level', 'a level choice');
+    eq(offer.options.length, 3, 'three options');
+    truthy(new Set(offer.options).size === 3 && offer.options.every((id) => T[id] && !T[id].job && T[id].kind !== 'quirk' && m.traits.indexOf(id) < 0), 'three different good traits it does not have');
+    truthy(CM.events.some((e) => e.type === 'traitReady'), 'the game says a choice is ready');
+    const back = CM.storage.parse(JSON.stringify(s), 1000000);
+    eq(JSON.stringify(back.mice[0].offer), JSON.stringify(offer), 'reloading does not change the options');
+    // Volver a tirar: cuesta, y cada vez el doble
+    s.coins = 0;
+    eq(CM.mice.reroll(s, m.id).reason, 'no-coins', 'a reroll needs coins');
+    const c1 = CM.mice.rerollCost(m);
+    s.coins = 1e9;
+    eq(CM.mice.reroll(s, m.id).ok, true, 'reroll');
+    eq(s.coins, 1e9 - c1, 'it is paid');
+    eq(CM.mice.rerollCost(m), c1 * B.mice.rerollGrowth, 'the next reroll costs double');
+    eq(m.offer.options.length, 3, 'three new options');
+    // Elegir
+    const want = m.offer.options[1];
+    eq(CM.mice.pickTrait(s, m.id, 1).ok, true, 'pick');
+    truthy(m.learned.indexOf(want) >= 0 && m.picks === 1, 'the mouse has the trait');
+    truthy(m.offer && m.rerolls === 0, 'the next choice is ready, with the reroll price reset');
+    truthy(CM.mice.rerollCost(m) > c1, 'later slots cost more to reroll');
+    truthy(m.offer.options.indexOf(want) < 0, 'a trait it has is never offered again');
+    // Casilla misteriosa: cualquier cosa, también manías y legendarios
+    const seen = { good: 0, quirk: 0, legend: 0 };
+    for (let i = 0; i < 400; i++) {
+      const t = staff(s, 'refining', 'cheddar', { post: '', xp: 1e4 });
+      CM.mice.choice(s, t);
+      const r = CM.mice.pickTrait(s, t.id, 'mystery');
+      seen[T[r.trait].kind] += 1;
+      s.mice.pop();
+    }
+    truthy(seen.good > seen.quirk && seen.quirk > seen.legend && seen.legend > 0, 'mystery gives good > quirk > legendary: ' + JSON.stringify(seen));
+    // Nunca más casillas que las que hay
+    m.xp = 1e9;
+    for (let i = 0; i < 20 && m.offer && m.offer.kind === 'level'; i++) CM.mice.pickTrait(s, m.id, 0);
+    eq(m.picks, B.mice.traitSlots, 'six level traits at most');
+    eq(new Set(m.traits.concat(m.learned)).size, m.traits.length + m.learned.length, 'no repeated traits');
+    valid(s);
+  });
+
+  test('traits: affinity, job specialities with grades, combos, auras and luck', () => {
+    const s = withChain();
+    const T = B.mice.traits;
+    const m = staff(s, 'drilling', 'cheddar', { aff: { drilling: 2 } });
+    const n = staff(s, 'refining', 'cheddar');
+    // La afinidad acelera la especialización
+    CM.mice.reward(s, 'drilling', 'cheddar');
+    CM.mice.reward(s, 'refining', 'cheddar');
+    truthy(m.jobs.drilling > n.jobs.refining, 'a mouse that loves the job specialises faster');
+    // Rasgo de oficio: se elige al llegar al primer umbral
+    m.jobs.drilling = B.mice.jobGrades[0];
+    const offer = CM.mice.choice(s, m);
+    eq(offer.kind + ':' + offer.skill, 'job:drilling', 'a job choice for drilling');
+    truthy(offer.options.length === 3 && offer.options.every((id) => T[id].job === 'drilling'), 'three drilling traits');
+    eq(CM.mice.pickTrait(s, m.id, 'mystery').reason, 'invalid', 'no mystery slot in job choices');
+    m.offer.options[0] = 'bitexpert';
+    CM.mice.pickTrait(s, m.id, 0);
+    eq(m.spec.drilling, 'bitexpert', 'speciality set');
+    eq(CM.mice.gradeOf(m, 'drilling'), 1, 'grade I');
+    const g1 = CM.mice.speed(m, 'drilling');
+    truthy(g1 > CM.mice.speed(Object.assign({}, m, { spec: {} }), 'drilling'), 'the speciality makes it faster at drilling');
+    eq(CM.mice.speed(m, 'refining'), CM.mice.speed(Object.assign({}, m, { spec: {} }), 'refining'), 'and counts only in its job');
+    CM.events.length = 0;
+    m.jobs.drilling = B.mice.jobGrades[1] - 0.5;
+    CM.mice.reward(s, 'drilling', 'cheddar');
+    eq(CM.mice.gradeOf(m, 'drilling'), 2, 'grade II after more work');
+    truthy(CM.events.some((e) => e.type === 'specUp' && e.grade === 2), 'and the game says so');
+    truthy(CM.mice.speed(m, 'drilling') > g1, 'a higher grade is stronger');
+    CM.mice.assign(s, m.id, 'refining:cheddar');
+    eq(m.spec.drilling, 'bitexpert', 'moving post keeps what it learned');
+    CM.mice.assign(s, m.id, 'drilling:cheddar');
+    // Combinaciones
+    const combo = B.mice.combos.find((c) => c.id === 'sleepwalker');
+    const sleepy = staff(s, 'mining', 'cheddar', { traits: ['nocturnal', 'dreamer'] });
+    eq(CM.mice.combosOf(sleepy).map((c) => c.id).join(), 'sleepwalker', 'two traits form a combo');
+    CM.away = true;
+    truthy(Math.abs(CM.mice.speed(sleepy, 'cheesemaking') - (1 + T.nocturnal.eff.awaySpeed + combo.eff.awaySpeed + T.dreamer.eff.speed)) < 1e-9, 'the combo adds its own effect');
+    CM.away = false;
+    CM.events.length = 0;
+    eq(s.album['combo:sleepwalker'], undefined, 'not in the album yet');
+    CM.mice.note(s, sleepy);
+    truthy(s.album['combo:sleepwalker'] && CM.events.some((e) => e.type === 'combo' && e.combos[0] === 'sleepwalker'), 'forming it discovers it');
+    // Un legendario anula las manías
+    const calm = Object.assign({}, sleepy, { traits: ['serene', 'dreamer'], learned: [] });
+    eq(CM.mice.speed(calm, 'drilling'), 1 + T.serene.eff.speed, 'Serene ignores the quirk');
+    // Auras: el vecino de la línea, y solo con la partida delante
+    const lone = CM.mice.speed(n, 'refining', s, 'cheddar');
+    m.learned.push('mentor');
+    truthy(Math.abs(CM.mice.speed(n, 'refining', s, 'cheddar') - lone - T.mentor.eff.auraNext) < 1e-9, 'a Mentor before it makes the next mouse faster');
+    eq(CM.mice.speed(n, 'refining'), 1, 'BEST FIT does not see auras: the plain speed ignores them');
+    // Profundidad y colonia
+    const diver = Object.assign({}, n, { traits: ['deepdiver'] });
+    s.zones.cheddar.depth = 10;
+    truthy(Math.abs(CM.mice.speed(diver, 'mining', s, 'cheddar') - (1 + 10 * T.deepdiver.eff.depthSpeed)) < 1e-9, 'Deep Diver grows with depth');
+    s.zones.cheddar.depth = 0;
+    // Suerte: a veces sale doble
+    const lucky = { m: Object.assign({}, n, { traits: ['midas'] }), skill: 'drilling', yield: 1 };
+    let doubles = 0;
+    for (let i = 0; i < 2000; i++) if (CM.mice.out(s, lucky) === 2) doubles += 1;
+    truthy(doubles > 2000 * 0.18 && doubles < 2000 * 0.32, 'Midas doubles about a quarter of the time: ' + doubles);
+    eq(CM.mice.out(s, { m: n, skill: 'refining', yield: 1 }), 1, 'no luck, no double');
+    run(s, 20000);
+    valid(s);
+    const back = CM.storage.parse(JSON.stringify(s), 1000000);
+    eq(back.mice[0].spec.drilling, 'bitexpert', 'specialities survive a reload');
+    eq(back.mice[0].learned.join(), 'mentor', 'and learned traits too');
+    // Una partida anterior: el oficio favorito pasa a ser afinidad
+    const old = JSON.parse(JSON.stringify(s));
+    old.mice.forEach((x) => {
+      delete x.aff;
+      delete x.learned;
+      delete x.spec;
+      delete x.jobs;
+      delete x.picks;
+      delete x.offer;
+      x.fav = 'trading';
+    });
+    const moved = CM.storage.parse(JSON.stringify(old), 1000000);
+    eq(moved.mice[0].aff.trading, 2, 'an old favourite job becomes "loves"');
+    eq(moved.mice[0].learned.length, 0, 'and the new fields start empty');
+  });
+
   test('every mouse has its own look, and old saves get one', () => {
     const s = fresh();
     s.built.house = true;
@@ -667,7 +803,7 @@
     CM.storage.save(s, 5000000);
     const loaded = CM.storage.load(5000000).state;
     for (const path of ['coins', 'clock']) eq(loaded[path], s[path], path);
-    staff(s, 'drilling', 'cheddar', { traits: ['fast', 'glutton'], fav: 'drilling', xp: 40, rank: 1 });
+    staff(s, 'drilling', 'cheddar', { traits: ['fast', 'glutton'], aff: { drilling: 2 }, xp: 40, rank: 1 });
     CM.storage.save(s, 5000000);
     const again = CM.storage.load(5000000).state;
     for (const part of ['built', 'inv', 'zones', 'nodes', 'skills', 'mice']) eq(JSON.stringify(again[part]), JSON.stringify(s[part]), part);
@@ -767,6 +903,7 @@
         const wantsMouse = s.built.house && !!CM.mice.freePost(s);
         if (wantsMouse && CM.mice.offer(s).ok) CM.mice.choose(s, 0);
         for (const m of s.mice) CM.mice.promote(s, m.id);
+        for (const m of s.mice) if (m.offer) CM.mice.pickTrait(s, m.id, 0);
         // Ahorra como lo haría una persona: para el siguiente ratón y para la
         // siguiente roca cuando su economía ya da para ella.
         const mouse = s.built.house && !!CM.mice.freePost(s) && s.totals.coinsEarned > CM.mice.recruitCost(s) * 0.6;

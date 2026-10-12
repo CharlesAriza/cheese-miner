@@ -80,7 +80,7 @@
       inv: { raw: perBase(), base: perBase() },
       lots: {}, // recipeId -> quesos en almacén
       built: { drill: false, refinery: false, cheesery: false, shop: false, house: false },
-      mice: [], // { id, name, traits:[bueno, manía], fav, xp, rank, post, rest }
+      mice: [], // ver CM.mice.normalize: nombre, rasgos, afinidades, aspecto, nivel, rango, puesto...
       candidates: [], // candidatos pendientes de elegir tras pagar el reclutamiento
       album: {}, // 'fur:3', 'hat:1', 'trait:fast'... piezas vistas en ratones reclutados; no se pierden
       settings: { managersBuy: true },

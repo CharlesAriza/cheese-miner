@@ -225,7 +225,7 @@
       const xm = w ? CM.mice.reward(s, 'cheesemaking', zoneId) : 1;
       // El rendimiento del ratón se acumula: de vez en cuando sale un queso de más (o de menos).
       if (w) {
-        z.cookCarry += w.yield - 1;
+        z.cookCarry += CM.mice.out(s, w) - 1;
         if (z.cookCarry >= 1) {
           z.cookCarry -= 1;
           s.lots[recipe.id] += 1;
@@ -283,7 +283,7 @@
       }
       const w = source === 'worker' ? CM.mice.work(s, 'trading', 'all') : null;
       const total = Math.max(200, Math.round(q.sellDuration(s) / (w ? w.speed : 1)));
-      if (w) coins = Math.max(1, Math.round(coins * w.yield));
+      if (w) coins = Math.max(1, Math.round(coins * CM.mice.out(s, w)));
       // Una venta es una acción: la experiencia depende de lo mejor que vendes, no de cuántos.
       const xp = B.xp.perSale * recipeXp(stock[0]);
       s.jobs.shop = { remaining: total, total, coins, count, xp, recipeId: top, source };

@@ -1868,7 +1868,7 @@ button {
 /* Resumen de la plantilla: tres cifras */
 .msum {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
   margin-bottom: 8px;
 }
@@ -2082,6 +2082,232 @@ button {
 .pix.face.r3 {
   border-color: #ffcf2e;
   box-shadow: 0 0 6px #ffcf2e;
+}
+
+.stat.tjob {
+  background: #2b5cab;
+}
+
+.stat.tlegend {
+  color: #0c0910;
+  background: #ffcf2e;
+}
+
+.stat.tcombo {
+  color: #0c0910;
+  background: #ff8ad1;
+}
+
+.stat.tmyst {
+  background: #6a3fb0;
+}
+
+.stat.aff {
+  background: transparent;
+  border: 1px solid #6c6488;
+  color: #c9c2dd;
+}
+
+.stat.aff.a2 {
+  border-color: #ff7a9c;
+  color: #ffb3c6;
+}
+
+.msum .hot b {
+  color: #ff8ad1;
+}
+
+.mouse.picking {
+  border-color: #ff8ad1;
+}
+
+/* Elección de rasgo */
+.pickbox {
+  margin-top: 6px;
+  padding: 8px;
+  font-family: var(--text);
+  background: #33204a;
+  border: 2px solid #ff8ad1;
+  border-radius: 6px;
+}
+
+.pickbox > b {
+  display: block;
+  font-family: var(--pixel);
+  font-size: 8px;
+  font-weight: normal;
+  line-height: 1.6;
+  color: #ff8ad1;
+}
+
+.pickbox > small {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #c9c2dd;
+}
+
+.panel button.opt {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 7px 8px;
+  font-family: var(--text);
+  text-align: left;
+  background: var(--panel-2);
+  border-left: 5px solid #3fa860;
+}
+
+.panel button.opt.tlegend {
+  border-left-color: #ffcf2e;
+  box-shadow: 0 0 8px #ffcf2e;
+}
+
+.panel button.opt.tjob {
+  border-left-color: #4a8fe8;
+}
+
+.panel button.opt.tmyst {
+  border-left-color: #a06bff;
+  background: #3a2a5c;
+}
+
+.panel button.opt small {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.panel button.opt em {
+  display: block;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  color: #8df09a;
+}
+
+.hot,
+.panel button.opt em.hot {
+  color: #ff8ad1;
+}
+
+.panel .pickbox button.mini {
+  margin-top: 8px;
+  font-size: 8px;
+}
+
+.slots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.slots > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  font-family: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  color: #6c6488;
+  background: var(--panel);
+  border: 2px dashed #4a4458;
+  border-radius: 4px;
+}
+
+.slots > div.full {
+  border-style: solid;
+}
+
+.slots > div.ready {
+  color: #ff8ad1;
+  border-color: #ff8ad1;
+}
+
+.slots .stat {
+  margin: 0;
+}
+
+.specs > div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  align-items: center;
+  margin-bottom: 4px;
+  padding: 4px 6px;
+  font-family: var(--text);
+  font-size: 12px;
+  background: var(--panel);
+  border-radius: 4px;
+}
+
+.specs .bar {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.specs small {
+  margin-left: 4px;
+  font-size: 11px;
+  color: #c9c2dd;
+}
+
+.specs i.aff {
+  font-size: 11px;
+  font-style: normal;
+  color: #c9c2dd;
+}
+
+.specs i.aff.a2 {
+  color: #ffb3c6;
+}
+
+.specs .stat {
+  margin: 0;
+}
+
+.album.one {
+  grid-template-columns: 1fr;
+}
+
+.album small {
+  font-weight: 600;
+}
+
+/* Casilla misteriosa */
+.slot {
+  margin: 8px 0;
+  padding: 12px 6px;
+  font-size: 11px;
+  text-align: center;
+  color: #fff;
+  background: #3a2a5c;
+  border: 2px solid #a06bff;
+  border-radius: 6px;
+}
+
+.slot.spin {
+  color: #c9c2dd;
+}
+
+.slot.good {
+  background: #2f7a48;
+  border-color: #8df09a;
+}
+
+.slot.quirk {
+  background: #8a6a12;
+  border-color: #ffd43a;
+}
+
+.slot.legend {
+  color: #0c0910;
+  background: #ffcf2e;
+  border-color: #fff3a0;
+  box-shadow: 0 0 16px #ffcf2e;
 }
 
 .stat.rare1 {

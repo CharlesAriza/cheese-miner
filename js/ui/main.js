@@ -228,7 +228,7 @@
         break;
       }
       case 'album':
-        toast('New in your album: ' + ev.keys.map((k) => CM.mice.albumItem(k).name).join(', ') + '. Customers now pay x' + (1 + q.albumBonus(state)).toFixed(2), true);
+        if (!state.candidates.length) toast('New in your album: ' + ev.keys.slice(0, 4).map((k) => CM.mice.albumItem(k).name).join(', ') + (ev.keys.length > 4 ? '...' : '') + '. Customers now pay x' + (1 + q.albumBonus(state)).toFixed(2), true);
         break;
       case 'recruited': {
         const mouse = CM.mice.byId(state, ev.id);
@@ -236,6 +236,41 @@
         scene.celebrate();
         banner(mouse.name.toUpperCase() + ' JOINED!');
         toast(mouse.post ? mouse.name + ' went to ' + CM.mice.postLabel(mouse.post) + ' and works there on its own' : mouse.name + ' is resting: every post has a mouse', true);
+        dirty = true;
+        break;
+      }
+      case 'traitReady': {
+        const mouse = CM.mice.byId(state, ev.id);
+        if (!mouse) break;
+        play('bell');
+        toast(mouse.name + (ev.kind === 'job' ? ' earned a speciality' : ' can learn a new trait') + '. Pick it in MICE', true);
+        dirty = true;
+        break;
+      }
+      case 'traitLearned': {
+        const mouse = CM.mice.byId(state, ev.id);
+        const def = B.mice.traits[ev.trait];
+        if (ev.mystery) revealMystery(mouse, ev.trait);
+        else {
+          play(ev.kind === 'legend' ? 'goal' : 'reveal');
+          if (ev.kind === 'legend') scene.celebrate();
+          banner(mouse.name.toUpperCase() + ': ' + def.name.toUpperCase() + '!');
+        }
+        dirty = true;
+        break;
+      }
+      case 'combo':
+        for (const id of ev.combos) {
+          const c = B.mice.combos.find((x) => x.id === id);
+          play('goal');
+          scene.celebrate();
+          banner('COMBO FOUND: ' + c.name.toUpperCase() + '!');
+          toast(c.needs.map((t) => B.mice.traits[t].name).join(' + ') + ' = ' + c.name + '. ' + c.desc, true);
+        }
+        break;
+      case 'specUp': {
+        const mouse = CM.mice.byId(state, ev.id);
+        if (mouse && mouse.spec[ev.skill]) toast(mouse.name + ': ' + B.mice.traits[mouse.spec[ev.skill]].name + ' is now grade ' + ['', 'I', 'II', 'III'][ev.grade], true);
         dirty = true;
         break;
       }
@@ -624,7 +659,7 @@
       if (m.book) side += P.btn('open:cheese', 'RECIPES', { cls: 'buy calm small' });
       // Quién trabaja en este puesto.
       const worker = CM.mice.at(state, skill, ui.zone);
-      if (state.built.house) side += P.btn(worker ? 'open:mice:' + worker.id : 'open:mice', worker ? (CM.mice.promoteInfo(state, worker).can ? 'PROMOTE ' + P.esc(worker.name).toUpperCase() : P.esc(worker.name) + ' · LV ' + CM.mice.level(worker)) : 'NO MOUSE HERE', { cls: 'buy calm small' + (worker ? (CM.mice.promoteInfo(state, worker).can ? ' ready' : '') : ' warn') });
+      if (state.built.house) side += P.btn(worker ? 'open:mice:' + worker.id : 'open:mice', worker ? (worker.offer ? 'PICK A TRAIT: ' + P.esc(worker.name).toUpperCase() : CM.mice.promoteInfo(state, worker).can ? 'PROMOTE ' + P.esc(worker.name).toUpperCase() : P.esc(worker.name) + ' · LV ' + CM.mice.level(worker)) : 'NO MOUSE HERE', { cls: 'buy calm small' + (worker ? (worker.offer || CM.mice.promoteInfo(state, worker).can ? ' ready' : '') : ' warn') });
     }
     if (side !== ui.dockHtml) {
       ui.dockHtml = side;
@@ -853,6 +888,8 @@
       return CM.mice.assign(state, id, skill ? skill + ':' + zone : '');
     },
     promote: (id) => CM.mice.promote(state, id),
+    trait: (id, index) => CM.mice.pickTrait(state, id, index),
+    reroll: (id) => CM.mice.reroll(state, id),
     album: () => void (ui.miceTab = ui.miceTab === 'album' ? '' : 'album'),
     dismiss: (id) => void confirmDismiss(id),
     managers: () => void (state.settings.managersBuy = !state.settings.managersBuy),
@@ -1052,6 +1089,33 @@
     });
   }
 
+  // Casilla misteriosa: los nombres giran un momento antes de enseñar el que ha tocado.
+  function revealMystery(mouse, traitId) {
+    const T = B.mice.traits;
+    const def = T[traitId];
+    const names = Object.keys(T).filter((k) => !T[k].job).map((k) => T[k].name);
+    showModal('<h2>MYSTERY TRAIT</h2><div class="hero"><img class="pix face big" alt="" src="' + CM.mouseUrl(mouse) + '"></div><div id="slot" class="slot spin">?</div><p id="slot-desc" class="hint">&nbsp;</p><div class="row"><button id="slot-ok" class="buy" data-m="ok" disabled>...</button></div>', { ok() {} });
+    let n = 0;
+    const timer = setInterval(() => {
+      const el = $('slot');
+      if (!el) return clearInterval(timer);
+      n += 1;
+      if (n < 18) {
+        el.textContent = names[Math.floor(Math.random() * names.length)];
+        sfx.click();
+        return;
+      }
+      clearInterval(timer);
+      el.textContent = def.name.toUpperCase();
+      el.className = 'slot ' + def.kind;
+      $('slot-desc').textContent = (def.kind === 'legend' ? 'LEGENDARY! ' : def.kind === 'quirk' ? 'A quirk... ' : '') + def.desc + '.';
+      $('slot-ok').disabled = false;
+      $('slot-ok').textContent = def.kind === 'quirk' ? 'OH WELL' : 'NICE';
+      play(def.kind === 'legend' ? 'goal' : def.kind === 'quirk' ? 'click' : 'reveal');
+      if (def.kind !== 'quirk') scene.celebrate();
+    }, 80);
+  }
+
   function confirmDismiss(id) {
     const m = CM.mice.byId(state, id);
     if (!m) return;
@@ -1061,7 +1125,7 @@
     const waiting = state.mice.find((x) => x !== m && !x.post && !x.rest);
     const post = !m.post ? '' : waiting ? ' ' + P.esc(waiting.name) + ' takes over ' + K.postLabel(m.post) + '.' : ' ' + K.postLabel(m.post) + ' is left with no mouse: you work it by hand until you recruit another.';
     showModal(
-      '<h2>DISMISS ' + P.esc(m.name).toUpperCase() + '?</h2><div class="hero"><img class="pix face big" alt="" src="' + CM.mouseUrl(m) + '"></div><p class="hint"><b>LV ' + K.level(m) + ' ' + B.mice.ranks[m.rank].name + '.</b> It leaves for good: its level and rank are lost and nothing is refunded.' + post + '</p><p class="hint">Your next recruit will cost ' + CM.fmt(after) + ' coins instead of ' + CM.fmt(now) + '.</p><div class="row"><button class="close" data-m="no">KEEP</button><button class="danger" data-m="ok">DISMISS</button></div>',
+      '<h2>DISMISS ' + P.esc(m.name).toUpperCase() + '?</h2><div class="hero"><img class="pix face big" alt="" src="' + CM.mouseUrl(m) + '"></div><p class="hint"><b>LV ' + K.level(m) + ' ' + B.mice.ranks[m.rank].name + '.</b> It leaves for good: its level, rank and traits are lost and nothing is refunded.' + post + '</p><p class="hint">Your next recruit will cost ' + CM.fmt(after) + ' coins instead of ' + CM.fmt(now) + '.</p><div class="row"><button class="close" data-m="no">KEEP</button><button class="danger" data-m="ok">DISMISS</button></div>',
       {
         no() {},
         ok() {
@@ -1211,7 +1275,7 @@
     const colony = next && state.coins >= next.unlockCost;
     $('nav-colony').querySelector('.dot').classList.toggle('on', !!colony);
     // MICE avisa si hay casa por construir, candidatos por elegir, un puesto libre y monedas para reclutar, o un ascenso que ya se puede pagar.
-    const mice = CM.construction.buildInfo(state, 'house').canBuild || state.candidates.length > 0 || (state.built.house && !!CM.mice.freePost(state) && state.coins >= CM.mice.recruitCost(state)) || state.mice.some((m) => CM.mice.promoteInfo(state, m).can);
+    const mice = CM.construction.buildInfo(state, 'house').canBuild || state.candidates.length > 0 || (state.built.house && !!CM.mice.freePost(state) && state.coins >= CM.mice.recruitCost(state)) || state.mice.some((m) => m.offer || CM.mice.promoteInfo(state, m).can);
     $('nav-mice').querySelector('.dot').classList.toggle('on', !!mice);
     set($('nav-mice'), 'goal', GOAL_AT[CM.sim.objective(state).id] === 'mice');
     const n = buyable();

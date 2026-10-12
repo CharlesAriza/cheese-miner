@@ -35,7 +35,17 @@ La pantalla es el cuartel general. Abajo está la **cadena**: MINE → DRILL →
 
 Los primeros pasos van a fuego lento. Cuando se desbloquea un edificio nuevo de la cadena, el juego lo avisa, su casilla se marca con `NEW!` y tú vas a su panel, lees para qué sirve y lo construyes. Tras la primera venta, una tarjeta resume para qué sirven las monedas. Etiquetas de las casillas: `LOCK` (aún no), `UP! 3` (tres mejoras que ya puedes pagar), `AUTO` (tiene ratón). Los botones de compra que aún no alcanzas se van llenando y dicen cuántos minutos faltan.
 
-**Ratones.** Un puesto con ratón trabaja solo. Al reclutar puede aparecer un ratón **Rare** (más rápido, pelaje propio) o **Legendary** (aún más rápido, dos rasgos buenos, sin manía, pelaje dorado y corona). Cada pelaje, gorro, accesorio y rasgo nuevo que reclutas queda en el **ALBUM** para siempre y sube un poco el precio de todas tus ventas. Cada ratón tiene nombre, un rasgo bueno, una manía, un oficio favorito, nivel propio y rango. Al reclutar eliges uno de tres y va él solo al mejor puesto libre; **BEST FIT** recoloca a toda la plantilla en un toque. Moverlos a mano y ascenderlos es opcional. Cada ficha dice qué hace el ratón en valores reales («2 Raw every 2.1s»), qué le falta para ascender (niveles o monedas) y qué ganará; **MANAGE** despliega sus detalles, los puestos a los que puede ir y el botón para despedirlo. Cada ratón tiene un aspecto único (pelaje, gorro, accesorio y mochila salen de su número `look`), el mismo en su retrato y en la escena; el rango se ve en la ropa (bufanda azul, bufanda roja y medalla, traje con corbata dorada) y en el color del marco del retrato. Antes de ascender, la ficha enseña el antes y el después: lo que hace ahora, lo que hará y cómo cambiará su aspecto. Solo se van si los despides: se pierde su nivel y su rango, no se devuelve nada y el siguiente recluta vuelve a costar lo que costaba ese hueco.
+**Ratones.** Un puesto con ratón trabaja solo. Cada ratón es irrepetible:
+
+- **Aspecto y rareza.** Pelaje, gorro, accesorio y mochila propios. Puede salir **Rare** (más rápido, pelaje propio) o **Legendary** (aún más rápido, nace con un rasgo legendario y sin manía, pelaje dorado y corona). El rango se ve en la ropa y en el marco del retrato.
+- **Afinidades.** A cada ratón le gustan (`Likes`) o le encantan (`Loves`) algunos oficios: ahí va algo más rápido y, sobre todo, se especializa antes.
+- **Rasgos.** Nace con uno bueno y una manía. Cada 10 niveles aprende otro: tú eliges entre tres, o te la juegas con la **casilla misteriosa** (cualquier rasgo del juego: 10 % legendario, 25 % manía). Puedes pagar para **volver a tirar** las tres opciones; cada tirada cuesta el doble.
+- **Especialidades.** Trabajando un oficio (200, 2.000 y 20.000 trabajos) gana un rasgo propio de ese oficio, que eliges entre tres, y lo sube de grado. Se conserva al cambiar de puesto, pero solo cuenta en su oficio.
+- **Combinaciones.** Ciertos rasgos juntos en un mismo ratón forman una combinación con nombre y efecto propio. No hay pistas: se descubren probando.
+- **Vecinos.** Algunos rasgos mejoran (o estorban) al ratón del puesto anterior o siguiente de la misma línea.
+- **Álbum.** Cada pelaje, gorro, accesorio, rasgo y combinación que consigues queda apuntado para siempre y sube un 1 % el precio de todas tus ventas.
+
+Al reclutar eliges uno de tres y va él solo al mejor puesto libre. **BEST FIT** recoloca a toda la plantilla mirando a cada ratón por separado; no tiene en cuenta vecinos ni combinaciones, eso es cosa tuya. Los rasgos nunca se eligen solos. Cada ficha dice qué hace el ratón en valores reales («2 Raw every 2.1s»), qué le falta para ascender y qué ganará; **MANAGE** despliega sus rasgos, casillas, especialidades, rangos, los puestos a los que puede ir y el botón para despedirlo (se pierde todo lo suyo y no se devuelve nada).
 
 El ratón de Cheesemaking cocina por su cuenta la receta más valiosa que conozcas de su queso; fijar otra a mano es opcional.
 
@@ -52,6 +62,7 @@ La simulación avanza en pasos fijos de 100 ms y no depende del render. La inter
 | Archivo | Responsabilidad |
 | --- | --- |
 | `js/game/config/balance.js` | Todos los valores de balance, árboles y definiciones |
+| `js/game/config/traits.js` | Rasgos de los ratones, afinidades y combinaciones |
 | `js/game/state.js` | Modelo de datos, niveles, efectos de los árboles, invariantes |
 | `js/game/systems/skills.js` | Experiencia, compra de nudos, edificios, zonas |
 | `js/game/systems/mice.js` | Ratones: reclutar, rasgos, niveles, rangos, puestos |
