@@ -1139,7 +1139,7 @@
         return legendMoment(mouse, traitId);
       }
       el.innerHTML = (def.kind === 'quirk' ? '&#9660; ' : '&#9650; ') + def.name.toUpperCase();
-      $('slot-desc').innerHTML = (def.kind === 'quirk' ? '<b class="bad">A QUIRK.</b> ' : '') + CM.traitDesc(traitId) + '.';
+      $('slot-desc').innerHTML = (def.kind === 'quirk' ? '<b class="tbad">A QUIRK.</b> ' : '') + CM.traitDesc(traitId) + '.';
       $('slot-ok').disabled = false;
       $('slot-ok').textContent = def.kind === 'quirk' ? 'OH WELL' : 'NICE';
       if (def.kind === 'quirk') {

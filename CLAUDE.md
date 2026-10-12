@@ -31,6 +31,8 @@ Shop Titans deja de ser referencia.
 - **Sin compilación:** HTML, CSS y JavaScript puros, publicables tal cual en GitHub Pages. El equipo de desarrollo no tiene Node.
 - **Simulación separada del render,** por pasos de tiempo fijos. La economía nunca depende de frames ni de efectos visuales. Acciones atómicas: nada se cobra ni se entrega dos veces.
 - **Balance centralizado** en `js/game/config/balance.js`, siempre provisional.
+- **Al publicar, cambiar el `?v=` de los enlaces de `index.html`** (hoja de estilos y scripts): si no, el móvil sigue con los archivos viejos en caché.
+- **Nombres de clase CSS propios por pantalla:** antes de añadir una clase, comprobar que no existe ya (un `.lrow` y un `.hot` repetidos rompieron la pantalla principal).
 - **Pruebas en el navegador** (`tests.html`). No afirmar que algo está probado si no se ha ejecutado.
 - **Arte por código, sustituible.** Cada pieza dibujada está marcada con `SPRITE:` para poder cambiarla por un PNG.
 - **Sin** monetización, compras, multijugador, combate ni analítica externa.

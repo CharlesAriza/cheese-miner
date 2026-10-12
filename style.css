@@ -1917,7 +1917,7 @@ button {
   border-left-color: #3fa860;
 }
 
-.panel button small {
+.panel button.wide small {
   font-family: var(--text);
   font-size: 11px;
   font-weight: 600;
@@ -2754,12 +2754,12 @@ button {
   background: #b3263a;
 }
 
-.bad {
+.tbad {
   font-weight: 700;
   color: #ff7a8a;
 }
 
-.okay {
+.tok {
   color: #8df09a;
 }
 
@@ -2907,7 +2907,7 @@ button {
 }
 
 .stat.tquirk,
-.bad {
+.tbad {
   color: var(--bad);
 }
 
@@ -2954,11 +2954,11 @@ button {
 }
 
 /* ---------- La colonia ---------- */
-.lines {
+.colony {
   margin: 4px 0 10px;
 }
 
-.lrow {
+.crow {
   display: grid;
   grid-template-columns: 46px repeat(4, 1fr);
   gap: 5px;
@@ -2966,14 +2966,14 @@ button {
   margin-bottom: 5px;
 }
 
-.lrow.head {
+.crow.head {
   margin-bottom: 3px;
   font-size: 6px;
   text-align: center;
   color: var(--quiet);
 }
 
-.lrow .rock {
+.crow .rock {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2981,11 +2981,11 @@ button {
   gap: 3px;
 }
 
-.lrow .rock .pix {
+.crow .rock .pix {
   width: 18px;
 }
 
-.lrow .rock small {
+.crow .rock small {
   font-family: var(--text);
   font-size: 10px;
   font-weight: 700;
@@ -3297,4 +3297,91 @@ button {
   margin-top: 6px;
   font-weight: 700;
   color: var(--quiet);
+}
+
+/* Pendiente: se resalta, como una ficha encendida */
+.due {
+  margin: 0 0 10px;
+  padding: 10px;
+  background: #1f3a4d;
+  border: 2px solid var(--pick);
+  border-radius: 10px;
+  box-shadow: 0 0 12px #8ff3ff66;
+  animation: duepulse 1.4s ease-in-out infinite;
+}
+
+@keyframes duepulse {
+  50% {
+    box-shadow: 0 0 20px #8ff3ffcc;
+  }
+}
+
+.due .who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+  font-family: var(--text);
+}
+
+.due .who .pix.face {
+  width: 52px;
+}
+
+.due .who b {
+  display: block;
+  font-family: var(--pixel);
+  font-size: 10px;
+  font-weight: normal;
+}
+
+.due .who small {
+  font-size: 12px;
+  color: #cfe9f5;
+}
+
+.due .pickbox {
+  margin: 0;
+}
+
+.due .panel button.opt,
+.panel .due button.opt {
+  background: #14202c;
+}
+
+.due.promo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #1f3d2a;
+  border-color: var(--good);
+  box-shadow: 0 0 12px #8df09a55;
+  animation: none;
+}
+
+.due.promo .pix.face {
+  width: 44px;
+}
+
+.due.promo div {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--text);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.due.promo b {
+  display: block;
+  font-size: 13px;
+}
+
+.panel button.pcell.has {
+  background: #1f3a4d;
+  border-color: var(--pick);
+}
+
+.panel button.pcell.has.up {
+  background: #1f3d2a;
+  border-color: var(--good);
 }
