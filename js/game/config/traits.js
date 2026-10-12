@@ -25,6 +25,10 @@
 //   recipeYield cantidad por cada receta conocida
 //   auraNext    velocidad que da al ratón del puesto siguiente de su línea
 //   auraPrev    velocidad que da al ratón del puesto anterior de su línea
+//   labCost     Cheese Base que gasta cada investigación (negativo = más barato)
+//   labLuck     probabilidad de hallazgo en el laboratorio
+//   labFail     probabilidad de resultado no concluyente (negativo = más fiable)
+//   labBonus    probabilidad de sacar una segunda receta de la misma familia
 //   noQuirks    sus manías dejan de contar
 (function () {
   const M = CM.BALANCE.mice;
@@ -111,6 +115,7 @@
   add('legend', 'polymath', 'Polymath', 'Specialises five times as fast; 10% faster per 10 skill levels', { jobXp: 4, levelSpeed: 0.1 });
   add('legend', 'kingofmice', 'King of Mice', '8% faster for each mouse in your colony', { crowdSpeed: 0.08 });
   add('legend', 'ancient', 'Ancient', '35% faster for each rank it has earned', { rankSpeed: 0.35 });
+  add('legend', 'eureka', 'Eureka', 'In the lab: never an inconclusive result, and one research in four is a breakthrough', { labFail: -1, labLuck: 0.25 });
   add('legend', 'cheesesaint', 'Cheese Saint', 'Makes 50% more, plus 5% for each recipe you know', { yield: 0.5, recipeYield: 0.05 });
 
   // ---------- De oficio (5 por habilidad; efecto de grado I) ----------
@@ -140,6 +145,13 @@
   job('trading', 'showman', 'Showman', 'Chance of a double sale', { double: 0.06 });
   job('trading', 'regulars', 'Regulars', 'More coins for each recipe you know', { recipeYield: 0.004 });
   job('trading', 'nightmarket', 'Night Market', 'Faster while you are away', { awaySpeed: 0.25 });
+
+  // Research: el oficio del Cheese Lab. Mismo lenguaje y escala que los demás.
+  job('research', 'labrat', 'Lab Rat', 'Researches faster', { speed: 0.1 });
+  job('research', 'thrifty', 'Thrifty', 'Each research uses less Cheese Base', { labCost: -0.1 });
+  job('research', 'goodnose', 'Good Nose', 'More chance of a breakthrough: a recipe that starts with mastery', { labLuck: 0.04 });
+  job('research', 'methodical', 'Methodical', 'Fewer inconclusive results', { labFail: -0.04 });
+  job('research', 'tinkerer', 'Tinkerer', 'Chance to find a second recipe of the same cheese (and, later, mutations)', { labBonus: 0.04 });
 
   // ---------- Combinaciones en un mismo ratón ----------
   // Se forman al reunir todos los rasgos de `needs`. Se descubren probando.
@@ -194,6 +206,10 @@
     link('oddcouple', 'Odd Couple', 'tidy', 'clumsy', 'Both work 15% faster', { speed: 0.15 }),
     link('feast', 'Dinner Table', 'glutton', 'picky', 'One eats what the other leaves: both make 25% more', { yield: 0.25 }),
     link('gossip', 'Gossip', 'sociable', 'shy', 'Both work 20% faster while you are away', { awaySpeed: 0.2 }),
+    // Con el laboratorio: el investigador es vecino de los queseros, los refinadores y el tendero.
+    link('testkitchen', 'Test Kitchen', 'goodnose', 'seasoner', 'Lab and kitchen compare notes: both work 20% faster', { speed: 0.2 }),
+    link('cleansamples', 'Clean Samples', 'methodical', 'purifier', 'Pure base for the lab: both work 15% faster', { speed: 0.15 }),
+    link('launch', 'Launch Party', 'tinkerer', 'showman', 'New cheeses sell themselves: both work 20% faster', { speed: 0.2 }),
     link('court', 'Royal Court', '*legend', '*legend', 'Two legends side by side: both work 50% faster', { speed: 0.5 }),
   ];
 

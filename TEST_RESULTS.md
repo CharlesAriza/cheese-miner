@@ -1,6 +1,6 @@
 # Resultados de pruebas
 
-Última ejecución: 11 de octubre de 2026, sobre la primera entrega del rediseño.
+Última ejecución: 12 de octubre de 2026, con el Cheese Lab como edificio y el oficio Research.
 
 ## Pruebas automáticas
 
@@ -25,7 +25,7 @@ Ejecutadas abriendo `tests.html` en el navegador. **36 de 36 pasan.**
 | Rasgos: afinidad, especialidades con grados, combinaciones, auras y suerte | pasa |
 | Combinaciones de equipo: vecinos de una línea y los cuatro ratones de una roca | pasa |
 | Los ratones clonados de partidas antiguas pasan a ser distintos, conservando lo ganado | pasa |
-| Cheese Lab: la investigación va en paralelo a la producción y puede seguir sola | pasa |
+| Cheese Lab: edificio propio, puesto de Research y dirección elegida por el jugador | pasa |
 | Ratones: cada uno tiene su propio aspecto, y los guardados antiguos reciben uno | pasa |
 | Niveles: curva de experiencia, bloqueo por nivel y comprar todo | pasa |
 | Offline: solo progresa lo automatizado, con tope y una sola vez | pasa |

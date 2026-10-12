@@ -79,14 +79,16 @@
       nodes: {}, // 'habilidad.nudo' -> rango comprado
       inv: { raw: perBase(), base: perBase() },
       lots: {}, // recipeId -> quesos en almacén
-      built: { drill: false, refinery: false, cheesery: false, shop: false, house: false },
+      built: { drill: false, refinery: false, cheesery: false, shop: false, house: false, lab: false },
       mice: [], // ver CM.mice.normalize: nombre, rasgos, afinidades, aspecto, nivel, rango, puesto...
       candidates: [], // candidatos pendientes de elegir tras pagar el reclutamiento
       album: {}, // 'fur:3', 'hat:1', 'trait:fast'... piezas vistas en ratones reclutados; no se pierden
       settings: { managersBuy: true },
       jobs: { shop: null },
       // Investigación de recetas: va aparte de la producción, en paralelo.
-      lab: { job: null, auto: false, want: '' },
+      // `dir` es la dirección que marca el jugador: '' (ninguna), 'value', 'fast',
+      // 'base:<id>', 'ingredient:<id>', 'treatment:<id>' o 'maturation:<id>'.
+      lab: { job: null, dir: '', want: '', next: '' },
       recipes: [], // { id, key, name, at, made }
       combo: 0,
       lastHitAt: -1e9,

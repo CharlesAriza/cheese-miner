@@ -9,6 +9,9 @@
   function test(name, fn) {
     // tests.html?bot carga solo el bot, para calibrar desde la consola.
     if (location.search.indexOf('bot') >= 0) return;
+    // tests.html?only=texto ejecuta solo las pruebas cuyo nombre lo contiene.
+    const only = /[?&]only=([^&]+)/.exec(location.search);
+    if (only && name.indexOf(decodeURIComponent(only[1])) < 0) return;
     CM.events.length = 0;
     try {
       fn();
@@ -66,7 +69,6 @@
     eq(CM.construction.build(s, 'cheesery').ok, true, 'build cheesery');
     eq(CM.cheesery.experiment(s, COMBO).ok, true, 'experiment');
     run(s, CM.cheesery.labTime(s));
-    s.lab.auto = false; // las pruebas deciden cuándo investiga el laboratorio
     eq(CM.construction.build(s, 'shop').ok, true, 'build shop');
     run(s, STEP);
     return s;
@@ -216,7 +218,7 @@
     eq(JSON.stringify(reloaded.candidates), JSON.stringify(s.candidates), 'reloading does not reroll the candidates');
     for (const c of s.candidates) {
       truthy(B.mice.traits[c.traits[0]].good && (c.rarity === 2 ? B.mice.traits[c.traits[1]].good && c.traits[1] !== c.traits[0] : !B.mice.traits[c.traits[1]].good), 'one good trait and one quirk (a legendary: two good traits)');
-      truthy(Object.keys(c.aff).length >= 1 && Object.keys(c.aff).every((k) => CM.skills.list.indexOf(k) >= 0 && (c.aff[k] === 1 || c.aff[k] === 2)), 'likes at least one job');
+      truthy(Object.keys(c.aff).length >= 1 && Object.keys(c.aff).every((k) => CM.mice.JOBS.indexOf(k) >= 0 && (c.aff[k] === 1 || c.aff[k] === 2)), 'likes at least one job');
     }
     const picked = s.candidates[1].name;
     eq(CM.mice.choose(s, 1).ok, true, 'choose');
@@ -472,8 +474,8 @@
     const t = withCheese();
     truthy(t.built.cheesery && t.built.shop, 'cheesery and shop built');
     t.skills.cheesemaking.xp = q.xpForLevel(3);
-    t.inv.base.cheddar = 3;
-    eq(CM.cheesery.experiment(t, Object.assign({}, COMBO, { treatment: 'smoked' })).ok, true, 'second recipe');
+    t.inv.base.cheddar = CM.cheesery.labCost(t);
+    eq(CM.cheesery.experiment(t, Object.assign({}, COMBO, { treatment: 'smoked' })).queued, undefined, 'second recipe');
     run(t, 30000);
     const better = t.recipes[1];
     truthy(CM.cheesery.valueOf(t, better) > CM.cheesery.valueOf(t, t.recipes[0]), 'the smoked one is worth more');
@@ -876,40 +878,92 @@
     eq(CM.storage.parse(JSON.stringify(one), 1000000).mice[0].traits.join(), 'fast,dreamer', 'a single Fast Dreamer mouse is left alone');
   });
 
-  test('cheese lab: research runs next to production and can carry on by itself', () => {
+  test('cheese lab: its own building, a Research post, and a direction chosen by the player', () => {
     const s = withCheese();
-    const first = s.recipes[0];
-    eq(s.recipes.length, 1, 'one recipe from the first research');
-    eq(s.lots[first.id], 1, 'research gives one cheese');
-    // Con un ratón cocinando, investigar no para la quesería
+    const C = CM.cheesery;
+    const K = CM.mice;
+    eq(s.recipes.length, 1, 'one recipe from the first research, done by hand');
+    eq(s.lots[s.recipes[0].id], 1, 'research gives one cheese');
+    // Investigar no para la quesería
     staff(s, 'cheesemaking');
-    s.inv.base.cheddar = 40;
+    s.inv.base.cheddar = 60;
+    s.skills.cheesemaking.xp = q.xpForLevel(9);
     run(s, 2000);
-    truthy(s.zones.cheddar.cookJob, 'the cheesemaker is cooking');
-    eq(CM.cheesery.experiment(s, Object.assign({}, COMBO, { treatment: 'smoked' })).reason, 'part-locked', 'locked parts cannot be researched');
-    s.skills.cheesemaking.xp = q.xpForLevel(5);
     const made = s.totals.lotsProduced;
-    eq(CM.cheesery.experiment(s, Object.assign({}, COMBO, { treatment: 'smoked' })).ok, true, 'research while the line cooks');
-    truthy(CM.cheesery.labTime(s) > B.cheesery.labBaseMs, 'each new recipe takes a bit longer');
-    run(s, CM.cheesery.labTime(s) + 1000);
-    eq(s.recipes.length, 2, 'the recipe is discovered');
+    eq(C.experiment(s, Object.assign({}, COMBO, { treatment: 'smoked' })).ok, true, 'research while the line cooks');
+    eq(C.experiment(s, Object.assign({}, COMBO, { ingredient: 'pepper' })).reason, 'lab-busy', 'one research at a time');
+    truthy(C.labTime(s) > B.cheesery.labBaseMs && C.labCost(s) > B.cheesery.experimentBase, 'each new recipe takes longer and costs more base');
+    run(s, C.labTime(s) * 2);
+    eq(s.recipes.length, 2, 'the recipe is discovered (an inconclusive result only delays it)');
     truthy(s.totals.lotsProduced > made + 1, 'and the line kept producing meanwhile');
-    eq(s.lab.job, null, 'with auto off the lab stops');
-    // Solo: prueba la más prometedora que puede pagar, y reclama la base que le falta
-    s.lab.auto = true;
-    s.coins = 100;
-    run(s, 4000);
-    truthy(s.lab.job, 'on auto it starts the next one');
-    const pick = CM.cheesery.parseKey(s.lab.job.key);
-    eq(pick.ingredient, 'pepper', 'the most promising part it can use at this level');
+    eq(CM.construction.build(s, 'lab').reason, 'locked', 'the lab needs three recipes first');
+    // Sin base suficiente el encargo queda apuntado y el laboratorio la reserva
     s.inv.base.cheddar = 0;
-    run(s, CM.cheesery.labTime(s) + 3000);
-    eq(s.lab.want, 'cheddar', 'with no base left it asks for some');
-    s.inv.base.cheddar = B.cheesery.experimentBase + 1;
+    const asked = Object.assign({}, COMBO, { ingredient: 'pepper', treatment: 'smoked' });
+    eq(C.experiment(s, asked).queued, true, 'with no base the research is queued');
+    eq(s.lab.want, 'cheddar', 'and the lab reserves the base');
+    s.inv.base.cheddar = C.labCost(s) + 1;
+    run(s, 300);
+    truthy(s.lab.job && s.lab.job.key === C.keyOf(asked) && !s.lab.next, 'it starts as soon as the base is there, before the cheesemaker takes it');
+    run(s, C.labTime(s) * 2);
+    s.inv.base.cheddar = 0;
+    C.experiment(s, Object.assign({}, COMBO, { maturation: 'aged' }));
+    truthy(s.lab.next, 'another one queued');
+    C.labCancel(s);
+    eq(s.lab.next + s.lab.want, '', 'a queued research can be cancelled');
+    // El edificio: tres recetas a mano, y lo construye el jugador
+    eq(s.recipes.length, 3, 'three recipes by hand');
+    eq(K.posts(s).some((p) => p.skill === 'research'), false, 'no Research post without the building');
+    eq(CM.construction.build(s, 'lab').ok, true, 'build the Cheese Lab');
+    truthy(K.posts(s).some((p) => p.key === 'research:all'), 'it adds a Research post');
+    // Sin ratón o sin dirección no investiga solo
+    s.inv.base.cheddar = 500;
+    s.coins = 1000;
+    run(s, 6000);
+    eq(s.lab.job, null, 'with no mouse the lab waits for you');
+    const m = staff(s, 'research', 'all', { aff: { research: 2 } });
+    run(s, 6000);
+    eq(s.lab.job, null, 'a mouse with no direction does not choose for you');
+    // Con dirección: el ratón ejecuta
+    s.skills.cheesemaking.xp = q.xpForLevel(12);
+    s.lab.dir = 'ingredient:honey';
     run(s, 4200);
-    truthy(s.lab.job, 'the lab takes its base before the cheesemaker does');
+    truthy(s.lab.job && C.parseKey(s.lab.job.key).ingredient === 'honey', 'it researches inside the direction you set');
+    truthy(K.speed(m, 'research', s, 'all') > 1, 'a mouse that loves research is faster at it');
+    s.lab.dir = 'fast';
+    eq(C.lotTime(C.labPick(s, false)), Math.min(...C.allCombos(['cheddar']).filter((c) => !C.partLocked(s, 'ingredient', c.ingredient) && !C.partLocked(s, 'treatment', c.treatment) && !C.partLocked(s, 'maturation', c.maturation) && !C.recipeByKey(s, C.keyOf(c))).map((c) => C.lotTime(c))), 'the quick direction goes for the fastest recipe to cook');
+    s.lab.dir = 'value';
+    const jobs = m.jobs.research || 0;
+    run(s, C.labTime(s) * 3);
+    truthy((m.jobs.research || 0) > jobs && m.xp > 0, 'the researcher gains experience and specialises in Research');
+    // Rasgos de Research: coste, fiabilidad, hallazgos
+    eq(K.jobTraits('research').length, 5, 'five Research job traits');
+    const cost = C.labCost(s);
+    const odds = C.labOdds(s);
+    m.spec.research = 'thrifty';
+    m.jobs.research = B.mice.jobGrades[2];
+    truthy(C.labCost(s) < cost, 'Thrifty makes research cheaper');
+    m.spec.research = 'methodical';
+    truthy(C.labOdds(s).fail < odds.fail, 'Methodical means fewer inconclusive results');
+    m.spec.research = 'goodnose';
+    truthy(C.labOdds(s).luck > odds.luck, 'Good Nose means more breakthroughs');
+    m.learned = ['eureka'];
+    eq(C.labOdds(s).fail, 0, 'Eureka never gets an inconclusive result');
+    // Un hallazgo nace con maestría
+    const before = s.recipes.length;
+    const r = C.labDiscover(s, C.keyOf(C.labPick(s, false)), B.cheesery.labBreakthroughMade);
+    truthy(C.masteryLevel(r) > 1 && s.recipes.length === before + 1, 'a breakthrough recipe starts with mastery');
+    // Si le falta base, la reclama antes que la quesería
+    s.lab.job = null;
+    s.inv.base.cheddar = 0;
+    run(s, 4200);
+    eq(s.lab.want, 'cheddar', 'with no base left the lab asks for some');
+    s.inv.base.cheddar = C.labCost(s) + 1;
+    run(s, 4200);
+    truthy(s.lab.job, 'and takes it before the cheesemaker does');
     const back = CM.storage.parse(JSON.stringify(s), 1000000);
-    eq(JSON.stringify(back.lab.job), JSON.stringify(s.lab.job), 'research survives a reload');
+    eq(back.lab.dir, 'value', 'the direction survives a reload');
+    truthy(back.lab.job && back.mice.some((x) => x.post === 'research:all'), 'and so do the research and the researcher');
     valid(s);
   });
 
@@ -1142,14 +1196,15 @@
         else if (CM.shop.status(s) === 'ready' && !q.auto(s, 'trading', 'all')) CM.shop.tap(s);
         else if (zone) CM.mining.hit(s, zone.id, 'manual');
       }
-      // Recetas: la primera de cada queso la investiga a mano; después el laboratorio sigue solo
-      // (o no, si el perfil dice que este jugador no investiga). La producción va aparte.
+      // Recetas: a mano mientras no haya investigador (cada vez que el laboratorio queda libre);
+      // con el Cheese Lab construido marca una dirección y el ratón de Research sigue solo.
       if (s.built.cheesery && s.clock % 1000 === 0) {
-        if (casual.maxRecipes !== undefined) s.lab.auto = false;
+        if (s.built.lab && casual.maxRecipes === undefined) s.lab.dir = 'value';
+        const byHand = !CM.cheesery.labWorker(s) && !s.lab.job && !s.lab.next;
         for (const def of q.openZones(s)) {
           const mine = s.recipes.filter((r) => CM.cheesery.parseKey(r.key).base === def.base).sort((a, b) => CM.cheesery.valueOf(s, b) - CM.cheesery.valueOf(s, a));
-          const wants = casual.maxRecipes === undefined ? !mine.length : mine.length < casual.maxRecipes;
-          if (wants && !s.lab.job) CM.cheesery.allCombos([def.base]).find((c) => !CM.cheesery.recipeByKey(s, CM.cheesery.keyOf(c)) && CM.cheesery.experiment(s, c).ok);
+          const wants = casual.maxRecipes === undefined || mine.length < casual.maxRecipes;
+          if (byHand && wants && !s.lab.job && !s.lab.next) CM.cheesery.allCombos([def.base]).find((c) => !CM.cheesery.recipeByKey(s, CM.cheesery.keyOf(c)) && CM.cheesery.experiment(s, c).ok);
           if (s.zones[def.id].cookJob || !mine.length) continue;
           if (q.auto(s, 'cheesemaking', def.id)) continue; // su ratón cocina solo la mejor
           for (const r of mine) if (CM.cheesery.produce(s, r.id, Math.max(1, Math.min(3, CM.cheesery.maxLots(s, r)))).ok) break;

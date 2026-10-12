@@ -147,6 +147,96 @@
   };
 
   // ---------- CHEESERY ----------
+  // ---------- CHEESE LAB ----------
+  const DIR_NAME = (dir) => {
+    const [kind, id] = String(dir || '').split(':');
+    if (kind === 'value') return 'the most valuable recipe';
+    if (kind === 'fast') return 'the quickest recipe to cook';
+    if (kind === 'base') return B.bases[id].name + ' recipes';
+    if (kind === 'ingredient') return 'recipes with ' + B.ingredients[id].name;
+    if (kind === 'treatment') return B.treatments[id].name + ' recipes';
+    if (kind === 'maturation') return B.maturations[id].name + ' recipes';
+    return '';
+  };
+  // Cabecera del laboratorio: construirlo, qué investiga, quién, y hacia dónde.
+  function labHead(s, ui) {
+    const C = CM.cheesery;
+    const info = CM.construction.buildInfo(s, 'lab');
+    let h = '<div class="labbox">';
+    if (!s.built.lab) {
+      h += '<b>RESEARCH</b><small>Research runs next to production: your cheesemakers never stop for it. By hand, you start each recipe yourself.</small>';
+      h += info.canBuild
+        ? '<p class="lead">You can build the <b>Cheese Lab</b>: its own building, with a post for a <b>Research</b> mouse that keeps researching in the direction you choose.</p>' + btn('build:lab', 'BUILD THE CHEESE LAB<br>It is free', { cls: 'buy wide' })
+        : '<p class="hint">Cheese Lab: ' + esc(info.condText.toLowerCase()) + ' (' + Math.min(s.totals.recipes, B.buildings.lab.requires.min) + '/' + B.buildings.lab.requires.min + ').</p>';
+    } else {
+      const w = C.labWorker(s);
+      const odds = C.labOdds(s);
+      h += '<b>CHEESE LAB</b><small>The next research costs ' + C.labCost(s) + ' Cheese Base and takes ' + secs(C.labTime(s) / (w ? CM.mice.speed(w, 'research', s, 'all') : 1)) + '. ' + (odds.fail > 0 ? 'A result can come out inconclusive (half the work again)' : 'No result comes out inconclusive') + ', or as a breakthrough (the recipe starts with mastery).' + '</small>';
+      h += w
+        ? btn('open:mice:' + w.id, '<span>RESEARCHER</span><span>' + esc(w.name) + ' · LV ' + CM.mice.level(w) + '</span>', { cls: 'deliver calmrow' })
+        : btn('open:mice', '<span>NO RESEARCHER</span><span>you start each one by hand · put a mouse here in MICE</span>', { cls: 'deliver calmrow' });
+      // Dirección: la marca el jugador; el ratón solo la ejecuta.
+      const chip = (dir, label) => btn('labdir:' + dir, label, { cls: 'chip' + (s.lab.dir === dir ? ' on' : '') });
+      h += '<div class="pick"><span>DIRECTION' + (w ? '' : ' (for your researcher)') + '</span><div>' + chip('value', 'Highest value') + chip('fast', 'Quickest to cook') + '</div></div>';
+      h += '<div class="pick"><span>OR ONE CHEESE</span><div>' + C.unlockedBases(s).map((b) => chip('base:' + b, I.img('base', b) + B.bases[b].name)).join('') + '</div></div>';
+      const partChips = (part, table) => Object.keys(B[table]).filter((id) => !C.partLocked(s, part, id)).map((id) => chip(part + ':' + id, B[table][id].name)).join('');
+      h += '<div class="pick"><span>OR ONE PART</span><div>' + partChips('ingredient', 'ingredients') + partChips('treatment', 'treatments') + partChips('maturation', 'maturations') + '</div></div>';
+      const next = C.labPick(s, false);
+      h += '<p class="hint">' + (!s.lab.dir ? 'No direction chosen: the lab only researches what you start by hand.' : !next ? 'Nothing left to research in ' + DIR_NAME(s.lab.dir) + ' at your Cheesemaking level.' : (w ? esc(w.name) + ' is working through ' : 'A researcher would work through ') + DIR_NAME(s.lab.dir) + '.') + '</p>';
+    }
+    const lab = s.lab.job;
+    if (s.lab.next && C.parseKey(s.lab.next)) {
+      const combo = C.parseKey(s.lab.next);
+      h += '<div class="jobbar">' + I.img('lot', combo.base) + '<span>Next: ' + esc(C.defaultName(combo)) + ' · saving up ' + Math.min(s.inv.base[combo.base], C.labCost(s)) + '/' + C.labCost(s) + ' ' + B.bases[combo.base].name + ' Base</span>' + btn('labcancel', 'CANCEL', { cls: 'chip' }) + '</div>';
+    }
+    if (lab) {
+      const combo = C.parseKey(lab.key);
+      h += '<div class="jobbar">' + I.img('lot', combo.base) + '<span>' + (lab.retried ? 'Inconclusive: trying again · ' : 'Researching ') + esc(C.defaultName(combo)) + '</span><div class="bar"><i data-job="lab"></i></div></div>';
+    }
+    return h + '</div>';
+  }
+  function labPanel(s, ui) {
+    if (!s.built.cheesery) return '<p class="hint">Build the Cheesery first.</p>';
+    return labHead(s, ui) + '<h3>RESEARCH A RECIPE BY HAND</h3>' + recipePicker(s, ui);
+  }
+
+  // Elegir cuatro componentes y lanzar la investigación a mano.
+  function recipePicker(s, ui) {
+    const C = CM.cheesery;
+    const level = q.level(s, 'cheesemaking');
+    let h = '';
+    const combo = ui.combo;
+    for (const p of C.PARTS) if (C.partLocked(s, p, combo[p])) combo[p] = Object.keys(B[C.TABLES[p]]).find((id) => !C.partLocked(s, p, id));
+    const groups = [
+      ['base', '1 · BASE', (k) => I.img('base', k) + B.bases[k].name, (k) => 'worth ' + B.bases[k].value + ' · have ' + s.inv.base[k], (k) => 'open its rock'],
+      ['ingredient', '2 · INGREDIENT', (k) => B.ingredients[k].name, (k) => 'x' + B.ingredients[k].mult + (B.ingredients[k].coinCost ? ' · ' + B.ingredients[k].coinCost + ' coins' : ' · free')],
+      ['treatment', '3 · TREATMENT', (k) => B.treatments[k].name, (k) => 'x' + B.treatments[k].mult + (B.treatments[k].timeMs ? ' · +' + secs(B.treatments[k].timeMs) : '')],
+      ['maturation', '4 · MATURATION', (k) => B.maturations[k].name, (k) => 'x' + B.maturations[k].mult + (B.maturations[k].timeMs ? ' · +' + secs(B.maturations[k].timeMs) : '')],
+    ];
+    for (const g of groups) {
+      h += '<div class="pick"><span>' + g[1] + '</span><div>';
+      for (const id of Object.keys(B[C.TABLES[g[0]]])) {
+        const locked = C.partLocked(s, g[0], id);
+        const need = g[0] === 'base' ? g[4](id) : 'Cheesemaking LV ' + B[C.TABLES[g[0]]][id].level;
+        h += btn(locked ? 'noop' : 'pick:' + g[0] + ':' + id, g[2](id) + '<small>' + (locked ? need : g[3](id)) + '</small>', { cls: 'chip' + (combo[g[0]] === id ? ' on' : '') + (locked ? ' lockedchip' : ''), off: locked });
+      }
+      h += '</div></div>';
+    }
+    const known = C.recipeByKey(s, C.keyOf(combo));
+    const coins = B.ingredients[combo.ingredient].coinCost;
+    if (known) {
+      h += '<div class="result">' + I.img('lot', combo.base, 'big') + '<div><b>' + esc(known.name) + '</b><div>' + valueTag(s, known) + '</div><small>Already in your Recipe Book</small></div></div>';
+    } else {
+      const short = s.inv.base[combo.base] < C.labCost(s);
+      const queued = s.lab.next === C.keyOf(combo);
+      const can = !s.lab.job && !queued && (short || s.coins >= coins);
+      const syn = C.formula(combo).synergies;
+      h += '<div class="result"><div><b>Undiscovered cheese</b><small>' + (syn.length ? 'These go well together! ' : '') + 'Costs ' + C.labCost(s) + ' ' + B.bases[combo.base].name + ' Base' + (coins ? ' + ' + coins + ' coins' : '') + ' · ' + secs(C.jobTime(s, combo, null)) + ' · you get the recipe and 1 cheese</small></div></div>';
+      h += btn('experiment', s.lab.job ? 'THE LAB IS BUSY' : queued ? 'WAITING FOR CHEESE BASE' : short ? 'DISCOVER IT<br>the lab saves up the Cheese Base first' : 'DISCOVER IT', { off: !can, cls: 'buy wide' });
+    }
+    return h + '<p class="hint">Cheesemaking LV ' + level + '. Higher levels unlock better ingredients.</p>';
+  }
+
   function cheesePanel(s, ui) {
     const C = CM.cheesery;
     const laneOf = (base) => s.zones[q.zoneOfBase(base)];
@@ -163,47 +253,11 @@
       h += '<div class="jobbar">' + I.img('lot', def.base) + '<span>' + label + '</span><div class="bar"><i data-job="cook:' + def.id + '"></i></div>' + btn('cheeseTap:' + def.id, 'SPEED UP', { cls: 'buy' }) + '</div>';
     }
     h += '<p class="hint stock">' + C.unlockedBases(s).map((b) => I.img('base', b) + B.bases[b].name + ' Base ' + CM.fmt(s.inv.base[b])).join(' &nbsp; ') + '</p>';
-    h += '<div class="tabs">' + btn('tab:experiment', 'NEW RECIPE', { cls: ui.cheeseTab === 'experiment' ? 'on' : '' }) + btn('tab:book', 'RECIPE BOOK ' + s.recipes.length + '/' + C.totalCombos(), { cls: ui.cheeseTab === 'book' ? 'on' : '' }) + '</div>';
+    h += '<div class="tabs">' + btn('tab:experiment', 'CHEESE LAB', { cls: ui.cheeseTab === 'experiment' ? 'on' : '' }) + btn('tab:book', 'RECIPE BOOK ' + s.recipes.length + '/' + C.totalCombos(), { cls: ui.cheeseTab === 'book' ? 'on' : '' }) + '</div>';
 
-    if (ui.cheeseTab === 'experiment') {
-      // El laboratorio: investiga a la vez que la quesería produce.
-      const lab = s.lab.job;
-      const labCombo = lab ? C.parseKey(lab.key) : null;
-      h += '<div class="labbox"><b>CHEESE LAB</b><small>Research runs next to production: your cheesemakers never stop for it.</small>';
-      h += lab ? '<div class="jobbar">' + I.img('lot', labCombo.base) + '<span>Researching ' + esc(C.defaultName(labCombo)) + '</span><div class="bar"><i data-job="lab"></i></div></div>' : '<p class="hint">' + (s.lab.auto && s.recipes.length ? (C.labPick(s) ? 'Starting the next one...' : 'Nothing left it can research right now: it needs ' + B.cheesery.experimentBase + ' Cheese Base, or a higher Cheesemaking level for new parts.') : 'Idle. Pick four parts below and discover a recipe.') + '</p>';
-      if (s.recipes.length) h += row('Keep researching on its own', 'Tries the most promising untested recipe of your best cheese. Costs ' + B.cheesery.experimentBase + ' Cheese Base each', btn('labauto', s.lab.auto ? 'ON' : 'OFF', { cls: 'buy' }));
-      h += '</div>';
-      const combo = ui.combo;
-      for (const p of C.PARTS) if (C.partLocked(s, p, combo[p])) combo[p] = Object.keys(B[C.TABLES[p]]).find((id) => !C.partLocked(s, p, id));
-      const groups = [
-        ['base', '1 · BASE', (k) => I.img('base', k) + B.bases[k].name, (k) => 'worth ' + B.bases[k].value + ' · have ' + s.inv.base[k], (k) => 'open its rock'],
-        ['ingredient', '2 · INGREDIENT', (k) => B.ingredients[k].name, (k) => 'x' + B.ingredients[k].mult + (B.ingredients[k].coinCost ? ' · ' + B.ingredients[k].coinCost + ' coins' : ' · free')],
-        ['treatment', '3 · TREATMENT', (k) => B.treatments[k].name, (k) => 'x' + B.treatments[k].mult + (B.treatments[k].timeMs ? ' · +' + secs(B.treatments[k].timeMs) : '')],
-        ['maturation', '4 · MATURATION', (k) => B.maturations[k].name, (k) => 'x' + B.maturations[k].mult + (B.maturations[k].timeMs ? ' · +' + secs(B.maturations[k].timeMs) : '')],
-      ];
-      for (const g of groups) {
-        h += '<div class="pick"><span>' + g[1] + '</span><div>';
-        for (const id of Object.keys(B[C.TABLES[g[0]]])) {
-          const locked = C.partLocked(s, g[0], id);
-          const need = g[0] === 'base' ? g[4](id) : 'Cheesemaking LV ' + B[C.TABLES[g[0]]][id].level;
-          h += btn(locked ? 'noop' : 'pick:' + g[0] + ':' + id, g[2](id) + '<small>' + (locked ? need : g[3](id)) + '</small>', { cls: 'chip' + (combo[g[0]] === id ? ' on' : '') + (locked ? ' lockedchip' : ''), off: locked });
-        }
-        h += '</div></div>';
-      }
-      const known = C.recipeByKey(s, C.keyOf(combo));
-      const coins = B.ingredients[combo.ingredient].coinCost;
-      if (known) {
-        h += '<div class="result">' + I.img('lot', combo.base, 'big') + '<div><b>' + esc(known.name) + '</b><div>' + valueTag(s, known) + '</div><small>Already in your Recipe Book</small></div></div>';
-      } else {
-        const can = !s.lab.job && s.inv.base[combo.base] >= B.cheesery.experimentBase && s.coins >= coins;
-        const syn = C.formula(combo).synergies;
-        h += '<div class="result"><div><b>Undiscovered cheese</b><small>' + (syn.length ? 'These go well together! ' : '') + 'Costs ' + B.cheesery.experimentBase + ' ' + B.bases[combo.base].name + ' Base' + (coins ? ' + ' + coins + ' coins' : '') + ' · ' + secs(C.jobTime(s, combo, null)) + ' · you get the recipe and 1 cheese</small></div></div>';
-        h += btn('experiment', s.lab.job ? 'THE LAB IS BUSY' : 'DISCOVER IT', { off: !can, cls: 'buy wide' });
-      }
-      return h + '<p class="hint">Cheesemaking LV ' + level + '. Higher levels unlock better ingredients.</p>';
-    }
+    if (ui.cheeseTab === 'experiment') return h + labPanel(s, ui);
 
-    if (!s.recipes.length) return h + '<p class="hint">No recipes yet. Combine four parts in NEW RECIPE.</p>';
+    if (!s.recipes.length) return h + '<p class="hint">No recipes yet. Research one in CHEESE LAB.</p>';
     h += '<p class="hint">' + (hasCook ? 'A mouse on Cheesemaking cooks the most valuable recipe of its cheese on its own. Pin a different one with ALWAYS COOK THIS.' : 'Each cheese is cooked on its own line, at the same time. Tip: put a mouse on Cheesemaking (MICE) to cook automatically.') + '</p>';
     const sorted = s.recipes.slice().sort((a, b) => CM.cheesery.valueOf(s, b) - CM.cheesery.valueOf(s, a));
     for (const r of sorted) {
@@ -261,11 +315,11 @@
   const traitChip = (id, grade) => '<span class="stat ' + KIND_CLS[T[id].kind] + '">' + KIND_MARK[T[id].kind] + T[id].name + (grade && T[id].job ? ' ' + ROMAN[grade] : '') + '</span>';
   // Descripción de un rasgo: lo malo en rojo. En los mixtos («..., but ...») se marca la parte contraria.
   // Efecto de un rasgo de oficio en cada grado, con cifras: «+10% / +20% / +35% speed».
-  const EFF_WORD = { speed: 'speed', yield: 'output', double: 'chance of double', awaySpeed: 'speed while away', depthSpeed: 'speed per depth level', depthYield: 'output per depth level', recipeYield: 'output per recipe known', auraNext: 'speed for the next mouse' };
+  const EFF_WORD = { speed: 'speed', yield: 'output', double: 'chance of double', awaySpeed: 'speed while away', depthSpeed: 'speed per depth level', depthYield: 'output per depth level', recipeYield: 'output per recipe known', auraNext: 'speed for the next mouse', labCost: 'Cheese Base per research', labLuck: 'chance of a breakthrough', labFail: 'inconclusive results', labBonus: 'chance of a second recipe' };
   function gradeNumbers(id, grade) {
     const def = T[id];
     return Object.keys(def.eff)
-      .map((k) => M.gradeMult.map((g, i) => (i + 1 === grade ? '<b>' : '') + '+' + round1(def.eff[k] * g * 100) + '%' + (i + 1 === grade ? '</b>' : '')).join(' / ') + ' ' + (EFF_WORD[k] || k))
+      .map((k) => M.gradeMult.map((g, i) => (i + 1 === grade ? '<b>' : '') + (def.eff[k] < 0 ? '' : '+') + round1(def.eff[k] * g * 100) + '%' + (i + 1 === grade ? '</b>' : '')).join(' / ') + ' ' + (EFF_WORD[k] || k))
       .join(', ');
   }
   function traitDesc(id, grade) {
@@ -277,7 +331,7 @@
   }
   const rareChip = (m) => (m.rarity ? '<span class="stat rare' + m.rarity + '">' + RARITY[m.rarity].name.toUpperCase() + '</span>' : '');
   const affChips = (m) =>
-    CM.mice.CHAIN.filter((k) => m.aff && m.aff[k])
+    CM.mice.JOBS.filter((k) => m.aff && m.aff[k])
       .sort((a, b) => m.aff[b] - m.aff[a])
       .map((k) => '<span class="stat aff a' + m.aff[k] + '">' + M.affinity[m.aff[k]].name + ' ' + B.skills[k].name + '</span>')
       .join('');
@@ -306,6 +360,7 @@
     if (skill === 'mining') return (y === 1 ? 'a swing' : 'a x' + round1(y) + ' swing') + ' every ' + secs(q.minerInterval(s) / sp);
     if (skill === 'drilling') return rate(q.drillDuration(s), q.drillYield(s, zone) * y, 'Raw');
     if (skill === 'refining') return rate(q.refineDuration(s), q.refineBatch(s) * q.refineMult(s) * y, 'Base');
+    if (skill === 'research') return 'a recipe every ' + secs(CM.cheesery.labTime(s) / sp);
     if (skill === 'trading') return rate(q.sellDuration(s), q.sellCount(s), 'cheese sold');
     const recipe = CM.cheesery.laneRecipe(s, zone);
     return recipe ? rate(CM.cheesery.jobTime(s, CM.cheesery.parseKey(recipe.key), recipe), y * q.cheeseBatch(s) * q.skillMult(s, 'cheesemaking'), 'cheese', 'a cheese') : 'cooks ' + times(sp) + ' as fast as by hand';
@@ -321,7 +376,7 @@
     }
     for (const c of K.combosOf(m)) h += '<li><span class="stat tcombo">COMBO · ' + c.name + '</span>' + c.desc + '</li>';
     // Afinidades, en una sola línea: corazones junto a cada oficio que le gusta.
-    const likes = K.CHAIN.filter((k) => m.aff && m.aff[k]).sort((a, b) => m.aff[b] - m.aff[a]);
+    const likes = K.JOBS.filter((k) => m.aff && m.aff[k]).sort((a, b) => m.aff[b] - m.aff[a]);
     if (likes.length) h += '<li class="likes">' + likes.map((k) => B.skills[k].name + hearts(m.aff[k])).join(' &nbsp; ') + '</li>';
     return h + '</ul>';
   }
@@ -499,7 +554,7 @@
     if (!m.offer || m.offer.kind !== 'level') h += '<p class="hint">' + (m.picks >= M.traitSlots ? 'It has learned all its level traits.' : 'Next trait at LV ' + nextAt + (m.post ? '.' : '. It only levels up on a post.')) + '</p>';
 
     h += '<h4>JOBS</h4><div class="jrows">';
-    for (const k of K.CHAIN) {
+    for (const k of K.JOBS) {
       const id = m.spec[k];
       const grade = K.gradeOf(m, k);
       const n = m.jobs[k] || 0;
@@ -539,7 +594,7 @@
       h += '<div class="cands">';
       s.candidates.forEach((c, i) => {
         const as = K.normalize(Object.assign({ xp: 0, rank: 0 }, c));
-        const likes = K.CHAIN.filter((k) => as.aff[k]).sort((a, b) => as.aff[b] - as.aff[a]);
+        const likes = K.JOBS.filter((k) => as.aff[k]).sort((a, b) => as.aff[b] - as.aff[a]);
         h +=
           '<div class="cand">' + face(as) + '<b>' + esc(c.name) + '</b>' + (c.rarity ? '<i class="rar rar' + c.rarity + '">' + RARITY[c.rarity].name + '</i>' : '') +
           c.traits.map((id) => '<p>' + traitChip(id) + '<small>' + traitDesc(id) + '</small></p>').join('') +
@@ -646,10 +701,10 @@
     comboLine,
     title(name, ui) {
       if (name === 'tree') return ui.tree === 'colony' ? 'COLONY' : B.skills[ui.tree].name.toUpperCase() + ' UPGRADES';
-      return { cheese: 'CHEESERY', stock: 'PANTRY', mice: 'MICE', options: 'MENU', dev: 'PLAYTEST TOOLS' }[name];
+      return { cheese: 'CHEESERY', lab: 'CHEESE LAB', stock: 'PANTRY', mice: 'MICE', options: 'MENU', dev: 'PLAYTEST TOOLS' }[name];
     },
     render(name, s, ui) {
-      return { tree: treePanel, cheese: cheesePanel, stock: stockPanel, mice: micePanel, options: optionsPanel, dev: devPanel }[name](s, ui);
+      return { tree: treePanel, cheese: cheesePanel, lab: labPanel, stock: stockPanel, mice: micePanel, options: optionsPanel, dev: devPanel }[name](s, ui);
     },
   };
 })();

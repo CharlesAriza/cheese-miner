@@ -73,7 +73,7 @@ Gestión (13-10-2026): MICE tiene vista por roca y lista completa; tocar un pues
 
 ### Cheese Lab
 
-La investigación de recetas va aparte de la producción y en paralelo; tras la primera receta sigue sola. Es el sitio previsto para descubrir combinaciones y, más adelante, mutaciones. Todavía no es un edificio propio.
+Edificio propio en la colonia (gratis tras 3 recetas a mano) con un puesto del oficio **Research**, que usa el sistema de ratones tal cual (afinidad, rasgos de oficio, legendario, combinaciones de vecinos). El jugador marca la dirección de investigación y el ratón la ejecuta; sin dirección no investiga solo. La investigación va en paralelo a la producción y reserva su Cheese Base. Es la base prevista para mutaciones, que no están hechas. Pendiente: las recetas son finitas (216), así que el investigador se queda sin trabajo al final.
 
 Quitado respecto a la Alpha: almacén con capacidad, regateo, clientes con paciencia, Taste/Funk/Aroma, reputación, viajar entre zonas, rocas que se agotan y Mouse House con camas.
 

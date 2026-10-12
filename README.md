@@ -56,7 +56,7 @@ Al reclutar eliges uno de tres y va él solo al mejor puesto libre. **BEST FIT**
 
 El ratón de Cheesemaking cocina por su cuenta la receta más valiosa que conozcas de su queso; fijar otra a mano es opcional.
 
-**Cheese Lab.** Las recetas se investigan aparte de la producción: la quesería no se para. La primera la descubres tú eligiendo cuatro componentes; desde ahí el laboratorio sigue solo, probando la combinación más prometedora que pueda pagar (se puede apagar en la pestaña NEW RECIPE). Cada receta nueva tarda un poco más que la anterior.
+**Cheese Lab.** Las recetas se investigan aparte de la producción: la quesería no se para. Las tres primeras las descubres tú eligiendo cuatro componentes; entonces puedes construir el Cheese Lab, un edificio propio en la colonia con un puesto para un ratón de **Research**. Tú marcas la dirección (más valor, más rápidas de cocinar, un queso o un componente concreto) y el ratón investiga dentro de ella; sin dirección no elige por ti. Research es un oficio más: afinidad, rasgos de oficio propios, un legendario y combinaciones con queseros, refinadores y tendero.
 
 Bajo la escena se ve el subsuelo de la roca que estás mirando: baja contigo, cambia de material cada cinco niveles y el pozo llega hasta tu profundidad, con carteles numerados. La casilla que pide el objetivo actual parpadea.
 

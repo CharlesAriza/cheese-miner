@@ -18,8 +18,8 @@
   const ROCK_W = 54;
   const ROCK_H = 42;
   // Posición X (mundo) de cada edificio.
-  const POS = { shop: 8, cheesery: 54, storage: 102, refinery: 150, house: 214, drill: 306, rock: 330 };
-  const WIDTH = { shop: 38, cheesery: 40, storage: 38, refinery: 38, house: 36, drill: 24, rock: ROCK_W };
+  const POS = { shop: 8, cheesery: 54, storage: 102, refinery: 150, house: 214, lab: 258, drill: 306, rock: 330 };
+  const WIDTH = { shop: 38, cheesery: 40, storage: 38, refinery: 38, house: 36, lab: 34, drill: 24, rock: ROCK_W };
 
   function hash(n) {
     n = Math.imul(n ^ (n >>> 15), 0x2c1b3c6d);
@@ -789,6 +789,36 @@
 
     // SPRITE: Mouse House. Las luces de la fachada son tus ratones; los que
     // no tienen puesto se asoman a la puerta.
+    // SPRITE: Cheese Lab. Edificio blanco con tejado verde, un matraz que burbujea
+    // mientras se investiga y el investigador en la puerta si hay ratón en el puesto.
+    function drawLab(state, now) {
+      const x = POS.lab;
+      const y = groundY - 30 + pop('lab', now);
+      const busy = !!state.lab.job;
+      R(x - 1, y + 6, 34, 2, '#1f5c3a');
+      for (let i = 0; i < 6; i++) R(x + i, y + 5 - i, 32 - i * 2, 1, i % 2 ? '#3fa860' : '#2f8f55');
+      R(x, y + 8, 32, 22, '#2b1d12');
+      R(x + 1, y + 9, 30, 20, '#e9eef2');
+      R(x + 1, y + 26, 30, 3, '#c9d2da');
+      R(x + 4, y + 13, 8, 7, '#2b1d12');
+      R(x + 5, y + 14, 6, 5, busy && ((now / 300) | 0) % 2 ? '#bff5c8' : '#8fd3ff');
+      R(x + 20, y + 17, 8, 12, '#2b1d12');
+      R(x + 21, y + 18, 6, 11, '#6b4a2f');
+      // matraz en el tejado
+      R(x + 14, y - 6, 4, 4, '#dfe9f2');
+      R(x + 12, y - 2, 8, 5, '#dfe9f2');
+      R(x + 13, y - 1, 6, 3, busy ? '#5fdc7a' : '#9aa8b5');
+      if (busy) {
+        const t = ((now / 260) | 0) % 4;
+        R(x + 15, y - 9 - t, 2, 2, '#bff5c8');
+        if (t > 1) R(x + 18, y - 8 - t, 1, 1, '#bff5c8');
+      }
+      const researcher = CM.mice.at(state, 'research', 'all');
+      if (researcher) {
+        staffHits.push({ id: researcher.id, x: x - 10, y: groundY - MOUSE_H + 2 });
+        drawMouseSprite(rankSprite(researcher), x - 10, groundY - MOUSE_H + 2 + (busy ? ((now / 120) | 0) % 2 : ((now / 700) | 0) % 2), false, null);
+      }
+    }
     function drawHouse(state, now) {
       const x = POS.house;
       const y = groundY - 32 + pop('house', now);
@@ -1017,7 +1047,6 @@
     // Dónde está cada ratón dibujado, para poder tocarlo.
     let staffHits = [];
     function drawStaff(state, now, zoneId) {
-      staffHits = [];
       const keeper = CM.mice.at(state, 'trading', 'all');
       if (keeper && state.built.shop) staffHits.push({ id: keeper.id, x: POS.shop + 9, y: groundY - MOUSE_H });
       const beat = (ms) => ((now / ms) | 0) % 2;
@@ -1132,7 +1161,7 @@
       }
     }
 
-    const BUILDINGS = { shop: drawShop, cheesery: drawCheesery, refinery: drawRefinery, house: drawHouse };
+    const BUILDINGS = { shop: drawShop, cheesery: drawCheesery, refinery: drawRefinery, house: drawHouse, lab: drawLab };
 
     function draw(state, now, dt, zoneId) {
       ctx.imageSmoothingEnabled = false;
@@ -1143,6 +1172,7 @@
       fx.zone = q.zoneDef(zoneId).base;
       fx.zoneId = zoneId;
       blinking = now % 3400 < 130;
+      staffHits = [];
       drawBackground(state, now);
       drawGround(state, zoneId, now, dt);
       const sx = fx.shake > 0.3 ? Math.round((Math.random() - 0.5) * 2 * fx.shake) : 0;
@@ -1211,7 +1241,7 @@
       hitTest(screenX) {
         const wx = screenX + fx.cam;
         if (wx >= POS.rock - 2) return 'rock';
-        for (const id of ['drill', 'house', 'refinery', 'storage', 'cheesery', 'shop']) if (wx >= POS[id] - 3 && wx <= POS[id] + WIDTH[id] + 3) return id;
+        for (const id of ['drill', 'lab', 'house', 'refinery', 'storage', 'cheesery', 'shop']) if (wx >= POS[id] - 3 && wx <= POS[id] + WIDTH[id] + 3) return id;
         return null;
       },
     };

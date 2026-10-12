@@ -122,77 +122,141 @@
     recipe: (s, id) => s.recipes.find((r) => r.id === id) || null,
     recipeByKey: (s, key) => s.recipes.find((r) => r.key === key) || null,
 
-    experiment(s, combo) {
+    // ---------- CHEESE LAB ----------
+    // Investigar va aparte de producir. A mano se lanza cada receta; con un ratón en
+    // el puesto de Research, él repite el trabajo siguiendo la dirección que marque
+    // el jugador. El ratón ejecuta; la estrategia no la decide nadie por ti.
+    labWorker: (s) => (s.built.lab ? CM.mice.at(s, 'research', 'all') : null),
+    labTime: (s) => Math.round(B.cheesery.labBaseMs * Math.pow(B.cheesery.labGrowth, s.recipes.length)),
+    // Cheese Base que cuesta la siguiente investigación (sube con el libro; Thrifty lo abarata).
+    labCost(s) {
+      const w = this.labWorker(s);
+      const cut = w ? CM.mice.trait(w, 'labCost', 'research') : 0;
+      return Math.max(1, Math.round((B.cheesery.experimentBase + B.cheesery.labCostGrowth * s.recipes.length) * Math.max(0.2, 1 + cut)));
+    },
+    // Probabilidades del laboratorio con el ratón que haya (o sin él).
+    labOdds(s) {
+      const w = this.labWorker(s);
+      const t = (key) => (w ? CM.mice.trait(w, key, 'research') : 0);
+      return { fail: Math.max(0, Math.min(0.9, B.cheesery.labFail + t('labFail'))), luck: Math.max(0, Math.min(0.9, B.cheesery.labBreakthrough + t('labLuck'))), bonus: Math.max(0, Math.min(0.9, t('labBonus'))) };
+    },
+    experiment(s, combo, source) {
       if (!parseKey(keyOf(combo))) return CM.fail('invalid');
       if (comboLocked(s, combo)) return CM.fail('part-locked');
       if (this.recipeByKey(s, keyOf(combo))) return CM.fail('known');
-      // Investigar no ocupa la quesería: tiene su propia línea y va a la vez que la producción.
       if (!s.built.cheesery) return CM.fail('not-built');
       if (s.lab.job) return CM.fail('lab-busy');
       const coinCost = B.ingredients[combo.ingredient].coinCost;
-      if (s.inv.base[combo.base] < B.cheesery.experimentBase) return CM.fail('no-base');
+      const baseCost = this.labCost(s);
+      if (s.inv.base[combo.base] < baseCost) {
+        // Encargo a mano sin base suficiente: queda apuntado y el laboratorio la reserva.
+        if (source === 'worker' || source === 'queue') return CM.fail('no-base');
+        s.lab.next = keyOf(combo);
+        s.lab.want = combo.base;
+        return CM.ok({ queued: true });
+      }
       if (s.coins < coinCost) return CM.fail('no-coins');
-      s.inv.base[combo.base] -= B.cheesery.experimentBase;
-      s.totals.baseConsumed += B.cheesery.experimentBase;
-      s.zones[q.zoneOfBase(combo.base)].stats.baseUsed += B.cheesery.experimentBase;
+      s.lab.next = '';
+      s.inv.base[combo.base] -= baseCost;
+      s.totals.baseConsumed += baseCost;
+      s.zones[q.zoneOfBase(combo.base)].stats.baseUsed += baseCost;
       if (coinCost > 0) {
         s.coins -= coinCost;
         s.totals.coinsSpent += coinCost;
       }
-      const total = this.labTime(s);
-      s.lab.job = { key: keyOf(combo), remaining: total, total };
+      // Si hay investigador, el trabajo lo hace él, lo haya elegido la dirección o el jugador.
+      const w = this.labWorker(s) ? CM.mice.work(s, 'research', 'all') : null;
+      const total = Math.max(1000, Math.round(this.labTime(s) / (w ? w.speed : 1)));
+      s.lab.job = { key: keyOf(combo), remaining: total, total, source: w ? 'worker' : 'manual', retried: false };
       CM.emit(s, 'labStart', { key: s.lab.job.key });
       return CM.ok();
     },
-    labTime: (s) => Math.round(B.cheesery.labBaseMs * Math.pow(B.cheesery.labGrowth, s.recipes.length)),
-    // Base del queso más valioso al que aún le quedan recetas por probar (y se pueden pagar).
-    labWant(s) {
-      const bases = unlockedBases(s).slice().sort((a, b) => B.bases[b].value - B.bases[a].value);
-      for (const base of bases) if (allCombos([base]).some((c) => !comboLocked(s, c) && !this.recipeByKey(s, keyOf(c)) && s.coins >= B.ingredients[c.ingredient].coinCost)) return base;
-      return '';
+    // ¿Encaja una combinación en la dirección marcada?
+    labCancel(s) {
+      s.lab.next = '';
+      s.lab.want = '';
+      return CM.ok();
     },
-    // La combinación sin descubrir más prometedora que se puede pagar ahora: del
-    // queso más valioso con base suficiente, la de mayor valor de fórmula.
-    labPick(s) {
-      const bases = unlockedBases(s).slice().sort((a, b) => B.bases[b].value - B.bases[a].value);
-      for (const base of bases) {
-        if (s.inv.base[base] < B.cheesery.experimentBase) continue;
-        let best = null;
-        for (const combo of allCombos([base])) {
-          if (comboLocked(s, combo) || this.recipeByKey(s, keyOf(combo)) || s.coins < B.ingredients[combo.ingredient].coinCost) continue;
-          const v = formula(combo).value;
-          if (!best || v > best.v) best = { combo, v };
-        }
-        if (best) return best.combo;
+    labFits(dir, combo) {
+      const [kind, id] = String(dir || '').split(':');
+      if (kind === 'value' || kind === 'fast') return true;
+      return PARTS.indexOf(kind) >= 0 && combo[kind] === id;
+    },
+    // Siguiente combinación según la dirección: la de más valor dentro de ella
+    // (o la más rápida de cocinar, si la dirección es 'fast') que se pueda pagar ahora.
+    labPick(s, onlyAffordable) {
+      const dir = s.lab.dir;
+      if (!dir) return null;
+      const cost = this.labCost(s);
+      let best = null;
+      for (const combo of allCombos(unlockedBases(s))) {
+        if (!this.labFits(dir, combo) || comboLocked(s, combo) || this.recipeByKey(s, keyOf(combo))) continue;
+        if (onlyAffordable !== false && (s.inv.base[combo.base] < cost || s.coins < B.ingredients[combo.ingredient].coinCost)) continue;
+        const score = dir === 'fast' ? -lotTime(combo) * 1e6 + formula(combo).value * B.bases[combo.base].value : formula(combo).value;
+        if (!best || score > best.score) best = { combo, score };
       }
-      return null;
+      return best ? best.combo : null;
     },
-    // Avanza la investigación; al terminar entra la receta en el libro, con un queso.
+    // Añade una receta al libro con su primer queso.
+    labDiscover(s, key, made) {
+      const recipe = { id: 'r' + s.nextId++, key, name: defaultName(parseKey(key)), at: s.clock, made: made || 1 };
+      s.recipes.push(recipe);
+      s.totals.recipes += 1;
+      s.lots[recipe.id] = 1;
+      s.totals.lotsProduced += 1;
+      return recipe;
+    },
     labTick(s, dt) {
       const job = s.lab.job;
       if (job) {
         job.remaining -= dt;
         if (job.remaining > 0) return;
+        const odds = this.labOdds(s);
+        // Resultado no concluyente: una vez por investigación, hay que repetir la mitad del trabajo.
+        if (!job.retried && CM.rand(s) < odds.fail) {
+          job.retried = true;
+          job.remaining = Math.round(job.total / 2);
+          CM.emit(s, 'labSetback', { key: job.key });
+          return;
+        }
         s.lab.job = null;
-        const recipe = { id: 'r' + s.nextId++, key: job.key, name: defaultName(parseKey(job.key)), at: s.clock, made: 1 };
-        s.recipes.push(recipe);
-        s.totals.recipes += 1;
-        s.lots[recipe.id] = 1;
-        s.totals.lotsProduced += 1;
-        CM.skills.addXp(s, 'cheesemaking', B.xp.perCheese * recipeXp(recipe));
-        // La primera receta enseña el camino: desde ahí el laboratorio sigue solo, salvo que se apague.
-        if (s.totals.recipes === 1) s.lab.auto = true;
-        CM.emit(s, 'recipeDiscovered', { recipeId: recipe.id });
+        const breakthrough = CM.rand(s) < odds.luck;
+        const recipe = this.labDiscover(s, job.key, breakthrough ? B.cheesery.labBreakthroughMade : 1);
+        const w = job.source === 'worker' ? this.labWorker(s) : null;
+        // Una investigación es un trabajo largo: cuenta para el ratón por los segundos que pide
+        // (sin descontar su prisa), o no llegaría nunca a especializarse.
+        const xm = w ? CM.mice.reward(s, 'research', 'all', Math.max(1, Math.round(this.labTime(s) / 1000)) * B.mice.xpPerAction) : 1;
+        CM.skills.addXp(s, 'cheesemaking', B.xp.perCheese * recipeXp(recipe) * xm);
+        CM.emit(s, 'recipeDiscovered', { recipeId: recipe.id, breakthrough });
+        // Tinkerer: a veces sale además una segunda receta del mismo queso.
+        if (w && CM.rand(s) < odds.bonus) {
+          const base = parseKey(job.key).base;
+          const extra = allCombos([base]).filter((c) => !comboLocked(s, c) && !this.recipeByKey(s, keyOf(c))).sort((a, b) => formula(b).value - formula(a).value)[0];
+          if (extra) CM.emit(s, 'recipeDiscovered', { recipeId: this.labDiscover(s, keyOf(extra), 1).id, bonus: true });
+        }
       }
+      // Con un ratón en el laboratorio y una dirección marcada, la investigación sigue sola.
       // Buscar la siguiente es caro: se mira una vez cada dos segundos, no en cada paso.
-      if (s.lab.auto && !s.lab.job && s.totals.recipes > 0 && Math.floor(s.clock / 2000) !== Math.floor((s.clock - dt) / 2000)) {
+      // Un encargo a mano que esperaba base va antes que la dirección.
+      if (s.lab.next && !s.lab.job) {
+        const combo = parseKey(s.lab.next);
+        if (!combo || comboLocked(s, combo) || this.recipeByKey(s, s.lab.next)) s.lab.next = '';
+        else if (this.experiment(s, combo, 'queue').ok) s.lab.next = '';
+        else {
+          s.lab.want = combo.base;
+          return;
+        }
+      }
+      const auto = !!this.labWorker(s) && !!s.lab.dir;
+      if (auto && !s.lab.job && Math.floor(s.clock / 2000) !== Math.floor((s.clock - dt) / 2000)) {
         const next = this.labPick(s);
-        if (next) this.experiment(s, next);
+        if (next) this.experiment(s, next, 'worker');
         // Si no llega la base (la quesería se la lleva toda), la pide: la línea de ese
         // queso le deja juntar la suya antes de seguir cocinando.
-        s.lab.want = s.lab.job ? '' : this.labWant(s);
+        const wanted = s.lab.job ? null : this.labPick(s, false);
+        s.lab.want = wanted ? wanted.base : '';
       }
-      if (!s.lab.auto || s.lab.job) s.lab.want = '';
+      if (!auto || s.lab.job) s.lab.want = '';
     },
     produce(s, recipeId, lots) {
       const recipe = this.recipe(s, recipeId);
@@ -257,7 +321,7 @@
       if (!recipe) return CM.fail('no-recipe');
       // El laboratorio tiene preferencia sobre la base que le falta para su siguiente receta.
       const zbase = q.zoneDef(zoneId).base;
-      if (s.lab.want === zbase && s.inv.base[zbase] < B.cheesery.lotBase + B.cheesery.experimentBase) return CM.fail('no-base');
+      if (s.lab.want === zbase && s.inv.base[zbase] < B.cheesery.lotBase + this.labCost(s)) return CM.fail('no-base');
       // Si el ciclo ya no puede ser más corto, la velocidad que sobra agranda la hornada.
       const w = CM.mice.at(s, 'cheesemaking', zoneId);
       const speed = w ? CM.mice.speed(w, 'cheesemaking', s, zoneId) : 1;

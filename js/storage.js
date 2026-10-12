@@ -179,8 +179,10 @@
       const combo = cj ? CM.cheesery.parseKey(cj.key) : null;
       z.cookJob = cj && combo && combo.base === def.base && cj.lotsLeft > 0 && (cj.kind !== 'produce' || CM.cheesery.recipe(s, cj.recipeId)) ? cj : null;
     }
-    s.lab.auto = s.lab.auto === true;
+    delete s.lab.auto;
+    s.lab.dir = typeof s.lab.dir === 'string' && /^(value|fast|(base|ingredient|treatment|maturation):[a-z]+)$/.test(s.lab.dir) ? s.lab.dir : '';
     s.lab.want = typeof s.lab.want === 'string' && B.bases[s.lab.want] ? s.lab.want : '';
+    s.lab.next = typeof s.lab.next === 'string' && CM.cheesery.parseKey(s.lab.next) && !CM.cheesery.recipeByKey(s, s.lab.next) ? s.lab.next : '';
     s.lab.job = cleanJob(s.lab.job, ['key']);
     if (s.lab.job && (!CM.cheesery.parseKey(s.lab.job.key) || CM.cheesery.recipeByKey(s, s.lab.job.key))) s.lab.job = null;
     // Un experimento que estaba ocupando una línea (versiones anteriores) pasa al laboratorio.

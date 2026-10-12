@@ -214,10 +214,13 @@
         const found = CM.cheesery.recipe(state, ev.recipeId);
         play('reveal');
         scene.celebrate();
-        banner('NEW RECIPE: ' + found.name.toUpperCase());
-        toast(found.name + ' sells for ' + CM.fmt(CM.shop.price(state, found)) + ' coins. It is in your Recipe Book', true);
+        banner((ev.breakthrough ? 'BREAKTHROUGH: ' : ev.bonus ? 'BONUS RECIPE: ' : 'NEW RECIPE: ') + found.name.toUpperCase());
+        toast(found.name + ' sells for ' + CM.fmt(CM.shop.price(state, found)) + ' coins' + (ev.breakthrough ? ' and starts with mastery ' + CM.cheesery.masteryLevel(found) : '') + '. It is in your Recipe Book', true);
         break;
       }
+      case 'labSetback':
+        toast('Inconclusive result in the lab: it tries again (half the time)');
+        break;
       case 'candidates': {
         const best = Math.max(...state.candidates.map((c) => c.rarity || 0));
         play(best ? 'reveal' : 'bell');
@@ -823,6 +826,7 @@
     if (!id) return;
     if (id === 'storage') return openPanel('stock');
     if (id === 'house') return openPanel('mice');
+    if (id === 'lab') return openPanel('lab');
     const same = ui.station === id;
     if (!same) select(id, true);
     updateDock();
@@ -950,7 +954,12 @@
     tab: (name) => void (ui.cheeseTab = name),
     pick: (part, value) => void (ui.combo[part] = value),
     experiment: () => CM.cheesery.experiment(state, ui.combo),
-    labauto: () => void (state.lab.auto = !state.lab.auto),
+    labcancel: () => CM.cheesery.labCancel(state),
+    // Dirección de investigación: la marca el jugador (tocar la activa la quita).
+    labdir: (kind, id) => {
+      const dir = id ? kind + ':' + id : kind;
+      state.lab.dir = state.lab.dir === dir ? '' : dir;
+    },
     make: (id, n) => CM.cheesery.produce(state, id, Number(n)),
     cook: (id) => CM.cheesery.assign(state, id),
     uncook: (zoneId) => CM.cheesery.unassign(state, zoneId),
@@ -1039,6 +1048,7 @@
     cheesery: { why: 'Base is the main ingredient. The Cheesery mixes it with three more things into a real cheese.', then: 'Now discover your first recipe' },
     shop: { why: 'Your cheese needs a place to be sold. A shop turns cheese into coins.', then: 'Now tap SELL' },
     house: { why: 'A mouse on a post does that job on its own.', then: 'Now recruit your first mouse' },
+    lab: { why: 'Research gets its own building and its own job for a mouse.', then: 'Choose a direction, and put a mouse on Research in MICE' },
   };
   let announced = null;
   function checkUnlocks() {
@@ -1048,7 +1058,7 @@
     announced = id;
     play('reveal');
     banner('NEW: ' + B.buildings[id].name.toUpperCase() + '!');
-    toast('Something new to build. Tap ' + (tiles[id] ? tiles[id].querySelector('b').textContent : 'MICE') + ' below', true);
+    toast('Something new to build. ' + (id === 'lab' ? 'Open CHEESE and go to CHEESE LAB' : 'Tap ' + (tiles[id] ? tiles[id].querySelector('b').textContent : 'MICE') + ' below'), true);
   }
   // Tras la primera venta: para qué sirven las monedas.
   function firstSaleCard() {

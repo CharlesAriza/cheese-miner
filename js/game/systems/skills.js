@@ -10,7 +10,9 @@
   }
 
   CM.skills = {
-    list: Object.keys(B.skills),
+    // Las habilidades del jugador (con nivel y árbol). Research es solo oficio de ratón.
+    list: Object.keys(B.skills).filter((k) => !B.skills[k].job),
+    jobs: Object.keys(B.skills),
     // Suma experiencia y avisa si se sube de nivel.
     addXp(s, skill, amount) {
       if (!(amount > 0)) return;
@@ -70,7 +72,7 @@
 
   // Edificios de la cadena: gratis, se desbloquean por hitos.
   CM.construction = {
-    order: ['drill', 'refinery', 'cheesery', 'shop', 'house'],
+    order: ['drill', 'refinery', 'cheesery', 'shop', 'house', 'lab'],
     buildInfo(s, id) {
       const req = B.buildings[id].requires;
       const condOk = s.totals[req.total] >= req.min;

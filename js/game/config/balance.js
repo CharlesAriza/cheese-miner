@@ -15,6 +15,8 @@ CM.BALANCE = {
     refining: { name: 'Refining', station: 'refinery' },
     cheesemaking: { name: 'Cheesemaking', station: 'cheesery' },
     trading: { name: 'Trading', station: 'shop' },
+    // Oficio de ratón, no habilidad del jugador: no tiene nivel ni árbol.
+    research: { name: 'Research', station: 'lab', job: true },
   },
   xp: {
     base: 25, // experiencia para pasar del nivel 1 al 2
@@ -86,6 +88,10 @@ CM.BALANCE = {
     // salen en segundos; completar el libro entero es un objetivo de muchas horas.
     labBaseMs: 12000,
     labGrowth: 1.03,
+    labFail: 0.15, // probabilidad de resultado no concluyente: hay que repetir la mitad del trabajo
+    labBreakthrough: 0.05, // probabilidad de hallazgo: la receta nace ya con maestría
+    labBreakthroughMade: 15, // quesos «hechos» con los que nace una receta de hallazgo (maestría 3)
+    labCostGrowth: 1, // Cheese Base de más por cada receta ya conocida
     experimentBase: 3, // Cheese Base que cuesta descubrir una receta (da 1 queso)
     lotBase: 2, // Cheese Base por queso de una receta conocida
     baseTimeMs: 6000,
@@ -155,6 +161,7 @@ CM.BALANCE = {
     cheesery: { name: 'Cheesery', requires: { total: 'baseProduced', min: 6, text: 'Refine 6 Cheese Base first' } },
     shop: { name: 'Cheese Shop', requires: { total: 'recipes', min: 1, text: 'Discover a recipe first' } },
     house: { name: 'Mouse House', requires: { total: 'nodesBought', min: 1, text: 'Buy your first upgrade' } },
+    lab: { name: 'Cheese Lab', requires: { total: 'recipes', min: 3, text: 'Discover 3 recipes by hand first' } },
   },
 
   // ---------- RATONES ----------

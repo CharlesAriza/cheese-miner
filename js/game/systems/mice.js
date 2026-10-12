@@ -7,7 +7,7 @@
   const q = CM.q;
   const M = B.mice;
 
-  const postKey = (skill, zone) => skill + ':' + (skill === 'trading' ? 'all' : zone);
+  const postKey = (skill, zone) => skill + ':' + (skill === 'trading' || skill === 'research' ? 'all' : zone);
   const xpFor = (level) => (M.xpBase * (Math.pow(M.xpGrowth, level - 1) - 1)) / (M.xpGrowth - 1);
   function level(m) {
     const raw = Math.floor(Math.log((m.xp * (M.xpGrowth - 1)) / M.xpBase + 1) / Math.log(M.xpGrowth) + 1e-9) + 1;
@@ -15,6 +15,8 @@
   }
   const T = M.traits;
   const CHAIN = ['mining', 'drilling', 'refining', 'cheesemaking', 'trading'];
+  // Todos los oficios en los que puede trabajar un ratón: la cadena y el laboratorio.
+  const JOBS = CHAIN.concat('research');
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   const idsOf = (kind) => Object.keys(T).filter((k) => T[k].kind === kind);
   const jobTraits = (skill) => Object.keys(T).filter((k) => T[k].job === skill);
@@ -76,8 +78,11 @@
   // es vecino del quesero de cada roca.
   function neighbours(s, skill, zone) {
     const i = CHAIN.indexOf(skill);
-    if (skill === 'trading') return q.openZones(s).map((z) => mouseAt(s, 'cheesemaking', z.id));
-    return [i > 0 ? mouseAt(s, CHAIN[i - 1], zone) : null, mouseAt(s, CHAIN[i + 1], zone)];
+    const lab = mouseAt(s, 'research', 'all');
+    // El investigador es vecino de todos los queseros y refinadores, y del tendero.
+    if (skill === 'research') return q.openZones(s).reduce((a, z) => a.concat(mouseAt(s, 'cheesemaking', z.id), mouseAt(s, 'refining', z.id)), [mouseAt(s, 'trading', 'all')]);
+    if (skill === 'trading') return q.openZones(s).map((z) => mouseAt(s, 'cheesemaking', z.id)).concat(lab);
+    return [i > 0 ? mouseAt(s, CHAIN[i - 1], zone) : null, mouseAt(s, CHAIN[i + 1], zone)].concat(skill === 'cheesemaking' || skill === 'refining' ? lab : []);
   }
   function setsOf(s, zone) {
     const line = CHAIN.slice(0, 4).map((skill) => {
@@ -102,7 +107,7 @@
     const me = mouseAt(s, skill, zone);
     if (me) {
       for (const n of neighbours(s, skill, zone)) for (const l of linksBetween(me, n)) if (out.links.indexOf(l) < 0) out.links.push(l);
-      if (skill !== 'trading') out.sets = setsOf(s, zone);
+      if (skill !== 'trading' && skill !== 'research') out.sets = setsOf(s, zone);
       for (const c of out.links.concat(out.sets)) for (const k of Object.keys(c.eff)) out.eff[k] = (out.eff[k] || 0) + c.eff[k];
     }
     return (teamMap[pk] = out);
@@ -112,6 +117,7 @@
   // Lo que le dan sus vecinos de línea (auras). Con `s` y `zone`.
   function auraFor(s, skill, zone) {
     const i = CHAIN.indexOf(skill);
+    if (i < 0) return 0; // el laboratorio no está en la línea: no recibe auras
     let total = 0;
     const from = (sk, z, key) => {
       const n = s.mice.find((x) => x.post === postKey(sk, z));
@@ -172,12 +178,12 @@
     const second = rarity === 2 ? pick(s, goods) : pick(s, idsOf('quirk'));
     // Afinidad por cada oficio; al menos uno le gusta.
     const aff = {};
-    for (const skill of CM.skills.list) {
+    for (const skill of JOBS) {
       const r = CM.rand(s);
       const lv = r < M.affinity[2].chance ? 2 : r < M.affinity[2].chance + M.affinity[1].chance ? 1 : 0;
       if (lv) aff[skill] = lv;
     }
-    if (!Object.keys(aff).length) aff[pick(s, CM.skills.list)] = 1;
+    if (!Object.keys(aff).length) aff[pick(s, JOBS)] = 1;
     // `look` decide su aspecto (pelaje, gorro, accesorio...): cada ratón es distinto.
     return { name, traits: [first, second], aff, look: Math.floor(CM.rand(s) * 1048576), rarity };
   }
@@ -228,7 +234,7 @@
   // Qué tiene pendiente de elegir: primero los rasgos de nivel, luego los de oficio.
   function pending(m) {
     if (m.picks < Math.min(M.traitSlots, Math.floor(level(m) / M.traitEvery))) return { kind: 'level', skill: '' };
-    for (const skill of CHAIN) if (!m.spec[skill] && (m.jobs[skill] || 0) >= M.jobGrades[0]) return { kind: 'job', skill };
+    for (const skill of JOBS) if (!m.spec[skill] && (m.jobs[skill] || 0) >= M.jobGrades[0]) return { kind: 'job', skill };
     return null;
   }
   function drawOptions(s, m, kind, skill, reroll) {
@@ -276,6 +282,7 @@
     doubleChance,
     pending,
     CHAIN,
+    JOBS,
     jobTraits,
     parts,
     ALBUM,
@@ -299,12 +306,13 @@
     },
     // Puestos que existen ahora, en orden de prioridad para colocar ratones:
     // la tienda, después taladro, refinado y cocinado de cada roca (la más
-    // valiosa primero) y por último la minería.
+    // valiosa primero), el laboratorio y por último la minería.
     posts(s) {
       const out = [];
       const zones = q.openZones(s).slice().reverse();
       if (s.built.shop) out.push({ skill: 'trading', zone: 'all' });
       for (const z of zones) for (const skill of ['drilling', 'refining', 'cheesemaking']) if (s.built[B.skills[skill].station]) out.push({ skill, zone: z.id });
+      if (s.built.lab) out.push({ skill: 'research', zone: 'all' });
       for (const z of zones) out.push({ skill: 'mining', zone: z.id });
       return out.map((p) => Object.assign(p, { key: postKey(p.skill, p.zone) }));
     },
@@ -567,7 +575,7 @@
         if (!m.post || !M.ranks[m.rank].manager) continue;
         const skill = m.post.split(':')[0];
         let best = null;
-        for (const node of B.trees[skill]) {
+        for (const node of B.trees[skill] || []) {
           const info = CM.tree.info(s, skill, node.id);
           if (info.canBuy && (!best || info.cost < best.cost)) best = { id: node.id, cost: info.cost };
         }

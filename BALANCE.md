@@ -200,7 +200,9 @@ El aspecto de cada edificio cambia al sumar 3, 8, 16, 30 y 50 rangos en la rama 
 
 Una hornada tarda 6 s más los extras de la receta: de 6 a 9 s antes de mejoras y maestría.
 
-**Cheese Lab.** Las recetas se investigan en una línea aparte, a la vez que la quesería produce. La primera tarda 12 s y cada una un 3 % más que la anterior (la número 50, un minuto; la 100, cuatro; la 150, 17; la 216, casi dos horas). Tras la primera receta el laboratorio sigue solo, probando la combinación de mayor valor que pueda pagar del queso más valioso; se puede apagar. Si le falta Cheese Base, la quesería de ese queso le deja juntar la suya antes de seguir.
+**Cheese Lab.** Edificio propio (gratis, tras descubrir 3 recetas a mano) con un puesto de **Research**. Las recetas se investigan aparte, a la vez que la quesería produce. La primera tarda 12 s y cada una un 3 % más que la anterior (la número 50, un minuto; la 100, cuatro; la 150, 17; la 216, casi dos horas); cuesta 4 de Cheese Base más 1 por receta ya conocida. Un 15 % de los resultados sale no concluyente (repite la mitad del trabajo, una sola vez) y un 5 % es un hallazgo (la receta nace con 15 quesos de maestría). Sin ratón, cada investigación la lanza el jugador; con ratón y una **dirección** marcada (más valor, más rápida de cocinar, un queso, un ingrediente, un tratamiento o una maduración) sigue sola dentro de ella. Si falta Cheese Base, el encargo queda apuntado y la quesería de ese queso deja que el laboratorio junte la suya antes de seguir.
+
+Rasgos de oficio de Research (grados x1 / x2 / x3,5 como los demás): Lab Rat (+10 % velocidad), Thrifty (−10 % de base por investigación), Good Nose (+4 puntos de hallazgo), Methodical (−4 puntos de no concluyente), Tinkerer (4 % de sacar una segunda receta del mismo queso). Legendario: Eureka (nunca no concluyente, +25 puntos de hallazgo). Una investigación cuenta para la especialidad por los segundos que pide (grado 1 hacia la receta 14, grado 2 hacia la 60, grado 3 hacia la 133). Combinaciones con vecinos (el investigador es vecino de queseros, refinadores y tendero): Test Kitchen (Good Nose + Seasoner, +20 %), Clean Samples (Methodical + Purifier, +15 %), Launch Party (Tinkerer + Showman, +20 %). En pantalla no se enseñan las probabilidades.
 
 Sinergias: Cheddar + Smoked ×1,2; Gouda + Honey ×1,25; Brie + Truffle ×1,25; Emmental + Aged ×1,25; Parmesan + Vintage ×1,3; Blue + Brined ×1,3; Pepper + Smoked ×1,15; Truffle + Vintage ×1,4.
 
@@ -218,29 +220,31 @@ Se simula el tiempo real desde el último guardado, con tope de 4 horas (ampliab
 
 ## Ritmo medido
 
-**El perfil de referencia es el jugador casual**, no el experto: toca una vez cada 1,5 s, compra mejoras cada 20 s (la más barata primero), deja de tocar cuando las cinco etapas tienen ratón, recluta al primer candidato, elige siempre el primer rasgo y deja que el laboratorio investigue solo. Los precios de las rocas están calibrados para él.
+**El perfil de referencia es el jugador casual**, no el experto: toca una vez cada 1,5 s, compra mejoras cada 20 s (la más barata primero), deja de tocar cuando las cinco etapas tienen ratón, recluta al primer candidato, elige siempre el primer rasgo, investiga a mano hasta tener el Cheese Lab y luego marca «más valor» y deja al ratón de Research. Los precios de las rocas están calibrados para él.
 
 | Hito | Casual | Experto (2,5 toques por segundo, compra cada 2 s) | Optimizando ratones |
 | --- | --- | --- | --- |
 | Primera venta | 1,8 min | 1,2 min | — |
 | Primer ratón | 1,7 min | 1 min | — |
-| Un ratón en las cinco etapas | 10 min | 8 min | — |
-| Primer ascenso | 21 min | 15 min | — |
-| Segunda roca | 31 min | 18 min | 18 min |
-| Tercera roca | 56 min | 32 min | 28 min |
-| Cuarta roca | 84 min | 77 min | 43 min |
-| Quinta roca | 126 min | 120 min | 59 min |
-| Sexta roca | 191 min | 181 min | 80 min |
+| Un ratón en las cinco etapas | 15 min | 8 min | — |
+| Primer ascenso | 23 min | 15 min | — |
+| Segunda roca | 36 min | 18 min | 18 min |
+| Tercera roca | 67 min | 32 min | 28 min |
+| Cuarta roca | 97 min | 77 min | 43 min |
+| Quinta roca | 148 min | 120 min | 59 min |
+| Sexta roca | 219 min | 181 min | 80 min |
+
+La columna del casual está medida con el Cheese Lab como edificio (12-10-2026): va un 15 % más lento que antes porque el laboratorio pide tres recetas a mano y ocupa un ratón; las otras dos columnas son anteriores.
 
 Casual, a lo largo de cuatro horas:
 
 | Tiempo | Niveles (Mining / Drilling / Refining / Cheesemaking / Trading) | Rocas | Recetas | Monedas ganadas |
 | --- | --- | --- | --- | --- |
-| 10 min | 2 / 11 / 9 / 9 / 7 | 1 | 6 | 1.292 |
-| 30 min | 4 / 22 / 17 / 24 / 21 | 1 | 18 | 299.000 |
-| 1 h | 16 / 40 / 34 / 47 / 43 | 3 | 57 | 10.100 M |
-| 2 h | 35 / 60 / 54 / 66 / 58 | 4 | 90 | 14,5 B |
-| 4 h | 50 / 73 / 68 / 79 / 70 | 6 | 117 | 460 B |
+| 10 min | 2 / 11 / 10 / 9 / 6 | 1 | 2 | 915 |
+| 30 min | 4 / 21 / 18 / 21 / 17 | 1 | 18 | 105.000 |
+| 1 h | 13 / 37 / 31 / 41 / 37 | 2 | 52 | 1.200 M |
+| 2 h | 31 / 57 / 52 / 63 / 57 | 4 | 102 | 7,1 B |
+| 4 h | 46 / 71 / 67 / 77 / 72 | 6 | 137 | 296 B |
 
 **Por qué se cambió la referencia.** Con los precios anteriores, calibrados con el experto, el jugador casual sin recetas tenía a los 30 minutos unos cientos de monedas y 9.600 ganadas, y no abría la segunda roca ni en 90 minutos. La diferencia venía sobre todo de las recetas: el experto las descubría antes de automatizar y el casual no podía, porque investigar paraba la quesería.
 
