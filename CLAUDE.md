@@ -46,7 +46,7 @@ Hecho:
 - Despensa sin tope, estilo banco de Melvor: cada recurso y cada receta en su fila.
 - Rocas con profundidad sin fin y seis zonas en escalera de precio (Cheddar, Gouda, Brie, Emmental, Parmesan, Blue). Cada zona es una línea completa (minería, taladro, refinado y cocinado) que trabaja en paralelo a las demás; solo la tienda es común.
 - Recetas de cuatro componentes con un único valor, rango y maestría; 216 combinaciones.
-- Venta por ciclos; el nivel de Trading trae mejores compradores. La tienda tiene clientela limitada: solo vende los dos tipos de queso más finos y el resto se acumula como stock (decidido el 12-10-2026 para que el queso exista como recurso y pueda gastarse en edificios).
+- Venta por ciclos; el nivel de Trading trae mejores compradores.
 - Edificios con seis aspectos según sus mejoras, subsuelo que baja con la profundidad de la roca (capas, pozo, carteles, montacargas), pueblo que crece y ratones que acarrean.
 - Primeros pasos a fuego lento: cada edificio de la cadena se anuncia, su casilla se marca como nueva y el jugador va a su panel a construirlo. Compra rápida de mejoras desde cada etapa, «BUY ALL» global y Cheesemaker que elige la mejor receta.
 - Progreso offline con la misma simulación.
@@ -71,7 +71,7 @@ Quitado respecto a la Alpha: almacén con capacidad, regateo, clientes con pacie
 
 ## Siguientes entregas (acordadas, sin construir)
 
-3. **Juego activo, colección y progresión** (en curso): hecho, seis rocas en escalera y álbum de ratones; falta queso dorado, logros con premio permanente, estadísticas, y un edificio o mecánica propia por roca. **Los edificios se incorporan de uno en uno**, jugando y mejorando cada uno antes del siguiente: hechos de golpe quedan genéricos.
+3. **Juego activo, colección y progresión** (en curso): hecho, seis rocas en escalera y álbum de ratones; falta queso dorado, logros con premio permanente, estadísticas, y un edificio o mecánica propia por roca (pendiente de proponer).
 4. **Árboles profundos:** elegir una ventaja cada 10 niveles, maestría por base y edificios disparatados al fondo de cada árbol.
 5. **Vender a lo grande:** cadena de tiendas, encargos, envíos, teletransporte, cohetes.
 6. **Zonas con mecánica propia.**

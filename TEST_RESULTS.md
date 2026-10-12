@@ -4,7 +4,7 @@
 
 ## Pruebas automáticas
 
-Ejecutadas abriendo `tests.html` en el navegador. **35 de 35 pasan.**
+Ejecutadas abriendo `tests.html` en el navegador. **34 de 34 pasan.**
 
 | Prueba | Resultado |
 | --- | --- |
@@ -25,7 +25,6 @@ Ejecutadas abriendo `tests.html` en el navegador. **35 de 35 pasan.**
 | Rasgos: afinidad, especialidades con grados, combinaciones, auras y suerte | pasa |
 | Combinaciones de equipo: vecinos de una línea y los cuatro ratones de una roca | pasa |
 | Los ratones clonados de partidas antiguas pasan a ser distintos, conservando lo ganado | pasa |
-| La tienda tiene clientela limitada: solo se venden los quesos más finos y el resto se acumula | pasa |
 | Ratones: cada uno tiene su propio aspecto, y los guardados antiguos reciben uno | pasa |
 | Niveles: curva de experiencia, bloqueo por nivel y comprar todo | pasa |
 | Offline: solo progresa lo automatizado, con tope y una sola vez | pasa |

@@ -172,19 +172,6 @@
     rawTotal: (s) => sum(s.inv.raw),
     baseTotal: (s) => sum(s.inv.base),
     lotsTotal: (s) => sum(s.lots),
-    // Quesos que la clientela compra: los de las rocas más valiosas de las que
-    // ya conoces alguna receta. El resto se guarda.
-    shopKinds: (s) => B.shop.kinds + mods(s)('shopKinds'),
-    shopBases(s) {
-      const known = {};
-      for (const r of s.recipes) known[r.key.split('+')[0]] = true;
-      return Object.keys(B.bases)
-        .filter((b) => known[b])
-        .sort((a, b) => B.bases[b].value - B.bases[a].value)
-        .slice(0, q.shopKinds(s));
-    },
-    isSold: (s, recipe) => q.shopBases(s).indexOf(recipe.key.split('+')[0]) >= 0,
-    lotsForSale: (s) => s.recipes.reduce((a, r) => a + (q.isSold(s, r) ? s.lots[r.id] || 0 : 0), 0),
     // Todo lo guardado, para el aspecto del almacén (crece con lo que tienes).
     stockTotal: (s) => q.rawTotal(s) + q.baseTotal(s) + q.lotsTotal(s),
 

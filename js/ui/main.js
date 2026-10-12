@@ -623,15 +623,13 @@
     const buyer = q.buyer(state);
     m.kind = 'sell';
     m.label = 'SELL';
-    const wanted = q.shopBases(state).map((b) => B.bases[b].name);
-    const stocked = q.lotsTotal(state) - q.lotsForSale(state);
-    m.status = buyer.name + ' (x' + buyer.mult + ') buy ' + (wanted.length ? wanted.join(' and ') : 'your cheese') + ' · ' + q.sellCount(state) + ' per sale / ' + P.secs(q.sellDuration(state)) + (stocked > 0 ? ' · ' + CM.fmt(stocked) + ' other cheese in stock' : '');
+    m.status = 'Customers: ' + buyer.name + ' (x' + buyer.mult + ') · ' + q.sellCount(state) + ' per sale / ' + P.secs(q.sellDuration(state)) + (auto ? ' · automated' : '');
     if (info.state === 'working') {
       m.sub = (auto ? 'Auto · ' : '') + 'selling for ' + CM.fmt(state.jobs.shop.coins);
       m.fill = info.progress;
       m.mode = '';
     } else if (info.state === 'ready') {
-      m.sub = CM.fmt(q.lotsForSale(state)) + ' cheese to sell';
+      m.sub = q.lotsTotal(state) + ' cheese to sell';
       m.mode = 'hot';
     } else {
       m.status = 'No cheese to sell yet. Make some in the Cheesery';
@@ -1387,18 +1385,6 @@
   }
   // Aviso en COLONY cuando hay algo que comprar ahí.
   function updateDots() {
-    // Aviso cuando la clientela deja de comprar un queso: desde ahí se acumula.
-    const nowSold = q.shopBases(state);
-    const soldKey = state.createdAt + ':' + nowSold.join();
-    if (ui.soldKey && ui.soldKey !== soldKey && ui.soldKey.split(':')[0] === String(state.createdAt)) {
-      const dropped = ui.soldKey.split(':')[1].split(',').filter((b) => b && nowSold.indexOf(b) < 0);
-      if (dropped.length) {
-        play('bell');
-        banner(B.bases[dropped[0]].name.toUpperCase() + ' NOW GOES TO STOCK');
-        toast('Your customers now buy ' + nowSold.map((b) => B.bases[b].name).join(' and ') + '. ' + dropped.map((b) => B.bases[b].name).join(', ') + ' is no longer sold: it piles up in your pantry', true);
-      }
-    }
-    ui.soldKey = soldKey;
     const next = CM.zones.next(state);
     const colony = next && state.coins >= next.unlockCost;
     $('nav-colony').querySelector('.dot').classList.toggle('on', !!colony);
