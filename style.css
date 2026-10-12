@@ -792,7 +792,7 @@ button {
 
 .panel {
   width: 100%;
-  max-height: 78%;
+  max-height: 76%;
   display: flex;
   flex-direction: column;
   padding: 10px 8px calc(10px + env(safe-area-inset-bottom));
@@ -4675,4 +4675,62 @@ button {
 .bbody {
   padding: 2px 8px 8px;
   font-family: var(--text);
+}
+
+/* Cheesery: tarjetas más bajas. La barra y el estado comparten fila cuando caben. */
+.cline {
+  margin-bottom: 4px;
+}
+.panel button.chead {
+  padding: 5px 8px;
+  gap: 8px;
+}
+.chead .pix {
+  width: 26px;
+  height: 26px;
+}
+.chead > span {
+  gap: 2px;
+}
+.chead b {
+  font-size: 13px;
+}
+.crow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  font-style: normal;
+}
+.crow .bar {
+  display: block;
+  flex: 1 1 70px;
+  height: 5px;
+  margin: 0;
+}
+.crow .cstat {
+  flex: 0 1 auto;
+}
+/* Recipe Book: los quesos en rejilla, todos a la vista (nada que desplazar ni que se corte) */
+.bookbases {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  margin-bottom: 8px;
+}
+.panel .bookbases button.chip {
+  min-width: 0;
+  padding: 7px 2px;
+  font-family: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* Los avisos van por encima de paneles y ventanas, bajo la barra de objetivo: ni tapan
+   la cabecera ni quedan cortados. */
+#toast {
+  z-index: 7;
+}
+.flyer {
+  width: 18px;
 }

@@ -427,8 +427,7 @@
     let h = '<div class="cline' + (open ? ' on' : '') + (tone ? ' ' + tone : '') + (job ? ' crun' : '') + '"><button data-act="cline:' + def.id + '" class="chead">' + I.img('lot', base, 'big') + '<span>';
     h += '<small>' + name.toUpperCase() + ' · ' + (mouse ? 'AUTO · ' + esc(mouse.name) : 'BY HAND') + '</small>';
     h += '<b>' + (r ? esc(r.name) : 'No recipe') + '</b>';
-    h += '<div class="bar"><i data-job="cook:' + def.id + '"></i></div>';
-    h += '<em class="cstat">' + state + '</em></span></button>';
+    h += '<i class="crow"><i class="bar"><i data-job="cook:' + def.id + '"></i></i><em class="cstat">' + state + '</em></i></span></button>';
     if (!open) return h + '</div>';
     // La línea elegida: por qué cocina eso, qué gasta y qué se puede hacer con ella.
     h += '<div class="cbody">';
@@ -460,7 +459,7 @@
     const lane = C.laneRecipe(s, zoneId);
     const pinnedId = C.recipe(s, z.cookRecipe) ? z.cookRecipe : '';
     let h = '<div class="tabs">' + btn('cview:lines', 'PRODUCTION', {}) + btn('noop', 'RECIPE BOOK ' + s.recipes.length + '/' + C.totalCombos(), { cls: 'on' }) + '</div>';
-    if (bases.length > 1) h += '<div class="strainpick">' + bases.map((b) => btn('bookbase:' + b, I.img('base', b) + B.bases[b].name, { cls: 'chip' + (b === base ? ' on' : '') })).join('') + '</div>';
+    if (bases.length > 1) h += '<div class="bookbases">' + bases.map((b) => btn('bookbase:' + b, I.img('base', b) + B.bases[b].name, { cls: 'chip' + (b === base ? ' on' : '') })).join('') + '</div>';
     const list = s.recipes.filter((r) => C.parseKey(r.key).base === base).sort((a, b) => C.valueOf(s, b, true) - C.valueOf(s, a, true));
     h += '<p class="hint">' + (!list.length ? 'You know no ' + B.bases[base].name + ' recipe yet. Discover one in LAB.' : mouse ? esc(mouse.name) + ' cooks the most valuable ' + B.bases[base].name + ' recipe on its own (BEST). Tap a recipe to pin another.' : 'Nobody cooks ' + B.bases[base].name + ': tap a recipe to make it by hand.') + '</p>';
     for (const r of list) {

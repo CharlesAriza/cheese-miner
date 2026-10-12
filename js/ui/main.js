@@ -51,7 +51,10 @@
     el.classList.add(cls);
   }
   // Texto que sube desde un edificio. Solo se usa para eventos reales.
+  // Con un panel o una ventana delante, la escena no se ve: nada flota ni vuela por encima.
+  const covered = () => !!ui.panel || !$('modal').hidden;
   function float(text, id, cls) {
+    if (covered()) return;
     const at = scene.anchor(id);
     if (at[0] < 0.03 || at[0] > 0.97 || els.floaters.childElementCount > 26) return;
     const el = document.createElement('div');
@@ -64,6 +67,8 @@
     el.addEventListener('animationend', () => el.remove());
   }
   function banner(text) {
+    // Detrás de un panel la franja no se vería: la noticia va en el aviso de arriba.
+    if (covered()) return toast(text, true);
     els.banner.textContent = text;
     retrigger(els.banner, 'show');
   }
@@ -104,9 +109,10 @@
   }
   // Iconos que vuelan de un sitio a otro: enseñan de dónde sale y a dónde va cada recurso.
   function fly(src, from, to, count, onArrive) {
-    if (els.flyers.childElementCount > 30) return onArrive && onArrive();
+    if (covered() || els.flyers.childElementCount > 30) return onArrive && onArrive();
     const a = pointOf(from);
-    const b = pointOf(to);
+    // Llegan al icono del contador, no encima de la cifra.
+    const b = pointOf((to.querySelector && to.querySelector('img.pix')) || to);
     const n = Math.max(1, Math.min(count, 5));
     for (let i = 0; i < n; i++) {
       const el = document.createElement('img');
@@ -123,7 +129,7 @@
         [
           { transform: 'translate(-50%,-50%) scale(0.4)', opacity: 0 },
           { transform: 'translate(-50%,-50%) translate(' + ox * 0.6 + 'px,' + (-24 + oy) + 'px) scale(1.5)', opacity: 1, offset: 0.25 },
-          { transform: 'translate(-50%,-50%) translate(' + dx + 'px,' + dy + 'px) scale(0.8)', opacity: 1 },
+          { transform: 'translate(-50%,-50%) translate(' + dx + 'px,' + dy + 'px) scale(0.45)', opacity: 0.25 },
         ],
         { duration: 620, delay: i * 55, easing: 'cubic-bezier(.5,0,.7,.4)', fill: 'backwards' }
       );
@@ -928,6 +934,11 @@
     if (html !== ui.lastHtml) {
       ui.lastHtml = html;
       $('sheet-body').innerHTML = html;
+      // Las filas que se desplazan de lado vuelven a enseñar lo elegido, centrado.
+      $('sheet-body').querySelectorAll('.strainpick').forEach((row) => {
+        const on = row.querySelector('.on');
+        if (on) row.scrollLeft = on.offsetLeft - row.offsetLeft - (row.clientWidth - on.offsetWidth) / 2;
+      });
       updateAfford();
     }
     const rep = $('dev-report');
