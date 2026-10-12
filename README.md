@@ -58,7 +58,9 @@ El ratón de Cheesemaking cocina por su cuenta la receta más valiosa que conozc
 
 **Cheese Lab.** Las recetas se investigan aparte de la producción: la quesería no se para. Las tres primeras las descubres tú eligiendo cuatro componentes; entonces puedes construir el Cheese Lab, un edificio propio en la colonia con un puesto para un ratón de **Research**. Tú marcas la dirección (más valor, más rápidas de cocinar, un queso o un componente concreto) y el ratón investiga dentro de ella; sin dirección no elige por ti. Research es un oficio más: afinidad, rasgos de oficio propios, un legendario y combinaciones con queseros, refinadores y tendero.
 
-**LAB en la barra.** El laboratorio tiene su propia pestaña junto a Mine, Drill, Refine, Cheese y Sell (aparece con la quesería). Dentro, una cabecera con el investigador y la investigación en curso, y dos secciones: RECIPES (dirección en un selector plegado, libro y receta a mano) y STRAINS (receta objetivo, cepa equipada, cepas encontradas con lo que dan y lo que piden, y comparación al encontrar una nueva).
+**LAB en la barra.** El laboratorio tiene su propia pestaña junto a Mine, Drill, Refine, Cheese y Sell. Empieza con lo esencial (investigar una receta a mano) y aprende con sus mejoras: Research Assistant (un ratón investiga por ti), Advanced Research (eliges la dirección) y Strain Research (cepas).
+
+**Cheesery.** PRODUCTION enseña una tarjeta por roca: qué receta cocina, su progreso, si la lleva un ratón o va a mano y, si está parada, qué le falta. Al tocar una se abre con sus datos y acciones. RECIPE BOOK lista las recetas de cada queso para compararlas y fijar una con ALWAYS COOK THIS.
 
 **Cepas (prototipo).** Otra manera de fabricar el mismo queso, de momento solo en Cheddar: Quick-set (más rápido, vale menos), Dense (vale más, gasta más Cheese Base) y Teaching (su quesero aprende más, vale menos). El investigador las encuentra para la receta que cocina la línea; tú decides cuál usar y puedes cambiarla cuando cambie tu fábrica.
 

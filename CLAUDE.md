@@ -73,9 +73,11 @@ Gestión (13-10-2026): MICE tiene vista por roca y lista completa; tocar un pues
 
 ### Cheese Lab
 
-Edificio propio en la colonia (gratis tras 3 recetas a mano) con un puesto del oficio **Research**, que usa el sistema de ratones tal cual (afinidad, rasgos de oficio, legendario, combinaciones de vecinos). El jugador marca la dirección de investigación y el ratón la ejecuta; sin dirección no investiga solo. La investigación va en paralelo a la producción y reserva su Cheese Base. Es la base prevista para mutaciones, que no están hechas. Pendiente: las recetas son finitas (216), así que el investigador se queda sin trabajo al final.
+Edificio propio en la colonia (gratis tras 3 recetas a mano). **Empieza sencillo y gana funciones con su propio árbol de mejoras** (`B.trees.lab`, sin nivel de habilidad): Research Assistant abre el puesto de Research; Advanced Research, las direcciones de investigación (antes, el ratón va siempre a por la receta más valiosa); Strain Research (Cheesemaking 10), la sección STRAINS. Además, dos mejoras de eficiencia (velocidad y coste). Las mejoras que abren una función las compra el jugador una a una, nunca BUY ALL, y cada una se explica al comprarla. La interfaz solo enseña lo desbloqueado. El oficio Research usa el sistema de ratones tal cual. Pendiente: las recetas son finitas (216).
 
-Interfaz: pestaña LAB en la barra de etapas (seis casillas; la del laboratorio va aparte de la cadena) y panel con cabecera común y dos secciones, RECIPES y STRAINS. Cada sección enseña solo lo suyo; lo que ocupa mucho (selector de dirección, receta a mano) va plegado. Las cepas también se buscan a mano. LAB aparece en la barra con la primera receta; antes, la primera se descubre desde CHEESE. Al construir el edificio, una ventana explica el paso de investigar a mano a tener investigador.
+Interfaz: pestaña LAB en la barra de etapas (seis casillas; la del laboratorio va aparte de la cadena) y panel con cabecera común y, cuando hay cepas, dos secciones, RECIPES y STRAINS. Lo que ocupa mucho (selector de dirección, receta a mano) va plegado. LAB aparece en la barra con la primera receta; antes, la primera se descubre desde CHEESE.
+
+Cheesery: dos vistas. PRODUCTION es una tarjeta por línea (receta entera, progreso, quién cocina, por qué está parada) y solo la elegida se abre con sus acciones; RECIPE BOOK lista las recetas de un queso para comparar y fijar una. Investigar es cosa del laboratorio.
 
 Cepas (prototipo, solo Cheddar): Quick-set, Dense y Teaching. Cada cepa da algo y pide algo; ninguna sube el valor sin coste en otra parte de la cadena. El investigador las encuentra, el jugador elige cuál usa y las encontradas no se pierden. Antes de ampliar (más quesos, Raw-pressed, dos cepas por receta) hay que jugarlo.
 

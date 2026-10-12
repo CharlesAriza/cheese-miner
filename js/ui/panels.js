@@ -57,6 +57,8 @@
     refBatch: (s) => round1(q.refineBatch(s) * q.refineMult(s)) + ' Base per cycle',
     refBonus: (s) => round1(q.refineBatch(s) * q.refineMult(s)) + ' Base from ' + round1(q.refineBatch(s) * q.skillMult(s, 'refining') * B.refinery.rawPerBase) + ' Raw',
     refSpeed: (s) => 'a cycle every ' + secs(q.refineDuration(s)),
+    labSpeed: (s) => 'the next recipe takes ' + secs(CM.cheesery.labTime(s)),
+    labSaving: (s) => 'the next research uses ' + CM.cheesery.labCost(s) + ' Cheese Base',
     cheeseBatch: (s) => q.cheeseBatch(s) + ' cheese per batch',
     cheeseSpeed: (s) => 'a plain cheese in ' + secs(B.cheesery.baseTimeMs / (1 + q.mods(s)('cheeseSpeed'))),
     cheeseValue: (s) => 'a plain Cheddar is worth ' + round1(B.bases.cheddar.value * (1 + q.mods(s)('cheeseValue')) * q.depthRich(s, B.zones[0].id)),
@@ -76,6 +78,7 @@
     return out;
   }
   function effectText(s, skill, node, rank) {
+    if (node.unlock) return rank ? 'Unlocked' : 'Not unlocked yet';
     if (node.max === 1) return rank ? 'Working for you' : 'Not hired yet';
     const show = SHOW[Object.keys(node.eff)[0]];
     const key = skill + '.' + node.id;
@@ -89,6 +92,11 @@
     ['special', 'SPECIAL', 'What makes this skill different'],
   ];
 
+  const LAB_BRANCHES = [
+    ['unlock', 'NEW FUNCTIONS', 'Each one opens something new in the lab'],
+    ['power', 'EFFICIENCY', 'Faster and cheaper research, by hand or with a mouse'],
+  ];
+
   // ---------- ÁRBOL DE UNA HABILIDAD ----------
   function treePanel(s, ui) {
     const skill = ui.tree;
@@ -99,9 +107,10 @@
       h += '<div class="rep"><div class="rhead"><b>' + B.skills[skill].name + ' · LEVEL ' + p.level + '</b><span>' + (p.maxed ? 'MAX' : CM.fmt(p.cur) + '/' + CM.fmt(p.need) + ' xp') + '</span></div>' + xpBar(p) + '<small>Each level: +' + Math.round(B.xp.bonusPerLevel * 100) + '% to this skill. Levels unlock new upgrades. You earn xp by doing the work, or by having a mouse do it.</small></div>';
     }
     if (skill === 'colony') h += zonesBlock(s);
-    const n = CM.tree.affordable(s, skill);
-    h += btn('buyAll:' + skill, n ? 'BUY EVERYTHING I CAN AFFORD' : 'NOTHING AFFORDABLE YET', { off: !n, cls: 'buy wide serveall' });
-    for (const br of BRANCHES) {
+    if (skill === 'lab') h += btn('open:lab', '<b>BACK TO THE LAB</b><span>The lab starts simple. Each upgrade here teaches it something new.</span><em>BACK</em>', { cls: 'labrow' });
+    const n = CM.tree.affordable(s, skill, true);
+    if (skill !== 'lab' || n) h += btn('buyAll:' + skill, n ? 'BUY EVERYTHING I CAN AFFORD' : 'NOTHING AFFORDABLE YET', { off: !n, cls: 'buy wide serveall' });
+    for (const br of skill === 'lab' ? LAB_BRANCHES : BRANCHES) {
       const nodes = B.trees[skill].filter((x) => x.branch === br[0]);
       if (!nodes.length) continue;
       h += '<h3>' + (skill === 'colony' ? 'WHILE YOU ARE AWAY' : br[1]) + '</h3><p class="hint">' + (skill === 'colony' ? 'Only stages with a mouse keep going when the game is closed' : br[2]) + '</p>';
@@ -110,9 +119,9 @@
         const title = node.name + (node.max > 1 ? ' <span class="rank">' + info.rank + (node.max >= 500 ? '' : '/' + node.max) + '</span>' : '');
         const sub = node.desc + '<br><span class="st ' + (info.rank ? 'good' : 'dim') + '">' + effectText(s, skill, node, info.rank) + '</span>';
         let right;
-        if (info.maxed) right = '<span class="tag">' + (node.max === 1 ? 'HIRED' : 'MAX') + '</span>';
-        else if (info.locked) right = '<span class="tag lock">Needs ' + B.skills[skill].name + '<br>LV ' + node.level + '</span>';
-        else right = btn('node:' + skill + ':' + node.id, (node.branch === 'auto' && node.max === 1 ? 'HIRE' : 'BUY') + '<br>' + coin(info.cost), { off: !info.canBuy, cls: 'buy', cost: info.cost });
+        if (info.maxed) right = '<span class="tag">' + (node.unlock ? 'DONE' : node.max === 1 ? 'HIRED' : 'MAX') + '</span>';
+        else if (info.locked) right = '<span class="tag lock">' + info.why.replace(/ (LV \d+)$/, '<br>$1') + '<br>' + coin(info.cost) + '</span>';
+        else right = btn('node:' + skill + ':' + node.id, (node.unlock ? 'UNLOCK' : node.branch === 'auto' && node.max === 1 ? 'HIRE' : 'BUY') + '<br>' + coin(info.cost), { off: !info.canBuy, cls: 'buy', cost: info.cost });
         h += row(title, sub, right, info.locked ? 'locked' : '');
       }
     }
@@ -180,7 +189,7 @@
     const wait = C.labWaiting(s);
     let h = '<div class="labhead' + (job ? ' busy' : '') + '">';
     // Sin edificio todavía no hay puesto: solo se enseña lo que se investiga.
-    if (s.built.lab) {
+    if (C.labHas(s, 'assistant')) {
       h += w
         ? '<button data-act="researcher" class="labwho">' + face(w) + '<span><b>' + esc(w.name) + '</b><small>Research LV ' + CM.mice.level(w) + hearts(w.aff.research) + '</small><small>' + mouseRate(s, w, 'research', 'all') + '</small></span><em>CHANGE</em></button>'
         : '<button data-act="researcher" class="labwho none"><i class="labhole">+</i><span><b>No researcher</b><small>Research by hand</small></span><em>ASSIGN</em></button>';
@@ -200,7 +209,7 @@
       h += '<div class="bar labtube wait"><i style="width:' + Math.round(Math.min(1, wait.have / wait.need) * 100) + '%"></i></div>';
       h += '<div class="labwait"><span>' + CM.fmt(Math.min(wait.have, wait.need)) + '/' + CM.fmt(wait.need) + ' ' + B.bases[wait.base].name + ' Base' + (wait.coin ? ' · ' + wait.coin + ' coins' : '') + '</span>' + (wait.queued ? btn('labcancel', 'CANCEL', { cls: 'chip' }) : '') + '</div>';
     } else {
-      h += '<small>IDLE</small><b>' + (w && s.lab.dir ? 'Nothing left in this direction' : w ? 'Choose a direction' : 'Start a research below') + '</b>';
+      h += '<small>IDLE</small><b>' + (w && C.labDir(s) ? 'Nothing left to research at your level' : w ? 'Choose a direction' : 'Start a research below') + '</b>';
     }
     return h + '</div></div></div>';
   }
@@ -213,16 +222,21 @@
     const dir = s.lab.dir;
     let h = '';
     if (s.built.lab) {
-      const what = dir === 'strain' ? 'is culturing strains: choose a direction to go back to recipes' : !dir ? 'researches nothing on its own until you choose' : C.labPick(s, false) ? 'works through ' + DIR_NAME(dir) : 'has nothing left in ' + DIR_NAME(dir) + ' at your Cheesemaking level';
-      h += '<button data-act="labdiropen" class="labdir' + (ui.labDirOpen ? ' open' : '') + '"><small>DIRECTION</small><b>' + DIR_LABEL(dir === 'strain' ? '' : dir) + '</b><span>' + (w ? esc(w.name) + ' ' + what : 'A researcher would follow it. With no mouse you start each one by hand') + '</span><em>' + (ui.labDirOpen ? 'CLOSE' : 'CHANGE') + '</em></button>';
-      if (ui.labDirOpen) {
-        // Una categoría a la vista cada vez: el selector no crece con las opciones.
-        const kind = String(dir || '').split(':')[0];
-        const cat = ui.labDirCat || (DIR_CATS.some((c) => c[0] === kind) ? kind : 'goal');
-        const chip = (d, label) => btn('labdir:' + (d || 'none'), label, { cls: 'chip' + (dir === d ? ' on' : '') });
-        const parts = (part) => Object.keys(B[C.TABLES[part]]).filter((id) => !C.partLocked(s, part, id)).map((id) => chip(part + ':' + id, (part === 'base' ? I.img('base', id) : '') + B[C.TABLES[part]][id].name)).join('');
-        h += '<div class="labdirsel"><div class="labcats">' + DIR_CATS.map((c) => btn('labdircat:' + c[0], c[1], { cls: cat === c[0] ? 'on' : '' })).join('') + '</div>';
-        h += '<div class="labopts">' + (cat === 'goal' ? chip('value', 'Highest value') + chip('fast', 'Quickest to cook') + chip('', 'None') : parts(cat)) + '</div></div>';
+      // Las direcciones llegan con Advanced Research; antes, el ratón va a por la más valiosa.
+      if (C.labHas(s, 'advanced')) {
+        const what = dir === 'strain' ? 'is culturing strains: choose a direction to go back to recipes' : !dir ? 'researches nothing on its own until you choose' : C.labPick(s, false) ? 'works through ' + DIR_NAME(dir) : 'has nothing left in ' + DIR_NAME(dir) + ' at your Cheesemaking level';
+        h += '<button data-act="labdiropen" class="labdir' + (ui.labDirOpen ? ' open' : '') + '"><small>DIRECTION</small><b>' + DIR_LABEL(dir === 'strain' ? '' : dir) + '</b><span>' + (w ? esc(w.name) + ' ' + what : 'Your researcher will follow it') + '</span><em>' + (ui.labDirOpen ? 'CLOSE' : 'CHANGE') + '</em></button>';
+        if (ui.labDirOpen) {
+          // Una categoría a la vista cada vez: el selector no crece con las opciones.
+          const kind = String(dir || '').split(':')[0];
+          const cat = ui.labDirCat || (DIR_CATS.some((c) => c[0] === kind) ? kind : 'goal');
+          const chip = (d, label) => btn('labdir:' + (d || 'none'), label, { cls: 'chip' + (dir === d ? ' on' : '') });
+          const parts = (part) => Object.keys(B[C.TABLES[part]]).filter((id) => !C.partLocked(s, part, id)).map((id) => chip(part + ':' + id, (part === 'base' ? I.img('base', id) : '') + B[C.TABLES[part]][id].name)).join('');
+          h += '<div class="labdirsel"><div class="labcats">' + DIR_CATS.map((c) => btn('labdircat:' + c[0], c[1], { cls: cat === c[0] ? 'on' : '' })).join('') + '</div>';
+          h += '<div class="labopts">' + (cat === 'goal' ? chip('value', 'Highest value') + chip('fast', 'Quickest to cook') + chip('', 'None') : parts(cat)) + '</div></div>';
+        }
+      } else if (w) {
+        h += '<div class="labinfo"><b>' + esc(w.name) + ' researches for you</b><span>' + (C.labDir(s) === 'strain' ? 'Now culturing strains.' : 'Always the most valuable recipe you can make, one after another.') + '</span></div>';
       }
     } else {
       const info = CM.construction.buildInfo(s, 'lab');
@@ -231,6 +245,13 @@
       h += '<div class="labbuild">' + I.img('flask', '', 'big') + '<div>' + (info.canBuild
         ? '<b>THE CHEESE LAB IS READY TO BUILD</b><small>Its own building, with a post for a Research mouse: you choose what to look for and it researches for you.</small>' + btn('build:lab', 'BUILD · It is free', { cls: 'buy wide' })
         : '<b>CHEESE LAB · ' + got + '/' + need + ' RECIPES</b><div class="labpips">' + Array.from({ length: need }, (_, n) => '<i class="' + (n < got ? 'on' : '') + '"></i>').join('') + '</div><small>Discover ' + need + ' recipes by hand and you can build the lab, where a mouse researches for you.</small>') + '</div></div>';
+    }
+    if (s.built.lab) {
+      // Mejoras: lo siguiente que el laboratorio puede aprender, siempre a mano.
+      const nextUp = B.trees.lab.find((n) => n.unlock && !CM.tree.rank(s, 'lab', n.id));
+      const ready = CM.tree.affordable(s, 'lab');
+      const ni = nextUp ? CM.tree.info(s, 'lab', nextUp.id) : null;
+      h += btn('tree:lab', '<b>LAB UPGRADES</b><span>' + (nextUp ? 'Next: ' + nextUp.name + ' · ' + (ni.locked ? ni.why.toLowerCase() : CM.fmt(ni.cost) + ' coins') : 'Faster and cheaper research') + '</span><em>' + (ready ? ready + ' READY' : 'OPEN') + '</em>', { cls: 'labrow' + (ready ? ' ready' : '') });
     }
     h += btn('book', '<b>RECIPE BOOK</b><span>' + s.recipes.length + '/' + C.totalCombos() + ' discovered</span><em>OPEN</em>', { cls: 'labrow', off: !s.recipes.length });
     // A mano: abierto mientras no haya quien investigue; con investigador, plegado.
@@ -323,6 +344,8 @@
     if (!s.recipes.length) return (s.lab.job ? labHeader(s) : '<p class="lead">A cheese is <b>a base and three choices</b>. Pick them and discover your first one: you get the recipe and a cheese to sell.</p>') + recipePicker(s, ui);
     let h = labHeader(s);
     if (!s.built.lab) return h + labRecipes(s, ui);
+    // STRAINS no existe en pantalla hasta que se compra su investigación.
+    if (!CM.cheesery.strainsOpen(s)) return h + labRecipes(s, ui);
     const tab = ui.labTab === 'strains' ? 'strains' : 'recipes';
     const fresh = !!s.lab.found || (CM.cheesery.strainsOpen(s) && !s.recipes.some((r) => (r.strains || []).length) && !(s.lab.job && s.lab.job.strain));
     h += '<div class="tabs labtabs">' + btn('labtab:recipes', 'RECIPES', { cls: tab === 'recipes' ? 'on' : '' }) + btn('labtab:strains', 'STRAINS' + (fresh ? ' · NEW' : ''), { cls: (tab === 'strains' ? 'on' : '') + (fresh && tab !== 'strains' ? ' labnew' : '') }) + '</div>';
@@ -368,45 +391,109 @@
     return h + '<p class="hint">Cheesemaking LV ' + level + '. Higher levels unlock better ingredients.</p>';
   }
 
-  function cheesePanel(s, ui) {
+  // ---------- CHEESERY ----------
+  // Dos vistas: PRODUCCIÓN (una tarjeta por línea, la elegida abierta) y RECIPE BOOK
+  // (las recetas de un queso, para comparar y elegir). Investigar es cosa del laboratorio.
+  const strainTag = (r) => (r && r.strain ? '<i class="ctag" data-strain="' + r.strain + '">' + B.strains[r.strain].name + '</i>' : '');
+  function cheeseLine(s, ui, def, open) {
     const C = CM.cheesery;
-    const laneOf = (base) => s.zones[q.zoneOfBase(base)];
-    const hasCook = q.isAutomated(s, 'cheesemaking');
-    const cookAt = (base) => q.auto(s, 'cheesemaking', q.zoneOfBase(base));
-    const level = q.level(s, 'cheesemaking');
-    let h = '';
-    // Cada queso se cocina en su propia línea: puede haber varios encargos a la vez.
-    for (const def of q.openZones(s)) {
-      const job = s.zones[def.id].cookJob;
-      if (!job) continue;
-      const r = job.recipeId ? C.recipe(s, job.recipeId) : null;
-      const label = job.kind === 'experiment' && !r ? 'New ' + B.bases[def.base].name + ' recipe...' : esc(r ? r.name : 'cheese') + (job.lotsLeft > 1 ? ' (' + job.lotsLeft + ' left)' : '');
-      h += '<div class="jobbar">' + I.img('lot', def.base) + '<span>' + label + '</span><div class="bar"><i data-job="cook:' + def.id + '"></i></div>' + btn('cheeseTap:' + def.id, 'SPEED UP', { cls: 'buy' }) + '</div>';
-    }
-    h += '<p class="hint stock">' + C.unlockedBases(s).map((b) => I.img('base', b) + B.bases[b].name + ' Base ' + CM.fmt(s.inv.base[b])).join(' &nbsp; ') + '</p>';
-    h += btn('open:lab', '<b>CHEESE LAB</b><span>research recipes and strains</span><em>OPEN</em>', { cls: 'labrow' });
-
-    if (!s.recipes.length) return h + '<p class="hint">No recipes yet. Research one in the CHEESE LAB.</p>';
-    h += '<p class="hint">' + (hasCook ? 'A mouse on Cheesemaking cooks the most valuable recipe of its cheese on its own. Pin a different one with ALWAYS COOK THIS.' : 'Each cheese is cooked on its own line, at the same time. Tip: put a mouse on Cheesemaking (MICE) to cook automatically.') + '</p>';
-    const sorted = s.recipes.slice().sort((a, b) => CM.cheesery.valueOf(s, b) - CM.cheesery.valueOf(s, a));
-    for (const r of sorted) {
+    const z = s.zones[def.id];
+    const base = def.base;
+    const name = B.bases[base].name;
+    const job = z.cookJob;
+    const mouse = CM.mice.at(s, 'cheesemaking', def.id);
+    const lane = C.laneRecipe(s, def.id);
+    const pinned = !!C.recipe(s, z.cookRecipe);
+    const cooking = job && job.recipeId ? C.recipe(s, job.recipeId) : null;
+    const r = cooking || lane;
+    const have = s.inv.base[base];
+    const reserve = s.lab.want === base ? C.labCost(s) : 0;
+    let state = '';
+    let tone = '';
+    if (job) state = (job.per > 1 ? CM.fmt(job.per) + ' cheeses' : '1 cheese') + ' every ' + secs(job.total);
+    else if (!r) {
+      state = C.knowsRecipeFor(s, base) ? 'No coins for the ingredient of any ' + name + ' recipe' : 'No ' + name + ' recipe yet: discover one in LAB';
+      tone = 'cbad';
+    } else if (have - reserve < C.baseUse(r)) {
+      state = 'Waiting for Cheese Base: ' + CM.fmt(have) + '/' + CM.fmt(C.baseUse(r) + reserve) + (reserve ? ' (' + reserve + ' set aside for the lab)' : '');
+      tone = 'cwarn';
+    } else if (s.coins < B.ingredients[C.parseKey(r.key).ingredient].coinCost) {
+      state = 'Needs ' + B.ingredients[C.parseKey(r.key).ingredient].coinCost + ' coins for ' + B.ingredients[C.parseKey(r.key).ingredient].name;
+      tone = 'cbad';
+    } else if (!mouse) {
+      state = 'Ready: nobody cooks here, make it by hand';
+      tone = 'cidle';
+    } else state = 'Starting';
+    let h = '<div class="cline' + (open ? ' on' : '') + (tone ? ' ' + tone : '') + (job ? ' crun' : '') + '"><button data-act="cline:' + def.id + '" class="chead">' + I.img('lot', base, 'big') + '<span>';
+    h += '<small>' + name.toUpperCase() + ' · ' + (mouse ? 'AUTO · ' + esc(mouse.name) : 'BY HAND') + '</small>';
+    h += '<b>' + (r ? esc(r.name) : 'No recipe') + '</b>';
+    h += '<div class="bar"><i data-job="cook:' + def.id + '"></i></div>';
+    h += '<em class="cstat">' + state + '</em></span></button>';
+    if (!open) return h + '</div>';
+    // La línea elegida: por qué cocina eso, qué gasta y qué se puede hacer con ella.
+    h += '<div class="cbody">';
+    if (r) {
       const combo = C.parseKey(r.key);
       const coins = B.ingredients[combo.ingredient].coinCost;
+      const why = !mouse ? 'You choose what to make here.' : pinned ? 'Pinned by you: ' + esc(mouse.name) + ' always cooks this one.' : esc(mouse.name) + ' cooks your most valuable ' + name + ' recipe.';
+      h += '<p>' + (mouse ? '<i class="ctag ' + (pinned ? 'pin' : 'best') + '">' + (pinned ? 'PINNED' : 'BEST') + '</i>' : '') + strainTag(r) + why + '</p>';
+      if (cooking && lane && lane.id !== cooking.id) h += '<p class="cnext">Next batch: ' + esc(lane.name) + '</p>';
+      h += '<ul class="cfacts"><li><b>' + C.baseUse(r) + '</b>' + name + ' Base each' + (coins ? ' + ' + coins + 'c' : '') + '</li><li><b>' + CM.fmt(have) + '</b>Base in stock</li><li><b>' + CM.fmt(CM.shop.price(s, r)) + '</b>coins each</li></ul>';
+    }
+    h += '<div class="cact">';
+    if (job) h += btn('cheeseTap:' + def.id, 'SPEED UP<br><small>each tap: ' + secs(B.cheesery.boostMs) + ' off this batch</small>', { cls: 'buy' });
+    else if (r && !mouse) {
       const max = C.maxLots(s, r);
-      const job = laneOf(combo.base).cookJob;
-      const mouseHere = cookAt(combo.base);
-      const cooking = mouseHere && C.isCooking(s, r);
-      const autoPick = mouseHere && !cooking && !laneOf(combo.base).cookRecipe && C.laneRecipe(s, q.zoneOfBase(combo.base)) === r;
+      h += btn('make:' + r.id + ':1', 'MAKE 1', { off: max < 1, cls: 'buy' }) + btn('make:' + r.id + ':' + Math.max(1, max), 'MAKE ' + (max > 1 ? max : 'MAX'), { off: max < 2, cls: 'buy' });
+    }
+    h += btn('bookbase:' + base, 'CHANGE RECIPE', { cls: 'chip' });
+    if (!mouse) h += btn('staffpost:cheesemaking:' + def.id, 'PUT A MOUSE', { cls: 'chip' });
+    return h + '</div></div></div>';
+  }
+  function cheeseBook(s, ui) {
+    const C = CM.cheesery;
+    const bases = C.unlockedBases(s);
+    const base = bases.indexOf(ui.bookBase) >= 0 ? ui.bookBase : B.zones.find((z) => z.id === ui.zone).base;
+    const zoneId = q.zoneOfBase(base);
+    const z = s.zones[zoneId];
+    const mouse = CM.mice.at(s, 'cheesemaking', zoneId);
+    const lane = C.laneRecipe(s, zoneId);
+    const pinnedId = C.recipe(s, z.cookRecipe) ? z.cookRecipe : '';
+    let h = '<div class="tabs">' + btn('cview:lines', 'PRODUCTION', {}) + btn('noop', 'RECIPE BOOK ' + s.recipes.length + '/' + C.totalCombos(), { cls: 'on' }) + '</div>';
+    if (bases.length > 1) h += '<div class="strainpick">' + bases.map((b) => btn('bookbase:' + b, I.img('base', b) + B.bases[b].name, { cls: 'chip' + (b === base ? ' on' : '') })).join('') + '</div>';
+    const list = s.recipes.filter((r) => C.parseKey(r.key).base === base).sort((a, b) => C.valueOf(s, b, true) - C.valueOf(s, a, true));
+    h += '<p class="hint">' + (!list.length ? 'You know no ' + B.bases[base].name + ' recipe yet. Discover one in LAB.' : mouse ? esc(mouse.name) + ' cooks the most valuable ' + B.bases[base].name + ' recipe on its own (BEST). Tap a recipe to pin another.' : 'Nobody cooks ' + B.bases[base].name + ': tap a recipe to make it by hand.') + '</p>';
+    for (const r of list) {
+      const combo = C.parseKey(r.key);
+      const isPinned = pinnedId === r.id;
+      const isBest = !!mouse && !pinnedId && lane === r;
+      const open = ui.bookRow === r.id;
       const m = C.masteryLevel(r);
-      const nextAt = B.cheesery.masteryAt[m];
-      const syn = C.formula(combo).synergies;
-      h +=
-        '<div class="recipe' + (cooking || autoPick ? ' cooking' : '') + '"><div class="rhead">' + I.img('lot', combo.base, 'big') + '<b>' + esc(r.name) + '</b>' + btn('rename:' + r.id, 'RENAME', { cls: 'mini' }) + '</div><small>' + comboLine(combo) + (syn.length ? ' · ' + syn.join(', ') : '') + '</small><div>' + valueTag(s, r) + '<span class="stat">Mastery ' + m + (nextAt ? ' · ' + (r.made || 0) + '/' + nextAt : ' MAX') + '</span></div>' +
-        '<div class="rfoot"><span>Have ' + (s.lots[r.id] || 0) + ' · ' + B.cheesery.lotBase + ' Base' + (coins ? ' + ' + coins + 'c' : '') + ' each · ' + secs(C.jobTime(s, combo, r)) + '</span><span>' +
-        btn('make:' + r.id + ':1', 'MAKE 1', { off: job || max < 1, cls: 'buy' }) + btn('make:' + r.id + ':' + Math.max(1, max), 'MAKE ' + (max > 1 ? max : 'MAX'), { off: job || max < 2, cls: 'buy' }) + '</span></div>' +
-        (mouseHere ? btn(cooking ? 'uncook:' + q.zoneOfBase(combo.base) : 'cook:' + r.id, cooking ? 'PINNED · TAP TO GO BACK TO AUTO' : autoPick ? 'COOKING THIS (BEST) · TAP TO PIN' : 'ALWAYS COOK THIS', { cls: 'wide ' + (cooking ? 'on' : autoPick ? 'auto' : '') }) : '') + '</div>';
+      h += '<div class="brow' + (open ? ' on' : '') + (isPinned || isBest ? ' cooking' : '') + '"><button data-act="bookrow:' + r.id + '" class="bhead"><b>' + esc(r.name) + '</b><span>' + (isPinned ? '<i class="ctag pin">PINNED</i>' : isBest ? '<i class="ctag best">BEST</i>' : '') + strainTag(r) + '</span><small>' + valueTag(s, r) + '<span class="stat">' + secs(C.jobTime(s, combo, r)) + '</span><span class="stat">' + C.baseUse(r) + ' Base</span><span class="stat">Mastery ' + m + '</span></small></button>';
+      if (open) {
+        const coins = B.ingredients[combo.ingredient].coinCost;
+        const max = C.maxLots(s, r);
+        const job = z.cookJob;
+        const nextAt = B.cheesery.masteryAt[m];
+        const syn = C.formula(combo).synergies;
+        h += '<div class="bbody"><p>' + comboLine(combo) + (syn.length ? ' · ' + syn.join(', ') : '') + (coins ? ' · ' + coins + ' coins each' : '') + '</p><p>' + (nextAt ? 'Mastery ' + m + ': ' + CM.fmt(r.made || 0) + '/' + CM.fmt(nextAt) + ' made for the next level' : 'Mastery at its top level') + ' · ' + CM.fmt(s.lots[r.id] || 0) + ' in stock</p><div class="cact">';
+        if (mouse) h += btn(isPinned ? 'uncook:' + zoneId : 'cook:' + r.id, isPinned ? 'BACK TO AUTO' : 'ALWAYS COOK THIS', { cls: 'buy' });
+        else h += btn('make:' + r.id + ':1', 'MAKE 1', { off: !!job || max < 1, cls: 'buy' }) + btn('make:' + r.id + ':' + Math.max(1, max), 'MAKE ' + (max > 1 ? max : 'MAX'), { off: !!job || max < 2, cls: 'buy' });
+        h += btn('rename:' + r.id, 'RENAME', { cls: 'chip' }) + '</div></div>';
+      }
+      h += '</div>';
     }
     return h;
+  }
+  function cheesePanel(s, ui) {
+    const C = CM.cheesery;
+    if (ui.cheeseView === 'book') return cheeseBook(s, ui);
+    const zones = q.openZones(s);
+    const sel = zones.some((z) => z.id === ui.cheeseLine) ? ui.cheeseLine : '';
+    let h = '<div class="tabs">' + btn('noop', 'PRODUCTION', { cls: 'on' }) + btn('cview:book', 'RECIPE BOOK ' + s.recipes.length + '/' + C.totalCombos(), {}) + '</div>';
+    for (const def of zones) h += cheeseLine(s, ui, def, def.id === sel);
+    if (!q.isAutomated(s, 'cheesemaking')) h += '<p class="hint">Each cheese is cooked on its own line, all at once. A mouse on Cheesemaking keeps its line going on its own.</p>';
+    return h + btn('open:lab', '<b>CHEESE LAB</b><span>new recipes are discovered there</span><em>OPEN</em>', { cls: 'labrow' });
   }
 
   // ---------- DESPENSA ----------
@@ -831,7 +918,7 @@
     title(name, ui, s) {
       if (name === 'lab' && s && !s.recipes.length) return 'YOUR FIRST RECIPE';
       if (name === 'lab' && s && !s.built.lab) return 'RECIPES';
-      if (name === 'tree') return ui.tree === 'colony' ? 'COLONY' : B.skills[ui.tree].name.toUpperCase() + ' UPGRADES';
+      if (name === 'tree') return ui.tree === 'colony' ? 'COLONY' : ui.tree === 'lab' ? 'LAB UPGRADES' : B.skills[ui.tree].name.toUpperCase() + ' UPGRADES';
       return { cheese: 'CHEESERY', lab: 'CHEESE LAB', stock: 'PANTRY', mice: 'MICE', options: 'MENU', dev: 'PLAYTEST TOOLS' }[name];
     },
     render(name, s, ui) {

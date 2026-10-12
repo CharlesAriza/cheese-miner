@@ -35,9 +35,14 @@
       const node = this.node(skill, id);
       const rank = this.rank(s, skill, id);
       const cost = this.cost(s, skill, id);
-      const locked = B.skills[skill] ? q.level(s, skill) < node.level : false;
+      // Por qué no se puede comprar todavía: nivel, el edificio del laboratorio, otra mejora.
+      let why = B.skills[skill] && q.level(s, skill) < node.level ? 'Needs ' + B.skills[skill].name + ' LV ' + node.level : '';
+      if (!why && skill === 'lab' && !s.built.lab) why = 'Build the Cheese Lab';
+      if (!why && node.needs && !this.rank(s, skill, node.needs)) why = 'Needs ' + this.node(skill, node.needs).name;
+      if (!why && node.needLevel && q.level(s, node.needLevel.skill) < node.needLevel.level) why = 'Needs ' + B.skills[node.needLevel.skill].name + ' LV ' + node.needLevel.level;
+      const locked = !!why;
       const maxed = rank >= node.max;
-      return { rank, max: node.max, cost, locked, maxed, canBuy: !locked && !maxed && s.coins >= cost };
+      return { rank, max: node.max, cost, locked, why, maxed, canBuy: !locked && !maxed && s.coins >= cost };
     },
     buy(s, skill, id) {
       const node = this.node(skill, id);
@@ -49,6 +54,8 @@
       s.nodes[skill + '.' + id] = info.rank + 1;
       s.totals.nodesBought += 1;
       spend(s, info.cost, 'node:' + skill + '.' + id);
+      // Con las direcciones recién abiertas, el laboratorio sigue con lo que ya hacía.
+      if (skill === 'lab' && id === 'advanced' && !s.lab.dir) s.lab.dir = 'value';
       CM.emit(s, 'nodeBought', { skill, id, rank: info.rank + 1, auto: node.branch === 'auto' });
       return CM.ok();
     },
@@ -58,6 +65,7 @@
       for (let guard = 0; guard < 500; guard++) {
         let best = null;
         for (const node of B.trees[skill]) {
+          if (node.unlock) continue; // lo que abre una función lo compra el jugador, leyendo qué es
           const info = this.info(s, skill, node.id);
           if (info.canBuy && (!best || info.cost < best.cost)) best = { id: node.id, cost: info.cost };
         }
@@ -67,7 +75,8 @@
       return bought ? CM.ok({ bought }) : CM.fail('no-coins');
     },
     // Cuántos nudos de un árbol se pueden comprar ahora mismo.
-    affordable: (s, skill) => B.trees[skill].filter((n) => CM.tree.info(s, skill, n.id).canBuy).length,
+    // `bulk`: solo lo que compraría BUY ALL (sin las mejoras que abren funciones).
+    affordable: (s, skill, bulk) => B.trees[skill].filter((n) => !(bulk && n.unlock) && CM.tree.info(s, skill, n.id).canBuy).length,
   };
 
   // Edificios de la cadena: gratis, se desbloquean por hitos.

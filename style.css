@@ -122,8 +122,10 @@ button {
   white-space: nowrap;
 }
 
+/* Un saldo negativo es consumo normal (la siguiente etapa gasta más de lo que entra):
+   no es un error, así que no va en rojo. */
 .res em.neg {
-  color: #ff8a9c;
+  color: #c9b98a;
 }
 
 .res.bump b {
@@ -4454,4 +4456,223 @@ button {
 }
 .straincard.unknown small {
   margin-left: 4px;
+}
+
+/* ---------- Cheese Lab por etapas ---------- */
+.labinfo {
+  margin: 0 0 8px;
+  padding: 9px 10px;
+  font-family: var(--text);
+  background: var(--panel-2);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+}
+.labinfo b {
+  display: block;
+  font-size: 14px;
+}
+.labinfo span {
+  font-size: 11px;
+  color: var(--quiet);
+}
+.panel button.labrow.ready {
+  border-color: #5fcf6a;
+}
+.panel button.labrow.ready em {
+  color: #8df09a;
+}
+
+/* ---------- Cheesery: una tarjeta por línea ---------- */
+.cline {
+  margin-bottom: 6px;
+  background: #33271c;
+  border: 2px solid var(--ink);
+  border-left: 5px solid #6b5a45;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.cline.crun {
+  border-left-color: #5fcf6a;
+}
+.cline.cwarn {
+  border-left-color: #ffd43a;
+}
+.cline.cbad {
+  border-left-color: #ff5a7a;
+}
+.cline.on {
+  border-color: var(--gold);
+  border-left-color: var(--gold);
+}
+.panel button.chead {
+  width: 100%;
+  padding: 7px 8px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-align: left;
+  font-family: var(--text);
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.chead .pix {
+  flex: none;
+  width: 30px;
+  height: 30px;
+}
+.chead > span {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.chead small {
+  font-family: var(--pixel);
+  font-size: 6px;
+  color: #d8b98a;
+}
+.chead b {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.chead .bar {
+  height: 6px;
+  margin: 0;
+}
+.cstat {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--quiet);
+}
+.cline.cwarn .cstat {
+  color: #ffe08a;
+}
+.cline.cbad .cstat {
+  color: var(--bad);
+}
+.cline.crun .cstat {
+  color: #b9e8be;
+}
+.cbody {
+  padding: 0 8px 8px;
+  font-family: var(--text);
+}
+.cbody p,
+.bbody p {
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.cbody p.cnext {
+  color: #ffe08a;
+}
+.ctag {
+  display: inline-block;
+  margin-right: 5px;
+  padding: 2px 5px;
+  font-family: var(--pixel);
+  font-style: normal;
+  font-size: 6px;
+  vertical-align: middle;
+  color: var(--ink);
+  background: var(--strain, #b9b1d0);
+  border-radius: 3px;
+}
+.ctag.best {
+  background: #8df09a;
+}
+.ctag.pin {
+  background: var(--gold);
+}
+.cfacts {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+.cfacts li {
+  flex: 1;
+  padding: 5px 4px;
+  font-size: 10px;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--quiet);
+  background: #0000003d;
+  border-radius: 5px;
+}
+.cfacts b {
+  display: block;
+  font-size: 14px;
+  color: #fff;
+}
+.cact {
+  display: flex;
+  gap: 6px;
+}
+.panel .cact button {
+  flex: 1;
+  min-height: 40px;
+}
+.panel .cact button.chip {
+  flex: 0 1 auto;
+}
+.cact small {
+  font-family: var(--text);
+  font-size: 10px;
+}
+
+/* Recipe Book: filas compactas, una abierta */
+.brow {
+  margin-bottom: 5px;
+  background: var(--bg);
+  border: 2px solid var(--ink);
+  border-radius: 7px;
+  overflow: hidden;
+}
+.brow.cooking {
+  border-color: #8df09a;
+}
+.brow.on {
+  border-color: var(--gold);
+}
+.panel button.bhead {
+  width: 100%;
+  padding: 7px 8px 4px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 6px;
+  align-items: center;
+  text-align: left;
+  font-family: var(--text);
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.bhead b {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.bhead small {
+  grid-column: 1 / -1;
+}
+.bhead .stat {
+  margin: 2px 4px 2px 0;
+  padding: 2px 5px;
+  font-size: 10px;
+}
+.bbody {
+  padding: 2px 8px 8px;
+  font-family: var(--text);
 }

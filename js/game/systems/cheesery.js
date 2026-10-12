@@ -138,7 +138,7 @@
     // cuál se usa lo decide el jugador, y las encontradas no se pierden.
     strainOf,
     baseUse,
-    strainsOpen: (s) => s.built.lab && q.level(s, 'cheesemaking') >= B.cheesery.strainLevel,
+    strainsOpen: (s) => !!s.built.lab && CM.tree.rank(s, 'lab', 'strains') > 0,
     // Receta en la que trabajaría ahora el laboratorio: la que cocina la línea y, cuando
     // ya tiene todas las cepas, la siguiente más valiosa de ese queso.
     strainTarget(s) {
@@ -217,12 +217,20 @@
     },
 
     labWorker: (s) => (s.built.lab ? CM.mice.at(s, 'research', 'all') : null),
-    labTime: (s) => Math.round(B.cheesery.labBaseMs * Math.pow(B.cheesery.labGrowth, s.recipes.length)),
+    // Lo que el laboratorio ya sabe hacer (sus mejoras).
+    labHas: (s, id) => !!s.built.lab && CM.tree.rank(s, 'lab', id) > 0,
+    // Dirección que sigue el investigador. Hasta Advanced Research solo sabe ir a por la
+    // receta más valiosa; después manda la que marque el jugador (ninguna: no investiga solo).
+    labDir(s) {
+      if (s.lab.dir === 'strain') return this.strainsOpen(s) ? 'strain' : this.labHas(s, 'advanced') ? '' : 'value';
+      return this.labHas(s, 'advanced') ? s.lab.dir : 'value';
+    },
+    labTime: (s) => Math.round((B.cheesery.labBaseMs * Math.pow(B.cheesery.labGrowth, s.recipes.length)) / (1 + q.mods(s)('labSpeed'))),
     // Cheese Base que cuesta la siguiente investigación (sube con el libro; Thrifty lo abarata).
     labCost(s) {
       const w = this.labWorker(s);
       const cut = w ? CM.mice.trait(w, 'labCost', 'research') : 0;
-      return Math.max(1, Math.round((B.cheesery.experimentBase + B.cheesery.labCostGrowth * s.recipes.length) * Math.max(0.2, 1 + cut)));
+      return Math.max(1, Math.round((B.cheesery.experimentBase + B.cheesery.labCostGrowth * s.recipes.length) * Math.max(0.2, 1 + cut - q.mods(s)('labSaving'))));
     },
     // Probabilidades del laboratorio con el ratón que haya (o sin él).
     labOdds(s) {
@@ -276,14 +284,14 @@
         combo = parseKey(s.lab.next);
         name = known ? known.name : defaultName(combo);
         strain = !!known;
-      } else if (this.labWorker(s) && s.lab.dir === 'strain') {
+      } else if (this.labWorker(s) && this.labDir(s) === 'strain') {
         const t = this.strainsOpen(s) ? this.strainTarget(s) : null;
         if (t) {
           combo = parseKey(t.key);
           name = t.name;
           strain = true;
         }
-      } else if (this.labWorker(s) && s.lab.dir) {
+      } else if (this.labWorker(s) && this.labDir(s)) {
         combo = this.labPick(s, false);
         if (combo) name = defaultName(combo);
       }
@@ -304,7 +312,7 @@
     // Siguiente combinación según la dirección: la de más valor dentro de ella
     // (o la más rápida de cocinar, si la dirección es 'fast') que se pueda pagar ahora.
     labPick(s, onlyAffordable) {
-      const dir = s.lab.dir;
+      const dir = this.labDir(s);
       if (!dir) return null;
       const cost = this.labCost(s);
       let best = null;
@@ -371,10 +379,6 @@
       }
       // Con un ratón en el laboratorio y una dirección marcada, la investigación sigue sola.
       // Buscar la siguiente es caro: se mira una vez cada dos segundos, no en cada paso.
-      if (!s.lab.strains && this.strainsOpen(s)) {
-        s.lab.strains = true;
-        CM.emit(s, 'strainsOpen', {});
-      }
       // Un encargo a mano que esperaba base va antes que la dirección.
       if (s.lab.next && !s.lab.job) {
         const combo = parseKey(s.lab.next);
@@ -387,9 +391,10 @@
           return;
         }
       }
-      const auto = !!this.labWorker(s) && !!s.lab.dir;
+      const dir = this.labDir(s);
+      const auto = !!this.labWorker(s) && !!dir;
       if (auto && !s.lab.job && Math.floor(s.clock / 2000) !== Math.floor((s.clock - dt) / 2000)) {
-        if (s.lab.dir === 'strain') {
+        if (dir === 'strain') {
           // Cepas: trabaja sobre la receta que cocina la línea.
           const target = this.strainsOpen(s) ? this.strainTarget(s) : null;
           if (target && !this.strainStart(s, null, 'worker').ok) s.lab.want = parseKey(target.key).base;
@@ -541,7 +546,7 @@
     },
     rename(s, recipeId, name) {
       const recipe = this.recipe(s, recipeId);
-      const clean = String(name || '').replace(/\s+/g, ' ').trim().slice(0, 24);
+      const clean = String(name || '').replace(/\s+/g, ' ').trim().slice(0, 40);
       if (!recipe) return CM.fail('unknown-recipe');
       if (!clean) return CM.fail('empty-name');
       recipe.name = clean;

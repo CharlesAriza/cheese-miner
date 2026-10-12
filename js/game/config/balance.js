@@ -95,7 +95,6 @@ CM.BALANCE = {
     // Cepas (prototipo): solo en estos quesos, desde este nivel de Cheesemaking;
     // cultivar una cepa tarda `strainTime` veces lo que una receta.
     strainBases: ['cheddar'],
-    strainLevel: 10,
     strainTime: 2,
     experimentBase: 3, // Cheese Base que cuesta descubrir una receta (da 1 queso)
     lotBase: 2, // Cheese Base por queso de una receta conocida
@@ -246,6 +245,16 @@ CM.BALANCE = {
     ],
     // La colonia no tiene nivel: sus nudos solo cuestan monedas. No hay almacén
     // con tope: todo se acumula sin límite en la despensa, como un banco.
+    // El laboratorio no tiene nivel: gana funciones con sus mejoras. `unlock` marca las que
+    // abren algo (las compra el jugador una a una, nunca BUY ALL); `needs` pide otra mejora
+    // del mismo árbol y `needLevel` un nivel de habilidad.
+    lab: [
+      { id: 'assistant', branch: 'unlock', unlock: true, name: 'Research Assistant', desc: 'Opens a Research post: a mouse there researches recipes for you', level: 0, max: 1, cost: 100, growth: 1, eff: {} },
+      { id: 'advanced', branch: 'unlock', unlock: true, name: 'Advanced Research', desc: 'You choose what the lab looks for: value, speed, one cheese or one component', needs: 'assistant', level: 0, max: 1, cost: 3000, growth: 1, eff: {} },
+      { id: 'strains', branch: 'unlock', unlock: true, name: 'Strain Research', desc: 'Opens STRAINS: mutations of a cheese you already know', needLevel: { skill: 'cheesemaking', level: 10 }, level: 0, max: 1, cost: 25000, growth: 1, eff: {} },
+      { id: 'burners', branch: 'power', name: 'Bunsen Burners', desc: 'Every research is 8% faster', level: 0, max: 25, cost: 400, growth: 1.6, eff: { labSpeed: 0.08 } },
+      { id: 'samples', branch: 'power', name: 'Smaller Samples', desc: 'Every research uses 5% less Cheese Base', level: 0, max: 10, cost: 600, growth: 1.8, eff: { labSaving: 0.05 } },
+    ],
     colony: [
       { id: 'lamp', branch: 'special', name: 'Night Lamp', desc: 'Your mice keep working 2 more hours while you are away', level: 0, max: 10, cost: 500, growth: 2.2, eff: { offlineHours: 2 } },
     ],

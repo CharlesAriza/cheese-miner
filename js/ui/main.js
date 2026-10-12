@@ -20,6 +20,10 @@
     station: 'rock',
     zone: B.zones[0].id, // roca que se ve en la escena
     cheeseTab: 'book',
+    cheeseView: 'lines', // PRODUCTION o RECIPE BOOK
+    cheeseLine: null, // línea abierta en PRODUCTION
+    bookBase: null,
+    bookRow: null,
     labTab: 'recipes', // sección del laboratorio a la vista
     labDirOpen: false,
     labDirCat: null,
@@ -231,11 +235,6 @@
         toast(found.name + ' sells for ' + CM.fmt(CM.shop.price(state, found)) + ' coins' + (ev.breakthrough ? ' and starts with mastery ' + CM.cheesery.masteryLevel(found) : '') + '. It is in your Recipe Book', true);
         break;
       }
-      case 'strainsOpen':
-        play('reveal');
-        banner('NEW IN THE CHEESE LAB: STRAINS');
-        toast('A strain is another way to make the same cheese. Open LAB and go to STRAINS', true);
-        break;
       case 'strainFound': {
         const r = CM.cheesery.recipe(state, ev.recipeId);
         play('reveal');
@@ -393,6 +392,7 @@
           banner(node.name.toUpperCase() + ' HIRED!');
           scene.celebrate();
         }
+        if (ev.skill === 'lab' && node.unlock) labUpgradeCard(ev.id);
         if (ev.skill === 'cheesemaking' && ev.id === 'maker' && state.recipes.length) {
           ui.cheeseTab = 'book';
           openPanel('cheese');
@@ -545,6 +545,7 @@
     const researcher = CM.cheesery.labWorker(state);
     const labJob = state.lab.job;
     const strainsFresh = CM.cheesery.strainsOpen(state) && !state.recipes.some((r) => (r.strains || []).length) && !(labJob && labJob.strain);
+    const labUps = state.built.lab ? CM.tree.affordable(state, 'lab') : 0;
     const labNew = !!state.lab.found || strainsFresh || (!state.built.lab && (CM.construction.buildInfo(state, 'lab').canBuild || (!ui.labSeen && state.totals.recipes === 1)));
     const noLab = state.totals.recipes < 1;
     if (lab.hidden !== noLab) lab.hidden = noLab;
@@ -553,7 +554,7 @@
     set(lab, 'isnew', labNew);
     set(lab.querySelector('.mini > i'), 'width', Math.round(progress(labJob) * 100) + '%');
     set(lab.querySelector('u'), 'text', researcher ? 'LV ' + CM.mice.level(researcher) : state.built.lab ? 'BY HAND' : Math.min(state.totals.recipes, B.buildings.lab.requires.min) + '/' + B.buildings.lab.requires.min);
-    set(lab.querySelector('em'), 'text', labNew ? 'NEW!' : researcher && state.lab.dir ? 'AUTO' : '');
+    set(lab.querySelector('em'), 'text', labNew ? 'NEW!' : labUps ? 'UP! ' + labUps : researcher && CM.cheesery.labDir(state) ? 'AUTO' : '');
     const def = q.zoneDef(ui.zone);
     bubble('rock', def.name.toUpperCase() + ' · DEPTH ' + state.zones[ui.zone].depth, 'name');
     set($('nav-colony'), 'goal', goalAt === 'colony');
@@ -895,7 +896,14 @@
     $('sheet-title').textContent = P.title(name, ui, state);
     $('sheet').hidden = false;
     $('sheet-body').scrollTop = 0;
-    if (name === 'cheese') scene.focus('cheesery');
+    if (name === 'cheese') {
+      scene.focus('cheesery');
+      ui.cheeseView = 'lines';
+      // Con pocas rocas se abre la que estás mirando; con muchas, todas a la vista.
+      ui.cheeseLine = q.openZones(state).length <= 2 ? ui.zone : '';
+      ui.bookBase = null;
+      ui.bookRow = null;
+    }
     if (name === 'mice') {
       ui.pick = null;
       ui.card = null;
@@ -907,7 +915,7 @@
   function openTree(skill) {
     ui.tree = skill;
     openPanel('tree');
-    scene.focus(skill === 'colony' ? 'storage' : B.skills[skill].station);
+    scene.focus(skill === 'colony' ? 'storage' : skill === 'lab' ? 'lab' : B.skills[skill].station);
   }
   function closePanel() {
     ui.panel = null;
@@ -932,7 +940,7 @@
   $('nav-menu').addEventListener('click', () => openPanel('options'));
   const muteLabel = () => {};
   // Compra todo lo que alcance en todos los árboles, de más barato a más caro.
-  const buyable = () => Object.keys(B.trees).reduce((a, k) => a + ((B.skills[k] ? state.built[B.skills[k].station] !== false : true) ? CM.tree.affordable(state, k) : 0), 0);
+  const buyable = () => Object.keys(B.trees).reduce((a, k) => a + ((B.skills[k] ? state.built[B.skills[k].station] !== false : true) ? CM.tree.affordable(state, k, true) : 0), 0);
   $('nav-all').addEventListener('click', () => {
     let bought = 0;
     for (let round = 0; round < 50; round++) {
@@ -1004,7 +1012,19 @@
     dismiss: (id) => void confirmDismiss(id),
     managers: () => void (state.settings.managersBuy = !state.settings.managersBuy),
     tab: (name) => void (ui.cheeseTab = name),
-    book: () => void openPanel('cheese'),
+    book: () => {
+      openPanel('cheese');
+      ui.cheeseView = 'book';
+    },
+    cview: (name) => void ((ui.cheeseView = name), (ui.bookRow = null), ($('sheet-body').scrollTop = 0)),
+    cline: (zoneId) => void (ui.cheeseLine = ui.cheeseLine === zoneId ? '' : zoneId),
+    bookbase: (base) => void ((ui.cheeseView = 'book'), (ui.bookBase = base), (ui.bookRow = null), ($('sheet-body').scrollTop = 0)),
+    bookrow: (id) => void (ui.bookRow = ui.bookRow === id ? null : id),
+    // Abrir MICE con un puesto ya elegido.
+    staffpost: (skill, zone) => {
+      openPanel('mice');
+      ui.pick = { type: 'post', key: skill + ':' + zone };
+    },
     labtab: (name) => void (ui.labTab = name),
     labdiropen: () => void ((ui.labDirOpen = !ui.labDirOpen), (ui.labDirCat = null)),
     labdircat: (cat) => void (ui.labDirCat = cat),
@@ -1013,8 +1033,8 @@
     strainfind: (id) => CM.cheesery.strainStart(state, id),
     // Cambiar de investigador: MICE, con el puesto de Research ya abierto.
     researcher: () => {
-      if (!state.built.lab) return void openPanel('mice');
       openPanel('mice');
+      if (!CM.cheesery.labHas(state, 'assistant')) return;
       ui.pick = { type: 'post', key: 'research:all' };
     },
     pick: (part, value) => void (ui.combo[part] = value),
@@ -1093,7 +1113,7 @@
     const combo = CM.cheesery.parseKey(recipe.key);
     const value = CM.cheesery.valueOf(state, recipe);
     showModal(
-      '<h2>' + (isNew ? 'NEW RECIPE!' : 'RENAME RECIPE') + '</h2><div class="hero">' + I.img('lot', combo.base, 'huge') + '</div><p class="hint">' + P.comboLine(combo) + '</p><div class="stats"><span class="stat v">' + P.coin(CM.shop.price(state, recipe)) + '</span><span class="stat tier ' + CM.cheesery.tierOf(value).toLowerCase() + '">' + CM.cheesery.tierOf(value) + '</span></div><input id="name-input" maxlength="24" autocomplete="off" value="' + P.esc(recipe.name) + '" /><p class="hint">' +
+      '<h2>' + (isNew ? 'NEW RECIPE!' : 'RENAME RECIPE') + '</h2><div class="hero">' + I.img('lot', combo.base, 'huge') + '</div><p class="hint">' + P.comboLine(combo) + '</p><div class="stats"><span class="stat v">' + P.coin(CM.shop.price(state, recipe)) + '</span><span class="stat tier ' + CM.cheesery.tierOf(value).toLowerCase() + '">' + CM.cheesery.tierOf(value) + '</span></div><input id="name-input" maxlength="40" autocomplete="off" value="' + P.esc(recipe.name) + '" /><p class="hint">' +
         (isNew ? 'It is in your Recipe Book now, with 1 cheese ready to sell. Give it a name:' : 'Pick a new name:') + '</p><div class="row"><button class="buy" data-m="ok">SAVE</button></div>',
       {
         ok() {
@@ -1139,9 +1159,23 @@
   // Del experimento a mano al laboratorio: qué cambia y qué hay que hacer ahora.
   function labBuiltCard() {
     showModal(
-      '<h2>CHEESE LAB BUILT!</h2><div class="hero">' + I.img('flask', '', 'huge') + '</div><p class="lead">Until now you discovered every recipe <b>by hand</b>. From here a mouse can do it <b>for you</b>, while your cheesemakers keep cooking.</p><ul class="list"><li><b>Assign a researcher:</b> the lab has its own post, Research.</li><li><b>Choose a direction:</b> you decide what it looks for; the mouse does the work.</li><li><b>By hand still works,</b> whenever you want one recipe in particular.</li></ul><div class="row"><button class="buy" data-m="ok">OPEN THE LAB</button></div>',
+      '<h2>CHEESE LAB BUILT!</h2><div class="hero">' + I.img('flask', '', 'huge') + '</div><p class="lead">The lab <b>discovers new recipes</b> while your cheesemakers keep cooking.</p><ul class="list"><li><b>For now you start each research</b> yourself: pick the parts and go.</li><li><b>The lab learns with its upgrades.</b> The first one, Research Assistant, lets a mouse research for you.</li></ul><div class="row"><button class="buy" data-m="ok">OPEN THE LAB</button></div>',
       { ok: () => openPanel('lab') }
     );
+  }
+
+  // Cada mejora que abre una función del laboratorio: qué es y dónde está.
+  function labUpgradeCard(id) {
+    const cards = {
+      assistant: ['RESEARCH ASSISTANT', 'The lab now has a <b>Research post</b>.', ['Put a mouse there and it researches for you, one recipe after another.', 'It always goes for the <b>most valuable recipe</b> you can make.', 'Your cheesemakers keep cooking meanwhile.'], 'ASSIGN A MOUSE', () => ACTS.researcher()],
+      advanced: ['ADVANCED RESEARCH', 'You now choose the <b>direction</b> of the research.', ['Highest value, quickest to cook, one cheese, or one ingredient, treatment or maturation.', 'The mouse does the work; what to look for is your call.', 'With no direction it waits for you.'], 'CHOOSE A DIRECTION', () => { openPanel('lab'); ui.labTab = 'recipes'; ui.labDirOpen = true; }],
+      strains: ['STRAIN RESEARCH', 'The lab has a new section: <b>STRAINS</b>.', ['A strain is a mutation of a cheese you already know: the same recipe, made another way.', 'Each one gives something and asks for something.', 'Found strains are never lost: you decide which one a recipe uses.'], 'SEE STRAINS', () => { openPanel('lab'); ui.labTab = 'strains'; }],
+    };
+    const c = cards[id];
+    if (!c) return;
+    banner(c[0] + ' UNLOCKED!');
+    scene.celebrate();
+    showModal('<h2>' + c[0] + '</h2><div class="hero">' + I.img('flask', '', 'huge') + '</div><p class="lead">' + c[1] + '</p><ul class="list">' + c[2].map((l) => '<li>' + l + '</li>').join('') + '</ul><div class="row"><button class="buy" data-m="ok">' + c[3] + '</button></div>', { ok: c[4] });
   }
 
   // Explica qué se acaba de comprar al abrir una roca.

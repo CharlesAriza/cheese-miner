@@ -1,6 +1,6 @@
 # Resultados de pruebas
 
-Última ejecución: 12 de octubre de 2026, con el prototipo de cepas del Cheese Lab.
+Última ejecución: 12 de octubre de 2026, con el árbol de mejoras del Cheese Lab y la Cheesery rediseñada.
 
 ## Pruebas automáticas
 

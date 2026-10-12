@@ -916,16 +916,36 @@
     // El edificio: tres recetas a mano, y lo construye el jugador
     eq(s.recipes.length, 3, 'three recipes by hand');
     eq(K.posts(s).some((p) => p.skill === 'research'), false, 'no Research post without the building');
+    eq(CM.tree.buy(s, 'lab', 'assistant').reason, 'level-locked', 'lab upgrades need the building');
     eq(CM.construction.build(s, 'lab').ok, true, 'build the Cheese Lab');
-    truthy(K.posts(s).some((p) => p.key === 'research:all'), 'it adds a Research post');
-    // Sin ratón o sin dirección no investiga solo
+    // El laboratorio empieza sencillo y gana funciones con sus mejoras
+    eq(K.posts(s).some((p) => p.skill === 'research'), false, 'a new lab has no Research post yet');
     s.inv.base.cheddar = 500;
-    s.coins = 1000;
+    s.coins = 50000;
+    eq(CM.tree.buy(s, 'lab', 'advanced').reason, 'level-locked', 'Advanced Research needs the assistant first');
+    eq(CM.tree.buyAll(s, 'lab').ok && CM.tree.rank(s, 'lab', 'assistant'), 0, 'BUY ALL never buys an upgrade that opens a function');
+    s.nodes = {};
+    s.coins = 50000;
+    eq(CM.tree.buy(s, 'lab', 'assistant').ok, true, 'buy Research Assistant');
+    truthy(K.posts(s).some((p) => p.key === 'research:all'), 'it opens the Research post');
     run(s, 6000);
     eq(s.lab.job, null, 'with no mouse the lab waits for you');
     const m = staff(s, 'research', 'all', { aff: { research: 2 } });
+    s.lab.dir = 'ingredient:pepper';
+    run(s, 4200);
+    truthy(s.lab.job && C.keyOf(C.labPick(s, false) || {}) !== undefined && C.labDir(s) === 'value', 'with only the assistant the mouse goes for the most valuable recipe, whatever was set');
+    s.lab.dir = '';
+    eq(CM.tree.buy(s, 'lab', 'advanced').ok, true, 'buy Advanced Research');
+    eq(s.lab.dir, 'value', 'the lab carries on with what it was doing');
+    s.lab.dir = '';
+    s.lab.job = null;
     run(s, 6000);
-    eq(s.lab.job, null, 'a mouse with no direction does not choose for you');
+    eq(s.lab.job, null, 'with directions open, no direction means the mouse does not choose for you');
+    const time = C.labTime(s);
+    const baseCost = C.labCost(s);
+    CM.tree.buy(s, 'lab', 'burners');
+    CM.tree.buy(s, 'lab', 'samples');
+    truthy(C.labTime(s) < time && C.labCost(s) <= baseCost, 'Bunsen Burners and Smaller Samples make research faster and cheaper');
     // Con dirección: el ratón ejecuta
     s.skills.cheesemaking.xp = q.xpForLevel(12);
     s.lab.dir = 'ingredient:honey';
@@ -974,14 +994,20 @@
     const C = CM.cheesery;
     const r = s.recipes[0];
     s.built.lab = true;
+    s.coins = 100000;
+    eq(C.strainsOpen(s), false, 'a lab does not know about strains until it is upgraded');
+    eq(CM.tree.buy(s, 'lab', 'strains').reason, 'level-locked', 'Strain Research needs Cheesemaking level 10');
+    s.skills.cheesemaking.xp = q.xpForLevel(10);
+    eq(C.strainStart(s, r.id).reason, 'locked', 'no strains without the upgrade');
+    eq(CM.tree.buy(s, 'lab', 'strains').ok, true, 'buy Strain Research');
+    CM.tree.buy(s, 'lab', 'assistant');
+    CM.tree.buy(s, 'lab', 'advanced');
+    s.lab.dir = '';
     s.coins = 1000;
-    eq(C.strainsOpen(s), false, 'strains wait for Cheesemaking level ' + B.cheesery.strainLevel);
-    s.skills.cheesemaking.xp = q.xpForLevel(B.cheesery.strainLevel);
     s.inv.base.cheddar = 2000;
     s.lab.dir = 'strain';
     run(s, 6000);
     eq(s.lab.job, null, 'with no researcher nothing starts on its own');
-    truthy(s.lab.strains, 'the new direction is announced once');
     // Primero a mano
     eq(C.strainStart(s, r.id).ok, true, 'look for a strain by hand, on the recipe you choose');
     eq(C.strainStart(s, r.id).queued, true, 'one at a time: asking again queues the next');
@@ -1153,6 +1179,24 @@
     truthy(m4.built.house, 'the Mouse House comes with them');
     truthy(q.auto(m4, 'drilling', 'gouda'), 'still automated after migrating');
     valid(m4);
+    // v6: el laboratorio ya construido conserva lo que usaba, ahora como mejoras compradas.
+    const v6 = JSON.parse(JSON.stringify(withCheese()));
+    v6.version = 6;
+    v6.built.lab = true;
+    v6.built.house = true;
+    v6.nodes = {};
+    v6.lab.dir = 'ingredient:pepper';
+    v6.recipes[0].strains = ['dense'];
+    v6.recipes[0].strain = 'dense';
+    v6.mice = [{ id: 'm900', name: 'Old', traits: ['fast', 'dreamer'], aff: { research: 2 }, xp: 50, rank: 0, post: 'research:all', rest: false }];
+    const m6 = CM.storage.parse(JSON.stringify(v6), 1);
+    truthy(m6, 'version 6 saves still load');
+    truthy(CM.cheesery.labHas(m6, 'assistant') && CM.cheesery.labHas(m6, 'advanced') && CM.cheesery.strainsOpen(m6), 'a lab already built keeps its researcher post, directions and strains');
+    eq(m6.mice[0].post + '/' + m6.lab.dir + '/' + m6.recipes[0].strain, 'research:all/ingredient:pepper/dense', 'and the researcher, the direction and the equipped strain stay as they were');
+    const v6new = JSON.parse(JSON.stringify(withCheese()));
+    v6new.version = 6;
+    eq(CM.cheesery.labHas(CM.storage.parse(JSON.stringify(v6new), 1), 'assistant'), false, 'a save with no lab gets nothing for free');
+    valid(m6);
     // Los nudos de almacén ya no existen: una partida que los tenía recupera sus monedas.
     localStorage.setItem(CM.storage.KEY, JSON.stringify({ version: 4, coins: 10, nodes: { 'colony.silo': 2, 'colony.lamp': 1 } }));
     const refunded = CM.storage.load(1).state;
@@ -1248,7 +1292,7 @@
     const chains = [];
     let lastTap = -1e9;
     let lastBuy = -1e9;
-    const ORDER = ['drilling', 'refining', 'trading', 'cheesemaking', 'mining', 'colony'];
+    const ORDER = ['drilling', 'refining', 'trading', 'cheesemaking', 'mining', 'colony', 'lab'];
     while (s.clock < limitMs && s.goalsDone[stopAt] === undefined) {
       CM.sim.step(s, STEP);
       for (const id of CM.construction.order) CM.construction.build(s, id);
@@ -1287,6 +1331,8 @@
         if (smart && s.clock % 60000 < 2000 && s.mice.length > 1) CM.mice.bestFit(s);
         // Ahorra como lo haría una persona: para el siguiente ratón y para la
         // siguiente roca cuando su economía ya da para ella.
+        // El laboratorio: sus mejoras de función, en cuanto se pueden pagar.
+        for (const id of ['assistant', 'advanced', 'strains']) CM.tree.buy(s, 'lab', id);
         const mouse = s.built.house && !!CM.mice.freePost(s) && s.totals.coinsEarned > CM.mice.recruitCost(s) * 0.6;
         const saving = mouse || (next && s.totals.coinsEarned > next.unlockCost * 0.5);
         if (!saving) {

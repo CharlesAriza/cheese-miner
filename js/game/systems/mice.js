@@ -312,7 +312,7 @@
       const zones = q.openZones(s).slice().reverse();
       if (s.built.shop) out.push({ skill: 'trading', zone: 'all' });
       for (const z of zones) for (const skill of ['drilling', 'refining', 'cheesemaking']) if (s.built[B.skills[skill].station]) out.push({ skill, zone: z.id });
-      if (s.built.lab) out.push({ skill: 'research', zone: 'all' });
+      if (s.built.lab && CM.tree.rank(s, 'lab', 'assistant')) out.push({ skill: 'research', zone: 'all' });
       for (const z of zones) out.push({ skill: 'mining', zone: z.id });
       return out.map((p) => Object.assign(p, { key: postKey(p.skill, p.zone) }));
     },

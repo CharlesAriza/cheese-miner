@@ -2,7 +2,7 @@
 (function () {
   const B = CM.BALANCE;
 
-  CM.SAVE_VERSION = 6;
+  CM.SAVE_VERSION = 7;
   CM.events = []; // cola que consume la UI para dar feedback
   CM.muted = false; // true durante la simulación offline: no hay feedback visual
 

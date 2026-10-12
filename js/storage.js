@@ -78,7 +78,10 @@
 
     s.recipes = s.recipes.filter((r) => isObj(r) && typeof r.id === 'string' && CM.cheesery.parseKey(r.key));
     s.recipes.forEach((r) => {
-      r.name = String(r.name || CM.cheesery.defaultName(CM.cheesery.parseKey(r.key))).slice(0, 24);
+      // Los nombres se cortaban a 24 letras («...Honey Chedda»): los que eran el nombre de serie cortado se reponen enteros.
+      const full = CM.cheesery.defaultName(CM.cheesery.parseKey(r.key));
+      r.name = String(r.name || full).slice(0, 40);
+      if (r.name.length === 24 && full.length > 24 && full.indexOf(r.name) === 0) r.name = full;
       r.made = nat(r.made);
       // Cepas: las encontradas, la activa y la que espera al siguiente encargo.
       r.strains = Array.isArray(r.strains) ? r.strains.filter((id, i, all) => B.strains[id] && all.indexOf(id) === i) : [];
@@ -277,6 +280,20 @@
     data.version = 6;
   }
 
+  // v6 -> v7: el laboratorio gana sus funciones con mejoras. Quien ya lo tenía construido
+  // conserva lo que usaba: el puesto de Research, las direcciones y, si las tenía, las cepas.
+  function migrate6(data) {
+    const nodes = isObj(data.nodes) ? data.nodes : (data.nodes = {});
+    if (isObj(data.built) && data.built.lab) {
+      nodes['lab.assistant'] = 1;
+      nodes['lab.advanced'] = 1;
+      const xp = isObj(data.skills) && isObj(data.skills.cheesemaking) ? Number(data.skills.cheesemaking.xp) || 0 : 0;
+      const used = (isObj(data.lab) && (data.lab.strains || data.lab.dir === 'strain')) || (Array.isArray(data.recipes) && data.recipes.some((r) => isObj(r) && Array.isArray(r.strains) && r.strains.length));
+      if (used || xp >= CM.q.xpForLevel(10)) nodes['lab.strains'] = 1;
+    }
+    data.version = 7;
+  }
+
   // Convierte texto JSON en un estado válido, o null si no sirve.
   function parse(text, now) {
     let data;
@@ -289,6 +306,7 @@
     if (isObj(data) && data.version === 3) migrate3(data);
     if (isObj(data) && data.version === 4) migrate4(data);
     if (isObj(data) && data.version === 5) migrate5(data);
+    if (isObj(data) && data.version === 6) migrate6(data);
     if (!isObj(data) || data.version !== CM.SAVE_VERSION) return null;
     const s = CM.createState(now);
     try {
