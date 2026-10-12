@@ -34,6 +34,12 @@
   const tierOf = (value) => B.tiers.reduce((best, t) => (value >= t.min ? t : best), B.tiers[0]).name;
   const lotTime = (combo) => B.cheesery.baseTimeMs + B.treatments[combo.treatment].timeMs + B.maturations[combo.maturation].timeMs;
 
+  // Cepa activa de una receta (o null) y lo que cambia: base por queso y valor.
+  const has = (recipe) => recipe.strains || (recipe.strains = []);
+  const strainOf = (recipe) => (recipe && recipe.strain && B.strains[recipe.strain]) || null;
+  const baseUse = (recipe) => B.cheesery.lotBase * ((strainOf(recipe) || {}).base || 1);
+  const strainValue = (id) => (B.strains[id] || {}).value || 1;
+
   // Maestría de una receta (1..n) según los quesos fabricados.
   function masteryLevel(recipe) {
     const made = (recipe && recipe.made) || 0;
@@ -46,14 +52,15 @@
   // Tiempo real por queso: receta, mejoras de velocidad y maestría.
   function jobTime(s, combo, recipe) {
     const mastery = Math.max(0.3, 1 - B.cheesery.masteryTime * (masteryLevel(recipe) - 1));
-    return Math.max(300, Math.round((lotTime(combo) / (1 + q.mods(s)('cheeseSpeed'))) * mastery));
+    return Math.max(300, Math.round((lotTime(combo) / (1 + q.mods(s)('cheeseSpeed'))) * mastery * ((strainOf(recipe) || {}).time || 1)));
   }
   // Valor de un queso del libro: fórmula x maestría x mejoras x nivel de Cheesemaking.
-  function valueOf(s, recipe) {
+  // `plain`: sin contar la cepa (así compara recetas el Cheesemaker).
+  function valueOf(s, recipe, plain) {
     const f = formula(parseKey(recipe.key));
     const mastery = 1 + B.cheesery.masteryValue * (masteryLevel(recipe) - 1);
     const zone = q.zoneOfBase(parseKey(recipe.key).base);
-    return Math.max(1, Math.round(f.value * mastery * (1 + q.mods(s)('cheeseValue')) * q.depthRich(s, zone)));
+    return Math.max(1, Math.round(f.value * mastery * (1 + q.mods(s)('cheeseValue')) * q.depthRich(s, zone) * (plain ? 1 : strainValue(recipe.strain))));
   }
 
   function defaultName(combo) {
@@ -126,6 +133,76 @@
     // Investigar va aparte de producir. A mano se lanza cada receta; con un ratón en
     // el puesto de Research, él repite el trabajo siguiendo la dirección que marque
     // el jugador. El ratón ejecuta; la estrategia no la decide nadie por ti.
+    // ---------- CEPAS (prototipo) ----------
+    // Una cepa es otra manera de fabricar la misma receta. El investigador las encuentra;
+    // cuál se usa lo decide el jugador, y las encontradas no se pierden.
+    strainOf,
+    baseUse,
+    strainsOpen: (s) => s.built.lab && q.level(s, 'cheesemaking') >= B.cheesery.strainLevel,
+    // Receta en la que trabajaría ahora el laboratorio: la que cocina la línea y, cuando
+    // ya tiene todas las cepas, la siguiente más valiosa de ese queso.
+    strainTarget(s) {
+      const all = Object.keys(B.strains);
+      const open = (r) => r && (r.strains || []).length < all.length;
+      for (const base of B.cheesery.strainBases) {
+        if (unlockedBases(s).indexOf(base) < 0) continue;
+        const lane = this.laneRecipe(s, q.zoneOfBase(base));
+        if (open(lane)) return lane;
+        const rest = s.recipes.filter((r) => parseKey(r.key).base === base && open(r)).sort((a, b) => valueOf(s, b, true) - valueOf(s, a, true));
+        if (rest.length) return rest[0];
+      }
+      return null;
+    },
+    strainStart(s) {
+      const w = this.labWorker(s);
+      const recipe = this.strainsOpen(s) && w ? this.strainTarget(s) : null;
+      if (!recipe || s.lab.job) return CM.fail(s.lab.job ? 'lab-busy' : 'invalid');
+      const base = parseKey(recipe.key).base;
+      const cost = this.labCost(s);
+      if (s.inv.base[base] < cost) return CM.fail('no-base');
+      s.inv.base[base] -= cost;
+      s.totals.baseConsumed += cost;
+      s.zones[q.zoneOfBase(base)].stats.baseUsed += cost;
+      const missing = Object.keys(B.strains).filter((id) => has(recipe).indexOf(id) < 0);
+      const total = Math.max(1000, Math.round((this.labTime(s) * B.cheesery.strainTime) / CM.mice.work(s, 'research', 'all').speed));
+      s.lab.job = { key: recipe.key, strain: missing[Math.floor(CM.rand(s) * missing.length)], remaining: total, total, source: 'worker', retried: false };
+      CM.emit(s, 'labStart', { key: recipe.key, strain: s.lab.job.strain });
+      return CM.ok();
+    },
+    // El jugador elige la cepa de una receta ('' es sin cepa). Entra con el siguiente
+    // encargo de esa receta, para que nada se cocine con una cepa y se venda con otra.
+    setStrain(s, recipeId, id) {
+      const recipe = this.recipe(s, recipeId);
+      if (!recipe) return CM.fail('unknown-recipe');
+      if (id && has(recipe).indexOf(id) < 0) return CM.fail('invalid');
+      if (s.lab.found && s.lab.found.recipeId === recipe.id) s.lab.found = null;
+      if ((id || '') === (recipe.strain || '')) delete recipe.next;
+      else recipe.next = id || '';
+      const job = s.zones[q.zoneOfBase(parseKey(recipe.key).base)].cookJob;
+      if (!job || job.recipeId !== recipe.id) this.settle(s, recipe);
+      return CM.ok();
+    },
+    // Aplica la cepa que esperaba. Los quesos ya hechos se convierten sin ganar ni perder valor.
+    settle(s, recipe) {
+      if (!recipe || recipe.next === undefined) return;
+      const ratio = strainValue(recipe.strain) / strainValue(recipe.next);
+      recipe.strain = recipe.next;
+      delete recipe.next;
+      const have = s.lots[recipe.id] || 0;
+      if (!have) return;
+      const exact = have * ratio;
+      s.lots[recipe.id] = Math.floor(exact + 1e-9);
+      const left = Math.round((exact - s.lots[recipe.id]) * CM.shop.price(s, recipe));
+      if (left > 0) {
+        s.coins += left;
+        s.totals.coinsEarned += left;
+      }
+    },
+    strainKeep(s) {
+      s.lab.found = null;
+      return CM.ok();
+    },
+
     labWorker: (s) => (s.built.lab ? CM.mice.at(s, 'research', 'all') : null),
     labTime: (s) => Math.round(B.cheesery.labBaseMs * Math.pow(B.cheesery.labGrowth, s.recipes.length)),
     // Cheese Base que cuesta la siguiente investigación (sube con el libro; Thrifty lo abarata).
@@ -220,6 +297,21 @@
           return;
         }
         s.lab.job = null;
+        if (job.strain) {
+          // Una cepa nueva para una receta conocida: queda encontrada; usarla es cosa del jugador.
+          const recipe = this.recipeByKey(s, job.key);
+          const lucky = CM.rand(s) < odds.luck;
+          if (recipe && has(recipe).indexOf(job.strain) < 0) {
+            has(recipe).push(job.strain);
+            s.lab.found = { recipeId: recipe.id, strain: job.strain };
+            // Hallazgo: aparece además otra de las que faltaban.
+            const more = lucky ? Object.keys(B.strains).filter((id) => has(recipe).indexOf(id) < 0) : [];
+            if (more.length) has(recipe).push(more[0]);
+            if (this.labWorker(s)) CM.mice.reward(s, 'research', 'all', Math.max(1, Math.round(this.labTime(s) / 1000)) * B.mice.xpPerAction);
+            CM.emit(s, 'strainFound', { recipeId: recipe.id, strain: job.strain, extra: more[0] || '' });
+          }
+          return;
+        }
         const breakthrough = CM.rand(s) < odds.luck;
         const recipe = this.labDiscover(s, job.key, breakthrough ? B.cheesery.labBreakthroughMade : 1);
         const w = job.source === 'worker' ? this.labWorker(s) : null;
@@ -237,6 +329,10 @@
       }
       // Con un ratón en el laboratorio y una dirección marcada, la investigación sigue sola.
       // Buscar la siguiente es caro: se mira una vez cada dos segundos, no en cada paso.
+      if (!s.lab.strains && this.strainsOpen(s)) {
+        s.lab.strains = true;
+        CM.emit(s, 'strainsOpen', {});
+      }
       // Un encargo a mano que esperaba base va antes que la dirección.
       if (s.lab.next && !s.lab.job) {
         const combo = parseKey(s.lab.next);
@@ -249,6 +345,13 @@
       }
       const auto = !!this.labWorker(s) && !!s.lab.dir;
       if (auto && !s.lab.job && Math.floor(s.clock / 2000) !== Math.floor((s.clock - dt) / 2000)) {
+        if (s.lab.dir === 'strain') {
+          // Cepas: trabaja sobre la receta que cocina la línea.
+          const target = this.strainsOpen(s) ? this.strainTarget(s) : null;
+          if (target && !this.strainStart(s).ok) s.lab.want = parseKey(target.key).base;
+          else s.lab.want = '';
+          return;
+        }
         const next = this.labPick(s);
         if (next) this.experiment(s, next, 'worker');
         // Si no llega la base (la quesería se la lleva toda), la pide: la línea de ese
@@ -263,20 +366,20 @@
       if (!recipe) return CM.fail('unknown-recipe');
       const n = Math.max(1, Math.min(B.cheesery.maxQueue, Math.floor(lots) || 1));
       const per = this.batchFor(s, recipe, n, q.skillMult(s, 'cheesemaking'));
-      return startJob(s, 'produce', parseKey(recipe.key), recipe, n, B.cheesery.lotBase * n * per, 'manual', per);
+      return startJob(s, 'produce', parseKey(recipe.key), recipe, n, baseUse(recipe) * n * per, 'manual', per);
     },
     // Quesos por hornada ahora mismo: lo que den los moldes, o menos si no llega la base o las monedas.
     batchFor(s, recipe, cycles, cycleMult) {
       const combo = parseKey(recipe.key);
       const coin = B.ingredients[combo.ingredient].coinCost;
       const c = cycles || 1;
-      return Math.max(1, Math.min(Math.floor(q.cheeseBatch(s) * (cycleMult || 1)), Math.floor(s.inv.base[combo.base] / (B.cheesery.lotBase * c)), coin ? Math.floor(s.coins / (coin * c)) : Infinity));
+      return Math.max(1, Math.min(Math.floor(q.cheeseBatch(s) * (cycleMult || 1)), Math.floor(s.inv.base[combo.base] / (baseUse(recipe) * c)), coin ? Math.floor(s.coins / (coin * c)) : Infinity));
     },
     // Cuántos quesos de una receta se pueden encargar ahora mismo.
     maxLots(s, recipe) {
       const combo = parseKey(recipe.key);
       const coin = B.ingredients[combo.ingredient].coinCost;
-      return Math.max(0, Math.min(B.cheesery.maxQueue, Math.floor(s.inv.base[combo.base] / B.cheesery.lotBase), coin ? Math.floor(s.coins / coin) : 99));
+      return Math.max(0, Math.min(B.cheesery.maxQueue, Math.floor(s.inv.base[combo.base] / baseUse(recipe)), coin ? Math.floor(s.coins / coin) : 99));
     },
 
     // --- Cheesemaker: cocina de uno en uno la receta asignada ---
@@ -307,7 +410,7 @@
       for (const r of s.recipes) {
         const combo = parseKey(r.key);
         if (combo.base !== base || s.coins < B.ingredients[combo.ingredient].coinCost) continue;
-        const value = valueOf(s, r);
+        const value = valueOf(s, r, true);
         if (value > top) {
           top = value;
           best = r;
@@ -321,13 +424,13 @@
       if (!recipe) return CM.fail('no-recipe');
       // El laboratorio tiene preferencia sobre la base que le falta para su siguiente receta.
       const zbase = q.zoneDef(zoneId).base;
-      if (s.lab.want === zbase && s.inv.base[zbase] < B.cheesery.lotBase + this.labCost(s)) return CM.fail('no-base');
+      if (s.lab.want === zbase && s.inv.base[zbase] < baseUse(recipe) + this.labCost(s)) return CM.fail('no-base');
       // Si el ciclo ya no puede ser más corto, la velocidad que sobra agranda la hornada.
       const w = CM.mice.at(s, 'cheesemaking', zoneId);
       const speed = w ? CM.mice.speed(w, 'cheesemaking', s, zoneId) : 1;
       const size = q.skillMult(s, 'cheesemaking') * (w ? CM.mice.yieldMult(w, 'cheesemaking', s, zoneId) : 1);
       const per = this.batchFor(s, recipe, 1, size * CM.cycle(jobTime(s, parseKey(recipe.key), recipe) / speed).mult);
-      return startJob(s, 'produce', parseKey(recipe.key), recipe, 1, B.cheesery.lotBase * per, 'worker', per);
+      return startJob(s, 'produce', parseKey(recipe.key), recipe, 1, baseUse(recipe) * per, 'worker', per);
     },
     // Estado: not-built, running, no-recipe, no-base, no-coins, ready, idle.
     status(s, zoneId) {
@@ -339,7 +442,7 @@
       const recipe = this.laneRecipe(s, zoneId);
       if (!recipe) return this.knowsRecipeFor(s, q.zoneDef(zoneId).base) ? 'no-coins' : 'no-recipe';
       const combo = parseKey(recipe.key);
-      if (s.inv.base[combo.base] < B.cheesery.lotBase) return 'no-base';
+      if (s.inv.base[combo.base] < baseUse(recipe)) return 'no-base';
       if (s.coins < B.ingredients[combo.ingredient].coinCost) return 'no-coins';
       return 'ready';
     },
@@ -371,7 +474,8 @@
       z.stats.lots += n;
       job.lotsLeft -= 1;
       const w = job.source === 'worker' ? CM.mice.work(s, 'cheesemaking', zoneId) : null;
-      const xm = w ? CM.mice.reward(s, 'cheesemaking', zoneId) : 1;
+      // Teaching: el quesero aprende más con cada hornada de esa cepa.
+      const xm = w ? CM.mice.reward(s, 'cheesemaking', zoneId, B.mice.xpPerAction * ((strainOf(recipe) || {}).teach || 1)) : 1;
       // El nivel de la habilidad y el ratón ya agrandaron la hornada al empezar
       // (gastando su Base). Aquí solo queda la suerte: a veces la hornada sale doble.
       if (w && job.kind !== 'experiment' && CM.mice.out(s, w) > w.yield * 1.5) {
@@ -383,7 +487,10 @@
       CM.emit(s, 'lotDone', { zone: zoneId, recipeId: recipe.id, source: job.source });
       if (masteryLevel(recipe) > before) CM.emit(s, 'masteryUp', { recipeId: recipe.id, level: masteryLevel(recipe) });
       if (job.lotsLeft > 0) job.remaining = job.total = jobTime(s, parseKey(job.key), recipe);
-      else z.cookJob = null;
+      else {
+        z.cookJob = null;
+        this.settle(s, recipe);
+      }
     },
     rename(s, recipeId, name) {
       const recipe = this.recipe(s, recipeId);

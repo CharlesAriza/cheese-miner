@@ -3763,3 +3763,39 @@ button {
   font-size: 7px;
 }
 
+
+/* Cepas del Cheese Lab */
+.strainnew {
+  margin: 0 0 10px;
+  padding: 10px;
+  border: 2px solid var(--pick);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  font-family: var(--text);
+}
+.strainnew > b {
+  display: block;
+  color: var(--pick);
+  font-family: var(--pixel, inherit);
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+.strainnew > small {
+  display: block;
+  margin: 6px 0 8px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.strainnew > div {
+  display: flex;
+  gap: 8px;
+}
+.strainnew > div button {
+  flex: 1;
+}
+.strainrow > small {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--quiet);
+}

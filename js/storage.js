@@ -80,6 +80,10 @@
     s.recipes.forEach((r) => {
       r.name = String(r.name || CM.cheesery.defaultName(CM.cheesery.parseKey(r.key))).slice(0, 24);
       r.made = nat(r.made);
+      // Cepas: las encontradas, la activa y la que espera al siguiente encargo.
+      r.strains = Array.isArray(r.strains) ? r.strains.filter((id, i, all) => B.strains[id] && all.indexOf(id) === i) : [];
+      r.strain = r.strains.indexOf(r.strain) >= 0 ? r.strain : '';
+      if (r.next !== undefined && r.next !== '' && r.strains.indexOf(r.next) < 0) delete r.next;
     });
     const lots = {};
     for (const r of s.recipes) if (nat(s.lots[r.id]) > 0) lots[r.id] = nat(s.lots[r.id]);
@@ -180,11 +184,16 @@
       z.cookJob = cj && combo && combo.base === def.base && cj.lotsLeft > 0 && (cj.kind !== 'produce' || CM.cheesery.recipe(s, cj.recipeId)) ? cj : null;
     }
     delete s.lab.auto;
-    s.lab.dir = typeof s.lab.dir === 'string' && /^(value|fast|(base|ingredient|treatment|maturation):[a-z]+)$/.test(s.lab.dir) ? s.lab.dir : '';
+    s.lab.dir = typeof s.lab.dir === 'string' && /^(value|fast|strain|(base|ingredient|treatment|maturation):[a-z]+)$/.test(s.lab.dir) ? s.lab.dir : '';
     s.lab.want = typeof s.lab.want === 'string' && B.bases[s.lab.want] ? s.lab.want : '';
     s.lab.next = typeof s.lab.next === 'string' && CM.cheesery.parseKey(s.lab.next) && !CM.cheesery.recipeByKey(s, s.lab.next) ? s.lab.next : '';
     s.lab.job = cleanJob(s.lab.job, ['key']);
-    if (s.lab.job && (!CM.cheesery.parseKey(s.lab.job.key) || CM.cheesery.recipeByKey(s, s.lab.job.key))) s.lab.job = null;
+    if (s.lab.job && s.lab.job.strain) {
+      const r = CM.cheesery.recipeByKey(s, s.lab.job.key);
+      if (!B.strains[s.lab.job.strain] || !r || r.strains.indexOf(s.lab.job.strain) >= 0) s.lab.job = null;
+    } else if (s.lab.job && (!CM.cheesery.parseKey(s.lab.job.key) || CM.cheesery.recipeByKey(s, s.lab.job.key))) s.lab.job = null;
+    s.lab.strains = !!s.lab.strains;
+    s.lab.found = isObj(s.lab.found) && B.strains[s.lab.found.strain] && s.recipes.some((r) => r.id === s.lab.found.recipeId && r.strains.indexOf(s.lab.found.strain) >= 0) ? { recipeId: s.lab.found.recipeId, strain: s.lab.found.strain } : null;
     // Un experimento que estaba ocupando una línea (versiones anteriores) pasa al laboratorio.
     for (const def of B.zones) {
       const z = s.zones[def.id];

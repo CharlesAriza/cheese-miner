@@ -967,6 +967,81 @@
     valid(s);
   });
 
+  test('strains: another way to make the same cheese, found by the researcher and chosen by the player', () => {
+    const s = withCheese();
+    const C = CM.cheesery;
+    const r = s.recipes[0];
+    s.built.lab = true;
+    s.coins = 1000;
+    eq(C.strainsOpen(s), false, 'strains wait for Cheesemaking level ' + B.cheesery.strainLevel);
+    s.skills.cheesemaking.xp = q.xpForLevel(B.cheesery.strainLevel);
+    s.inv.base.cheddar = 2000;
+    s.lab.dir = 'strain';
+    run(s, 6000);
+    eq(s.lab.job, null, 'no researcher, no strains');
+    truthy(s.lab.strains, 'the new direction is announced once');
+    const res = staff(s, 'research', 'all');
+    run(s, 4200);
+    truthy(s.lab.job && s.lab.job.strain && s.lab.job.key === r.key, 'the researcher looks for a strain of the recipe the line cooks');
+    run(s, C.labTime(s) * B.cheesery.strainTime * 2);
+    truthy(r.strains.length >= 1 && !r.strain, 'a strain is found but not used: the player decides');
+    truthy(s.lab.found && s.lab.found.recipeId === r.id, 'it waits as a candidate');
+    C.strainKeep(s);
+    eq(s.lab.found, null, 'keeping the cheese as it is clears the candidate');
+    eq(r.strains.length >= 1, true, 'and the strain found is not lost');
+    run(s, C.labTime(s) * B.cheesery.strainTime * 8);
+    eq(r.strains.length, 3, 'in time the recipe has its three strains');
+    truthy((res.jobs.research || 0) > 0, 'the researcher specialises with this work too');
+    eq(C.setStrain(s, r.id, 'nope').reason, 'invalid', 'only a strain that was found');
+    // Lo que cambia cada una
+    s.lab.dir = '';
+    s.lab.job = null;
+    const plainValue = C.valueOf(s, r);
+    const plainTime = C.jobTime(s, C.parseKey(r.key), r);
+    C.setStrain(s, r.id, 'quick');
+    eq(r.strain, 'quick', 'with the line idle the strain applies at once');
+    truthy(C.jobTime(s, C.parseKey(r.key), r) < plainTime && C.valueOf(s, r) < plainValue, 'Quick-set: faster, worth less');
+    C.setStrain(s, r.id, 'dense');
+    eq(C.baseUse(r), B.cheesery.lotBase * B.strains.dense.base, 'Dense: more base per cheese');
+    truthy(C.valueOf(s, r) > plainValue && C.jobTime(s, C.parseKey(r.key), r) === plainTime, 'Dense: worth more, same time');
+    s.inv.base.cheddar = B.cheesery.lotBase * B.strains.dense.base - 1;
+    eq(C.produce(s, r.id, 1).reason, 'no-base', 'and it does not cook with less');
+    s.inv.base.cheddar = B.cheesery.lotBase * B.strains.dense.base;
+    eq(C.produce(s, r.id, 1).ok, true, 'cook one dense cheese');
+    eq(s.inv.base.cheddar, 0, 'it took all that base');
+    // Cambiar a mitad de encargo: entra con el siguiente, y lo hecho no cambia de valor
+    C.setStrain(s, r.id, 'teaching');
+    eq(r.strain, 'dense', 'mid-batch the strain does not change');
+    eq(r.next, 'teaching', 'it waits for the next batch');
+    s.jobs.shop = { remaining: 1e9, total: 1e9, coins: 0, count: 0, xp: 0, recipeId: r.id, source: 'manual' }; // la tienda ocupada: nada se vende
+    s.lots[r.id] = 3;
+    const worth = (s.lots[r.id] + 1) * CM.shop.price(s, r);
+    const coins = s.coins;
+    run(s, C.jobTime(s, C.parseKey(r.key), r) + STEP);
+    eq(r.strain, 'teaching', 'then it changes');
+    const after = s.lots[r.id] * CM.shop.price(s, r) + (s.coins - coins);
+    truthy(Math.abs(after - worth) <= 1, 'the cheese already made keeps its worth (' + worth + ' vs ' + after + ')');
+    // Teaching: el quesero aprende más
+    const cook = staff(s, 'cheesemaking');
+    s.inv.base.cheddar = 4000;
+    run(s, 30000);
+    const taught = cook.jobs.cheesemaking;
+    C.setStrain(s, r.id, '');
+    run(s, 12000);
+    eq(r.strain, '', 'back to plain');
+    const from = cook.jobs.cheesemaking;
+    run(s, 30000);
+    truthy(taught > (cook.jobs.cheesemaking - from) * 2, 'Teaching: the cheesemaker learns faster (' + Math.round(taught) + ' vs ' + Math.round(cook.jobs.cheesemaking - from) + ')');
+    // El Cheesemaker compara recetas sin contar la cepa
+    C.labDiscover(s, C.keyOf(Object.assign({}, COMBO, { treatment: 'smoked' })), 1);
+    C.setStrain(s, r.id, 'dense');
+    run(s, 12000);
+    truthy(C.valueOf(s, r) > C.valueOf(s, s.recipes[1]) && C.laneRecipe(s, 'cheddar').id === s.recipes[1].id, 'a dense cheese does not fool the cheesemaker: it still cooks the best recipe');
+    const back = CM.storage.parse(JSON.stringify(s), 1000000);
+    eq(back.recipes[0].strain + '/' + back.recipes[0].strains.length, 'dense/3', 'strains survive a reload');
+    valid(s);
+  });
+
   test('every mouse has its own look, and old saves get one', () => {
     const s = fresh();
     s.built.house = true;
@@ -1269,7 +1344,41 @@
   });
 
   // Para calibrar el balance desde la consola sin repetir toda la batería.
-  window.CM_BOT = { playBot, chainReport };
+  // Prototipo de cepas: la misma fábrica, diez minutos con cada cepa en la receta de la línea
+  // de Cheddar, en tres situaciones (tal cual, con base de sobra, y con base de sobra y poca tienda).
+  function strainReport(src, minutes) {
+    const C = CM.cheesery;
+    const out = [];
+    for (const scene of ['as is', 'base to spare', 'base to spare, slow shop']) {
+      for (const id of [''].concat(Object.keys(B.strains))) {
+        const s = JSON.parse(JSON.stringify(src));
+        CM.events.length = 0;
+        s.lab.dir = '';
+        s.lab.job = null;
+        s.lab.next = '';
+        const r = C.laneRecipe(s, 'cheddar');
+        C.assign(s, r.id);
+        r.strains = Object.keys(B.strains);
+        s.zones.cheddar.cookJob = null;
+        C.setStrain(s, r.id, id);
+        const cook = CM.mice.at(s, 'cheesemaking', 'cheddar');
+        const shopkeeper = CM.mice.at(s, 'trading', 'all');
+        if (scene.indexOf('slow shop') >= 0 && shopkeeper) { shopkeeper.post = ''; shopkeeper.rest = true; }
+        const t0 = s.clock;
+        const from = { coins: s.totals.coinsEarned, made: s.zones.cheddar.stats.lots, used: s.zones.cheddar.stats.baseUsed, xp: cook ? cook.xp : 0, jobs: cook ? cook.jobs.cheesemaking || 0 : 0 };
+        while (s.clock - t0 < (minutes || 10) * 60000) {
+          if (scene !== 'as is') s.inv.base.cheddar = Math.max(s.inv.base.cheddar, 1e7);
+          if (scene.indexOf('slow shop') >= 0 && !s.jobs.shop && s.clock % 6000 === 0) CM.shop.start(s, 'manual');
+          CM.sim.step(s, STEP);
+          CM.events.length = 0;
+        }
+        const stock = s.recipes.reduce((sum, x) => sum + (s.lots[x.id] || 0) * CM.shop.price(s, x), 0);
+        out.push([scene, id || 'plain', 'coins ' + CM.fmt(s.totals.coinsEarned - from.coins), 'unsold ' + CM.fmt(stock), 'cheddar made ' + CM.fmt(s.zones.cheddar.stats.lots - from.made), 'base used ' + CM.fmt(s.zones.cheddar.stats.baseUsed - from.used), 'base left ' + CM.fmt(s.inv.base.cheddar), cook ? 'cook xp +' + Math.round(cook.xp - from.xp) + ', jobs +' + Math.round((cook.jobs.cheesemaking || 0) - from.jobs) : 'no cook'].join(' | '));
+      }
+    }
+    return out;
+  }
+  window.CM_BOT = { playBot, chainReport, strainReport };
 
   const failed = results.filter((r) => !r.ok).length;
   document.getElementById('out').textContent =

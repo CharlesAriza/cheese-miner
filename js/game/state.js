@@ -88,7 +88,7 @@
       // Investigación de recetas: va aparte de la producción, en paralelo.
       // `dir` es la dirección que marca el jugador: '' (ninguna), 'value', 'fast',
       // 'base:<id>', 'ingredient:<id>', 'treatment:<id>' o 'maturation:<id>'.
-      lab: { job: null, dir: '', want: '', next: '' },
+      lab: { job: null, dir: '', want: '', next: '', strains: false, found: null },
       recipes: [], // { id, key, name, at, made }
       combo: 0,
       lastHitAt: -1e9,

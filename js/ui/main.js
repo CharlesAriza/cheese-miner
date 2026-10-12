@@ -218,6 +218,18 @@
         toast(found.name + ' sells for ' + CM.fmt(CM.shop.price(state, found)) + ' coins' + (ev.breakthrough ? ' and starts with mastery ' + CM.cheesery.masteryLevel(found) : '') + '. It is in your Recipe Book', true);
         break;
       }
+      case 'strainsOpen':
+        play('reveal');
+        banner('NEW IN THE CHEESE LAB: STRAINS');
+        toast('A strain is another way to make the same cheese. Open the CHEESE LAB and choose the Cheddar strains direction', true);
+        break;
+      case 'strainFound': {
+        const r = CM.cheesery.recipe(state, ev.recipeId);
+        play('reveal');
+        banner('NEW STRAIN: ' + B.strains[ev.strain].name.toUpperCase());
+        toast('For ' + r.name + '. It waits for you in the CHEESE LAB: use it or keep the cheese as it is', true);
+        break;
+      }
       case 'labSetback':
         toast('Inconclusive result in the lab: it tries again (half the time)');
         break;
@@ -955,6 +967,8 @@
     pick: (part, value) => void (ui.combo[part] = value),
     experiment: () => CM.cheesery.experiment(state, ui.combo),
     labcancel: () => CM.cheesery.labCancel(state),
+    strain: (recipeId, id) => CM.cheesery.setStrain(state, recipeId, id === 'plain' ? '' : id),
+    strainkeep: () => CM.cheesery.strainKeep(state),
     // Dirección de investigación: la marca el jugador (tocar la activa la quita).
     labdir: (kind, id) => {
       const dir = id ? kind + ':' + id : kind;

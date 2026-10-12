@@ -204,6 +204,24 @@ Una hornada tarda 6 s más los extras de la receta: de 6 a 9 s antes de mejoras 
 
 Rasgos de oficio de Research (grados x1 / x2 / x3,5 como los demás): Lab Rat (+10 % velocidad), Thrifty (−10 % de base por investigación), Good Nose (+4 puntos de hallazgo), Methodical (−4 puntos de no concluyente), Tinkerer (4 % de sacar una segunda receta del mismo queso). Legendario: Eureka (nunca no concluyente, +25 puntos de hallazgo). Una investigación cuenta para la especialidad por los segundos que pide (grado 1 hacia la receta 14, grado 2 hacia la 60, grado 3 hacia la 133). Combinaciones con vecinos (el investigador es vecino de queseros, refinadores y tendero): Test Kitchen (Good Nose + Seasoner, +20 %), Clean Samples (Methodical + Purifier, +15 %), Launch Party (Tinkerer + Showman, +20 %). En pantalla no se enseñan las probabilidades.
 
+**Cepas (prototipo, solo Cheddar).** Desde Cheesemaking 10, con laboratorio e investigador, la dirección «Cheddar strains» busca cepas para la receta que cocina la línea de Cheddar (y luego para las demás de ese queso). Cultivar una cuesta lo mismo que una receta y tarda el doble. La cepa encontrada queda guardada en la receta; cuál se usa lo elige el jugador, gratis, y entra con el siguiente encargo (los quesos ya hechos se convierten sin ganar ni perder valor). El Cheesemaker compara recetas sin contar la cepa.
+
+| Cepa | Da | Pide |
+| --- | --- | --- |
+| Quick-set | se cocina en la mitad de tiempo | el queso vale un 20 % menos |
+| Dense | el queso vale 2,2 veces más | gasta 3 veces más Cheese Base |
+| Teaching | su quesero gana 3 veces más experiencia y especialidad | el queso vale un 40 % menos |
+
+Medido con `CM_BOT.strainReport` sobre la misma fábrica (casual, minuto 25, diez minutos por cepa, monedas ganadas):
+
+| Situación | Sin cepa | Quick-set | Dense | Teaching |
+| --- | --- | --- | --- | --- |
+| Falta Cheese Base (lo normal en Cheddar) | 116.000 | 92.700 | 80.800 | 69.700 (aprende el triple) |
+| Sobra Cheese Base | 912.000 | 2,0 M | 2,0 M (gasta un 35 % más de base que Quick-set) | 571.000 |
+| Sobra base y la tienda no da abasto | 866.000 | 1,4 M | 1,9 M | 543.000 |
+
+Ninguna gana en las tres. A los 120 minutos, con cuatro rocas, el Cheddar pesa poco: Teaching cuesta un 5 % de los ingresos totales y triplica lo que aprende su quesero, así que una roca vieja tiende a convertirse en escuela. Con el ciclo ya en su mínimo, Quick-set no da más experiencia que una receta sin cepa.
+
 Sinergias: Cheddar + Smoked ×1,2; Gouda + Honey ×1,25; Brie + Truffle ×1,25; Emmental + Aged ×1,25; Parmesan + Vintage ×1,3; Blue + Brined ×1,3; Pepper + Smoked ×1,15; Truffle + Vintage ×1,4.
 
 - Descubrir una receta cuesta 3 Cheese Base y da un queso. Fabricar una conocida cuesta 2 por queso.

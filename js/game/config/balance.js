@@ -92,6 +92,11 @@ CM.BALANCE = {
     labBreakthrough: 0.05, // probabilidad de hallazgo: la receta nace ya con maestría
     labBreakthroughMade: 15, // quesos «hechos» con los que nace una receta de hallazgo (maestría 3)
     labCostGrowth: 1, // Cheese Base de más por cada receta ya conocida
+    // Cepas (prototipo): solo en estos quesos, desde este nivel de Cheesemaking;
+    // cultivar una cepa tarda `strainTime` veces lo que una receta.
+    strainBases: ['cheddar'],
+    strainLevel: 10,
+    strainTime: 2,
     experimentBase: 3, // Cheese Base que cuesta descubrir una receta (da 1 queso)
     lotBase: 2, // Cheese Base por queso de una receta conocida
     baseTimeMs: 6000,
@@ -116,6 +121,13 @@ CM.BALANCE = {
     fresh: { name: 'Fresh', adj: '', mult: 1, timeMs: 0, level: 1 },
     aged: { name: 'Aged', adj: 'Aged', mult: 1.6, timeMs: 1000, level: 8 },
     vintage: { name: 'Vintage', adj: 'Vintage', mult: 2.8, timeMs: 2000, level: 30 },
+  },
+  // Cepas: otra manera de fabricar el mismo queso. Cada una da algo y pide algo.
+  // time: tiempo de cocinado · base: Cheese Base por queso · teach: lo que aprende su quesero · value: valor del queso.
+  strains: {
+    quick: { name: 'Quick-set', time: 0.5, value: 0.8 },
+    dense: { name: 'Dense', base: 3, value: 2.2 },
+    teaching: { name: 'Teaching', teach: 3, value: 0.6 },
   },
   synergies: [
     { when: { base: 'cheddar', treatment: 'smoked' }, mult: 1.2, label: 'Smoked Cheddar' },

@@ -75,6 +75,8 @@ Gestión (13-10-2026): MICE tiene vista por roca y lista completa; tocar un pues
 
 Edificio propio en la colonia (gratis tras 3 recetas a mano) con un puesto del oficio **Research**, que usa el sistema de ratones tal cual (afinidad, rasgos de oficio, legendario, combinaciones de vecinos). El jugador marca la dirección de investigación y el ratón la ejecuta; sin dirección no investiga solo. La investigación va en paralelo a la producción y reserva su Cheese Base. Es la base prevista para mutaciones, que no están hechas. Pendiente: las recetas son finitas (216), así que el investigador se queda sin trabajo al final.
 
+Cepas (prototipo, solo Cheddar): Quick-set, Dense y Teaching. Cada cepa da algo y pide algo; ninguna sube el valor sin coste en otra parte de la cadena. El investigador las encuentra, el jugador elige cuál usa y las encontradas no se pierden. Antes de ampliar (más quesos, Raw-pressed, dos cepas por receta) hay que jugarlo.
+
 Quitado respecto a la Alpha: almacén con capacidad, regateo, clientes con paciencia, Taste/Funk/Aroma, reputación, viajar entre zonas, rocas que se agotan y Mouse House con camas.
 
 ## Siguientes entregas (acordadas, sin construir)

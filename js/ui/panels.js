@@ -152,6 +152,7 @@
     const [kind, id] = String(dir || '').split(':');
     if (kind === 'value') return 'the most valuable recipe';
     if (kind === 'fast') return 'the quickest recipe to cook';
+    if (kind === 'strain') return 'strains';
     if (kind === 'base') return B.bases[id].name + ' recipes';
     if (kind === 'ingredient') return 'recipes with ' + B.ingredients[id].name;
     if (kind === 'treatment') return B.treatments[id].name + ' recipes';
@@ -159,6 +160,43 @@
     return '';
   };
   // Cabecera del laboratorio: construirlo, qué investiga, quién, y hacia dónde.
+  // Lo que cambia una cepa en una receta, en valores reales.
+  function strainFx(s, r, id) {
+    const C = CM.cheesery;
+    const st = B.strains[id];
+    const price = (x) => CM.fmt(CM.shop.price(s, Object.assign({}, r, { strain: x })));
+    const combo = C.parseKey(r.key);
+    const bits = [];
+    if (st.time) bits.push('cooks in ' + secs(C.jobTime(s, combo, Object.assign({}, r, { strain: id }))) + ' instead of ' + secs(C.jobTime(s, combo, Object.assign({}, r, { strain: '' }))));
+    if (st.base) bits.push('uses ' + B.cheesery.lotBase * st.base + ' Cheese Base instead of ' + B.cheesery.lotBase);
+    if (st.teach) bits.push('its cheesemaker learns ' + st.teach + 'x as fast');
+    bits.push('sells for ' + price(id) + ' instead of ' + price(''));
+    return bits.join(' · ');
+  }
+  // Cepas: la recién encontrada arriba (usar o seguir como está) y, debajo, solo las
+  // recetas que tienen alguna, con la que cocina la línea primero.
+  function strainBox(s) {
+    const C = CM.cheesery;
+    if (!C.strainsOpen(s)) return '';
+    let h = '';
+    const f = s.lab.found;
+    const fr = f && C.recipe(s, f.recipeId);
+    if (fr) {
+      h += '<div class="strainnew"><b>NEW STRAIN: ' + B.strains[f.strain].name.toUpperCase() + '</b><small>For ' + esc(fr.name) + ': ' + strainFx(s, fr, f.strain) + '.</small><div>';
+      h += btn('strain:' + fr.id + ':' + f.strain, 'USE IT', { cls: 'buy' }) + btn('strainkeep', 'KEEP ' + (fr.strain ? B.strains[fr.strain].name.toUpperCase() : 'IT PLAIN'), { cls: 'chip' }) + '</div></div>';
+    }
+    const cooking = (r) => { const lane = C.laneRecipe(s, q.zoneOfBase(C.parseKey(r.key).base)); return !!lane && lane.id === r.id; };
+    const rows = s.recipes.filter((r) => (r.strains || []).length).sort((a, b) => cooking(b) - cooking(a) || C.valueOf(s, b, true) - C.valueOf(s, a, true));
+    if (!rows.length) return h;
+    h += '<h3>STRAINS</h3>';
+    for (const r of rows) {
+      const want = r.next !== undefined ? r.next : r.strain || '';
+      const chip = (id, label) => btn('strain:' + r.id + ':' + (id || 'plain'), label, { cls: 'chip' + (want === id ? ' on' : '') });
+      h += '<div class="pick strainrow"><span>' + esc(r.name) + (cooking(r) ? ' · cooking now' : '') + '</span><div>' + chip('', 'Plain') + r.strains.map((id) => chip(id, B.strains[id].name)).join('') + '</div>';
+      h += '<small>' + (want ? strainFx(s, r, want) : 'No strain: the recipe as you discovered it') + (r.next !== undefined ? ' · from the next batch' : '') + '</small></div>';
+    }
+    return h;
+  }
   function labHead(s, ui) {
     const C = CM.cheesery;
     const info = CM.construction.buildInfo(s, 'lab');
@@ -178,11 +216,13 @@
       // Dirección: la marca el jugador; el ratón solo la ejecuta.
       const chip = (dir, label) => btn('labdir:' + dir, label, { cls: 'chip' + (s.lab.dir === dir ? ' on' : '') });
       h += '<div class="pick"><span>DIRECTION' + (w ? '' : ' (for your researcher)') + '</span><div>' + chip('value', 'Highest value') + chip('fast', 'Quickest to cook') + '</div></div>';
+      if (C.strainsOpen(s)) h += '<div class="pick"><span>OR A NEW WAY TO MAKE A CHEESE</span><div>' + chip('strain', I.img('base', 'cheddar') + 'Cheddar strains') + '</div></div>';
       h += '<div class="pick"><span>OR ONE CHEESE</span><div>' + C.unlockedBases(s).map((b) => chip('base:' + b, I.img('base', b) + B.bases[b].name)).join('') + '</div></div>';
       const partChips = (part, table) => Object.keys(B[table]).filter((id) => !C.partLocked(s, part, id)).map((id) => chip(part + ':' + id, B[table][id].name)).join('');
       h += '<div class="pick"><span>OR ONE PART</span><div>' + partChips('ingredient', 'ingredients') + partChips('treatment', 'treatments') + partChips('maturation', 'maturations') + '</div></div>';
-      const next = C.labPick(s, false);
-      h += '<p class="hint">' + (!s.lab.dir ? 'No direction chosen: the lab only researches what you start by hand.' : !next ? 'Nothing left to research in ' + DIR_NAME(s.lab.dir) + ' at your Cheesemaking level.' : (w ? esc(w.name) + ' is working through ' : 'A researcher would work through ') + DIR_NAME(s.lab.dir) + '.') + '</p>';
+      const target = s.lab.dir === 'strain' ? C.strainTarget(s) : null;
+      const next = target || C.labPick(s, false);
+      h += '<p class="hint">' + (s.lab.dir === 'strain' ? (!w ? 'Strains need a researcher.' : !target ? 'Every Cheddar recipe you know has all its strains.' : esc(w.name) + ' looks for a new strain of ' + esc(target.name) + ', the recipe your Cheddar line cooks. A strain is another way to make the same cheese: you decide which one to use.') : !s.lab.dir ? 'No direction chosen: the lab only researches what you start by hand.' : !next ? 'Nothing left to research in ' + DIR_NAME(s.lab.dir) + ' at your Cheesemaking level.' : (w ? esc(w.name) + ' is working through ' : 'A researcher would work through ') + DIR_NAME(s.lab.dir) + '.') + '</p>';
     }
     const lab = s.lab.job;
     if (s.lab.next && C.parseKey(s.lab.next)) {
@@ -191,13 +231,13 @@
     }
     if (lab) {
       const combo = C.parseKey(lab.key);
-      h += '<div class="jobbar">' + I.img('lot', combo.base) + '<span>' + (lab.retried ? 'Inconclusive: trying again · ' : 'Researching ') + esc(C.defaultName(combo)) + '</span><div class="bar"><i data-job="lab"></i></div></div>';
+      h += '<div class="jobbar">' + I.img('lot', combo.base) + '<span>' + (lab.retried ? 'Inconclusive: trying again · ' : lab.strain ? 'Looking for a strain of ' : 'Researching ') + esc(lab.strain ? C.recipeByKey(s, lab.key).name : C.defaultName(combo)) + '</span><div class="bar"><i data-job="lab"></i></div></div>';
     }
     return h + '</div>';
   }
   function labPanel(s, ui) {
     if (!s.built.cheesery) return '<p class="hint">Build the Cheesery first.</p>';
-    return labHead(s, ui) + '<h3>RESEARCH A RECIPE BY HAND</h3>' + recipePicker(s, ui);
+    return strainBox(s) + labHead(s, ui) + '<h3>RESEARCH A RECIPE BY HAND</h3>' + recipePicker(s, ui);
   }
 
   // Elegir cuatro componentes y lanzar la investigación a mano.
