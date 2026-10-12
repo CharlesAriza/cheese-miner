@@ -48,12 +48,21 @@ CM.BALANCE = {
   bases: {
     cheddar: { name: 'Cheddar', value: 10 },
     gouda: { name: 'Gouda', value: 24 },
-    blue: { name: 'Blue', value: 60 },
+    brie: { name: 'Brie', value: 60 },
+    emmental: { name: 'Emmental', value: 150 },
+    parmesan: { name: 'Parmesan', value: 380 },
+    blue: { name: 'Blue', value: 950 },
   },
+  // Seis rocas en escalera: cada una vale unas 2,5 veces más por queso, es
+  // bastante más dura y cuesta mucho más abrirla. Siempre hay una siguiente
+  // a la vista. (Cada roca tendrá además su propio edificio o mecánica.)
   zones: [
     { id: 'cheddar', base: 'cheddar', name: 'Cheddar Rock', unlockCost: 0, hits: 30, capacity: 60 },
     { id: 'gouda', base: 'gouda', name: 'Gouda Rock', unlockCost: 15000, hits: 150, capacity: 120 },
-    { id: 'blue', base: 'blue', name: 'Blue Rock', unlockCost: 1500000000, hits: 800, capacity: 240 },
+    { id: 'brie', base: 'brie', name: 'Brie Rock', unlockCost: 1200000, hits: 800, capacity: 240 },
+    { id: 'emmental', base: 'emmental', name: 'Emmental Rock', unlockCost: 60000000, hits: 4000, capacity: 480 },
+    { id: 'parmesan', base: 'parmesan', name: 'Parmesan Rock', unlockCost: 700000000, hits: 20000, capacity: 960 },
+    { id: 'blue', base: 'blue', name: 'Blue Rock', unlockCost: 12000000000, hits: 100000, capacity: 1920 },
   ],
   depth: {
     hitsGrowth: 1.22, // búsqueda necesaria por nivel de profundidad
@@ -98,6 +107,9 @@ CM.BALANCE = {
   synergies: [
     { when: { base: 'cheddar', treatment: 'smoked' }, mult: 1.2, label: 'Smoked Cheddar' },
     { when: { base: 'gouda', ingredient: 'honey' }, mult: 1.25, label: 'Honey Gouda' },
+    { when: { base: 'brie', ingredient: 'truffle' }, mult: 1.25, label: 'Truffle Brie' },
+    { when: { base: 'emmental', maturation: 'aged' }, mult: 1.25, label: 'Aged Emmental' },
+    { when: { base: 'parmesan', maturation: 'vintage' }, mult: 1.3, label: 'Vintage Parmesan' },
     { when: { base: 'blue', treatment: 'brined' }, mult: 1.3, label: 'Brined Blue' },
     { when: { ingredient: 'pepper', treatment: 'smoked' }, mult: 1.15, label: 'Smoky pepper' },
     { when: { ingredient: 'truffle', maturation: 'vintage' }, mult: 1.4, label: 'Grand reserve' },
@@ -145,6 +157,7 @@ CM.BALANCE = {
     recruitCost: 150, // coste del primero
     recruitGrowth: 1.8, // cada ratón cuesta un 80 % más que el anterior
     candidates: 3, // se elige uno de tres
+    managerBudget: 0.1, // un gerente solo compra mejoras que cuesten hasta el 10 % de tus monedas
     // Rareza de cada candidato. Un raro es más rápido y tiene pelajes propios;
     // un legendario, además, trae dos rasgos buenos y ninguna manía.
     rarities: [
@@ -218,7 +231,7 @@ CM.BALANCE = {
   retiredNodes: { 'colony.silo': { cost: 40, growth: 1.55 }, 'colony.racks': { cost: 40, growth: 1.55 }, 'colony.shelves': { cost: 40, growth: 1.55 } },
 
   // Monedas que se regalan una sola vez al cumplir cada objetivo.
-  goalRewards: { vein: 0, drill: 5, raw: 5, refinery: 10, base: 10, cheesery: 15, recipe: 15, shop: 20, sale: 20, node: 30, house: 40, mouse: 60, promote: 500, level5: 80, allAuto: 400, zone2: 1000, depth3: 300, recipes8: 1500, level25: 5000, zone3: 20000 },
+  goalRewards: { vein: 0, drill: 5, raw: 5, refinery: 10, base: 10, cheesery: 15, recipe: 15, shop: 20, sale: 20, node: 30, house: 40, mouse: 60, promote: 500, level5: 80, allAuto: 400, zone2: 1000, depth3: 300, recipes8: 1500, level25: 5000, zone3: 20000, zone4: 2000000, zone5: 80000000, zone6: 2000000000 },
 
   offline: {
     baseHours: 4, // máximo de ausencia que se simula (ampliable en el árbol de colonia)

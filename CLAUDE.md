@@ -44,8 +44,8 @@ Hecho:
 - Cinco habilidades (Mining, Drilling, Refining, Cheesemaking, Trading) con nivel 1–99.
 - Un árbol por habilidad con tres ramas (potencia, ratones, especial) y uno de colonia (horas offline).
 - Despensa sin tope, estilo banco de Melvor: cada recurso y cada receta en su fila.
-- Rocas con profundidad sin fin y tres zonas (Cheddar, Gouda, Blue). Cada zona es una línea completa (minería, taladro, refinado y cocinado) que trabaja en paralelo a las demás; solo la tienda es común.
-- Recetas de cuatro componentes con un único valor, rango y maestría; 108 combinaciones.
+- Rocas con profundidad sin fin y seis zonas en escalera de precio (Cheddar, Gouda, Brie, Emmental, Parmesan, Blue). Cada zona es una línea completa (minería, taladro, refinado y cocinado) que trabaja en paralelo a las demás; solo la tienda es común.
+- Recetas de cuatro componentes con un único valor, rango y maestría; 216 combinaciones.
 - Venta por ciclos; el nivel de Trading trae mejores compradores.
 - Edificios con seis aspectos según sus mejoras, subsuelo que baja con la profundidad de la roca (capas, pozo, carteles, montacargas), pueblo que crece y ratones que acarrean.
 - Primeros pasos a fuego lento: cada edificio de la cadena se anuncia, su casilla se marca como nueva y el jugador va a su panel a construirlo. Compra rápida de mejoras desde cada etapa, «BUY ALL» global y Cheesemaker que elige la mejor receta.
@@ -71,7 +71,7 @@ Quitado respecto a la Alpha: almacén con capacidad, regateo, clientes con pacie
 
 ## Siguientes entregas (acordadas, sin construir)
 
-3. **Juego activo y colección:** queso dorado y logros con porcentaje permanente.
+3. **Juego activo, colección y progresión** (en curso): hecho, seis rocas en escalera y álbum de ratones; falta queso dorado, logros con premio permanente, estadísticas, y un edificio o mecánica propia por roca (pendiente de proponer).
 4. **Árboles profundos:** elegir una ventaja cada 10 niveles, maestría por base y edificios disparatados al fondo de cada árbol.
 5. **Vender a lo grande:** cadena de tiendas, encargos, envíos, teletransporte, cohetes.
 6. **Zonas con mecánica propia.**

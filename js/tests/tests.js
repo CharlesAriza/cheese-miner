@@ -506,7 +506,7 @@
     s.skills.trading.xp = q.xpForLevel(10);
     eq(q.buyer(s).name, 'Restaurants', 'better buyers at trading level 10');
     truthy(CM.shop.price(s, recipe) > p0 * 1.4, 'better buyers pay more');
-    eq(CM.cheesery.totalCombos(), 3 * 4 * 3 * 3, 'recipe space');
+    eq(CM.cheesery.totalCombos(), Object.keys(B.bases).length * 4 * 3 * 3, 'recipe space');
   });
 
   test('cheesemaker and shopkeeper run the end of the chain on their own, within limits', () => {
@@ -1078,13 +1078,15 @@
 
   // No comprueba nada: mide el ritmo de una partida larga para ajustar el balance.
   test('pace report: four hours of an ideal player', () => {
-    const { snaps } = playBot(400, 4 * 60 * 60 * 1000, 'never', [2, 5, 10, 15, 30, 45, 60, 120, 180, 240]);
+    const { snaps, mins } = playBot(400, 6 * 60 * 60 * 1000, 'never', [2, 5, 10, 15, 30, 45, 60, 120, 180, 240, 300, 360]);
     snaps.forEach((line) => notes.push('pace ' + line));
+    notes.push('pace rocks opened at (min): ' + ['zone2', 'zone3', 'zone4', 'zone5', 'zone6'].map((k) => (mins[k] === undefined ? '-' : mins[k])).join(' / '));
   });
 
   test('pace report: four hours of a player who optimises the mice', () => {
-    const { s, snaps } = playBot(400, 4 * 60 * 60 * 1000, 'never', [30, 60, 120, 180, 240], true);
+    const { s, snaps, mins } = playBot(400, 4 * 60 * 60 * 1000, 'never', [30, 60, 120, 180, 240], true);
     snaps.forEach((line) => notes.push('smart ' + line));
+    notes.push('smart rocks opened at (min): ' + ['zone2', 'zone3', 'zone4', 'zone5', 'zone6'].map((k) => (mins[k] === undefined ? '-' : mins[k])).join(' / '));
     const K = CM.mice;
     notes.push('smart mice at 4 h: ' + s.mice.map((m) => K.level(m) + (K.isLegend(m) ? '*' : '') + ' x' + (m.post ? Math.round(K.speed(m, m.post.split(':')[0], s, m.post.split(':')[1]) * K.yieldMult(m, m.post.split(':')[0], s, m.post.split(':')[1]) * 100) / 100 : 0)).join(', '));
   });

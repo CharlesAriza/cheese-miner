@@ -3532,3 +3532,65 @@ button {
   font-weight: 700;
   color: var(--gold);
 }
+
+/* Con más de tres rocas: la que miras va desplegada y las demás son fichas pequeñas en una fila */
+#dock-zones.many {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+#dock-zones.many .lane.on {
+  order: -1;
+  flex: 1 0 100%;
+}
+
+#dock-zones.many .lane:not(.on) {
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
+  padding: 4px 3px 4px 5px;
+}
+
+#dock-zones.many .lane:not(.on) .lrow,
+#dock-zones.many .lane:not(.on) em {
+  display: none;
+}
+
+#dock-zones.many .lane:not(.on) .lhead {
+  flex: 1;
+}
+
+#dock-zones.many .lane:not(.on) .lhead b {
+  overflow: hidden;
+  font-size: 6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lane.need {
+  border-left-color: #ff8a9c;
+}
+
+.lanegroup.brie {
+  border-color: #fbf3d6;
+}
+
+.lanegroup.brie #lane-name {
+  background: #fbf3d6;
+}
+
+.lanegroup.emmental {
+  border-color: #f7de6a;
+}
+
+.lanegroup.emmental #lane-name {
+  background: #f7de6a;
+}
+
+.lanegroup.parmesan {
+  border-color: #e3bf78;
+}
+
+.lanegroup.parmesan #lane-name {
+  background: #e3bf78;
+}

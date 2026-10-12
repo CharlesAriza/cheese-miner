@@ -469,7 +469,7 @@
   }
 
   // Qué estación pide el objetivo actual.
-  const GOAL_AT = { house: 'mice', mouse: 'mice', allAuto: 'mice', promote: 'mice', vein: 'rock', drill: 'drill', raw: 'drill', refinery: 'refinery', base: 'refinery', cheesery: 'cheesery', recipe: 'cheesery', shop: 'shop', sale: 'shop', recipes8: 'cheesery', zone2: 'colony', zone3: 'colony', depth3: 'rock' };
+  const GOAL_AT = { zone4: 'colony', zone5: 'colony', zone6: 'colony', house: 'mice', mouse: 'mice', allAuto: 'mice', promote: 'mice', vein: 'rock', drill: 'drill', raw: 'drill', refinery: 'refinery', base: 'refinery', cheesery: 'cheesery', recipe: 'cheesery', shop: 'shop', sale: 'shop', recipes8: 'cheesery', zone2: 'colony', zone3: 'colony', depth3: 'rock' };
 
   const BUBBLE = { 'no-raw': 'NO RAW', 'no-recipe': 'NO RECIPE', 'no-base': 'NO BASE', 'no-cheese': 'NO CHEESE' };
   const bubbles = {};
@@ -717,6 +717,7 @@
         h += '<button data-act="zone:' + def.id + '" data-lane="' + def.id + '" class="lane' + (ui.zone === def.id ? ' on' : '') + '"><span class="lhead"><b>' + B.bases[def.base].name + '</b><u data-l="depth"></u></span><span class="lrow">' + cell('raw', 'raw') + '<i class="arrow"></i>' + cell('base', 'base') + '<i class="arrow"></i>' + cell('lot', 'lots') + '</span><em data-l="why"></em></button>';
       }
       $('dock-zones').innerHTML = h;
+      $('dock-zones').classList.toggle('many', open.length > 3);
       for (const def of open) {
         const root = $('dock-zones').querySelector('[data-lane="' + def.id + '"]');
         laneEls[def.id] = {};
@@ -732,6 +733,7 @@
       set(e.why, 'text', why[1] === 'good' ? '' : why[0]);
       set(e.why, 'cls', why[1]);
       set(e.raw.closest('.lane'), 'ok', why[1] === 'good');
+      set(e.raw.closest('.lane'), 'need', why[1] === 'bad');
       set(e.raw, 'text', CM.fmt(state.inv.raw[def.base]));
       set(e.base, 'text', CM.fmt(state.inv.base[def.base]));
       set(e.lots, 'text', CM.fmt(q.lotsOfBase(state, def.base)));

@@ -566,7 +566,8 @@
           const info = CM.tree.info(s, skill, node.id);
           if (info.canBuy && (!best || info.cost < best.cost)) best = { id: node.id, cost: info.cost };
         }
-        if (best) CM.tree.buy(s, skill, best.id);
+        // Solo gasta calderilla: nunca más de una parte pequeña de lo que tienes ahorrado.
+        if (best && best.cost <= s.coins * M.managerBudget) CM.tree.buy(s, skill, best.id);
       }
     },
   };

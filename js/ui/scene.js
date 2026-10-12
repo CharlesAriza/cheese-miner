@@ -202,12 +202,18 @@
   const ROCK_PAL = {
     cheddar: { rock: ['#b4bacb', '#8a90a3', '#656a7b'], cheese: ['#ffe55c', '#ffcf2e', '#f5ab12'], hole: '#e08a10', rim: '#c97a08', glint: '#ffd43a' },
     gouda: { rock: ['#cdb7a0', '#a08a76', '#77634f'], cheese: ['#ffc46a', '#ff9f3a', '#e87a1c'], hole: '#c9600f', rim: '#a8520f', glint: '#ffb04a' },
+    brie: { rock: ['#d9d2c4', '#aea596', '#80786b'], cheese: ['#ffffff', '#fbf3d6', '#e3d3a0'], hole: '#c9b06a', rim: '#b09a5a', glint: '#fff8e0' },
+    emmental: { rock: ['#c4c9a8', '#989d7c', '#6d7256'], cheese: ['#fff6b0', '#f7de6a', '#dcb93a'], hole: '#a8862a', rim: '#96782a', glint: '#fff2a0' },
+    parmesan: { rock: ['#d4b89a', '#a88c70', '#7c644c'], cheese: ['#f6e2b0', '#e3bf78', '#bf9550'], hole: '#8a6630', rim: '#7a5a2a', glint: '#ffe0a0' },
     blue: { rock: ['#aab7d6', '#7f8cb0', '#5a6686'], cheese: ['#f4f1dc', '#dcd8bd', '#7fa7d9'], hole: '#4a78b8', rim: '#8a8870', glint: '#cfe4ff' },
   };
   // Cada zona tiñe el paisaje.
   const ZONE_BG = {
     cheddar: { sky: ['#2f8fe6', '#3ea0f0', '#55b2f6', '#74c4fa', '#98d7fc', '#bfe8fd'], mount: '#7fb4d8', far: '#5fbf9a', farTop: '#86dcb4', tree: '#2f8f55', treeHi: '#4fb873', near: '#3fa860', sun: '#fff3a0' },
     gouda: { sky: ['#e8743a', '#f08a45', '#f6a258', '#fabb74', '#fcd398', '#fde6bf'], mount: '#b98a9a', far: '#c9903a', farTop: '#e6b35a', tree: '#b9521f', treeHi: '#e07a2a', near: '#8fa23a', sun: '#fff0c0' },
+    brie: { sky: ['#8fb8d8', '#a3c6e0', '#b8d4e8', '#cde1ef', '#e0edf5', '#f1f7fa'], mount: '#b9c4cf', far: '#a8c49a', farTop: '#c6dcb8', tree: '#6f9a6a', treeHi: '#93bd8a', near: '#8fb878', sun: '#fffbe6' },
+    emmental: { sky: ['#3f9a8a', '#52ab99', '#6bbda9', '#8acdba', '#aaddcc', '#cdeee0'], mount: '#7fae9a', far: '#b9b84a', farTop: '#d6d56a', tree: '#5a8a2a', treeHi: '#83b53f', near: '#9ab83a', sun: '#fff6a8' },
+    parmesan: { sky: ['#8a3a5a', '#a54a62', '#c0606a', '#d87f7a', '#eaa590', '#f6cfb0'], mount: '#9a6a7a', far: '#b07a4a', farTop: '#cf9a62', tree: '#7a4a2a', treeHi: '#a86a3a', near: '#9a8a3a', sun: '#ffe2b0' },
     blue: { sky: ['#2a3f8a', '#34509f', '#4666b8', '#6384cc', '#8aa6dd', '#b8cbec'], mount: '#6f7fb0', far: '#4f8f9a', farTop: '#6fb3bd', tree: '#2a6f7a', treeHi: '#3f95a1', near: '#3f8f7a', sun: '#e6f0ff' },
   };
   // Material de las máquinas según su tier: de chapa naranja a oro.

@@ -15,7 +15,12 @@ Todas las cifras están en `js/game/config/balance.js` y son provisionales. Se c
 | --- | --- | --- | --- | --- |
 | Cheddar | gratis | 30 | 60 | 10 |
 | Gouda | 15.000 | 150 | 120 | 24 |
-| Blue | 1.500.000.000 | 800 | 240 | 60 |
+| Brie | 1.200.000 | 800 | 240 | 60 |
+| Emmental | 60.000.000 | 4.000 | 480 | 150 |
+| Parmesan | 700.000.000 | 20.000 | 960 | 380 |
+| Blue | 12.000.000.000 | 100.000 | 1.920 | 950 |
+
+Con el bot (12-10-2026), un jugador que no optimiza abre las rocas a los 36, 66, 124, 164 y 265 minutos; uno que optimiza sus ratones, a los 38, 64, 92, 114 y 170.
 
 Por cada nivel de profundidad: búsqueda ×1,22, veta ×1,15 y +8 % de Raw Cheese por ciclo.
 
@@ -47,7 +52,7 @@ No hay almacén con tope. Raw Cheese, Cheese Base y quesos se acumulan sin lími
 - Rareza de cada candidato: 83 % Common, 15 % Rare (+10 % de velocidad, pelajes Mint y Lilac), 2 % Legendary (+25 %, dos rasgos buenos y ninguna manía, pelaje dorado y corona).
 - Álbum: 138 piezas (10 pelajes, 6 gorros, 4 accesorios, 72 rasgos, 46 combinaciones). No se pierden al despedir. Cada pieza: +1 % al precio de venta.
 - Despedir: gratis y sin reembolso. El precio de reclutar depende de cuántos ratones tienes, así que despedir abarata el siguiente (cambiar un ratón cuesta lo que costó su hueco).
-- Un puesto por etapa y por roca (minería, taladro, refinado, quesería) más un tendero común: 5 con una roca, 13 con tres.
+- Un puesto por etapa y por roca (minería, taladro, refinado, quesería) más un tendero común: 5 con una roca, 25 con las seis.
 - Velocidad en su puesto: +1 % por nivel, más rango, rareza, afinidad y rasgos (ver abajo).
 - Nivel del ratón: 12 acciones para el nivel 2, un 15 % más cada nivel, máximo 60. Un golpe de minería cuenta un cuarto de acción.
 
@@ -71,7 +76,7 @@ Todo está en `js/game/config/traits.js`: 22 rasgos buenos, 13 manías, 12 legen
 - **Topes:** suerte de doble 90 %, auras ±60 %, colonia contada hasta 30 ratones, recetas hasta 60.
 - **Velocidad:** (1 + nivel + rango + rareza + afinidad) x (1 + suma de rasgos, combinaciones, profundidad, nivel de habilidad, colonia y auras).
 
-Medido el 12-10-2026 con dos bots, tras subir el coste de las rocas (Gouda 6.000 > 15.000, Blue 150 M > 1.500 M) para compensar lo que aportan rasgos y álbum: la segunda roca llega a los 36 min y la tercera no se alcanza en 4 h (unas 5 h estimadas). Un bot que elige siempre la primera opción gana 94,8 M en 2 h; otro que optimiza rasgos, candidatos y colocación, 130 M (un 37 % más). A las 4 h los dos van igual (1,9 MM) porque ambos dejan de comprar mejoras mientras ahorran para la tercera roca: esa cifra no sirve para compararlos. Los ratones del bot que optimiza rinden entre x3 y x13 a las 4 h. Sin partidas reales todavía.
+Medido el 12-10-2026 con dos bots: uno elige siempre la primera opción; el otro optimiza rasgos, candidatos y colocación. Con seis rocas, a las 4 h el primero ha ganado 23,9 MM y el segundo 214 MM (unas nueve veces más), con ratones que rinden entre x5 y x14. Los gerentes solo compran mejoras que cuesten hasta el 10 % de tus monedas, para no gastarse lo que ahorras para la siguiente roca. Sin partidas reales todavía.
 
 ## Árboles
 

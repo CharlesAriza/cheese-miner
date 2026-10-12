@@ -30,6 +30,9 @@
   const TONES = {
     cheddar: { L: '#fff09a', M: '#ffcf2e', D: '#f5ab12', H: '#d9830c' },
     gouda: { L: '#ffd08a', M: '#ff9f3a', D: '#e87a1c', H: '#b9560c' },
+    brie: { L: '#ffffff', M: '#fbf3d6', D: '#e3d3a0', H: '#c9b06a' },
+    emmental: { L: '#fff6b0', M: '#f7de6a', D: '#dcb93a', H: '#a8862a' },
+    parmesan: { L: '#f6e2b0', M: '#e3bf78', D: '#bf9550', H: '#8a6630' },
     blue: { L: '#ffffff', M: '#e9e6cf', D: '#c2be9f', H: '#4a78b8' },
   };
 

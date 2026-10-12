@@ -541,7 +541,7 @@
     const moves = s.mice.length > 1 ? K.bestFitMoves(s) : 0;
     h += '<div class="tabs">' + (ui.moveMode ? '' : btn('movemode', 'MOVE MICE', { cls: 'close' })) + btn('bestfit', 'BEST FIT' + (moves ? '' : ' &#10003;'), { cls: 'close', off: !moves }) + btn('album', 'ALBUM ' + K.albumCount(s) + '/' + K.albumTotal, { cls: 'close' }) + '</div>';
     h += '<p class="hint">Tap a mouse to open it, here or out in the colony. Best fit places each one where it works best on its own; combos between mice are yours to find.</p>';
-    if (s.mice.some((m) => M.ranks[m.rank].manager)) h += row('Managers buy upgrades', 'They buy the cheapest upgrade of their job on their own', btn('managers', s.settings.managersBuy ? 'ON' : 'OFF', { cls: 'buy' }));
+    if (s.mice.some((m) => M.ranks[m.rank].manager)) h += row('Managers buy upgrades', 'They buy cheap upgrades of their job on their own: never more than ' + Math.round(M.managerBudget * 100) + '% of your coins at once', btn('managers', s.settings.managersBuy ? 'ON' : 'OFF', { cls: 'buy' }));
     return h;
   }
 

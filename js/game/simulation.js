@@ -68,6 +68,9 @@
     { id: 'recipes8', text: 'Discover 8 recipes', done: (s) => s.totals.recipes >= 8, prog: (s) => [s.totals.recipes, 8] },
     { id: 'level25', text: 'Reach level 25 in any skill', done: (s) => maxLevel(s) >= 25, prog: (s) => [maxLevel(s), 25] },
     { id: 'zone3', text: 'Open a third rock', done: (s) => s.totals.zonesUnlocked >= 3, prog: (s) => [Math.min(s.coins, B.zones[2].unlockCost), B.zones[2].unlockCost] },
+    { id: 'zone4', text: 'Open a fourth rock', done: (s) => s.totals.zonesUnlocked >= 4, prog: (s) => [Math.min(s.coins, B.zones[3].unlockCost), B.zones[3].unlockCost] },
+    { id: 'zone5', text: 'Open a fifth rock', done: (s) => s.totals.zonesUnlocked >= 5, prog: (s) => [Math.min(s.coins, B.zones[4].unlockCost), B.zones[4].unlockCost] },
+    { id: 'zone6', text: 'Open the last rock', done: (s) => s.totals.zonesUnlocked >= 6, prog: (s) => [Math.min(s.coins, B.zones[5].unlockCost), B.zones[5].unlockCost] },
   ];
 
   function updateGoals(s) {
