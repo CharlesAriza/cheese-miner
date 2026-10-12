@@ -42,6 +42,10 @@
     lot: ['..LLLLLL..', '.LLLLLLLL.', 'MMMMMMMMMM', 'RRRRRRRRRR', 'RRRWWWWRRR', 'RRRRRRRRRR', 'DDDDDDDDDD', '.DDDDDDDD.', '..DDDDDD..'],
     coin: ['..LLLL..', '.LMMMMD.', 'LMMLLMMD', 'LMLMMDMD', 'LMLMMDMD', 'LMMDDMMD', '.LMMMMD.', '..DDDD..'],
     flask: ['..GGGG..', '...GG...', '...GG...', '..GCCG..', '.GCCCCG.', 'GCCLCCCG', 'GCCCCLCG', '.GGGGGG.'],
+    // Cepas: un rayo, una pesa y un libro.
+    quick: ['....QQQ.', '...QQQ..', '..QQQ...', '.QQQQQQ.', '...QQQ..', '..QQQ...', '.QQQ....', '.QQ.....'],
+    dense: ['..HHHH..', '..H..H..', '.DDDDDD.', 'DDLLLLDD', 'DDLDDDDD', 'DDLDDDDD', 'DDDDDDDD', '.DDDDDD.'],
+    teaching: ['.BBB.BBB.', 'BWWWBWWWB', 'BWLWBWLWB', 'BWWWBWWWB', 'BWLWBWLWB', 'BWWWBWWWB', 'BBBBBBBBB'],
     pick: ['.SSSSSS..', 'SS....SS.', '....WW.S.', '...WW....', '..WW.....', '.WW......', 'WW.......'],
   };
 
@@ -52,6 +56,12 @@
       const pal =
         kind === 'coin'
           ? { L: '#fff3a0', M: '#ffc21e', D: '#d98a0a' }
+          : kind === 'quick'
+            ? { Q: '#ffe55c' }
+            : kind === 'dense'
+              ? { H: '#b9560c', D: '#ff9f3a', L: '#ffd08a' }
+              : kind === 'teaching'
+                ? { B: '#3f6fb5', W: '#f4f1e4', L: '#9fb4d0' }
           : kind === 'flask'
             ? { G: '#dfe9f5', C: '#4fd6a0', L: '#c8ffe6' }
             : kind === 'pick'

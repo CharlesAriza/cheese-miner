@@ -437,7 +437,7 @@
     eq(CM.cheesery.experiment(s, Object.assign({}, COMBO, { base: 'gouda' })).ok, true, 'research a gouda recipe in the lab');
     eq(CM.cheesery.produce(s, s.recipes[0].id, 1).ok, true, 'the cheddar line cooks at the same time');
     truthy(s.lab.job && !s.zones.gouda.cookJob && s.zones.cheddar.cookJob, 'the lab researches next to production, without taking a line');
-    eq(CM.cheesery.experiment(s, Object.assign({}, COMBO, { base: 'gouda' })).reason, 'lab-busy', 'one research at a time');
+    eq(CM.cheesery.experiment(s, Object.assign({}, COMBO, { base: 'gouda' })).reason, 'lab-busy', 'one research at a time: asking again for the same one does nothing');
     run(s, 30000);
     eq(s.recipes.length, 2, 'gouda recipe discovered');
     const gouda = s.recipes[1];
@@ -891,7 +891,9 @@
     run(s, 2000);
     const made = s.totals.lotsProduced;
     eq(C.experiment(s, Object.assign({}, COMBO, { treatment: 'smoked' })).ok, true, 'research while the line cooks');
-    eq(C.experiment(s, Object.assign({}, COMBO, { ingredient: 'pepper' })).reason, 'lab-busy', 'one research at a time');
+    eq(C.experiment(s, Object.assign({}, COMBO, { ingredient: 'pepper' })).queued, true, 'one research at a time: another one by hand waits its turn');
+    eq(s.lab.next, C.keyOf(Object.assign({}, COMBO, { ingredient: 'pepper' })), 'it is next');
+    C.labCancel(s);
     truthy(C.labTime(s) > B.cheesery.labBaseMs && C.labCost(s) > B.cheesery.experimentBase, 'each new recipe takes longer and costs more base');
     run(s, C.labTime(s) * 2);
     eq(s.recipes.length, 2, 'the recipe is discovered (an inconclusive result only delays it)');
@@ -982,7 +984,8 @@
     truthy(s.lab.strains, 'the new direction is announced once');
     // Primero a mano
     eq(C.strainStart(s, r.id).ok, true, 'look for a strain by hand, on the recipe you choose');
-    eq(C.strainStart(s, r.id).reason, 'lab-busy', 'one at a time');
+    eq(C.strainStart(s, r.id).queued, true, 'one at a time: asking again queues the next');
+    C.labCancel(s);
     run(s, C.labTime(s) * B.cheesery.strainTime * 2);
     truthy(r.strains.length >= 1 && !s.lab.job, 'the strain is found with no mouse');
     s.lab.found = null;
@@ -1050,6 +1053,32 @@
     truthy(C.valueOf(s, r) > C.valueOf(s, s.recipes[1]) && C.laneRecipe(s, 'cheddar').id === s.recipes[1].id, 'a dense cheese does not fool the cheesemaker: it still cooks the best recipe');
     const back = CM.storage.parse(JSON.stringify(s), 1000000);
     eq(back.recipes[0].strain + '/' + back.recipes[0].strains.length, 'dense/3', 'strains survive a reload');
+    // Con el juego cerrado: el cambio pendiente entra y el investigador sigue encontrando
+    s.zones.cheddar.cookRecipe = r.id;
+    run(s, 12000);
+    truthy(s.zones.cheddar.cookJob && s.zones.cheddar.cookJob.recipeId === r.id, 'the line is cooking the dense cheese');
+    C.setStrain(s, r.id, 'quick');
+    eq(r.next, 'quick', 'changed mid-batch, just before closing the game');
+    s.lab.dir = 'strain';
+    s.lab.found = null;
+    s.inv.base.cheddar = 5000;
+    s.lastSavedAt = 0;
+    const away = CM.sim.applyOffline(s, 20 * 60 * 1000);
+    eq(r.strain + '/' + r.next, 'quick/undefined', 'offline the new strain comes in with the next batch');
+    truthy(s.recipes[1].strains.length >= 1, 'offline the researcher keeps finding strains');
+    truthy(away.strainWaiting && !s.recipes[1].strain, 'the summary says one is waiting, and nothing was equipped for you');
+    // El laboratorio solo aparta su parte: la línea sigue cocinando con el resto
+    s.lab.job = null;
+    s.lab.dir = '';
+    s.lab.want = 'cheddar';
+    s.zones.cheddar.cookJob = null;
+    s.inv.base.cheddar = C.labCost(s) + C.baseUse(r) * 2;
+    eq(C.start(s, 'cheddar').ok, true, 'with the lab saving up, the line still cooks');
+    truthy(s.inv.base.cheddar >= C.labCost(s), 'and leaves the base the lab needs (' + s.inv.base.cheddar + ' >= ' + C.labCost(s) + ')');
+    s.zones.cheddar.cookJob = null;
+    s.inv.base.cheddar = C.labCost(s) + C.baseUse(r) - 1;
+    eq(C.start(s, 'cheddar').reason, 'no-base', 'it only waits when there is not enough for both');
+    s.lab.want = '';
     valid(s);
   });
 

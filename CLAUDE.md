@@ -75,7 +75,7 @@ Gestión (13-10-2026): MICE tiene vista por roca y lista completa; tocar un pues
 
 Edificio propio en la colonia (gratis tras 3 recetas a mano) con un puesto del oficio **Research**, que usa el sistema de ratones tal cual (afinidad, rasgos de oficio, legendario, combinaciones de vecinos). El jugador marca la dirección de investigación y el ratón la ejecuta; sin dirección no investiga solo. La investigación va en paralelo a la producción y reserva su Cheese Base. Es la base prevista para mutaciones, que no están hechas. Pendiente: las recetas son finitas (216), así que el investigador se queda sin trabajo al final.
 
-Interfaz: pestaña LAB en la barra de etapas (seis casillas; la del laboratorio va aparte de la cadena) y panel con cabecera común y dos secciones, RECIPES y STRAINS. Cada sección enseña solo lo suyo; lo que ocupa mucho (selector de dirección, receta a mano) va plegado. Las cepas también se buscan a mano.
+Interfaz: pestaña LAB en la barra de etapas (seis casillas; la del laboratorio va aparte de la cadena) y panel con cabecera común y dos secciones, RECIPES y STRAINS. Cada sección enseña solo lo suyo; lo que ocupa mucho (selector de dirección, receta a mano) va plegado. Las cepas también se buscan a mano. LAB aparece en la barra con la primera receta; antes, la primera se descubre desde CHEESE. Al construir el edificio, una ventana explica el paso de investigar a mano a tener investigador.
 
 Cepas (prototipo, solo Cheddar): Quick-set, Dense y Teaching. Cada cepa da algo y pide algo; ninguna sube el valor sin coste en otra parte de la cadena. El investigador las encuentra, el jugador elige cuál usa y las encontradas no se pierden. Antes de ampliar (más quesos, Raw-pressed, dos cepas por receta) hay que jugarlo.
 

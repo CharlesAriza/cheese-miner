@@ -3791,53 +3791,60 @@ button {
 }
 
 /* ---------- Cheese Lab ---------- */
+/* El banco: azulejo de laboratorio y repisa. Solo la cabecera lleva decorado. */
 .labhead {
   display: flex;
   gap: 8px;
   margin-bottom: 10px;
+  padding: 8px 8px 12px;
   font-family: var(--text);
+  background:
+    linear-gradient(#0000 calc(100% - 6px), #0f2530 calc(100% - 6px)),
+    repeating-linear-gradient(90deg, #ffffff08 0 1px, #0000 1px 16px),
+    repeating-linear-gradient(0deg, #ffffff08 0 1px, #0000 1px 16px), #17323f;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
 }
 .panel button.labwho,
 .labnow {
   flex: 1;
   min-width: 0;
-  padding: 8px;
-  background: var(--bg);
-  border: 2px solid var(--ink);
-  border-radius: 8px;
+  padding: 7px;
+  background: #0e1c25cc;
+  border: 2px solid #0a141b;
+  border-radius: 6px;
   box-shadow: none;
 }
 .panel button.labwho {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   text-align: left;
   font-family: var(--text);
   color: inherit;
 }
 .labwho .pix.face {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   flex: none;
 }
 .labwho .labhole {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   flex: none;
   display: grid;
   place-items: center;
   font-style: normal;
   font-size: 18px;
   color: var(--quiet);
-  border: 2px dashed #4a4458;
-  border-radius: 8px;
+  border: 2px dashed #4a6878;
+  border-radius: 6px;
 }
-.labwho span,
-.labnow {
+.labwho span {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
 }
 .labwho b,
@@ -3848,16 +3855,15 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.labwho small,
-.labnow small {
+.labwho small {
   font-size: 10px;
-  letter-spacing: 0.4px;
-  color: var(--quiet);
+  color: #9fc3d1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.labnow > small {
-  font-family: var(--pixel);
-  font-size: 6px;
-  color: var(--pick);
+.labwho small .hrt {
+  margin-left: 4px;
 }
 .labwho em,
 .labrow em,
@@ -3869,14 +3875,91 @@ button {
 }
 .labwho em {
   position: absolute;
-  top: 6px;
-  right: 7px;
+  top: 5px;
+  right: 6px;
 }
-.labnow .bar {
-  margin: 3px 0 0;
+.labnow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
-.labnow .bar i {
-  background: var(--pick);
+.labnow > div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.labnow small {
+  font-family: var(--pixel);
+  font-size: 6px;
+  line-height: 1.3;
+  color: var(--pick);
+}
+/* El matraz: quieto si no hay nada; burbujea mientras se investiga */
+.labflask {
+  position: relative;
+  flex: none;
+  width: 26px;
+  height: 30px;
+  display: grid;
+  place-items: end center;
+  opacity: 0.45;
+}
+.labflask .pix {
+  width: 24px;
+  height: 24px;
+}
+.labhead.busy .labflask {
+  opacity: 1;
+  animation: labbob 1.2s steps(2) infinite;
+}
+.labhead.busy .labflask::before,
+.labhead.busy .labflask::after {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 4px;
+  width: 3px;
+  height: 3px;
+  background: #c8ffe6;
+  animation: labbubble 1.1s steps(4) infinite;
+}
+.labhead.busy .labflask::after {
+  left: 15px;
+  animation-delay: 0.55s;
+}
+@keyframes labbob {
+  50% {
+    transform: translateY(-1px);
+  }
+}
+@keyframes labbubble {
+  from {
+    transform: translateY(2px);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+}
+/* La barra es un tubo de ensayo */
+.bar.labtube {
+  height: 9px;
+  margin: 2px 0 0;
+  background: #0a141b;
+  border: 1px solid #4a6878;
+  border-radius: 5px;
+}
+.bar.labtube i {
+  background: repeating-linear-gradient(90deg, #4fd6a0 0 6px, #7be8bb 6px 8px);
+  border-radius: 4px;
+}
+.bar.labtube.wait i {
+  display: block;
+  height: 100%;
+  background: #ffd43a;
 }
 .labwait {
   display: flex;
@@ -3884,7 +3967,8 @@ button {
   justify-content: space-between;
   gap: 6px;
   font-size: 11px;
-  color: var(--quiet);
+  font-weight: 600;
+  color: #ffe9a0;
 }
 .tabs.labtabs {
   margin-bottom: 10px;
@@ -3935,11 +4019,49 @@ button {
 .panel button.labrow.open {
   border-color: var(--pick);
 }
+.panel button.labdir.open {
+  margin-bottom: 0;
+  border-radius: 8px 8px 0 0;
+}
+/* Selector: una categoría a la vista, altura fija */
 .labdirsel {
-  margin: -4px 0 10px;
-  padding: 8px;
+  margin: 0 0 8px;
+  padding: 6px;
   background: var(--bg);
-  border-radius: 8px;
+  border: 2px solid var(--pick);
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+}
+.labcats {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 6px;
+}
+.panel .labcats button {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 0;
+  font-size: 5px;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid #3b3350;
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--quiet);
+}
+.panel .labcats button.on {
+  color: var(--pick);
+  border-bottom-color: var(--pick);
+}
+.labopts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-height: 38px;
+}
+.panel .labopts button.chip {
+  flex: 1 1 30%;
+  min-height: 36px;
 }
 .labrow b {
   font-family: var(--pixel);
@@ -3959,56 +4081,137 @@ button {
   margin-bottom: 8px;
 }
 .labbuild {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   margin-bottom: 10px;
   padding: 10px;
   font-family: var(--text);
-  background: var(--bg);
-  border: 2px dashed #4a4458;
+  background: #17323f;
+  border: 2px dashed #4a6878;
   border-radius: 8px;
 }
-.labbuild > b {
+.labbuild > div {
+  flex: 1;
+  min-width: 0;
+}
+.labbuild b {
   display: block;
   font-family: var(--pixel);
-  font-size: 9px;
+  font-size: 8px;
   font-weight: normal;
+  line-height: 1.4;
   color: var(--pick);
 }
-.labbuild > small {
+.labbuild small {
   display: block;
   margin: 6px 0;
   font-size: 12px;
   line-height: 1.35;
   color: var(--muted);
 }
+.labpips {
+  display: flex;
+  gap: 5px;
+  margin-top: 6px;
+}
+.labpips i {
+  width: 22px;
+  height: 8px;
+  background: #0a141b;
+  border: 1px solid #4a6878;
+  border-radius: 2px;
+}
+.labpips i.on {
+  background: #4fd6a0;
+}
 
-/* Cepas */
+/* ---------- Cepas ---------- */
+/* Cada cepa tiene su color: se reconoce antes de leerla */
+[data-strain='quick'] {
+  --strain: #ffe55c;
+}
+[data-strain='dense'] {
+  --strain: #ff9f3a;
+}
+[data-strain='teaching'] {
+  --strain: #8fc4ff;
+}
+[data-strain='plain'] {
+  --strain: #b9b1d0;
+}
+/* Placa de cultivo */
+.straindish {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  font-family: var(--pixel);
+  font-style: normal;
+  font-size: 14px;
+  color: #4a6878;
+  background: radial-gradient(circle, #24465a 0 55%, #17323f 56%);
+  border: 2px solid #4a6878;
+  border-radius: 50%;
+}
+/* Hallazgo */
 .strainnew {
   margin: 0 0 10px;
   padding: 10px;
   font-family: var(--text);
-  background: #1f3a4d;
-  border: 2px solid var(--pick);
+  background: #17323f;
+  border: 2px solid var(--strain);
   border-radius: 8px;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--strain) 45%, transparent);
+  animation: strainglow 1.6s ease-in-out infinite;
 }
-.strainnew > b {
+@keyframes strainglow {
+  50% {
+    box-shadow: 0 0 22px color-mix(in srgb, var(--strain) 75%, transparent);
+  }
+}
+.strainfound {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.strainfound .pix {
+  width: 36px;
+  height: 36px;
+  animation: labbob 0.8s steps(2) infinite;
+}
+.strainfound small {
   display: block;
   font-family: var(--pixel);
-  font-size: 9px;
-  font-weight: normal;
+  font-size: 6px;
   color: var(--pick);
 }
-.strainnew > small {
+.strainfound b {
   display: block;
-  margin: 4px 0 6px;
+  margin: 4px 0 3px;
+  font-family: var(--pixel);
+  font-size: 12px;
+  font-weight: normal;
+  color: var(--strain);
+}
+.strainfound span {
   font-size: 12px;
   color: var(--muted);
 }
-.strainnew > div {
+.strainnew > p {
+  margin: 8px 0;
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.35;
+  color: #cfe6ee;
+}
+.strainact {
   display: flex;
   gap: 8px;
   margin-top: 8px;
 }
-.strainnew > div button {
+.strainact button {
   flex: 1;
 }
 .straincmp {
@@ -4047,40 +4250,59 @@ button {
   font-size: 12px;
   font-weight: 600;
 }
+/* La muestra: la receta sobre la que se trabaja */
 .strainhero {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 8px;
-  padding: 10px;
+  padding: 8px 10px;
   font-family: var(--text);
-  background: var(--bg);
+  background: #17323f;
   border: 2px solid var(--ink);
+  border-left: 5px solid var(--strain);
   border-radius: 8px;
 }
 .strainhero > div {
   flex: 1;
   min-width: 0;
 }
-.strainhero b {
-  display: block;
-  font-size: 14px;
-}
 .strainhero small {
   display: block;
+  font-family: var(--pixel);
+  font-size: 6px;
+  color: var(--pick);
+}
+.strainhero b {
+  display: block;
+  margin: 3px 0 1px;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.strainhero span {
   font-size: 11px;
   color: var(--quiet);
 }
-.strainhero > span {
+.strainhero > em {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
   font-family: var(--pixel);
-  font-size: 7px;
-  color: var(--gold);
-  text-align: right;
+  font-style: normal;
+  font-size: 6px;
+  color: var(--strain);
 }
-.strainhero > span small {
-  margin-top: 3px;
+.strainhero > em .pix {
+  width: 20px;
+  height: 20px;
+}
+.strainhero > em small {
   font-family: var(--text);
-  font-size: 10px;
+  font-size: 9px;
+  color: var(--quiet);
 }
 .straingrid {
   display: grid;
@@ -4090,7 +4312,7 @@ button {
 }
 .panel button.straincard,
 .straincard {
-  min-height: 88px;
+  min-height: 92px;
   padding: 8px;
   display: flex;
   flex-direction: column;
@@ -4100,12 +4322,21 @@ button {
   color: inherit;
   background: var(--panel-2);
   border: 2px solid var(--ink);
+  border-top: 4px solid var(--strain);
   border-radius: 8px;
 }
 .straincard > b {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--pixel);
   font-size: 8px;
   font-weight: normal;
+  color: var(--strain);
+}
+.straincard > b .pix {
+  width: 18px;
+  height: 18px;
 }
 .straincard ul {
   flex: 1;
@@ -4121,33 +4352,106 @@ button {
 }
 .straincard em {
   align-self: flex-end;
+  padding: 3px 5px;
   font-family: var(--pixel);
   font-style: normal;
   font-size: 6px;
   color: var(--quiet);
+  border: 1px solid #ffffff22;
+  border-radius: 3px;
 }
 .panel button.straincard.on {
-  background: #4a3f1c;
-  border-color: var(--gold);
+  background: #2b3f2f;
+  border-color: var(--strain);
 }
 .straincard.on em {
-  color: var(--gold);
+  color: var(--ink);
+  background: var(--strain);
+  border-color: var(--strain);
 }
 .straincard.unknown {
-  min-height: 56px;
+  min-height: 60px;
   align-items: center;
   justify-content: center;
   background: none;
-  border: 2px dashed #4a4458;
+  border: 2px dashed #4a6878;
   color: var(--quiet);
 }
-.straincard.unknown b {
-  font-size: 16px;
+.straincard.unknown .straindish {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
 }
 .straincard.unknown small {
   font-size: 11px;
 }
-
 .panel button.buy.wide + button.labrow {
   margin-top: 8px;
+}
+
+/* Barra de seis casillas en pantallas estrechas */
+@media (max-width: 345px) {
+  .chain {
+    gap: 5px;
+  }
+  .tile:not(:last-child)::after {
+    right: -6px;
+    border-width: 3px;
+    border-left-width: 4px;
+    margin-top: -3px;
+  }
+  .tile.labtile {
+    margin-left: 2px;
+  }
+  .tile b {
+    font-size: 5px;
+  }
+}
+
+.tile[hidden] {
+  display: none;
+}
+
+/* Cabecera en dos filas: el investigador entero y, debajo, el experimento */
+.labhead {
+  flex-direction: column;
+  gap: 6px;
+}
+.panel button.labwho {
+  flex: none;
+  width: 100%;
+  padding: 5px 7px;
+}
+.labwho .pix.face,
+.labwho .labhole {
+  width: 32px;
+  height: 32px;
+}
+.labwho span {
+  flex: 1;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 1px 8px;
+  padding-right: 44px;
+}
+.labwho b {
+  flex: 0 0 100%;
+}
+.straincard.unknown {
+  grid-column: 1 / -1;
+  min-height: 0;
+  flex-direction: row;
+  gap: 6px;
+  padding: 6px 8px;
+  justify-content: flex-start;
+}
+.straincard.unknown .straindish {
+  width: 22px;
+  height: 22px;
+  font-size: 8px;
+  border-width: 1px;
+}
+.straincard.unknown small {
+  margin-left: 4px;
 }

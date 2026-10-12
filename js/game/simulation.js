@@ -160,7 +160,7 @@
         const pick = !!b.m.offer && !b.offer;
         if (lv > b.level || spec.length || pick) mouseNews.push({ id: b.m.id, name: b.m.name, from: b.level, to: lv, spec, pick });
       }
-      return { awayMs: away, simulatedMs: simulated, capped: away > cap, capMs: cap, delta, coins: s.coins - coins, levelUps, mouseNews, automated: AUTO.some((k) => q.isAutomated(s, k)) };
+      return { awayMs: away, simulatedMs: simulated, capped: away > cap, capMs: cap, delta, coins: s.coins - coins, levelUps, mouseNews, strainWaiting: s.lab.found ? { recipeId: s.lab.found.recipeId, strain: s.lab.found.strain } : null, automated: AUTO.some((k) => q.isAutomated(s, k)) };
     },
   };
 })();

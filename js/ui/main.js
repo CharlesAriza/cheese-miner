@@ -22,6 +22,8 @@
     cheeseTab: 'book',
     labTab: 'recipes', // sección del laboratorio a la vista
     labDirOpen: false,
+    labDirCat: null,
+    labSeen: false,
     labHand: null, // null: abierto solo si no hay investigador
     strainRecipe: null,
     combo: { base: 'cheddar', ingredient: 'herbs', treatment: 'washed', maturation: 'fresh' },
@@ -219,6 +221,13 @@
         play('reveal');
         scene.celebrate();
         banner((ev.breakthrough ? 'BREAKTHROUGH: ' : ev.bonus ? 'BONUS RECIPE: ' : 'NEW RECIPE: ') + found.name.toUpperCase());
+        // Con la primera receta aparece LAB en la barra: se dice dónde y para qué.
+        if (state.totals.recipes === 1) {
+          toast(found.name + ' is yours. Research more in the new LAB tab: with ' + B.buildings.lab.requires.min + ' recipes you can build the Cheese Lab', true);
+          if (ui.panel === 'lab') closePanel();
+          select('cheesery');
+          break;
+        }
         toast(found.name + ' sells for ' + CM.fmt(CM.shop.price(state, found)) + ' coins' + (ev.breakthrough ? ' and starts with mastery ' + CM.cheesery.masteryLevel(found) : '') + '. It is in your Recipe Book', true);
         break;
       }
@@ -233,7 +242,7 @@
         banner('NEW STRAIN: ' + B.strains[ev.strain].name.toUpperCase());
         toast('For ' + r.name + '. It waits for you in LAB: compare it and decide', true);
         ui.strainRecipe = r.id;
-        if (ui.panel === 'lab') ui.labTab = 'strains';
+        scene.celebrate();
         break;
       }
       case 'labSetback':
@@ -395,7 +404,8 @@
         punch();
         play('build');
         banner(B.buildings[ev.id].name.toUpperCase() + ' BUILT!');
-        toast(UNLOCK[ev.id].then, true);
+        if (ev.id === 'lab') labBuiltCard();
+        else toast(UNLOCK[ev.id].then, true);
         scene.focus(ev.id);
         scene.celebrate();
         dirty = true;
@@ -534,13 +544,15 @@
     const lab = tiles.lab;
     const researcher = CM.cheesery.labWorker(state);
     const labJob = state.lab.job;
-    const labNew = !!state.lab.found || (!state.built.lab && CM.construction.buildInfo(state, 'lab').canBuild);
-    if (lab.hidden !== !state.built.cheesery) lab.hidden = !state.built.cheesery;
+    const strainsFresh = CM.cheesery.strainsOpen(state) && !state.recipes.some((r) => (r.strains || []).length) && !(labJob && labJob.strain);
+    const labNew = !!state.lab.found || strainsFresh || (!state.built.lab && (CM.construction.buildInfo(state, 'lab').canBuild || (!ui.labSeen && state.totals.recipes === 1)));
+    const noLab = state.totals.recipes < 1;
+    if (lab.hidden !== noLab) lab.hidden = noLab;
     set(lab, 'sel', ui.panel === 'lab');
     set(lab, 'working', !!labJob);
     set(lab, 'isnew', labNew);
     set(lab.querySelector('.mini > i'), 'width', Math.round(progress(labJob) * 100) + '%');
-    set(lab.querySelector('u'), 'text', researcher ? 'LV ' + CM.mice.level(researcher) : 'BY HAND');
+    set(lab.querySelector('u'), 'text', researcher ? 'LV ' + CM.mice.level(researcher) : state.built.lab ? 'BY HAND' : Math.min(state.totals.recipes, B.buildings.lab.requires.min) + '/' + B.buildings.lab.requires.min);
     set(lab.querySelector('em'), 'text', labNew ? 'NEW!' : researcher && state.lab.dir ? 'AUTO' : '');
     const def = q.zoneDef(ui.zone);
     bubble('rock', def.name.toUpperCase() + ' · DEPTH ' + state.zones[ui.zone].depth, 'name');
@@ -872,13 +884,15 @@
     if (name === 'cheese' && !state.recipes.length) name = 'lab';
     if (name === 'lab') {
       ui.labDirOpen = false;
+      ui.labDirCat = null;
       ui.labHand = null;
+      if (state.recipes.length) ui.labSeen = true;
       if (state.lab.found) ui.labTab = 'strains';
       scene.focus(state.built.lab ? 'lab' : 'cheesery');
     }
     ui.panel = name;
     ui.lastHtml = '';
-    $('sheet-title').textContent = P.title(name, ui);
+    $('sheet-title').textContent = P.title(name, ui, state);
     $('sheet').hidden = false;
     $('sheet-body').scrollTop = 0;
     if (name === 'cheese') scene.focus('cheesery');
@@ -992,7 +1006,8 @@
     tab: (name) => void (ui.cheeseTab = name),
     book: () => void openPanel('cheese'),
     labtab: (name) => void (ui.labTab = name),
-    labdiropen: () => void (ui.labDirOpen = !ui.labDirOpen),
+    labdiropen: () => void ((ui.labDirOpen = !ui.labDirOpen), (ui.labDirCat = null)),
+    labdircat: (cat) => void (ui.labDirCat = cat),
     labhand: () => void (ui.labHand = !(ui.labHand === null ? !CM.cheesery.labWorker(state) : ui.labHand)),
     strainrecipe: (id) => void (ui.strainRecipe = id),
     strainfind: (id) => CM.cheesery.strainStart(state, id),
@@ -1121,6 +1136,14 @@
     );
   }
 
+  // Del experimento a mano al laboratorio: qué cambia y qué hay que hacer ahora.
+  function labBuiltCard() {
+    showModal(
+      '<h2>CHEESE LAB BUILT!</h2><div class="hero">' + I.img('flask', '', 'huge') + '</div><p class="lead">Until now you discovered every recipe <b>by hand</b>. From here a mouse can do it <b>for you</b>, while your cheesemakers keep cooking.</p><ul class="list"><li><b>Assign a researcher:</b> the lab has its own post, Research.</li><li><b>Choose a direction:</b> you decide what it looks for; the mouse does the work.</li><li><b>By hand still works,</b> whenever you want one recipe in particular.</li></ul><div class="row"><button class="buy" data-m="ok">OPEN THE LAB</button></div>',
+      { ok: () => openPanel('lab') }
+    );
+  }
+
   // Explica qué se acaba de comprar al abrir una roca.
   function zoneOpened(id) {
     const def = q.zoneDef(id);
@@ -1147,6 +1170,7 @@
     if (d.baseProduced) lines.push(I.img('base', base) + 'Cheese Base refined: +' + CM.fmt(d.baseProduced));
     if (d.rawProduced) lines.push(I.img('raw', base) + 'Raw Cheese drilled: +' + CM.fmt(d.rawProduced));
     if (d.veinsFound) lines.push('Veins found: ' + d.veinsFound);
+    if (sum.strainWaiting && B.strains[sum.strainWaiting.strain]) lines.push('<b class="tok">New strain found: ' + B.strains[sum.strainWaiting.strain].name + '</b> · compare it in LAB');
     for (const up of sum.levelUps) lines.push(B.skills[up.skill].name + ': level ' + up.from + ' > ' + up.to);
     // Los ratones: primero los que traen algo que elegir.
     const news = (sum.mouseNews || []).slice().sort((a, b) => (b.pick ? 1 : 0) - (a.pick ? 1 : 0) || b.to - b.from - (a.to - a.from));

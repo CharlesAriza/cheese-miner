@@ -161,13 +161,15 @@
       if (!recipe || B.cheesery.strainBases.indexOf(parseKey(recipe.key).base) < 0) return CM.fail('invalid');
       const missing = Object.keys(B.strains).filter((id) => has(recipe).indexOf(id) < 0);
       if (!missing.length) return CM.fail('known');
-      if (s.lab.job) return CM.fail('lab-busy');
       const base = parseKey(recipe.key).base;
       const cost = this.labCost(s);
-      if (s.inv.base[base] < cost) {
-        if (source === 'worker' || source === 'queue') return CM.fail('no-base');
+      const byHand = source !== 'worker' && source !== 'queue';
+      // A mano, con el laboratorio ocupado o sin base: queda apuntado como lo siguiente.
+      if (s.lab.job || s.inv.base[base] < cost) {
+        if (!byHand) return CM.fail(s.lab.job ? 'lab-busy' : 'no-base');
+        if (s.lab.next === recipe.key) return CM.fail('lab-busy');
         s.lab.next = recipe.key;
-        s.lab.want = base;
+        if (!s.lab.job) s.lab.want = base;
         return CM.ok({ queued: true });
       }
       if (s.lab.next === recipe.key) s.lab.next = '';
@@ -233,14 +235,16 @@
       if (comboLocked(s, combo)) return CM.fail('part-locked');
       if (this.recipeByKey(s, keyOf(combo))) return CM.fail('known');
       if (!s.built.cheesery) return CM.fail('not-built');
-      if (s.lab.job) return CM.fail('lab-busy');
       const coinCost = B.ingredients[combo.ingredient].coinCost;
       const baseCost = this.labCost(s);
-      if (s.inv.base[combo.base] < baseCost) {
-        // Encargo a mano sin base suficiente: queda apuntado y el laboratorio la reserva.
-        if (source === 'worker' || source === 'queue') return CM.fail('no-base');
+      if (s.lab.job && !s.lab.job.strain && s.lab.job.key === keyOf(combo)) return CM.fail('lab-busy');
+      if (s.lab.job || s.inv.base[combo.base] < baseCost) {
+        // Encargo a mano con el laboratorio ocupado o sin base: queda apuntado como lo
+        // siguiente (pasa por delante de la dirección) y el laboratorio reserva su base.
+        if (source === 'worker' || source === 'queue') return CM.fail(s.lab.job ? 'lab-busy' : 'no-base');
+        if (s.lab.next === keyOf(combo)) return CM.fail('lab-busy');
         s.lab.next = keyOf(combo);
-        s.lab.want = combo.base;
+        if (!s.lab.job) s.lab.want = combo.base;
         return CM.ok({ queued: true });
       }
       if (s.coins < coinCost) return CM.fail('no-coins');
@@ -260,6 +264,33 @@
       return CM.ok();
     },
     // ¿Encaja una combinación en la dirección marcada?
+    // Qué espera el laboratorio cuando no investiga: la receta o cepa pendiente,
+    // la base que pide y la que hay. null si no espera nada.
+    labWaiting(s) {
+      if (s.lab.job) return null;
+      let combo = null;
+      let name = '';
+      let strain = false;
+      if (s.lab.next && parseKey(s.lab.next)) {
+        const known = this.recipeByKey(s, s.lab.next);
+        combo = parseKey(s.lab.next);
+        name = known ? known.name : defaultName(combo);
+        strain = !!known;
+      } else if (this.labWorker(s) && s.lab.dir === 'strain') {
+        const t = this.strainsOpen(s) ? this.strainTarget(s) : null;
+        if (t) {
+          combo = parseKey(t.key);
+          name = t.name;
+          strain = true;
+        }
+      } else if (this.labWorker(s) && s.lab.dir) {
+        combo = this.labPick(s, false);
+        if (combo) name = defaultName(combo);
+      }
+      if (!combo) return null;
+      const coin = strain ? 0 : B.ingredients[combo.ingredient].coinCost;
+      return { name, strain, base: combo.base, need: this.labCost(s), have: s.inv.base[combo.base], coin, queued: !!s.lab.next };
+    },
     labCancel(s) {
       s.lab.next = '';
       s.lab.want = '';
@@ -382,11 +413,12 @@
       return startJob(s, 'produce', parseKey(recipe.key), recipe, n, baseUse(recipe) * n * per, 'manual', per);
     },
     // Quesos por hornada ahora mismo: lo que den los moldes, o menos si no llega la base o las monedas.
-    batchFor(s, recipe, cycles, cycleMult) {
+    // `reserve`: Cheese Base que se deja sin tocar (la que el laboratorio está juntando).
+    batchFor(s, recipe, cycles, cycleMult, reserve) {
       const combo = parseKey(recipe.key);
       const coin = B.ingredients[combo.ingredient].coinCost;
       const c = cycles || 1;
-      return Math.max(1, Math.min(Math.floor(q.cheeseBatch(s) * (cycleMult || 1)), Math.floor(s.inv.base[combo.base] / (baseUse(recipe) * c)), coin ? Math.floor(s.coins / (coin * c)) : Infinity));
+      return Math.max(1, Math.min(Math.floor(q.cheeseBatch(s) * (cycleMult || 1)), Math.floor((s.inv.base[combo.base] - (reserve || 0)) / (baseUse(recipe) * c)), coin ? Math.floor(s.coins / (coin * c)) : Infinity));
     },
     // Cuántos quesos de una receta se pueden encargar ahora mismo.
     maxLots(s, recipe) {
@@ -437,12 +469,14 @@
       if (!recipe) return CM.fail('no-recipe');
       // El laboratorio tiene preferencia sobre la base que le falta para su siguiente receta.
       const zbase = q.zoneDef(zoneId).base;
-      if (s.lab.want === zbase && s.inv.base[zbase] < baseUse(recipe) + this.labCost(s)) return CM.fail('no-base');
+      // La línea sigue cocinando con todo lo demás: solo aparta lo que cuesta esa investigación.
+      const reserve = s.lab.want === zbase ? this.labCost(s) : 0;
+      if (reserve && s.inv.base[zbase] - reserve < baseUse(recipe)) return CM.fail('no-base');
       // Si el ciclo ya no puede ser más corto, la velocidad que sobra agranda la hornada.
       const w = CM.mice.at(s, 'cheesemaking', zoneId);
       const speed = w ? CM.mice.speed(w, 'cheesemaking', s, zoneId) : 1;
       const size = q.skillMult(s, 'cheesemaking') * (w ? CM.mice.yieldMult(w, 'cheesemaking', s, zoneId) : 1);
-      const per = this.batchFor(s, recipe, 1, size * CM.cycle(jobTime(s, parseKey(recipe.key), recipe) / speed).mult);
+      const per = this.batchFor(s, recipe, 1, size * CM.cycle(jobTime(s, parseKey(recipe.key), recipe) / speed).mult, reserve);
       return startJob(s, 'produce', parseKey(recipe.key), recipe, 1, baseUse(recipe) * per, 'worker', per);
     },
     // Estado: not-built, running, no-recipe, no-base, no-coins, ready, idle.
