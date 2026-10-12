@@ -138,6 +138,18 @@
       tone(1568, 0.45, { type: 'triangle', vol: 0.08, delay: 0.42 });
     },
     denied: () => tone(150, 0.12, { type: 'sawtooth', vol: 0.04, slideTo: 95 }),
+    // Fanfarria de legendario: sube, se queda arriba y remata.
+    legend() {
+      noise(0.3, { freq: 900, vol: 0.12 });
+      arp([392, 523, 659, 784, 1047, 1319, 1568], 0.09, { type: 'square', vol: 0.07, len: 0.22 });
+      arp([1047, 1319, 1568, 2093], 0.12, { type: 'triangle', vol: 0.09, delay: 0.7, len: 0.5 });
+      tone(2093, 0.9, { type: 'triangle', vol: 0.08, delay: 1.2 });
+    },
+    // Te ha tocado una manía.
+    quirk() {
+      tone(220, 0.25, { type: 'sawtooth', vol: 0.06, slideTo: 110 });
+      tone(104, 0.4, { type: 'square', vol: 0.05, delay: 0.22, slideTo: 70 });
+    },
     newRock() {
       noise(0.3, { freq: 220, vol: 0.2 });
       tone(80, 0.3, { type: 'triangle', vol: 0.14, slideTo: 45 });

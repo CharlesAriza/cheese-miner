@@ -232,7 +232,8 @@
         break;
       case 'recruited': {
         const mouse = CM.mice.byId(state, ev.id);
-        play('build');
+        if (mouse.rarity === 2) legendMoment(mouse, mouse.traits[0], true);
+        else play('build');
         scene.celebrate();
         banner(mouse.name.toUpperCase() + ' JOINED!');
         toast(mouse.post ? mouse.name + ' went to ' + CM.mice.postLabel(mouse.post) + ' and works there on its own' : mouse.name + ' is resting: every post has a mouse', true);
@@ -242,8 +243,11 @@
       case 'traitReady': {
         const mouse = CM.mice.byId(state, ev.id);
         if (!mouse) break;
-        play('bell');
-        toast(mouse.name + (ev.kind === 'job' ? ' earned a speciality' : ' can learn a new trait') + '. Pick it in MICE', true);
+        if (ev.legend) legendOffer(mouse);
+        else {
+          play('bell');
+          toast(mouse.name + (ev.kind === 'job' ? ' earned a speciality' : ' can learn a new trait') + '. Pick it in MICE', true);
+        }
         dirty = true;
         break;
       }
@@ -251,14 +255,17 @@
         const mouse = CM.mice.byId(state, ev.id);
         const def = B.mice.traits[ev.trait];
         if (ev.mystery) revealMystery(mouse, ev.trait);
+        else if (ev.kind === 'legend') legendMoment(mouse, ev.trait);
         else {
-          play(ev.kind === 'legend' ? 'goal' : 'reveal');
-          if (ev.kind === 'legend') scene.celebrate();
+          play('reveal');
           banner(mouse.name.toUpperCase() + ': ' + def.name.toUpperCase() + '!');
         }
         dirty = true;
         break;
       }
+      case 'legendOffer':
+        legendOffer(CM.mice.byId(state, ev.id));
+        break;
       case 'combo':
         for (const id of ev.combos) {
           const c = B.mice.combos.find((x) => x.id === id);
@@ -1108,12 +1115,65 @@
       clearInterval(timer);
       el.textContent = def.name.toUpperCase();
       el.className = 'slot ' + def.kind;
-      $('slot-desc').textContent = (def.kind === 'legend' ? 'LEGENDARY! ' : def.kind === 'quirk' ? 'A quirk... ' : '') + def.desc + '.';
+      if (def.kind === 'legend') {
+        closeModal();
+        return legendMoment(mouse, traitId);
+      }
+      el.innerHTML = (def.kind === 'quirk' ? '&#9660; ' : '&#9650; ') + def.name.toUpperCase();
+      $('slot-desc').innerHTML = (def.kind === 'quirk' ? '<b class="bad">A QUIRK.</b> ' : '') + CM.traitDesc(traitId) + '.';
       $('slot-ok').disabled = false;
       $('slot-ok').textContent = def.kind === 'quirk' ? 'OH WELL' : 'NICE';
-      play(def.kind === 'legend' ? 'goal' : def.kind === 'quirk' ? 'click' : 'reveal');
-      if (def.kind !== 'quirk') scene.celebrate();
+      if (def.kind === 'quirk') {
+        play('quirk');
+        retrigger($('modal-body'), 'badflash');
+      } else {
+        play('reveal');
+        scene.celebrate();
+      }
     }, 80);
+  }
+
+  // Sale una opción legendaria entre las tres: se avisa antes de elegir.
+  function legendOffer(mouse) {
+    if (!mouse) return;
+    play('goal');
+    scene.celebrate();
+    banner('A LEGENDARY TRAIT FOR ' + mouse.name.toUpperCase() + '!');
+    toast('One of ' + mouse.name + "'s options is LEGENDARY. Go to MICE", true);
+    dirty = true;
+  }
+
+  // EL momento: pantalla a oscuras, destello dorado, lluvia de monedas y la carta.
+  let legendEl = null;
+  function legendMoment(mouse, traitId, born) {
+    const def = B.mice.traits[traitId];
+    if (!mouse || !def) return;
+    const [skill, zone] = mouse.post ? mouse.post.split(':') : [];
+    let change = '';
+    if (skill && !born) {
+      const without = Object.assign({}, mouse, { learned: mouse.learned.filter((t) => t !== traitId) });
+      const before = CM.mouseRate(state, without, skill, zone);
+      const after = CM.mouseRate(state, mouse, skill, zone);
+      if (before !== after) change = '<p class="was">' + before + '</p><p class="now">' + after + '</p>';
+    }
+    let rain = '';
+    for (let i = 0; i < 26; i++) rain += '<i style="left:' + ((i * 37) % 100) + '%;animation-delay:' + ((i * 0.13) % 1.6).toFixed(2) + 's;animation-duration:' + (1.3 + ((i * 7) % 9) / 10) + 's"></i>';
+    if (!legendEl) {
+      legendEl = document.createElement('div');
+      legendEl.className = 'legendfx';
+      $('modal').parentNode.appendChild(legendEl);
+      legendEl.addEventListener('click', () => {
+        if (performance.now() - legendEl.shownAt > 1200) legendEl.hidden = true;
+      });
+    }
+    legendEl.innerHTML =
+      '<div class="rays"></div><div class="rain">' + rain + '</div><div class="card"><div class="top">&#9733; LEGENDARY &#9733;</div><img class="pix" alt="" src="' + CM.mouseUrl(mouse) + '"><div class="who">' + P.esc(mouse.name) + (born ? ' joined your colony' : '') + '</div><div class="name">' + def.name.toUpperCase() + '</div><p>' + def.desc + '.</p>' + change + '<small>tap to continue</small></div>';
+    legendEl.shownAt = performance.now();
+    legendEl.hidden = false;
+    retrigger(legendEl, 'go');
+    play('legend');
+    scene.celebrate();
+    dirty = true;
   }
 
   function confirmDismiss(id) {

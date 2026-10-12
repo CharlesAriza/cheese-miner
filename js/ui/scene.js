@@ -151,7 +151,12 @@
     }
     return (spriteCache[key] = c);
   }
-  const rankSprite = (m) => mouseSprite(CM.mice.parts(m), m.rank);
+  // El siguiente ratón que se dibuje lleva aura dorada si es legendario.
+  let auraNext = false;
+  const rankSprite = (m) => {
+    auraNext = CM.mice.isLegend(m);
+    return mouseSprite(CM.mice.parts(m), m.rank);
+  };
   // Retrato de un ratón (o de un candidato) para los paneles.
   const portraits = {};
   const urlOf = (p, rank) => {
@@ -299,7 +304,7 @@
     // edificio siguiente y vuelve. Nunca hay dos acarreando por la misma ruta.
     function carry(role, m, from, to, color) {
       if (!m || walkers.some((w) => w.role === role)) return;
-      walkers.push({ role, img: rankSprite(m), x: from, home: from, to, carry: color, bob: 0 });
+      walkers.push({ role, legend: CM.mice.isLegend(m), img: rankSprite(m), x: from, home: from, to, carry: color, bob: 0 });
     }
     // Un cliente se va de la tienda con su queso.
     function customerLeaves() {
@@ -631,7 +636,7 @@
       R(x + 2, y + 8, 2, 26, '#5c3620');
       R(x + 34, y + 8, 2, 26, '#5c3620');
       const keeper = CM.mice.at(state, 'trading', 'all');
-      if (keeper) ctx.drawImage(rankSprite(keeper), x + 9, y + 12 + (((now / 500) | 0) % 2));
+      if (keeper) drawMouseSprite(rankSprite(keeper), x + 9, y + 12 + (((now / 500) | 0) % 2), false, null);
       for (let i = 0; i < 6; i++) R(x + i * 6 + 1, y + 2, 6, 8, i % 2 ? '#ffffff' : stripe);
       R(x, y + 1, 38, 2, '#2b1d12');
       for (let i = 0; i < 6; i++) R(x + i * 6 + 2, y + 10, 4, 2, i % 2 ? '#dfe6ee' : '#2b1d12');
@@ -950,6 +955,20 @@
         ctx.translate(Math.round(x) + MOUSE_W, Math.round(y));
         ctx.scale(-1, 1);
       } else ctx.translate(Math.round(x), Math.round(y));
+      if (auraNext || img.legend) {
+        // Aura dorada: halo que late y chispas alrededor.
+        const t = performance.now();
+        ctx.shadowColor = '#ffcf2e';
+        ctx.shadowBlur = 5 + 2 * Math.sin(t / 260);
+        ctx.drawImage(img, 0, 0);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#fff3a0';
+        for (let i = 0; i < 3; i++) {
+          const k = ((t / 420) | 0) + i * 7;
+          if ((k + i) % 2) ctx.fillRect(((k * 37) % (MOUSE_W + 4)) - 2, ((k * 53) % (MOUSE_H + 2)) - 2, 1, 1);
+        }
+        auraNext = false;
+      }
       ctx.drawImage(img, 0, 0);
       if (blinking) {
         ctx.fillStyle = '#f1eaec';
@@ -998,6 +1017,7 @@
           continue;
         }
         const y = groundY - MOUSE_H + 2 - Math.abs(Math.sin(now / 60 + w.bob)) * 2;
+        auraNext = w.legend;
         drawMouseSprite(w.img, w.x, y, dir < 0, null);
         if (w.carry) {
           R(w.x + 5, y - 5, 8, 6, '#2b1d12');

@@ -63,7 +63,8 @@ No hay almacén con tope. Raw Cheese, Cheese Base y quesos se acumulan sin lími
 Todo está en `js/game/config/traits.js`: 22 rasgos buenos, 13 manías, 12 legendarios, 25 de oficio (5 por habilidad) y 30 combinaciones.
 
 - **Afinidad:** por cada oficio, 28 % de `Likes` (+7 % de velocidad, se especializa x1,5) y 12 % de `Loves` (+15 %, x2,5). Al menos un oficio le gusta.
-- **Rasgos de nivel:** uno cada 10 niveles, seis como mucho. Tres opciones; cada una tiene un 3 % de salir legendaria. Casilla misteriosa: 10 % legendario, 25 % manía, 65 % bueno.
+- **Rasgos de nivel:** uno cada 10 niveles, seis como mucho. Tres opciones; cada una tiene un 3 % de salir legendaria (1 % al volver a tirar). Casilla misteriosa: 6 % legendario, 25 % manía, el resto bueno. El juego no enseña estos porcentajes.
+- **Legendarios:** pocos y enormes; uno solo viene a doblar lo que rinde el ratón (Golden Paws x3 de cantidad, Time Skipper x2 de velocidad, Midas 50 % de doble).
 - **Volver a tirar:** 250 monedas la primera casilla, x6 cada casilla siguiente, x2 cada tirada sobre la misma elección. En especialidades: 1.000, x2 por tirada.
 - **Especialidades:** 200, 2.000 y 20.000 trabajos; el efecto del rasgo se multiplica por 1, 2 y 3,5.
 - **Topes:** suerte de doble 90 %, auras ±60 %, colonia contada hasta 30 ratones, recetas hasta 60.

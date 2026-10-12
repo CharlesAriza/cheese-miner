@@ -668,6 +668,29 @@
     eq(s.coins, 1e9 - c1, 'it is paid');
     eq(CM.mice.rerollCost(m), c1 * B.mice.rerollGrowth, 'the next reroll costs double');
     eq(m.offer.options.length, 3, 'three new options');
+    // Los legendarios salen poco, y al volver a tirar aún menos, pero salen
+    const count = (reroll) => {
+      let n = 0;
+      const t = staff(s, 'refining', 'cheddar', { post: '', xp: 1e4 });
+      CM.mice.choice(s, t);
+      for (let i = 0; i < 3000; i++) {
+        if (reroll) CM.mice.reroll(s, t.id);
+        else {
+          t.offer = null;
+          CM.mice.choice(s, t);
+        }
+        if (t.offer.options.some((id) => T[id].kind === 'legend')) n += 1;
+        t.rerolls = 0;
+        s.coins = 1e9;
+      }
+      s.mice.pop();
+      return n;
+    };
+    const first = count(false);
+    const again = count(true);
+    truthy(again > 0 && again < first && first < 3000 * 0.2, 'legendary options are rare, and rarer on a reroll: ' + first + ' vs ' + again);
+    truthy(CM.mice.isLegend({ rarity: 0, traits: ['midas'] }) && !CM.mice.isLegend({ rarity: 0, traits: ['fast'] }), 'a mouse with a legendary trait counts as legendary');
+    s.coins = 1e9;
     // Elegir
     const want = m.offer.options[1];
     eq(CM.mice.pickTrait(s, m.id, 1).ok, true, 'pick');
@@ -752,7 +775,7 @@
     const lucky = { m: Object.assign({}, n, { traits: ['midas'] }), skill: 'drilling', yield: 1 };
     let doubles = 0;
     for (let i = 0; i < 2000; i++) if (CM.mice.out(s, lucky) === 2) doubles += 1;
-    truthy(doubles > 2000 * 0.18 && doubles < 2000 * 0.32, 'Midas doubles about a quarter of the time: ' + doubles);
+    truthy(doubles > 2000 * 0.43 && doubles < 2000 * 0.57, 'Midas doubles about half of the time: ' + doubles);
     eq(CM.mice.out(s, { m: n, skill: 'refining', yield: 1 }), 1, 'no luck, no double');
     run(s, 20000);
     valid(s);

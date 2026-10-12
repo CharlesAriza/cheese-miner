@@ -2090,8 +2090,259 @@ button {
 
 .stat.tlegend {
   color: #0c0910;
-  background: #ffcf2e;
+  background: linear-gradient(110deg, #ffcf2e 30%, #fff8c9 50%, #ffcf2e 70%);
+  background-size: 250% 100%;
+  box-shadow: 0 0 6px #ffcf2e;
+  animation: shine 1.6s linear infinite;
 }
+
+@keyframes shine {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+
+.legtag {
+  margin-left: 4px;
+  font-family: var(--pixel);
+  font-size: 7px;
+  color: #ffcf2e;
+}
+
+.mouse.leg {
+  border-color: #ffcf2e;
+  box-shadow: 0 0 10px #ffcf2e;
+}
+
+.mouse.leg .pix.face {
+  border-color: #ffcf2e;
+  box-shadow: 0 0 8px #ffcf2e;
+}
+
+/* Volver a tirar */
+.panel button.rerollbtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 8px;
+  font-size: 8px;
+  line-height: 1;
+  background: #6a3fb0;
+}
+
+.panel button.rerollbtn .coin-txt {
+  font-size: 9px;
+  line-height: 1;
+}
+
+.panel button.rerollbtn .coin-txt .pix {
+  display: block;
+}
+
+.panel button.rerollbtn small {
+  flex-basis: 100%;
+  margin-top: 4px;
+  font-size: 10px;
+  color: #d9ccf5;
+}
+
+.panel button.rerollbtn.off {
+  background: #4a4458;
+}
+
+.badflash {
+  animation: badflash 0.5s ease-out;
+}
+
+@keyframes badflash {
+  0% {
+    box-shadow: 0 0 0 200px #b3263a99 inset;
+    transform: translateX(-4px);
+  }
+  30% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-2px);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent inset;
+    transform: none;
+  }
+}
+
+/* El momento legendario */
+.legendfx {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #05030af2;
+}
+
+.legendfx[hidden] {
+  display: none;
+}
+
+.legendfx.go {
+  animation: legflash 0.7s ease-out, legshake 0.6s linear;
+}
+
+@keyframes legflash {
+  0% {
+    background: #fff8c9;
+  }
+  100% {
+    background: #05030af2;
+  }
+}
+
+@keyframes legshake {
+  0%,
+  100% {
+    transform: none;
+  }
+  15% {
+    transform: translate(-6px, 3px);
+  }
+  30% {
+    transform: translate(6px, -3px);
+  }
+  45% {
+    transform: translate(-4px, -2px);
+  }
+  60% {
+    transform: translate(4px, 2px);
+  }
+  80% {
+    transform: translate(-2px, 0);
+  }
+}
+
+.legendfx .rays {
+  position: absolute;
+  width: 200vmax;
+  height: 200vmax;
+  background: repeating-conic-gradient(#ffcf2e33 0deg 9deg, transparent 9deg 18deg);
+  animation: spin 14s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.legendfx .rain i {
+  position: absolute;
+  top: -20px;
+  width: 10px;
+  height: 10px;
+  background: #ffcf2e;
+  border: 2px solid #d99a12;
+  border-radius: 50%;
+  animation: fall 1.6s linear infinite;
+}
+
+@keyframes fall {
+  to {
+    transform: translateY(110vh) rotate(360deg);
+  }
+}
+
+.legendfx .card {
+  position: relative;
+  width: 78%;
+  max-width: 300px;
+  padding: 14px 12px;
+  text-align: center;
+  background: #2a2338;
+  border: 4px solid #ffcf2e;
+  border-radius: 10px;
+  box-shadow: 0 0 40px #ffcf2e, 0 0 0 4px #0c0910;
+  animation: cardin 0.6s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+@keyframes cardin {
+  from {
+    transform: scale(0.2) rotate(-8deg);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.legendfx .top {
+  font-size: 11px;
+  color: #ffcf2e;
+  text-shadow: 0 2px 0 #0c0910;
+}
+
+.legendfx .card .pix {
+  width: 120px;
+  margin: 10px auto 4px;
+  display: block;
+  filter: drop-shadow(0 0 8px #ffcf2e);
+}
+
+.legendfx .who {
+  font-family: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  color: #c9c2dd;
+}
+
+.legendfx .name {
+  margin: 8px 0;
+  padding: 10px 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #0c0910;
+  background: linear-gradient(110deg, #ffcf2e 30%, #fff8c9 50%, #ffcf2e 70%);
+  background-size: 250% 100%;
+  border-radius: 6px;
+  animation: shine 1.6s linear infinite;
+}
+
+.legendfx p {
+  margin: 4px 0;
+  font-family: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.legendfx p.was {
+  font-size: 12px;
+  color: #a79fc0;
+  text-decoration: line-through;
+}
+
+.legendfx p.now {
+  font-size: 15px;
+  color: #8df09a;
+}
+
+.legendfx small {
+  display: block;
+  margin-top: 10px;
+  font-family: var(--text);
+  font-size: 11px;
+  color: #a79fc0;
+}
+
 
 .stat.tcombo {
   color: #0c0910;
@@ -2299,8 +2550,8 @@ button {
 }
 
 .slot.quirk {
-  background: #8a6a12;
-  border-color: #ffd43a;
+  background: #b3263a;
+  border-color: #ff7a8a;
 }
 
 .slot.legend {
@@ -2501,7 +2752,16 @@ button {
 }
 
 .stat.tquirk {
-  background: #8a6a12;
+  background: #b3263a;
+}
+
+.bad {
+  font-weight: 700;
+  color: #ff7a8a;
+}
+
+.okay {
+  color: #8df09a;
 }
 
 .panel button.calmrow {

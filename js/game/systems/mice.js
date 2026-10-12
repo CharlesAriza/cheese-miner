@@ -178,7 +178,7 @@
     for (const skill of CHAIN) if (!m.spec[skill] && (m.jobs[skill] || 0) >= M.jobGrades[0]) return { kind: 'job', skill };
     return null;
   }
-  function drawOptions(s, m, kind, skill) {
+  function drawOptions(s, m, kind, skill, reroll) {
     const have = {};
     traitsOf(m).forEach((t) => (have[t.id] = true));
     const out = [];
@@ -188,7 +188,7 @@
     };
     for (let i = 0; i < 3; i++) {
       if (kind === 'job') takeFrom(jobTraits(skill));
-      else if (CM.rand(s) < M.legendChance) takeFrom(idsOf('legend'));
+      else if (CM.rand(s) < (reroll ? M.rerollLegendChance : M.legendChance)) takeFrom(idsOf('legend'));
       else takeFrom(idsOf('good'));
     }
     return out;
@@ -204,7 +204,7 @@
     if (m.offer && m.offer.kind === p.kind && m.offer.skill === p.skill && m.offer.options.length) return m.offer;
     m.offer = { kind: p.kind, skill: p.skill, options: drawOptions(s, m, p.kind, p.skill) };
     m.rerolls = 0;
-    CM.emit(s, 'traitReady', { id: m.id, kind: p.kind });
+    CM.emit(s, 'traitReady', { id: m.id, kind: p.kind, legend: m.offer.options.some((id) => T[id].kind === 'legend') });
     return m.offer;
   }
 
@@ -350,9 +350,10 @@
       if (s.coins < cost) return CM.fail('no-coins');
       s.coins -= cost;
       s.totals.coinsSpent += cost;
-      m.offer.options = drawOptions(s, m, m.offer.kind, m.offer.skill);
+      m.offer.options = drawOptions(s, m, m.offer.kind, m.offer.skill, true);
       m.rerolls += 1;
       CM.emit(s, 'purchase', { what: 'reroll', cost });
+      if (m.offer.options.some((id) => T[id].kind === 'legend')) CM.emit(s, 'legendOffer', { id: m.id });
       return CM.ok();
     },
     // `index` es una de las opciones, o 'mystery' (solo en rasgos de nivel):
@@ -387,6 +388,8 @@
     },
     // Ratones con una elección pendiente.
     choosing: (s) => s.mice.filter((m) => m.offer),
+    // Legendario de nacimiento o con algún rasgo legendario: se le nota.
+    isLegend: (m) => m.rarity === 2 || traitsOf(m).some((t) => T[t.id].kind === 'legend'),
 
     // --- Colocar ---
     freePost: (s) => CM.mice.posts(s).find((p) => !s.mice.some((x) => x.post === p.key)) || null,

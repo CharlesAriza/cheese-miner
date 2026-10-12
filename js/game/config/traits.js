@@ -42,7 +42,8 @@
   M.traitEvery = 10;
   M.traitSlots = 6;
   M.legendChance = 0.03; // cada opción ofrecida puede salir legendaria
-  M.mystery = { legend: 0.1, quirk: 0.25 }; // casilla misteriosa: el resto, un rasgo bueno
+  M.rerollLegendChance = 0.01; // al volver a tirar también, pero menos
+  M.mystery = { legend: 0.06, quirk: 0.25 }; // casilla misteriosa: el resto, un rasgo bueno
   M.rerollCost = 250; // volver a tirar la primera elección
   M.rerollSlotGrowth = 6; // cada casilla siguiente cuesta x6
   M.rerollGrowth = 2; // cada tirada sobre la misma elección cuesta el doble
@@ -98,18 +99,19 @@
   add('quirk', 'picky', 'Picky', 'Makes 15% less, but works 5% faster', { yield: -0.15, speed: 0.05 });
 
   // ---------- Legendarios (12) ----------
-  add('legend', 'goldenpaws', 'Golden Paws', 'Makes 60% more each time', { yield: 0.6 });
-  add('legend', 'timeskipper', 'Time Skipper', 'Works 50% faster', { speed: 0.5 });
-  add('legend', 'moonlit', 'Moonlit', '150% faster while you are away', { awaySpeed: 1.5 });
-  add('legend', 'midas', 'Midas Touch', '25% chance to make double', { double: 0.25 });
-  add('legend', 'serene', 'Serene', 'Its quirks stop counting, and it works 10% faster', { noQuirks: 1, speed: 0.1 });
-  add('legend', 'genius', 'Genius', 'Levels up twice as fast and gives 50% more skill xp', { mouseXp: 1, skillXp: 0.5 });
-  add('legend', 'conductor', 'Conductor', 'Both neighbours in its line work 25% faster', { auraNext: 0.25, auraPrev: 0.25 });
-  add('legend', 'abyssal', 'Abyssal', '5% faster and 3% more for each depth level of its rock', { depthSpeed: 0.05, depthYield: 0.03 });
-  add('legend', 'polymath', 'Polymath', 'Specialises three times as fast; 5% faster per 10 skill levels', { jobXp: 2, levelSpeed: 0.05 });
-  add('legend', 'kingofmice', 'King of Mice', '4% faster for each mouse in your colony', { crowdSpeed: 0.04 });
-  add('legend', 'ancient', 'Ancient', '15% faster for each rank it has earned', { rankSpeed: 0.15 });
-  add('legend', 'cheesesaint', 'Cheese Saint', 'Makes 20% more, plus 3% for each recipe you know', { yield: 0.2, recipeYield: 0.03 });
+  // Raros de verdad, y enormes: uno solo viene a doblar lo que rinde el ratón.
+  add('legend', 'goldenpaws', 'Golden Paws', 'Makes three times as much', { yield: 2 });
+  add('legend', 'timeskipper', 'Time Skipper', 'Works twice as fast', { speed: 1 });
+  add('legend', 'moonlit', 'Moonlit', 'Four times as fast while you are away', { awaySpeed: 3 });
+  add('legend', 'midas', 'Midas Touch', 'Half of what it makes comes out double', { double: 0.5 });
+  add('legend', 'serene', 'Serene', 'Its quirks stop counting, and it works 50% faster', { noQuirks: 1, speed: 0.5 });
+  add('legend', 'genius', 'Genius', 'Levels up three times as fast and doubles the skill xp', { mouseXp: 2, skillXp: 1 });
+  add('legend', 'conductor', 'Conductor', 'Both neighbours in its line work 50% faster', { auraNext: 0.5, auraPrev: 0.5 });
+  add('legend', 'abyssal', 'Abyssal', '8% faster and 6% more for each depth level of its rock', { depthSpeed: 0.08, depthYield: 0.06 });
+  add('legend', 'polymath', 'Polymath', 'Specialises five times as fast; 10% faster per 10 skill levels', { jobXp: 4, levelSpeed: 0.1 });
+  add('legend', 'kingofmice', 'King of Mice', '8% faster for each mouse in your colony', { crowdSpeed: 0.08 });
+  add('legend', 'ancient', 'Ancient', '35% faster for each rank it has earned', { rankSpeed: 0.35 });
+  add('legend', 'cheesesaint', 'Cheese Saint', 'Makes 50% more, plus 5% for each recipe you know', { yield: 0.5, recipeYield: 0.05 });
 
   // ---------- De oficio (5 por habilidad; efecto de grado I) ----------
   const job = (skill, id, name, desc, eff) => add('job', id, name, desc, eff, skill);
