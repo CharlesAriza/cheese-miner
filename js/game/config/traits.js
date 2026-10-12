@@ -45,20 +45,33 @@
   // Rasgos de nivel: uno cada 10 niveles del ratón.
   M.traitEvery = 10;
   M.traitSlots = 6;
-  M.legendChance = 0.03; // cada opción ofrecida puede salir legendaria
-  M.rerollLegendChance = 0.01; // al volver a tirar también, pero menos
-  M.mystery = { legend: 0.06, quirk: 0.25 }; // casilla misteriosa: el resto, un rasgo bueno
-  M.rerollCost = 250; // volver a tirar la primera elección
-  M.rerollSlotGrowth = 6; // cada casilla siguiente cuesta x6
-  M.rerollGrowth = 3; // cada tirada sobre la misma elección cuesta el triple
 
   // Rasgos de oficio: trabajos necesarios para cada grado y cuánto multiplica el efecto.
   M.jobGrades = [200, 2000, 20000];
-  M.gradeMult = [1, 2, 3.5];
-  M.jobRerollCost = 1000;
+  M.gradeMult = [1, 1.75, 2.5];
+
+  // ---- Rasgos que llegan solos ----
+  // Cada 10 niveles el ratón desarrolla un rasgo al azar (nunca una manía) y a los 200
+  // trabajos de un oficio, una especialidad al azar. Nada se elige ni se vuelve a tirar.
+  // Un rasgo legendario es un hallazgo: sin garantía y sin tope por ratón.
+  M.autoLegendChance = 0.02; // de que el rasgo que desarrolla sea legendario
+  M.historyWeight = 0.5; // de que el rasgo salga del grupo de un oficio en el que ha trabajado
+  // Rasgos que deja cada oficio a quien lo ha ejercido (pesa todo su historial, no el puesto de hoy).
+  M.jobPools = {
+    mining: ['deepdiver', 'strong', 'lucky', 'heavyhands', 'veteran'],
+    drilling: ['deepdiver', 'sturdy', 'heavyhands', 'steady', 'nocturnal'],
+    refining: ['tidy', 'steady', 'fast', 'mentor', 'cheerleader'],
+    cheesemaking: ['collector', 'tidy', 'scholar', 'lucky', 'taskmaster'],
+    trading: ['sociable', 'earlybird', 'ambitious', 'collector', 'wired'],
+    research: ['scholar', 'prodigy', 'quickstudy', 'focused', 'mentor'],
+  };
+  // La tienda cobra por todas las rocas a la vez: sus bonificaciones de cantidad cuentan la mitad.
+  M.tradeYield = 0.5;
+  // La cama de la Mouse House: tratar una manía o reentrenar una especialidad.
+  M.care = { ms: 30 * 60 * 1000, treatCost: 2000, retrainCost: 5000, growth: 3 };
 
   // Topes para que ninguna suma se dispare.
-  M.caps = { double: 0.9, depth: 1, aura: 0.6, crowd: 30, recipes: 60 };
+  M.caps = { double: 0.9, depth: 1, depthYield: 1, aura: 0.6, crowd: 30, recipes: 60 };
 
   const T = (M.traits = {});
   const add = (kind, id, name, desc, eff, job) => (T[id] = { name, kind, good: kind !== 'quirk', desc, eff, job: job || '' });
@@ -111,12 +124,12 @@
   add('legend', 'serene', 'Serene', 'Its quirks stop counting, and it works 50% faster', { noQuirks: 1, speed: 0.5 });
   add('legend', 'genius', 'Genius', 'Levels up three times as fast and doubles the skill xp', { mouseXp: 2, skillXp: 1 });
   add('legend', 'conductor', 'Conductor', 'Both neighbours in its line work 50% faster', { auraNext: 0.5, auraPrev: 0.5 });
-  add('legend', 'abyssal', 'Abyssal', '8% faster and 6% more for each depth level of its rock', { depthSpeed: 0.08, depthYield: 0.06 });
+  add('legend', 'abyssal', 'Abyssal', '2% faster and 4% more for each depth level of its rock', { depthSpeed: 0.02, depthYield: 0.04 });
   add('legend', 'polymath', 'Polymath', 'Specialises five times as fast; 10% faster per 10 skill levels', { jobXp: 4, levelSpeed: 0.1 });
-  add('legend', 'kingofmice', 'King of Mice', '8% faster for each mouse in your colony', { crowdSpeed: 0.08 });
+  add('legend', 'kingofmice', 'King of Mice', '6% faster for each mouse in your colony', { crowdSpeed: 0.06 });
   add('legend', 'ancient', 'Ancient', '35% faster for each rank it has earned', { rankSpeed: 0.35 });
   add('legend', 'eureka', 'Eureka', 'In the lab: never an inconclusive result, and one research in four is a breakthrough', { labFail: -1, labLuck: 0.25 });
-  add('legend', 'cheesesaint', 'Cheese Saint', 'Makes 50% more, plus 5% for each recipe you know', { yield: 0.5, recipeYield: 0.05 });
+  add('legend', 'cheesesaint', 'Cheese Saint', 'Makes 25% more, plus 3% for each recipe you know', { yield: 0.25, recipeYield: 0.03 });
 
   // ---------- De oficio (5 por habilidad; efecto de grado I) ----------
   const job = (skill, id, name, desc, eff) => add('job', id, name, desc, eff, skill);
@@ -210,7 +223,7 @@
     link('testkitchen', 'Test Kitchen', 'goodnose', 'seasoner', 'Lab and kitchen compare notes: both work 20% faster', { speed: 0.2 }),
     link('cleansamples', 'Clean Samples', 'methodical', 'purifier', 'Pure base for the lab: both work 15% faster', { speed: 0.15 }),
     link('launch', 'Launch Party', 'tinkerer', 'showman', 'New cheeses sell themselves: both work 20% faster', { speed: 0.2 }),
-    link('court', 'Royal Court', '*legend', '*legend', 'Two legends side by side: both work 50% faster', { speed: 0.5 }),
+    link('court', 'Royal Court', '*legend', '*legend', 'Two legends side by side: both work 30% faster', { speed: 0.3 }),
   ];
 
   // ---------- Combinaciones de roca ----------

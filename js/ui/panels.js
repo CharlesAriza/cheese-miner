@@ -32,6 +32,7 @@
     'already-built': 'Already built',
     'max-level': 'Already at max rank',
     'no-house': 'Build the Mouse House first',
+    'bed-busy': 'The Mouse House bed is taken: one mouse at a time',
     'lab-busy': 'The lab is already researching a recipe',
     'mouse-level': 'That mouse needs more levels first',
     'empty-post': 'Nobody works here: recruit a mouse, or select one and tap this post',
@@ -600,22 +601,14 @@
     return h + '</ul>';
   }
 
-  // Elección de rasgo pendiente: las opciones, la casilla misteriosa y volver a tirar.
-  function pickBox(s, m) {
-    const K = CM.mice;
-    const offer = m.offer;
-    if (!offer) return '';
-    const [skill, zone] = m.post ? m.post.split(':') : [];
-    const now = skill ? mouseRate(s, m, skill, zone) : '';
-    const withTrait = (id) => (offer.kind === 'job' ? Object.assign({}, m, { spec: Object.assign({}, m.spec, { [offer.skill]: id }) }) : Object.assign({}, m, { learned: m.learned.concat(id) }));
-    let h = '<div class="pickbox"><b>' + (offer.kind === 'job' ? B.skills[offer.skill].name.toUpperCase() + ' SPECIALITY: PICK ONE' : 'NEW TRAIT: PICK ONE') + '</b><small>' + (offer.kind === 'job' ? 'Earned by working. It only counts at ' + B.skills[offer.skill].name + ' and grows with more work there.' : 'Trait ' + (m.picks + 1) + ' of ' + M.traitSlots + '. It keeps it for good.') + (now ? ' Now: ' + now + '.' : '') + '</small>';
-    offer.options.forEach((id, i) => {
-      const then = skill ? mouseRate(s, withTrait(id), skill, zone) : '';
-      h += btn('trait:' + m.id + ':' + i, '<span>' + traitChip(id) + (T[id].kind === 'legend' ? '<span class="legtag">LEGENDARY</span>' : '') + '<small>' + traitDesc(id) + '</small>' + (then && then !== now ? '<em>Here: ' + then + '</em>' : skill && T[id].job && T[id].job !== skill ? '<em>No change on this post</em>' : '') + '</span>', { cls: 'opt ' + KIND_CLS[T[id].kind] });
-    });
-    if (offer.kind === 'level') h += btn('trait:' + m.id + ':mystery', '<i class="qmark">?</i><span><span class="stat tmyst">MYSTERY TRAIT</span><small>Any trait in the game. It could be a <span class="tleg">legendary</span>... <span class="tbad">or a quirk</span>.</small></span>', { cls: 'opt tmyst' });
-    const cost = K.rerollCost(m);
-    return h + btn('reroll:' + m.id, '<span>REROLL THESE THREE</span>' + coin(cost) + '<small>next reroll: ' + CM.fmt(cost * M.rerollGrowth) + '</small>', { off: s.coins < cost, cls: 'rerollbtn', cost }) + '</div>';
+  // La cama de la Mouse House: quién está y cuánto le queda.
+  const clock = (ms) => { const t = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
+  function careBox(s) {
+    const c = s.care;
+    const m = c && CM.mice.byId(s, c.id);
+    if (!m) return '';
+    const what = c.kind === 'quirk' ? 'Treating ' + T[c.what].name : 'Retraining to ' + T[c.to].name;
+    return '<div class="carebox">' + face(m, 'face mini') + '<div><small>MOUSE HOUSE BED · ' + clock(c.remaining) + ' left</small><b>' + esc(m.name) + ' · ' + what + '</b><div class="bar"><i style="width:' + Math.round((1 - c.remaining / c.total) * 100) + '%"></i></div><small>It keeps working meanwhile. One mouse at a time.</small></div></div>';
   }
   // Qué le falta a un ratón para ascender: siempre lo dice.
   function promoteBlock(s, m) {
@@ -645,7 +638,7 @@
   // ratón enseña a qué puestos puede ir. Un toque más y queda asignado.
   const POST_NAME = { mining: 'MINE', drilling: 'DRILL', refining: 'REFINE', cheesemaking: 'CHEESE', trading: 'SELL' };
   const hearts = (a) => (a ? '<i class="hrt">' + (a === 2 ? '&#9829;&#9829;' : '&#9829;') + '</i>' : '');
-  const todo = (s, m) => (m.offer ? '<small class="todo">NEW TRAIT</small>' : CM.mice.promoteInfo(s, m).can ? '<small class="todo up">PROMOTE</small>' : '');
+  const todo = (s, m) => (CM.mice.promoteInfo(s, m).can ? '<small class="todo up">PROMOTE</small>' : '');
   // Lo que rinde un ratón por sí solo en un oficio (lo que mira BEST FIT): sin vecinos ni combinaciones.
   const power = (m, skill) => times(CM.mice.score(m, skill));
   // Rasgos de un vistazo: los dos de nacimiento y cuántos más lleva.
@@ -661,7 +654,7 @@
     const key = K.postKey(skill, zone);
     const m = K.at(s, skill, zone);
     const on = ui.pick && ui.pick.type === 'post' && ui.pick.key === key;
-    const cls = 'pcell' + (m ? '' : ' none') + (on ? ' sel' : '') + (m && m.offer ? ' has' : m && K.promoteInfo(s, m).can ? ' has up' : '');
+    const cls = 'pcell' + (m ? '' : ' none') + (on ? ' sel' : '') + (m && K.promoteInfo(s, m).can ? ' has up' : '');
     const body = m ? face(m) + '<b>' + esc(m.name) + '</b><em>' + power(m, skill) + hearts(m.aff[skill]) + '</em>' : '<span class="hole">+</span><em class="warn">empty</em>';
     return '<button data-act="pickpost:' + key + '" class="' + cls + '">' + body + '</button>';
   }
@@ -763,14 +756,21 @@
       '<div class="mcard">' + face(m, 'face huge') + '<div class="info"><b class="mname">' + esc(m.name) + '</b>' +
       '<p class="msub">' + (m.rarity ? RARITY[m.rarity].name + ' · ' : '') + M.ranks[m.rank].name + ' · LV ' + p.level + '</p>' + xpBar(p) +
       '<p class="mjob">' + (skill ? '<b>' + K.postLabel(m.post) + '</b><br>' + mouseRate(s, m, skill, zone) : m.rest ? '<b>Resting in the house</b>' : '<b>Waiting in the house</b><br>every post is taken') + '</p></div></div>';
-    h += pickBox(s, m);
-
+    h += careBox(s);
+    // Una manía se puede tratar en la cama: lo decide el jugador, de una en una.
+    const busy = !!s.care;
+    const treatCost = K.careCost(s, 'quirk');
     h += '<h4>TRAITS</h4><ul class="trows">';
-    for (const id of m.traits.concat(m.learned)) if (T[id]) h += '<li>' + traitChip(id) + '<span>' + traitDesc(id) + '</span></li>';
+    for (const id of m.traits.concat(m.learned)) {
+      if (!T[id]) continue;
+      const inBed = busy && s.care.id === m.id && s.care.what === id;
+      const treat = T[id].kind === 'quirk' && s.built.house ? (inBed ? '<em class="carenote">in treatment</em>' : btn('care:' + m.id + ':quirk:' + id, 'TREAT<br>' + coin(treatCost), { cls: 'mini carebtn', off: busy || s.coins < treatCost, cost: treatCost })) : '';
+      h += '<li>' + traitChip(id) + '<span>' + traitDesc(id) + '</span>' + treat + '</li>';
+    }
     for (const c of K.combosOf(m)) h += '<li><span class="stat tcombo">' + c.name + '</span><span>Combo: ' + c.desc.charAt(0).toLowerCase() + c.desc.slice(1) + '</span></li>';
     h += '</ul>';
     const nextAt = (m.picks + 1) * M.traitEvery;
-    if (!m.offer || m.offer.kind !== 'level') h += '<p class="hint">' + (m.picks >= M.traitSlots ? 'It has learned all its level traits.' : 'Next trait at LV ' + nextAt + (m.post ? '.' : '. It only levels up on a post.')) + '</p>';
+    h += '<p class="hint">' + (m.picks >= M.traitSlots ? 'It has developed all its traits.' : 'It develops a new trait on its own at LV ' + nextAt + (m.post ? ', shaped by the jobs it has done.' : '. It only levels up on a post.')) + (m.traits.concat(m.learned).some((id) => T[id] && T[id].kind === 'quirk') ? ' A quirk can be treated in the Mouse House bed: it takes ' + Math.round(M.care.ms / 60000) + ' minutes and the mouse keeps working.' : '') + '</p>';
 
     h += '<h4>JOBS</h4><div class="jrows">';
     for (const k of K.JOBS) {
@@ -778,8 +778,17 @@
       const grade = K.gradeOf(m, k);
       const n = m.jobs[k] || 0;
       const next = M.jobGrades[id ? grade : 0];
-      const what = id ? traitChip(id, grade) + '<small>' + traitDesc(id, grade) + (next ? '<br>' + whole(n) + '/' + CM.fmt(next) + ' jobs to grade ' + ROMAN[grade + 1] : '') + '</small>' : '<small>' + (n >= M.jobGrades[0] ? 'speciality ready to pick' : whole(n) + '/' + M.jobGrades[0] + ' jobs to a speciality') + '</small>';
-      h += '<div class="' + (k === skill ? 'here' : '') + '"><b>' + B.skills[k].name + hearts(m.aff[k]) + '</b><span>' + what + '</span></div>';
+      const what = id ? traitChip(id, grade) + '<small>' + traitDesc(id, grade) + (next ? '<br>' + whole(n) + '/' + CM.fmt(next) + ' jobs to grade ' + ROMAN[grade + 1] : '') + '</small>' : '<small>' + whole(n) + '/' + M.jobGrades[0] + ' jobs to a speciality</small>';
+      const openRetrain = ui.retrain === m.id + ':' + k;
+      const retraining = busy && s.care.id === m.id && s.care.kind === 'spec' && s.care.what === k;
+      h += '<div class="' + (k === skill ? 'here' : '') + '"><b>' + B.skills[k].name + hearts(m.aff[k]) + '</b><span>' + what + '</span>' + (id && s.built.house ? (retraining ? '<em class="carenote">retraining</em>' : btn('retrain:' + m.id + ':' + k, openRetrain ? 'CLOSE' : 'RETRAIN', { cls: 'mini carebtn' })) : '') + '</div>';
+      // Reentrenar: se elige la especialidad nueva; conserva el grado.
+      if (id && openRetrain && !retraining) {
+        const cost = K.careCost(s, 'spec');
+        h += '<div class="retrain"><small>Choose its new ' + B.skills[k].name + ' speciality. It keeps its grade, takes ' + Math.round(M.care.ms / 60000) + ' minutes in the Mouse House bed and the mouse keeps working.' + (busy ? ' The bed is busy now.' : '') + '</small>';
+        for (const t of K.jobTraits(k)) if (t !== id) h += btn('care:' + m.id + ':spec:' + k + ':' + t, '<span>' + traitChip(t, grade) + '<small>' + traitDesc(t, Math.max(1, grade)) + '</small></span>' + coin(cost), { cls: 'opt', off: busy || s.coins < cost, cost });
+        h += '</div>';
+      }
     }
     h += '</div><p class="hint">&#9829; likes the job, &#9829;&#9829; loves it: a bit faster there, and it specialises sooner.</p>';
 
@@ -848,12 +857,9 @@
     if (shown) return cardView(s, ui, shown);
 
     // Lo pendiente, arriba del todo y resaltado: de uno en uno, se resuelve aquí mismo.
-    const picks = s.mice.filter((x) => x.offer);
-    const promos = s.mice.filter((x) => !x.offer && K.promoteInfo(s, x).can);
-    if (picks.length) {
-      const m = picks[0];
-      h += '<div class="due"><div class="who">' + face(m) + '<div><b>' + esc(m.name) + '</b><small>' + (m.post ? K.postLabel(m.post) : 'in the house') + ' · LV ' + K.level(m) + (picks.length > 1 ? ' · 1 of ' + picks.length + ' mice with a new trait' : '') + '</small></div></div>' + pickBox(s, m) + '</div>';
-    } else if (promos.length) {
+    h += careBox(s);
+    const promos = s.mice.filter((x) => K.promoteInfo(s, x).can);
+    if (promos.length) {
       const m = promos[0];
       const pr = K.promoteInfo(s, m);
       const [skill, zone] = m.post ? m.post.split(':') : [];

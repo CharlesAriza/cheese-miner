@@ -2,7 +2,7 @@
 (function () {
   const B = CM.BALANCE;
 
-  CM.SAVE_VERSION = 7;
+  CM.SAVE_VERSION = 8;
   CM.events = []; // cola que consume la UI para dar feedback
   CM.muted = false; // true durante la simulación offline: no hay feedback visual
 
@@ -88,6 +88,8 @@
       // Investigación de recetas: va aparte de la producción, en paralelo.
       // `dir` es la dirección que marca el jugador: '' (ninguna), 'value', 'fast',
       // 'base:<id>', 'ingredient:<id>', 'treatment:<id>' o 'maturation:<id>'.
+      care: null, // la cama de la Mouse House: { id, kind, what, to, remaining, total }
+      inbox: [], // novedades que contar al jugador al volver (rasgos que llegaron solos)
       lab: { job: null, dir: '', want: '', next: '', strains: false, found: null },
       recipes: [], // { id, key, name, at, made }
       combo: 0,
@@ -107,6 +109,8 @@
         recipes: 0,
         nodesBought: 0,
         miceRecruited: 0,
+        treatments: 0, // manías tratadas en la cama de la Mouse House
+        retrains: 0, // especialidades reentrenadas
         zonesUnlocked: 1,
       },
       goalsDone: {}, // id -> clock en que se cumplió

@@ -96,7 +96,7 @@
       if (Math.floor(s.clock / 2000) !== Math.floor((s.clock - dt) / 2000)) {
         CM.mice.fillEmpty(s);
         CM.mice.scan(s);
-        for (const m of s.mice) if (!m.offer && CM.mice.pending(m)) CM.mice.choice(s, m);
+        for (const m of s.mice) if (CM.mice.pending(m)) CM.mice.choice(s, m);
         CM.mice.managersTick(s);
       }
       for (const def of B.zones) {
@@ -108,6 +108,7 @@
         runJob(dt, () => z.cookJob, q.auto(s, 'cheesemaking', def.id), () => CM.cheesery.start(s, def.id), () => CM.cheesery.complete(s, def.id));
       }
       CM.cheesery.labTick(s, dt);
+      CM.mice.careTick(s, dt);
       runJob(dt, () => s.jobs.shop, q.auto(s, 'trading', 'all'), () => CM.shop.start(s, 'worker'), () => CM.shop.complete(s));
       updateGoals(s);
     },
@@ -139,7 +140,7 @@
       const coins = s.coins;
       const levels = {};
       CM.skills.list.forEach((k) => (levels[k] = q.level(s, k)));
-      const mice = s.mice.map((m) => ({ m, level: CM.mice.level(m), offer: !!m.offer, grades: CM.mice.CHAIN.map((k) => CM.mice.gradeOf(m, k)) }));
+      const mice = s.mice.map((m) => ({ m, level: CM.mice.level(m), had: m.learned.slice(), specs: Object.assign({}, m.spec), grades: CM.mice.CHAIN.map((k) => CM.mice.gradeOf(m, k)) }));
       const wasMuted = CM.muted;
       CM.muted = true;
       CM.away = true; // los rasgos Nocturno y Casero solo cuentan aquí
@@ -157,8 +158,9 @@
       for (const b of mice) {
         const lv = CM.mice.level(b.m);
         const spec = CM.mice.CHAIN.filter((k, i) => CM.mice.gradeOf(b.m, k) > b.grades[i]).map((k) => ({ skill: k, trait: b.m.spec[k], grade: CM.mice.gradeOf(b.m, k) }));
-        const pick = !!b.m.offer && !b.offer;
-        if (lv > b.level || spec.length || pick) mouseNews.push({ id: b.m.id, name: b.m.name, from: b.level, to: lv, spec, pick });
+        // Rasgos y especialidades que ha desarrollado por su cuenta mientras tanto.
+        const grew = b.m.learned.filter((t) => b.had.indexOf(t) < 0).concat(Object.keys(b.m.spec).filter((k) => !b.specs[k]).map((k) => b.m.spec[k]));
+        if (lv > b.level || spec.length || grew.length) mouseNews.push({ id: b.m.id, name: b.m.name, from: b.level, to: lv, spec, grew });
       }
       return { awayMs: away, simulatedMs: simulated, capped: away > cap, capMs: cap, delta, coins: s.coins - coins, levelUps, mouseNews, strainWaiting: s.lab.found ? { recipeId: s.lab.found.recipeId, strain: s.lab.found.strain } : null, automated: AUTO.some((k) => q.isAutomated(s, k)) };
     },

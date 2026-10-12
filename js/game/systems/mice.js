@@ -28,8 +28,6 @@
     if (!(m.picks >= 0)) m.picks = 0; // elecciones de nivel ya hechas
     if (!m.spec) m.spec = {}; // oficio -> rasgo de oficio elegido
     if (!m.jobs) m.jobs = {}; // oficio -> trabajos hechos (para especializarse)
-    if (!(m.rerolls >= 0)) m.rerolls = 0;
-    if (m.offer === undefined) m.offer = null; // elección pendiente: { kind, skill, options }
     if (!(m.rarity >= 0)) m.rarity = 0;
     return m;
   }
@@ -155,10 +153,12 @@
     let y = 1 + (f.yield || 0);
     if (s) {
       const depth = s.zones[zone] ? s.zones[zone].depth : 0;
-      y += clamp((f.depthYield || 0) * depth, -0.5, M.caps.depth * 3);
+      y += clamp((f.depthYield || 0) * depth, -0.5, M.caps.depthYield);
       y += (f.recipeYield || 0) * Math.min(s.recipes.length, M.caps.recipes);
       y += team(s, skill, zone).eff.yield || 0;
     }
+    // La tienda cobra por todas las rocas a la vez: sus bonificaciones de cantidad pueden contar solo en parte.
+    if (skill === 'trading' && M.tradeYield !== 1) y = 1 + (y - 1) * M.tradeYield;
     return Math.max(0.2, y);
   }
   const doubleChance = (m, skill, s, zone) => clamp(trait(m, 'double', skill) + (s ? team(s, skill, zone).eff.double || 0 : 0), 0, M.caps.double);
@@ -237,36 +237,45 @@
     for (const skill of JOBS) if (!m.spec[skill] && (m.jobs[skill] || 0) >= M.jobGrades[0]) return { kind: 'job', skill };
     return null;
   }
-  function drawOptions(s, m, kind, skill, reroll) {
+  // Rasgo que desarrolla un ratón por sí solo: nunca una manía. A veces legendario (si aún
+  // puede tener uno); si no, uno bueno, que la mitad de las veces sale de lo que ha trabajado.
+  function autoTrait(s, m) {
     const have = {};
     traitsOf(m).forEach((t) => (have[t.id] = true));
-    const out = [];
-    const takeFrom = (pool) => {
-      const left = pool.filter((id) => !have[id] && out.indexOf(id) < 0);
-      if (left.length) out.push(pick(s, left));
-    };
-    for (let i = 0; i < 3; i++) {
-      if (kind === 'job') takeFrom(jobTraits(skill));
-      else if (CM.rand(s) < (reroll ? M.rerollLegendChance : M.legendChance)) takeFrom(idsOf('legend'));
-      else takeFrom(idsOf('good'));
+    const free = (ids) => ids.filter((id) => !have[id]);
+    if (CM.rand(s) < M.autoLegendChance && free(idsOf('legend')).length) return pick(s, free(idsOf('legend')));
+    const jobs = JOBS.filter((k) => (m.jobs[k] || 0) > 0);
+    const total = jobs.reduce((a, k) => a + m.jobs[k], 0);
+    if (total > 0 && CM.rand(s) < M.historyWeight) {
+      // Un oficio de su historial, con más peso cuanto más lo haya ejercido.
+      let r = CM.rand(s) * total;
+      const job = jobs.find((k) => (r -= m.jobs[k]) < 0) || jobs[0];
+      const themed = free(M.jobPools[job] || []);
+      if (themed.length) return pick(s, themed);
     }
-    return out;
+    const goods = free(idsOf('good'));
+    return goods.length ? pick(s, goods) : null;
   }
-  // Prepara (una sola vez) las opciones de la elección pendiente. Se guardan
-  // en el ratón: recargar no las cambia.
-  function prepare(s, m) {
-    const p = pending(m);
-    if (!p) {
-      m.offer = null;
-      return null;
+  // No hay nada que elegir: lo que toca se resuelve en el acto.
+  function grow(s, m) {
+    for (let guard = 0; guard < 16; guard++) {
+      const p = pending(m);
+      if (!p) break;
+      let got;
+      if (p.kind === 'job') {
+        got = pick(s, jobTraits(p.skill));
+        m.spec[p.skill] = got;
+      } else {
+        got = autoTrait(s, m);
+        m.picks += 1;
+        if (!got) continue;
+        m.learned.push(got);
+      }
+      CM.emit(s, 'traitLearned', { id: m.id, trait: got, auto: true, kind: T[got].kind });
+      CM.mice.note(s, m);
     }
-    if (m.offer && m.offer.kind === p.kind && m.offer.skill === p.skill && m.offer.options.length) return m.offer;
-    m.offer = { kind: p.kind, skill: p.skill, options: drawOptions(s, m, p.kind, p.skill) };
-    m.rerolls = 0;
-    CM.emit(s, 'traitReady', { id: m.id, kind: p.kind, legend: m.offer.options.some((id) => T[id].kind === 'legend') });
-    return m.offer;
+    return null;
   }
-
   CM.mice = {
     postKey,
     level,
@@ -294,6 +303,11 @@
       const fresh = albumKeys(m).filter((k) => !s.album[k]);
       fresh.forEach((k) => (s.album[k] = true));
       return fresh;
+    },
+    // Tras cambiar números de rasgos en caliente (simulaciones de balance).
+    resetCache() {
+      for (const k of Object.keys(fxCache)) delete fxCache[k];
+      teamKey = '';
     },
     byId: (s, id) => s.mice.find((m) => m.id === id) || null,
     at: (s, skill, zone) => s.mice.find((m) => m.post === postKey(skill, zone)) || null,
@@ -349,7 +363,7 @@
         CM.emit(s, 'specUp', { id: m.id, skill, grade: gradeOf(m, skill) });
         this.note(s, m);
       }
-      if (!m.offer && pending(m)) prepare(s, m);
+      if (pending(m)) grow(s, m);
       return Math.max(0.1, 1 + trait(m, 'skillXp', skill));
     },
     addXp(s, m, amount) {
@@ -401,57 +415,50 @@
       if (found.length) CM.emit(s, 'album', { keys: found });
       return found;
     },
-    choice: (s, m) => prepare(s, m),
-    rerollCost(m) {
-      if (!m.offer) return 0;
-      const base = m.offer.kind === 'job' ? M.jobRerollCost : M.rerollCost * Math.pow(M.rerollSlotGrowth, m.picks);
-      return Math.round(base * Math.pow(M.rerollGrowth, m.rerolls));
-    },
-    reroll(s, id) {
+    // Lo que le toque desarrollar a un ratón (rasgo de nivel o especialidad) llega solo.
+    choice: (s, m) => grow(s, m),
+    grow,
+
+    // ---------- MOUSE HOUSE: la cama ----------
+    // Una sola cama. Trata una manía o reentrena una especialidad mientras el ratón sigue
+    // en su puesto: lo que cuesta es la inversión y la espera, no parar la producción.
+    careCost: (s, kind) => Math.round((kind === 'spec' ? M.care.retrainCost : M.care.treatCost) * Math.pow(M.care.growth, kind === 'spec' ? s.totals.retrains : s.totals.treatments)),
+    // `what`: la manía que se trata o el oficio que se reentrena; `to`: la especialidad nueva.
+    careStart(s, id, kind, what, to) {
       const m = this.byId(s, id);
-      if (!m || !m.offer) return CM.fail('invalid');
-      const cost = this.rerollCost(m);
+      if (!m || !s.built.house) return CM.fail('invalid');
+      if (s.care) return CM.fail('bed-busy');
+      if (kind === 'quirk') {
+        if (!T[what] || T[what].kind !== 'quirk' || m.traits.concat(m.learned).indexOf(what) < 0) return CM.fail('invalid');
+      } else if (kind === 'spec') {
+        if (!m.spec[what] || jobTraits(what).indexOf(to) < 0 || m.spec[what] === to) return CM.fail('invalid');
+      } else return CM.fail('invalid');
+      const cost = this.careCost(s, kind);
       if (s.coins < cost) return CM.fail('no-coins');
       s.coins -= cost;
       s.totals.coinsSpent += cost;
-      m.offer.options = drawOptions(s, m, m.offer.kind, m.offer.skill, true);
-      m.rerolls += 1;
-      CM.emit(s, 'purchase', { what: 'reroll', cost });
-      if (m.offer.options.some((id) => T[id].kind === 'legend')) CM.emit(s, 'legendOffer', { id: m.id });
+      if (kind === 'spec') s.totals.retrains += 1;
+      else s.totals.treatments += 1;
+      s.care = { id: m.id, kind, what, to: to || '', remaining: M.care.ms, total: M.care.ms };
+      CM.emit(s, 'purchase', { what: 'care', cost });
+      CM.emit(s, 'careStart', { id: m.id, kind, what });
       return CM.ok();
     },
-    // `index` es una de las opciones, o 'mystery' (solo en rasgos de nivel):
-    // un rasgo cualquiera, con más probabilidad de legendario... o una manía.
-    pickTrait(s, id, index) {
-      const m = this.byId(s, id);
-      if (!m || !m.offer) return CM.fail('invalid');
-      const offer = m.offer;
-      let got;
-      const mystery = index === 'mystery';
-      if (mystery) {
-        if (offer.kind !== 'level') return CM.fail('invalid');
-        const have = {};
-        traitsOf(m).forEach((t) => (have[t.id] = true));
-        const free = (kind) => idsOf(kind).filter((k) => !have[k]);
-        const r = CM.rand(s);
-        const pool = r < M.mystery.legend && free('legend').length ? free('legend') : r < M.mystery.legend + M.mystery.quirk && free('quirk').length ? free('quirk') : free('good');
-        got = pick(s, pool);
-      } else got = offer.options[Number(index)];
-      if (!T[got]) return CM.fail('invalid');
-      if (offer.kind === 'job') m.spec[offer.skill] = got;
-      else {
-        m.learned.push(got);
-        m.picks += 1;
-      }
-      m.offer = null;
-      m.rerolls = 0;
-      CM.emit(s, 'traitLearned', { id: m.id, trait: got, mystery, kind: T[got].kind });
+    careTick(s, dt) {
+      const c = s.care;
+      if (!c) return;
+      const m = this.byId(s, c.id);
+      if (!m) return void (s.care = null);
+      c.remaining -= dt;
+      if (c.remaining > 0) return;
+      s.care = null;
+      if (c.kind === 'quirk') {
+        m.traits = m.traits.filter((t) => t !== c.what);
+        m.learned = m.learned.filter((t) => t !== c.what);
+      } else m.spec[c.what] = c.to;
+      CM.emit(s, 'careDone', { id: m.id, kind: c.kind, what: c.what, to: c.to });
       this.note(s, m);
-      prepare(s, m);
-      return CM.ok({ trait: got });
     },
-    // Ratones con una elección pendiente.
-    choosing: (s) => s.mice.filter((m) => m.offer),
     hasTrait,
     team,
     // Para dibujar la plantilla: combinaciones activas entre dos puestos y en una roca.
@@ -540,6 +547,7 @@
       // El precio de reclutar no baja: cuenta a todos los que han pasado por la colonia.
       s.totals.miceRecruited = Math.max(s.totals.miceRecruited, s.mice.length);
       const m = s.mice.splice(i, 1)[0];
+      if (s.care && s.care.id === m.id) s.care = null; // la cama queda libre
       CM.emit(s, 'dismissed', { name: m.name, post: m.post });
       this.fillEmpty(s);
       return CM.ok();

@@ -4,7 +4,7 @@
 
 ## Pruebas automáticas
 
-Ejecutadas abriendo `tests.html` en el navegador. **37 de 37 pasan.**
+Ejecutadas abriendo `tests.html` en el navegador. **38 de 38 pasan.**
 
 | Prueba | Resultado |
 | --- | --- |
@@ -21,7 +21,8 @@ Ejecutadas abriendo `tests.html` en el navegador. **37 de 37 pasan.**
 | Ratones: el gerente compra mejoras de su oficio, solo si se le permite | pasa |
 | Ratones: despedir, aviso de BEST FIT y motivo por el que un ratón no asciende | pasa |
 | Ratones: rarezas y álbum que sube el precio de venta para siempre | pasa |
-| Rasgos: catálogo, elecciones de nivel, casilla misteriosa y volver a tirar | pasa |
+| Rasgos: los ratones los desarrollan solos, según lo que han trabajado | pasa |
+| Cama de la Mouse House: tratar una manía o reentrenar una especialidad sin dejar el puesto | pasa |
 | Rasgos: afinidad, especialidades con grados, combinaciones, auras y suerte | pasa |
 | Combinaciones de equipo: vecinos de una línea y los cuatro ratones de una roca | pasa |
 | Los ratones clonados de partidas antiguas pasan a ser distintos, conservando lo ganado | pasa |

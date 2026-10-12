@@ -141,12 +141,12 @@ No hay almacén con tope. Raw Cheese, Cheese Base y quesos se acumulan sin lími
 Todo está en `js/game/config/traits.js`: 22 rasgos buenos, 13 manías, 12 legendarios, 25 de oficio (5 por habilidad) y 30 combinaciones.
 
 - **Afinidad:** por cada oficio, 28 % de `Likes` (+7 % de velocidad, se especializa x1,5) y 12 % de `Loves` (+15 %, x2,5). Al menos un oficio le gusta.
-- **Rasgos de nivel:** uno cada 10 niveles, seis como mucho. Tres opciones; cada una tiene un 3 % de salir legendaria (1 % al volver a tirar). Casilla misteriosa: 6 % legendario, 25 % manía, el resto bueno. El juego no enseña estos porcentajes.
-- **Legendarios:** pocos y enormes; uno solo viene a doblar lo que rinde el ratón (Golden Paws x3 de cantidad, Time Skipper x2 de velocidad, Midas 50 % de doble).
-- **Volver a tirar:** 250 monedas la primera casilla, x6 cada casilla siguiente, x3 cada tirada sobre la misma elección. En especialidades: 1.000, x2 por tirada.
-- **Especialidades:** 200, 2.000 y 20.000 trabajos; el efecto del rasgo se multiplica por 1, 2 y 3,5.
+- **Rasgos de nivel:** uno cada 10 niveles, seis como mucho, y llegan solos. Nunca una manía: un rasgo bueno (o con contrapartida, como Wired o Heavy Hands) o, con un 2 %, uno legendario. La mitad de las veces sale del grupo de un oficio que ha ejercido, elegido en proporción a sus trabajos de toda la vida (`M.jobPools`). Sin garantía ni tope de legendarios: a nivel 60, un 87 % de ratones no tiene ninguno, un 12 % tiene uno y un 0,8 % dos o más (40.000 ratones simulados, contando los nacidos Legendary).
+- **Legendarios:** un ratón maduro con uno solo rinde entre x1,5 y x4 frente al mismo sin él (Golden Paws x3, Time Skipper x2, Midas x1,5, King of Mice x2,5 con 26 ratones, Cheese Saint x3 con 60 recetas, Abyssal x3 a profundidad 25 y x4 a 50). El mejor doble (Abyssal + Cheese Saint) da x8.
+- **La cama de la Mouse House:** una sola. Tratar una manía cuesta 2.000 monedas y reentrenar una especialidad 5.000, cada una x3 por cada vez ya hecha en la colonia. Dura 30 minutos (también con el juego cerrado) y el ratón sigue en su puesto. Reentrenar conserva el grado.
+- **Especialidades:** llegan solas a los 200 trabajos de un oficio, al azar entre las cinco; grados a los 200, 2.000 y 20.000 trabajos, que multiplican el efecto por 1, 1,75 y 2,5.
 - **Combinaciones de equipo:** 10 entre vecinos de línea (siempre dos rasgos distintos: repetir el mismo no forma nada) y 6 de roca entera; dan velocidad, cantidad o suerte a todos los implicados. El tendero cuenta como vecino del quesero de cada roca.
-- **Topes:** suerte de doble 90 %, auras ±60 %, colonia contada hasta 30 ratones, recetas hasta 60.
+- **Topes:** suerte de doble 90 %, auras ±60 %, colonia contada hasta 30 ratones, recetas hasta 60, profundidad +100 % de velocidad y +100 % de cantidad. En la tienda, las bonificaciones de cantidad de su ratón cuentan la mitad.
 - **Velocidad:** (1 + nivel + rango + rareza + afinidad) x (1 + suma de rasgos, combinaciones, profundidad, nivel de habilidad, colonia y auras).
 
 Las medidas con el bot están en «Equilibrio de la cadena» y «Ritmo medido». Los gerentes solo compran mejoras que cuesten hasta el 10 % de tus monedas.
@@ -202,7 +202,7 @@ Una hornada tarda 6 s más los extras de la receta: de 6 a 9 s antes de mejoras 
 
 **Cheese Lab.** Edificio propio (gratis, tras descubrir 3 recetas a mano). Sus funciones se compran en su árbol: Research Assistant (100 monedas, abre el puesto de **Research**), Advanced Research (3.000, direcciones; pide el ayudante) y Strain Research (25.000, pide Cheesemaking 10). Eficiencia: Bunsen Burners (+8 % de velocidad por rango, 25 rangos, desde 400 x1,6) y Smaller Samples (−5 % de Cheese Base por rango, 10 rangos, desde 600 x1,8). Medido con el bot casual: laboratorio al minuto 12, ayudante en el acto, investigador al 15, direcciones al 24, cepas al 30; rocas a los 39 / 66 / 99 / 150 / 210 min (medido cada 3 min). Las recetas se investigan aparte, a la vez que la quesería produce. La primera tarda 12 s y cada una un 3 % más que la anterior (la número 50, un minuto; la 100, cuatro; la 150, 17; la 216, casi dos horas); cuesta 4 de Cheese Base más 1 por receta ya conocida. Un 15 % de los resultados sale no concluyente (repite la mitad del trabajo, una sola vez) y un 5 % es un hallazgo (la receta nace con 15 quesos de maestría). Sin ratón, cada investigación la lanza el jugador; con ratón y una **dirección** marcada (más valor, más rápida de cocinar, un queso, un ingrediente, un tratamiento o una maduración) sigue sola dentro de ella. Un encargo a mano con el laboratorio ocupado o sin Cheese Base queda apuntado como lo siguiente. Mientras el laboratorio junta su base, la quesería de ese queso solo aparta lo que cuesta esa investigación y sigue cocinando con el resto.
 
-Rasgos de oficio de Research (grados x1 / x2 / x3,5 como los demás): Lab Rat (+10 % velocidad), Thrifty (−10 % de base por investigación), Good Nose (+4 puntos de hallazgo), Methodical (−4 puntos de no concluyente), Tinkerer (4 % de sacar una segunda receta del mismo queso). Legendario: Eureka (nunca no concluyente, +25 puntos de hallazgo). Una investigación cuenta para la especialidad por los segundos que pide (grado 1 hacia la receta 14, grado 2 hacia la 60, grado 3 hacia la 133). Combinaciones con vecinos (el investigador es vecino de queseros, refinadores y tendero): Test Kitchen (Good Nose + Seasoner, +20 %), Clean Samples (Methodical + Purifier, +15 %), Launch Party (Tinkerer + Showman, +20 %). En pantalla no se enseñan las probabilidades.
+Rasgos de oficio de Research (grados x1 / x1,75 / x2,5 como los demás): Lab Rat (+10 % velocidad), Thrifty (−10 % de base por investigación), Good Nose (+4 puntos de hallazgo), Methodical (−4 puntos de no concluyente), Tinkerer (4 % de sacar una segunda receta del mismo queso). Legendario: Eureka (nunca no concluyente, +25 puntos de hallazgo). Una investigación cuenta para la especialidad por los segundos que pide (grado 1 hacia la receta 14, grado 2 hacia la 60, grado 3 hacia la 133). Combinaciones con vecinos (el investigador es vecino de queseros, refinadores y tendero): Test Kitchen (Good Nose + Seasoner, +20 %), Clean Samples (Methodical + Purifier, +15 %), Launch Party (Tinkerer + Showman, +20 %). En pantalla no se enseñan las probabilidades.
 
 **Qué cocina el Cheesemaker.** Sin receta fijada, la de más potencial de su queso: precio a igual maestría y sin cepa, menos el coste del ingrediente. Antes elegía la de mayor precio del momento y en el 21 % de las mediciones seguía con una receta dominada teniendo otra mejor con maestría 1. Con el criterio nuevo, en 574 mediciones del bot casual solo una vez había otra receta mejor por segundo (un 0,6 %), y la línea cambió de receta 12 veces en dos horas.
 
@@ -267,5 +267,17 @@ Casual, a lo largo de cuatro horas:
 | 4 h | 46 / 71 / 67 / 77 / 72 | 6 | 137 | 296 B |
 
 **Por qué se cambió la referencia.** Con los precios anteriores, calibrados con el experto, el jugador casual sin recetas tenía a los 30 minutos unos cientos de monedas y 9.600 ganadas, y no abría la segunda roca ni en 90 minutos. La diferencia venía sobre todo de las recetas: el experto las descubría antes de automatizar y el casual no podía, porque investigar paraba la quesería.
+
+**Medidas con los rasgos automáticos (14-10-2026).** Las tablas de arriba son anteriores. Con el sistema nuevo, mediana y rango de varias semillas (`audit-runner.js`):
+
+| | Casual (11 partidas) | Optimizando la colocación (12 partidas) |
+| --- | --- | --- |
+| Rocas 2ª a 6ª (min) | 35 / 65 / 100 / 145 / 220 | 25 / 35 / 60 / 95 / 135 |
+| Rango de la 6ª roca | 180 a más de 240 (10 de 11 llegan) | 110 a 165 |
+| Lo que rinde el ratón mediano a 3 h | x3,7 (3,0 a 4,3) | x4,2 (3,5 a 4,5) |
+| El mejor ratón de la colonia a 3 h | x5 a x12 | x7 a x18 |
+| Ratones con rasgo legendario a 4 h (casual) | 27 de 282, uno de ellos con dos | — |
+
+Una colonia casual a las 2 h a la que se le regalan seis joyas en sus líneas (tres con dos legendarios) gana x2,7 a x3,2 la hora siguiente; con un tendero con dos legendarios de cantidad, x3,9 a x4,6 (sería x7,5 si su cantidad contara entera); con todo a la vez, x10 a x13 (x21 con la tienda entera).
 
 **Aviso sobre estas medidas.** Dos partidas del bot con un cambio mínimo pueden diferir en un factor dos, porque el azar de candidatos y rasgos se desvía. Las medidas de «Equilibrio de la cadena» y «Stocks a largo plazo» son anteriores al laboratorio y a los precios nuevos de las rocas: valen para las proporciones entre etapas, no para las cifras absolutas. Con recetas buenas la quesería limita más a menudo (unas cuatro de cada cinco veces en la partida casual), por un factor entre 1 y 2.

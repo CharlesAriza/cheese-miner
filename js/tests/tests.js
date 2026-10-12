@@ -657,80 +657,105 @@
     eq(CM.mice.albumCount(CM.storage.parse(JSON.stringify(t), 1000000)), n, 'unknown pieces are dropped');
   });
 
-  test('traits: catalogue, level choices, mystery slot and rerolls', () => {
+  test('traits: mice develop them on their own, shaped by the work they have done', () => {
     const T = B.mice.traits;
+    const M = B.mice;
     const kinds = { good: 0, quirk: 0, job: 0, legend: 0 };
     Object.keys(T).forEach((k) => (kinds[T[k].kind] += 1));
     truthy(kinds.good >= 20 && kinds.quirk >= 12 && kinds.legend >= 12, 'a long catalogue: ' + JSON.stringify(kinds));
-    for (const skill of CM.skills.list) eq(CM.mice.jobTraits(skill).length, 5, 'five job traits for ' + skill);
+    for (const skill of CM.mice.JOBS) eq(CM.mice.jobTraits(skill).length, 5, 'five job traits for ' + skill);
     for (const c of B.mice.combos) truthy(c.needs.length >= 2 && c.needs.every((id) => T[id]), 'combo ' + c.id + ' uses real traits');
+    for (const k of Object.keys(M.jobPools)) truthy(M.jobPools[k].every((id) => T[id] && T[id].kind === 'good'), 'the traits a job leaves are real, good traits: ' + k);
     const s = withChain();
     const m = staff(s, 'drilling', 'cheddar', { traits: ['fast', 'glutton'] });
-    eq(CM.mice.pending(m), null, 'nothing to choose at level 1');
-    m.xp = 1e4; // nivel alto: debe varias elecciones
-    const owed = Math.min(B.mice.traitSlots, Math.floor(CM.mice.level(m) / B.mice.traitEvery));
-    truthy(owed >= 2, 'owes several choices: ' + owed);
-    const offer = CM.mice.choice(s, m);
-    eq(offer.kind, 'level', 'a level choice');
-    eq(offer.options.length, 3, 'three options');
-    truthy(new Set(offer.options).size === 3 && offer.options.every((id) => T[id] && !T[id].job && T[id].kind !== 'quirk' && m.traits.indexOf(id) < 0), 'three different good traits it does not have');
-    truthy(CM.events.some((e) => e.type === 'traitReady'), 'the game says a choice is ready');
-    const back = CM.storage.parse(JSON.stringify(s), 1000000);
-    eq(JSON.stringify(back.mice[0].offer), JSON.stringify(offer), 'reloading does not change the options');
-    // Volver a tirar: cuesta, y cada vez el doble
-    s.coins = 0;
-    eq(CM.mice.reroll(s, m.id).reason, 'no-coins', 'a reroll needs coins');
-    const c1 = CM.mice.rerollCost(m);
-    s.coins = 1e9;
-    eq(CM.mice.reroll(s, m.id).ok, true, 'reroll');
-    eq(s.coins, 1e9 - c1, 'it is paid');
-    eq(CM.mice.rerollCost(m), c1 * B.mice.rerollGrowth, 'the next reroll costs double');
-    eq(m.offer.options.length, 3, 'three new options');
-    // Los legendarios salen poco, y al volver a tirar aún menos, pero salen
-    const count = (reroll) => {
-      let n = 0;
-      const t = staff(s, 'refining', 'cheddar', { post: '', xp: 1e4 });
-      CM.mice.choice(s, t);
-      for (let i = 0; i < 3000; i++) {
-        if (reroll) CM.mice.reroll(s, t.id);
-        else {
-          t.offer = null;
-          CM.mice.choice(s, t);
-        }
-        if (t.offer.options.some((id) => T[id].kind === 'legend')) n += 1;
-        t.rerolls = 0;
-        s.coins = 1e9;
-      }
-      s.mice.pop();
-      return n;
-    };
-    const first = count(false);
-    const again = count(true);
-    truthy(again > 0 && again < first && first < 3000 * 0.2, 'legendary options are rare, and rarer on a reroll: ' + first + ' vs ' + again);
-    truthy(CM.mice.isLegend({ rarity: 0, traits: ['midas'] }) && !CM.mice.isLegend({ rarity: 0, traits: ['fast'] }), 'a mouse with a legendary trait counts as legendary');
-    s.coins = 1e9;
-    // Elegir
-    const want = m.offer.options[1];
-    eq(CM.mice.pickTrait(s, m.id, 1).ok, true, 'pick');
-    truthy(m.learned.indexOf(want) >= 0 && m.picks === 1, 'the mouse has the trait');
-    truthy(m.offer && m.rerolls === 0, 'the next choice is ready, with the reroll price reset');
-    truthy(CM.mice.rerollCost(m) > c1, 'later slots cost more to reroll');
-    truthy(m.offer.options.indexOf(want) < 0, 'a trait it has is never offered again');
-    // Casilla misteriosa: cualquier cosa, también manías y legendarios
-    const seen = { good: 0, quirk: 0, legend: 0 };
-    for (let i = 0; i < 400; i++) {
-      const t = staff(s, 'refining', 'cheddar', { post: '', xp: 1e4 });
-      CM.mice.choice(s, t);
-      const r = CM.mice.pickTrait(s, t.id, 'mystery');
-      seen[T[r.trait].kind] += 1;
-      s.mice.pop();
-    }
-    truthy(seen.good > seen.quirk && seen.quirk > seen.legend && seen.legend > 0, 'mystery gives good > quirk > legendary: ' + JSON.stringify(seen));
-    // Nunca más casillas que las que hay
+    eq(CM.mice.pending(m), null, 'nothing to develop before level 10');
+    // Al llegar al nivel 10 desarrolla un rasgo él solo, sin nada que elegir
+    CM.events.length = 0;
+    CM.mice.addXp(s, m, 1e4);
+    CM.mice.reward(s, 'drilling', 'cheddar');
+    truthy(m.learned.length >= 1 && m.picks === m.learned.length && !CM.mice.pending(m), 'the trait arrives on its own: nothing is left pending');
+    truthy(CM.events.some((e) => e.type === 'traitLearned' && e.id === m.id && e.auto), 'and the game announces it');
+    eq(m.offer, undefined, 'there are no choices any more');
+    // Hasta seis, sin repetir y nunca una manía
     m.xp = 1e9;
-    for (let i = 0; i < 20 && m.offer && m.offer.kind === 'level'; i++) CM.mice.pickTrait(s, m.id, 0);
-    eq(m.picks, B.mice.traitSlots, 'six level traits at most');
+    CM.mice.choice(s, m);
+    eq(m.picks, M.traitSlots, 'six developed traits at most');
     eq(new Set(m.traits.concat(m.learned)).size, m.traits.length + m.learned.length, 'no repeated traits');
+    truthy(m.learned.every((id) => T[id].kind !== 'quirk'), 'levelling up never gives a quirk');
+    const back = CM.storage.parse(JSON.stringify(s), 1000000);
+    eq(back.mice[0].learned.join(), m.learned.join(), 'traits survive a reload');
+    // Muchos ratones: el historial de trabajo inclina lo que desarrollan; un legendario es raro
+    const grown = (jobs) => {
+      const out = { legend: 0, none: 0, one: 0, many: 0, themed: 0, total: 0, quirk: 0 };
+      for (let i = 0; i < 3000; i++) {
+        const t = CM.mice.normalize({ id: 'z' + i, name: 'z', traits: ['steady', 'dreamer'], aff: {}, look: 1, rarity: 0, xp: 1e9, rank: 0, post: '', rest: true, jobs: Object.assign({}, jobs) });
+        CM.mice.grow(s, t);
+        const legs = t.learned.filter((id) => T[id].kind === 'legend').length;
+        out.legend += legs;
+        out[legs === 0 ? 'none' : legs === 1 ? 'one' : 'many'] += 1;
+        out.themed += t.learned.filter((id) => M.jobPools.mining.indexOf(id) >= 0).length;
+        out.quirk += t.learned.filter((id) => T[id].kind === 'quirk').length;
+        out.total += t.learned.length;
+      }
+      return out;
+    };
+    CM.events.length = 0;
+    const miners = grown({ mining: 5000 });
+    const traders = grown({ trading: 5000 });
+    CM.events.length = 0;
+    truthy(miners.themed > traders.themed * 1.3, 'a life of mining leaves more mining traits (' + miners.themed + ' vs ' + traders.themed + ')');
+    eq(miners.quirk + traders.quirk, 0, 'never a quirk');
+    truthy(miners.none > 3000 * 0.84 && miners.none < 3000 * 0.93, 'most mice reach level 60 with no legendary trait: ' + miners.none + '/3000');
+    truthy(miners.one > 3000 * 0.07 && miners.one < 3000 * 0.15, 'about one in ten gets one: ' + miners.one);
+    truthy(miners.many + traders.many > 0 && miners.many < 3000 * 0.02, 'two in the same mouse is possible and very rare: ' + (miners.many + traders.many) + '/6000');
+    notes.push('legendary traits at level 60 (3000 mice): none ' + miners.none + ', one ' + miners.one + ', two or more ' + miners.many);
+    valid(s);
+  });
+
+  test('mouse house bed: treat a quirk or retrain a speciality while the mouse keeps working', () => {
+    const s = withChain();
+    const K = CM.mice;
+    const M = B.mice;
+    const m = staff(s, 'drilling', 'cheddar', { traits: ['fast', 'dreamer'], spec: { drilling: 'bitexpert' }, jobs: { drilling: M.jobGrades[1] } });
+    const other = staff(s, 'refining', 'cheddar', { traits: ['strong', 'glutton'] });
+    eq(K.careStart(s, m.id, 'quirk', 'dreamer').reason, 'invalid', 'the bed is in the Mouse House');
+    s.built.house = true;
+    s.coins = 0;
+    eq(K.careStart(s, m.id, 'quirk', 'dreamer').reason, 'no-coins', 'a treatment costs coins');
+    s.coins = 1e6;
+    eq(K.careStart(s, m.id, 'quirk', 'fast').reason, 'invalid', 'only a quirk can be treated');
+    const cost = K.careCost(s, 'quirk');
+    eq(K.careStart(s, m.id, 'quirk', 'dreamer').ok, true, 'treat Dreamer');
+    eq(s.coins, 1e6 - cost, 'paid once');
+    eq(K.careStart(s, other.id, 'quirk', 'glutton').reason, 'bed-busy', 'one mouse at a time');
+    truthy(K.careCost(s, 'quirk') === cost * M.care.growth, 'the next treatment costs more');
+    // Mientras tanto sigue en su puesto y trabajando
+    const raw = s.totals.rawProduced;
+    s.zones.cheddar.veinRevealed = true;
+    s.zones.cheddar.veinRemaining = 1e6;
+    run(s, M.care.ms / 2);
+    truthy(m.post === 'drilling:cheddar' && s.totals.rawProduced > raw, 'the mouse keeps its post and keeps drilling');
+    truthy(m.traits.indexOf('dreamer') >= 0 && s.care && s.care.remaining > 0, 'the quirk is still there half way');
+    const slow = K.speed(m, 'drilling');
+    const mid = CM.storage.parse(JSON.stringify(s), 1000000);
+    truthy(mid.care && mid.care.id === m.id && mid.care.what === 'dreamer', 'the treatment survives a reload');
+    // También con el juego cerrado
+    s.lastSavedAt = 0;
+    CM.sim.applyOffline(s, M.care.ms);
+    eq(s.care, null, 'the bed is free again');
+    truthy(m.traits.indexOf('dreamer') < 0 && K.speed(m, 'drilling') > slow, 'offline too: the quirk is gone and the mouse is faster');
+    eq(other.traits.indexOf('glutton') >= 0, true, 'nobody else is treated on their own');
+    // Reentrenar una especialidad: se elige, conserva el grado
+    eq(K.careStart(s, m.id, 'spec', 'drilling', 'bitexpert').reason, 'invalid', 'retraining needs a different speciality');
+    eq(K.careStart(s, m.id, 'spec', 'refining', 'purifier').reason, 'invalid', 'and a speciality to retrain');
+    const grade = K.gradeOf(m, 'drilling');
+    eq(K.careStart(s, m.id, 'spec', 'drilling', 'deepbore').ok, true, 'retrain to Deep Bore');
+    run(s, M.care.ms + 1000);
+    eq(m.spec.drilling + '/' + K.gradeOf(m, 'drilling'), 'deepbore/' + grade, 'the new speciality, at the grade it had');
+    // Despedir al que está en la cama la deja libre
+    K.careStart(s, other.id, 'quirk', 'glutton');
+    K.dismiss(s, other.id);
+    eq(s.care, null, 'dismissing the patient frees the bed');
     valid(s);
   });
 
@@ -743,14 +768,11 @@
     CM.mice.reward(s, 'drilling', 'cheddar');
     CM.mice.reward(s, 'refining', 'cheddar');
     truthy(m.jobs.drilling > n.jobs.refining, 'a mouse that loves the job specialises faster');
-    // Rasgo de oficio: se elige al llegar al primer umbral
+    // Especialidad: llega sola al primer umbral, una de las cinco de ese oficio
     m.jobs.drilling = B.mice.jobGrades[0];
-    const offer = CM.mice.choice(s, m);
-    eq(offer.kind + ':' + offer.skill, 'job:drilling', 'a job choice for drilling');
-    truthy(offer.options.length === 3 && offer.options.every((id) => T[id].job === 'drilling'), 'three drilling traits');
-    eq(CM.mice.pickTrait(s, m.id, 'mystery').reason, 'invalid', 'no mystery slot in job choices');
-    m.offer.options[0] = 'bitexpert';
-    CM.mice.pickTrait(s, m.id, 0);
+    CM.mice.choice(s, m);
+    truthy(m.spec.drilling && T[m.spec.drilling].job === 'drilling', 'a drilling speciality arrives on its own');
+    m.spec.drilling = 'bitexpert';
     eq(m.spec.drilling, 'bitexpert', 'speciality set');
     eq(CM.mice.gradeOf(m, 'drilling'), 1, 'grade I');
     const g1 = CM.mice.speed(m, 'drilling');
@@ -880,7 +902,8 @@
     const back = CM.storage.parse(JSON.stringify(s), 1000000);
     truthy(new Set(back.mice.map((m) => m.traits.join())).size >= 4, 'after loading they differ: ' + back.mice.map((m) => m.traits.join('+')).join(' / '));
     truthy(back.mice.every((m) => B.mice.traits[m.traits[0]].kind === 'good' && B.mice.traits[m.traits[1]].kind === 'quirk'), 'each has one good trait and one quirk');
-    truthy(back.mice[0].xp === 5000 && back.mice[0].rank === 1 && back.mice[0].learned.join() === 'lucky', 'level, rank and learned traits are kept');
+    truthy(back.mice[0].xp === 5000 && back.mice[0].rank === 1 && back.mice[0].learned[0] === 'lucky', 'level, rank and learned traits are kept');
+    truthy(back.mice[0].learned.length === Math.floor(CM.mice.level(back.mice[0]) / B.mice.traitEvery), 'and the traits its level was owed arrive on their own');
     truthy(back.mice.every((m) => m.traits.indexOf('lucky') < 0 || m.learned.indexOf('lucky') < 0), 'no trait is repeated on a mouse');
     const again = CM.storage.parse(JSON.stringify(back), 1000000);
     eq(JSON.stringify(again.mice.map((m) => m.traits)), JSON.stringify(back.mice.map((m) => m.traits)), 'loading again changes nothing');
@@ -1209,6 +1232,22 @@
     v6new.version = 6;
     eq(CM.cheesery.labHas(CM.storage.parse(JSON.stringify(v6new), 1), 'assistant'), false, 'a save with no lab gets nothing for free');
     valid(m6);
+    // v7: un ratón con una elección pendiente y otro con dos legendarios elegidos a mano.
+    const v7 = JSON.parse(JSON.stringify(withCheese()));
+    v7.version = 7;
+    v7.built.house = true;
+    v7.mice = [
+      { id: 'm901', name: 'Waiting', traits: ['fast', 'dreamer'], aff: {}, xp: 5000, rank: 0, post: 'drilling:cheddar', rest: false, learned: [], picks: 0, rerolls: 2, spec: {}, jobs: { drilling: 250 }, offer: { kind: 'level', skill: '', options: ['strong', 'lucky', 'tidy'] } },
+      { id: 'm902', name: 'Jewel', traits: ['abyssal', 'strong'], aff: {}, xp: 100, rank: 0, post: 'refining:cheddar', rest: false, learned: ['goldenpaws', 'midas'], picks: 2, spec: { refining: 'purifier' }, jobs: { refining: 300 }, rarity: 2 },
+    ];
+    const m7 = CM.storage.parse(JSON.stringify(v7), 1);
+    truthy(m7, 'version 7 saves still load');
+    const waited = m7.mice.find((x) => x.id === 'm901');
+    truthy(waited.offer === undefined && waited.learned.length >= 1 && waited.spec.drilling, 'what was waiting for a choice is developed on its own');
+    truthy(m7.inbox.length === 1 && m7.inbox[0].name === 'Waiting' && m7.inbox[0].traits.length >= 2, 'and the player is told what each mouse developed');
+    const jewel = m7.mice.find((x) => x.id === 'm902');
+    eq(jewel.traits.concat(jewel.learned).join() + '/' + jewel.spec.refining, 'abyssal,strong,goldenpaws,midas/purifier', 'traits already earned are kept, several legendary ones included');
+    valid(m7);
     // Los nudos de almacén ya no existen: una partida que los tenía recupera sus monedas.
     localStorage.setItem(CM.storage.KEY, JSON.stringify({ version: 4, coins: 10, nodes: { 'colony.silo': 2, 'colony.lamp': 1 } }));
     const refunded = CM.storage.load(1).state;
@@ -1328,18 +1367,6 @@
           CM.mice.choose(s, pickAt);
         }
         for (const m of s.mice) CM.mice.promote(s, m.id);
-        for (const m of s.mice) {
-          if (!m.offer) continue;
-          let best = 0;
-          if (smart && m.post) {
-            const [skill, zone] = m.post.split(':');
-            const withT = (id) => (m.offer.kind === 'job' ? Object.assign({}, m, { spec: Object.assign({}, m.spec, { [m.offer.skill]: id }) }) : Object.assign({}, m, { learned: m.learned.concat(id) }));
-            m.offer.options.forEach((id, i) => {
-              if (power(withT(id), skill, zone) > power(withT(m.offer.options[best]), skill, zone)) best = i;
-            });
-          }
-          CM.mice.pickTrait(s, m.id, best);
-        }
         if (smart && s.clock % 60000 < 2000 && s.mice.length > 1) CM.mice.bestFit(s);
         // Ahorra como lo haría una persona: para el siguiente ratón y para la
         // siguiente roca cuando su economía ya da para ella.

@@ -59,13 +59,15 @@ Hito 2, ratones como personajes: Mouse House, reclutar eligiendo uno de tres, ni
 
 Aquí la profundidad es deliberada: es el sistema que tiene que sentirse único (referencia: Mewgenics). Reglas propias, acordadas con el propietario:
 
-- **Optimizar es cosa del jugador.** Se automatiza lo tedioso (colocar ratones), nunca las decisiones: los rasgos no se eligen solos, BEST FIT mira a cada ratón por separado y no hay pistas de combinaciones. La interfaz tiene que ponérselo fácil al jugador, no decidir por él.
-- **Apostar sí, perder lo conseguido no.** Se arriesga lo que el jugador decide poner (una casilla de rasgo, monedas, ratones), nunca monedas o queso a doble o nada.
+- **Optimizar es cosa del jugador, y lo que se optimiza son personajes únicos e imperfectos.** Los rasgos ya no se eligen: cada ratón desarrolla los suyos al azar (referencias: Darkest Dungeon, Mewgenics). La decisión está en dónde trabaja cada uno, con quién, a quién se trata o reentrena y a quién se conserva. Se automatiza lo tedioso, nunca esas decisiones: BEST FIT mira a cada ratón por separado y no hay pistas de combinaciones.
+- **Nada garantizado, nada perdido.** Un rasgo legendario es un hallazgo raro (2 % por hito, sin garantía ni tope por ratón); la mayoría de ratones no tendrá ninguno y un doble es una joya. Subir de nivel nunca da una manía. No se apuestan monedas ni queso a doble o nada.
 - **El balance se decide con el bot** y con partidas reales; las cifras son provisionales.
 
 Entrega A (hecha): rareza (Rare, Legendary), afinidad por oficio, unos 70 rasgos (buenos, manías, de oficio con tres grados, legendarios), rasgos de nivel elegidos entre tres, casilla misteriosa, volver a tirar, combinaciones en un mismo ratón, auras entre vecinos de línea y álbum que sube el precio de venta.
 
 Entrega B (hecha): la colonia dibujada (una línea de puestos por roca con el retrato de cada ratón; tocar un ratón y tocar un puesto lo mueve), ficha con cada rasgo en una línea (los iconos y los avisos flotantes se quitaron por recargados; paleta sobria donde el color solo significa bueno, manía, legendario o pendiente), rasgos visibles en el dibujo del ratón, combinaciones entre vecinos de línea y de roca entera. Los legendarios se celebran a pantalla completa y llevan aura dorada; las manías van en rojo; el juego no enseña probabilidades.
+
+Rasgos automáticos (14-10-2026): cada 10 niveles el ratón desarrolla un rasgo solo (nunca una manía), la mitad de las veces sacado de los oficios que ha ejercido en toda su vida; a los 200 trabajos de un oficio le llega una especialidad al azar. Sin elección entre tres, sin volver a tirar, sin casilla misteriosa. La Mouse House tiene **una cama**: trata una manía o reentrena una especialidad (eligiendo cuál) en 30 minutos, con coste creciente, y el ratón sigue trabajando mientras tanto. Las bonificaciones de cantidad del tendero cuentan la mitad, porque su puesto cobra por todas las rocas. La interfaz de MICE está adaptada lo justo; su rediseño es el siguiente trabajo.
 
 Entrega C (pendiente): fusión de dos ratones, mutaciones y linajes.
 

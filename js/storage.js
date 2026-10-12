@@ -117,9 +117,9 @@
       }
       m.spec = spec;
       m.jobs = jobs;
-      m.rerolls = Math.min(nat(m.rerolls), 60);
-      const o = m.offer;
-      m.offer = isObj(o) && (o.kind === 'level' || o.kind === 'job') && Array.isArray(o.options) && o.options.length && o.options.every((t) => T[t]) ? { kind: o.kind, skill: o.kind === 'job' ? String(o.skill) : '', options: o.options.slice(0, 3) } : null;
+      // Las elecciones de rasgo ya no existen: lo pendiente se resuelve solo más abajo.
+      delete m.rerolls;
+      delete m.offer;
       m.xp = pos(m.xp);
       m.rank = Math.min(nat(m.rank), B.mice.ranks.length - 1);
       m.rest = m.rest === true;
@@ -169,13 +169,24 @@
     const album = {};
     for (const k of Object.keys(s.album)) if (CM.mice.albumItem(k)) album[k] = true;
     s.album = album;
-    // Una elección guardada que ya no toca se descarta; las pendientes se preparan.
+    s.seed = nat(s.seed) || 1;
+    const TR = B.mice.traits;
+    // Lo que una partida anterior tenía pendiente de elegir (rasgo de nivel o especialidad)
+    // se desarrolla solo, y se apunta para contárselo al jugador al entrar.
+    s.inbox = Array.isArray(s.inbox) ? s.inbox.filter((n) => isObj(n) && typeof n.name === 'string' && Array.isArray(n.traits) && n.traits.every((t) => TR[t])).slice(0, 60) : [];
     s.mice.forEach((m) => {
       CM.mice.record(s, m);
-      const p = CM.mice.pending(m);
-      if (m.offer && (!p || p.kind !== m.offer.kind || p.skill !== m.offer.skill)) m.offer = null;
+      if (!CM.mice.pending(m)) return;
+      const before = m.learned.concat(Object.keys(m.spec).map((k) => m.spec[k]));
+      CM.mice.grow(s, m);
+      const got = m.learned.concat(Object.keys(m.spec).map((k) => m.spec[k])).filter((t) => before.indexOf(t) < 0);
+      if (got.length) s.inbox.push({ id: m.id, name: m.name, traits: got });
     });
-    s.seed = nat(s.seed) || 1;
+    CM.events.length = 0;
+    // La cama: un ratón que existe, y un tratamiento que sigue teniendo sentido.
+    const c = s.care;
+    const patient = isObj(c) ? s.mice.find((m) => m.id === c.id) : null;
+    s.care = patient && c.total > 0 && Number.isFinite(c.remaining) && ((c.kind === 'quirk' && TR[c.what] && TR[c.what].kind === 'quirk' && patient.traits.concat(patient.learned).indexOf(c.what) >= 0) || (c.kind === 'spec' && patient.spec[c.what] && TR[c.to] && TR[c.to].job === c.what)) ? { id: c.id, kind: c.kind, what: c.what, to: c.kind === 'spec' ? c.to : '', remaining: Math.max(0, Math.min(c.remaining, c.total)), total: c.total } : null;
 
     // Cada línea solo puede cocinar recetas de su propia base.
     for (const def of B.zones) {
@@ -307,6 +318,7 @@
     if (isObj(data) && data.version === 4) migrate4(data);
     if (isObj(data) && data.version === 5) migrate5(data);
     if (isObj(data) && data.version === 6) migrate6(data);
+    if (isObj(data) && data.version === 7) data.version = 8; // rasgos automáticos: lo pendiente lo resuelve sanitize
     if (!isObj(data) || data.version !== CM.SAVE_VERSION) return null;
     const s = CM.createState(now);
     try {

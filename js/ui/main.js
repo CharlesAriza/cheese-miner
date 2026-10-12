@@ -275,32 +275,34 @@
         dirty = true;
         break;
       }
-      case 'traitReady': {
-        const mouse = CM.mice.byId(state, ev.id);
-        if (!mouse) break;
-        if (ev.legend) legendOffer(mouse);
-        else {
-          play('bell');
-          toast(mouse.name + (ev.kind === 'job' ? ' earned a speciality' : ' can learn a new trait') + '. Pick it in MICE', true);
-        }
-        dirty = true;
-        break;
-      }
       case 'traitLearned': {
+        // Los rasgos llegan solos: se cuenta lo que ha pasado, sin parar al jugador.
+        // Un legendario sí se celebra a lo grande.
         const mouse = CM.mice.byId(state, ev.id);
         const def = B.mice.traits[ev.trait];
-        if (ev.mystery) revealMystery(mouse, ev.trait);
-        else if (ev.kind === 'legend') legendMoment(mouse, ev.trait);
+        if (!mouse || !def) break;
+        if (ev.kind === 'legend') legendMoment(mouse, ev.trait);
         else {
           play('reveal');
           banner(mouse.name.toUpperCase() + ': ' + def.name.toUpperCase() + '!');
+          toast(mouse.name + (def.job ? ' specialised: ' : ' developed a trait: ') + def.name + '. ' + def.desc, true);
         }
         dirty = true;
         break;
       }
-      case 'legendOffer':
-        legendOffer(CM.mice.byId(state, ev.id));
+      case 'careStart':
+        play('click');
+        dirty = true;
         break;
+      case 'careDone': {
+        const mouse = CM.mice.byId(state, ev.id);
+        if (!mouse) break;
+        play('goal');
+        banner(mouse.name.toUpperCase() + (ev.kind === 'quirk' ? ' IS OVER ' + B.mice.traits[ev.what].name.toUpperCase() : ': ' + B.mice.traits[ev.to].name.toUpperCase()) + '!');
+        toast(ev.kind === 'quirk' ? mouse.name + ' no longer has ' + B.mice.traits[ev.what].name + '. The Mouse House bed is free' : mouse.name + ' retrained to ' + B.mice.traits[ev.to].name + '. The Mouse House bed is free', true);
+        dirty = true;
+        break;
+      }
       case 'teamCombo':
         play('goal');
         scene.celebrate();
@@ -725,7 +727,7 @@
       if (m.book) side += P.btn('open:cheese', 'RECIPES', { cls: 'buy calm small' });
       // Quién trabaja en este puesto.
       const worker = CM.mice.at(state, skill, ui.zone);
-      if (state.built.house) side += P.btn(worker ? 'open:mice:' + worker.id : 'open:mice', worker ? (worker.offer ? 'PICK A TRAIT: ' + P.esc(worker.name).toUpperCase() : CM.mice.promoteInfo(state, worker).can ? 'PROMOTE ' + P.esc(worker.name).toUpperCase() : P.esc(worker.name) + ' · LV ' + CM.mice.level(worker)) : 'NO MOUSE HERE', { cls: 'buy calm small' + (worker ? (worker.offer || CM.mice.promoteInfo(state, worker).can ? ' ready' : '') : ' warn') });
+      if (state.built.house) side += P.btn(worker ? 'open:mice:' + worker.id : 'open:mice', worker ? (CM.mice.promoteInfo(state, worker).can ? 'PROMOTE ' + P.esc(worker.name).toUpperCase() : P.esc(worker.name) + ' · LV ' + CM.mice.level(worker)) : 'NO MOUSE HERE', { cls: 'buy calm small' + (worker ? (worker.offer || CM.mice.promoteInfo(state, worker).can ? ' ready' : '') : ' warn') });
     }
     if (side !== ui.dockHtml) {
       ui.dockHtml = side;
@@ -1017,8 +1019,12 @@
       return CM.mice.assign(state, id, skill ? skill + ':' + zone : '');
     },
     promote: (id) => CM.mice.promote(state, id),
-    trait: (id, index) => CM.mice.pickTrait(state, id, index),
-    reroll: (id) => CM.mice.reroll(state, id),
+    care: (id, kind, what, to) => {
+      const r = CM.mice.careStart(state, id, kind, what, to);
+      if (r.ok) ui.retrain = null;
+      return r;
+    },
+    retrain: (id, skill) => void (ui.retrain = ui.retrain === id + ':' + skill ? null : id + ':' + skill),
     album: () => void (ui.miceTab = ui.miceTab === 'album' ? '' : 'album'),
     dismiss: (id) => void confirmDismiss(id),
     managers: () => void (state.settings.managersBuy = !state.settings.managersBuy),
@@ -1216,14 +1222,21 @@
     if (d.rawProduced) lines.push(I.img('raw', base) + 'Raw Cheese drilled: +' + CM.fmt(d.rawProduced));
     if (d.veinsFound) lines.push('Veins found: ' + d.veinsFound);
     if (sum.strainWaiting && B.strains[sum.strainWaiting.strain]) lines.push('<b class="tok">New strain found: ' + B.strains[sum.strainWaiting.strain].name + '</b> · compare it in LAB');
+    // Partidas anteriores: lo que estaba pendiente de elegir lo han desarrollado ellos solos.
+    if (state.inbox.length) {
+      lines.push('<b>Mice now develop their traits on their own.</b> What was waiting for a choice:');
+      for (const n of state.inbox.slice(0, 8)) lines.push(P.esc(n.name) + ': ' + n.traits.map((t) => '<b class="' + (B.mice.traits[t].kind === 'legend' ? 'tleg' : 'tok') + '">' + B.mice.traits[t].name + '</b>').join(' · '));
+      if (state.inbox.length > 8) lines.push('...and ' + (state.inbox.length - 8) + ' more mice');
+      state.inbox = [];
+    }
     for (const up of sum.levelUps) lines.push(B.skills[up.skill].name + ': level ' + up.from + ' > ' + up.to);
     // Los ratones: primero los que traen algo que elegir.
-    const news = (sum.mouseNews || []).slice().sort((a, b) => (b.pick ? 1 : 0) - (a.pick ? 1 : 0) || b.to - b.from - (a.to - a.from));
+    const news = (sum.mouseNews || []).slice().sort((a, b) => (b.grew || []).length - (a.grew || []).length || b.to - b.from - (a.to - a.from));
     for (const n of news.slice(0, 5)) {
       const bits = [];
       if (n.to > n.from) bits.push('LV ' + n.from + ' > ' + n.to);
       for (const sp of n.spec) bits.push(B.mice.traits[sp.trait].name + ' ' + ['', 'I', 'II', 'III'][sp.grade]);
-      if (n.pick) bits.push('<b class="tok">new trait to pick</b>');
+      for (const t of n.grew || []) if (B.mice.traits[t]) bits.push('<b class="' + (B.mice.traits[t].kind === 'legend' ? 'tleg' : 'tok') + '">' + B.mice.traits[t].name + '</b>');
       lines.push(P.esc(n.name) + ': ' + bits.join(' · '));
     }
     if (news.length > 5) lines.push('...and ' + (news.length - 5) + ' more mice improved');
@@ -1283,52 +1296,7 @@
   }
 
   // Casilla misteriosa: los nombres giran un momento antes de enseñar el que ha tocado.
-  function revealMystery(mouse, traitId) {
-    const T = B.mice.traits;
-    const def = T[traitId];
-    const names = Object.keys(T).filter((k) => !T[k].job).map((k) => T[k].name);
-    showModal('<h2>MYSTERY TRAIT</h2><div class="hero"><img class="pix face big" alt="" src="' + CM.mouseUrl(mouse) + '"></div><div id="slot" class="slot spin">?</div><p id="slot-desc" class="hint">&nbsp;</p><div class="row"><button id="slot-ok" class="buy" data-m="ok" disabled>...</button></div>', { ok() {} });
-    let n = 0;
-    const timer = setInterval(() => {
-      const el = $('slot');
-      if (!el) return clearInterval(timer);
-      n += 1;
-      if (n < 18) {
-        el.textContent = names[Math.floor(Math.random() * names.length)];
-        sfx.click();
-        return;
-      }
-      clearInterval(timer);
-      el.textContent = def.name.toUpperCase();
-      el.className = 'slot ' + def.kind;
-      if (def.kind === 'legend') {
-        closeModal();
-        return legendMoment(mouse, traitId);
-      }
-      el.innerHTML = (def.kind === 'quirk' ? '&#9660; ' : '&#9650; ') + def.name.toUpperCase();
-      $('slot-desc').innerHTML = (def.kind === 'quirk' ? '<b class="tbad">A QUIRK.</b> ' : '') + CM.traitDesc(traitId) + '.';
-      $('slot-ok').disabled = false;
-      $('slot-ok').textContent = def.kind === 'quirk' ? 'OH WELL' : 'NICE';
-      if (def.kind === 'quirk') {
-        play('quirk');
-        retrigger($('modal-body'), 'badflash');
-      } else {
-        play('reveal');
-        scene.celebrate();
-      }
-    }, 80);
-  }
-
   // Sale una opción legendaria entre las tres: se avisa antes de elegir.
-  function legendOffer(mouse) {
-    if (!mouse) return;
-    play('goal');
-    scene.celebrate();
-    banner('A LEGENDARY TRAIT FOR ' + mouse.name.toUpperCase() + '!');
-    toast('One of ' + mouse.name + "'s options is LEGENDARY. Go to MICE", true);
-    dirty = true;
-  }
-
   // EL momento: pantalla a oscuras, destello dorado, lluvia de monedas y la carta.
   let legendEl = null;
   function legendMoment(mouse, traitId, born) {
