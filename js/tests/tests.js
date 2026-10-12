@@ -978,13 +978,24 @@
     s.inv.base.cheddar = 2000;
     s.lab.dir = 'strain';
     run(s, 6000);
-    eq(s.lab.job, null, 'no researcher, no strains');
+    eq(s.lab.job, null, 'with no researcher nothing starts on its own');
     truthy(s.lab.strains, 'the new direction is announced once');
+    // Primero a mano
+    eq(C.strainStart(s, r.id).ok, true, 'look for a strain by hand, on the recipe you choose');
+    eq(C.strainStart(s, r.id).reason, 'lab-busy', 'one at a time');
+    run(s, C.labTime(s) * B.cheesery.strainTime * 2);
+    truthy(r.strains.length >= 1 && !s.lab.job, 'the strain is found with no mouse');
+    s.lab.found = null;
+    s.inv.base.cheddar = 0;
+    eq(C.strainStart(s, r.id).queued, true, 'with no base the search is queued');
+    eq(s.lab.want, 'cheddar', 'and the lab reserves the base');
+    C.labCancel(s);
+    s.inv.base.cheddar = 2000;
     const res = staff(s, 'research', 'all');
     run(s, 4200);
     truthy(s.lab.job && s.lab.job.strain && s.lab.job.key === r.key, 'the researcher looks for a strain of the recipe the line cooks');
     run(s, C.labTime(s) * B.cheesery.strainTime * 2);
-    truthy(r.strains.length >= 1 && !r.strain, 'a strain is found but not used: the player decides');
+    truthy(r.strains.length >= 2 && !r.strain, 'a strain is found but not used: the player decides');
     truthy(s.lab.found && s.lab.found.recipeId === r.id, 'it waits as a candidate');
     C.strainKeep(s);
     eq(s.lab.found, null, 'keeping the cheese as it is clears the candidate');

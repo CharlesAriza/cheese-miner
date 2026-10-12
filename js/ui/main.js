@@ -19,7 +19,11 @@
     tree: 'mining',
     station: 'rock',
     zone: B.zones[0].id, // roca que se ve en la escena
-    cheeseTab: 'experiment',
+    cheeseTab: 'book',
+    labTab: 'recipes', // sección del laboratorio a la vista
+    labDirOpen: false,
+    labHand: null, // null: abierto solo si no hay investigador
+    strainRecipe: null,
     combo: { base: 'cheddar', ingredient: 'herbs', treatment: 'washed', maturation: 'fresh' },
     lastHtml: '',
     dockHtml: null,
@@ -221,13 +225,15 @@
       case 'strainsOpen':
         play('reveal');
         banner('NEW IN THE CHEESE LAB: STRAINS');
-        toast('A strain is another way to make the same cheese. Open the CHEESE LAB and choose the Cheddar strains direction', true);
+        toast('A strain is another way to make the same cheese. Open LAB and go to STRAINS', true);
         break;
       case 'strainFound': {
         const r = CM.cheesery.recipe(state, ev.recipeId);
         play('reveal');
         banner('NEW STRAIN: ' + B.strains[ev.strain].name.toUpperCase());
-        toast('For ' + r.name + '. It waits for you in the CHEESE LAB: use it or keep the cheese as it is', true);
+        toast('For ' + r.name + '. It waits for you in LAB: compare it and decide', true);
+        ui.strainRecipe = r.id;
+        if (ui.panel === 'lab') ui.labTab = 'strains';
         break;
       }
       case 'labSetback':
@@ -524,6 +530,18 @@
       const reason = info.state === 'blocked' || (auto && info.state === 'waiting') ? BUBBLE[info.reason] : '';
       if (st !== 'rock') bubble(st, reason || '', 'bad');
     }
+    // LAB: no es una etapa de la cadena, pero se llega igual. Aparece con la quesería.
+    const lab = tiles.lab;
+    const researcher = CM.cheesery.labWorker(state);
+    const labJob = state.lab.job;
+    const labNew = !!state.lab.found || (!state.built.lab && CM.construction.buildInfo(state, 'lab').canBuild);
+    if (lab.hidden !== !state.built.cheesery) lab.hidden = !state.built.cheesery;
+    set(lab, 'sel', ui.panel === 'lab');
+    set(lab, 'working', !!labJob);
+    set(lab, 'isnew', labNew);
+    set(lab.querySelector('.mini > i'), 'width', Math.round(progress(labJob) * 100) + '%');
+    set(lab.querySelector('u'), 'text', researcher ? 'LV ' + CM.mice.level(researcher) : 'BY HAND');
+    set(lab.querySelector('em'), 'text', labNew ? 'NEW!' : researcher && state.lab.dir ? 'AUTO' : '');
     const def = q.zoneDef(ui.zone);
     bubble('rock', def.name.toUpperCase() + ' · DEPTH ' + state.zones[ui.zone].depth, 'name');
     set($('nav-colony'), 'goal', goalAt === 'colony');
@@ -791,6 +809,7 @@
   window.addEventListener('blur', stopHold);
 
   for (const st of STATIONS) tiles[st].addEventListener('click', () => select(st));
+  tiles.lab.addEventListener('click', () => openPanel('lab'));
   window.addEventListener('keydown', (e) => {
     if (e.repeat || ui.panel || !$('modal').hidden) return;
     const n = Number(e.key);
@@ -849,7 +868,14 @@
   // ---------- Paneles ----------
   function openPanel(name) {
     if (name === 'cheese' && !state.built.cheesery) return select('cheesery');
-    if (name === 'cheese' && !state.recipes.length) ui.cheeseTab = 'experiment';
+    // Sin recetas no hay libro que enseñar: la primera se descubre en el laboratorio.
+    if (name === 'cheese' && !state.recipes.length) name = 'lab';
+    if (name === 'lab') {
+      ui.labDirOpen = false;
+      ui.labHand = null;
+      if (state.lab.found) ui.labTab = 'strains';
+      scene.focus(state.built.lab ? 'lab' : 'cheesery');
+    }
     ui.panel = name;
     ui.lastHtml = '';
     $('sheet-title').textContent = P.title(name, ui);
@@ -964,6 +990,18 @@
     dismiss: (id) => void confirmDismiss(id),
     managers: () => void (state.settings.managersBuy = !state.settings.managersBuy),
     tab: (name) => void (ui.cheeseTab = name),
+    book: () => void openPanel('cheese'),
+    labtab: (name) => void (ui.labTab = name),
+    labdiropen: () => void (ui.labDirOpen = !ui.labDirOpen),
+    labhand: () => void (ui.labHand = !(ui.labHand === null ? !CM.cheesery.labWorker(state) : ui.labHand)),
+    strainrecipe: (id) => void (ui.strainRecipe = id),
+    strainfind: (id) => CM.cheesery.strainStart(state, id),
+    // Cambiar de investigador: MICE, con el puesto de Research ya abierto.
+    researcher: () => {
+      if (!state.built.lab) return void openPanel('mice');
+      openPanel('mice');
+      ui.pick = { type: 'post', key: 'research:all' };
+    },
     pick: (part, value) => void (ui.combo[part] = value),
     experiment: () => CM.cheesery.experiment(state, ui.combo),
     labcancel: () => CM.cheesery.labCancel(state),
@@ -971,8 +1009,9 @@
     strainkeep: () => CM.cheesery.strainKeep(state),
     // Dirección de investigación: la marca el jugador (tocar la activa la quita).
     labdir: (kind, id) => {
-      const dir = id ? kind + ':' + id : kind;
+      const dir = kind === 'none' ? '' : id ? kind + ':' + id : kind;
       state.lab.dir = state.lab.dir === dir ? '' : dir;
+      ui.labDirOpen = false;
     },
     make: (id, n) => CM.cheesery.produce(state, id, Number(n)),
     cook: (id) => CM.cheesery.assign(state, id),
@@ -1072,7 +1111,7 @@
     announced = id;
     play('reveal');
     banner('NEW: ' + B.buildings[id].name.toUpperCase() + '!');
-    toast('Something new to build. ' + (id === 'lab' ? 'Open CHEESE and go to CHEESE LAB' : 'Tap ' + (tiles[id] ? tiles[id].querySelector('b').textContent : 'MICE') + ' below'), true);
+    toast('Something new to build. Tap ' + (tiles[id] ? tiles[id].querySelector('b').textContent : 'MICE') + ' below', true);
   }
   // Tras la primera venta: para qué sirven las monedas.
   function firstSaleCard() {
@@ -1337,6 +1376,7 @@
     tiles.refinery.querySelector('img').src = I.url('base', base);
     tiles.cheesery.querySelector('img').src = I.url('lot', base);
     tiles.shop.querySelector('img').src = I.url('coin');
+    tiles.lab.querySelector('img').src = I.url('flask');
   }
 
   // Los contadores ruedan hacia su valor real en vez de saltar.

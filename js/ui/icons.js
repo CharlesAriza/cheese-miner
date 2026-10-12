@@ -41,6 +41,7 @@
     base: ['.LLLLLLLL.', 'LLLLLLLLLL', 'MMMMMMMMMM', 'MMMMMMMMMM', 'MMMMMMMMMM', 'MMMMMMMMMM', 'DDDDDDDDDD', '.DDDDDDDD.'],
     lot: ['..LLLLLL..', '.LLLLLLLL.', 'MMMMMMMMMM', 'RRRRRRRRRR', 'RRRWWWWRRR', 'RRRRRRRRRR', 'DDDDDDDDDD', '.DDDDDDDD.', '..DDDDDD..'],
     coin: ['..LLLL..', '.LMMMMD.', 'LMMLLMMD', 'LMLMMDMD', 'LMLMMDMD', 'LMMDDMMD', '.LMMMMD.', '..DDDD..'],
+    flask: ['..GGGG..', '...GG...', '...GG...', '..GCCG..', '.GCCCCG.', 'GCCLCCCG', 'GCCCCLCG', '.GGGGGG.'],
     pick: ['.SSSSSS..', 'SS....SS.', '....WW.S.', '...WW....', '..WW.....', '.WW......', 'WW.......'],
   };
 
@@ -51,8 +52,10 @@
       const pal =
         kind === 'coin'
           ? { L: '#fff3a0', M: '#ffc21e', D: '#d98a0a' }
-          : kind === 'pick'
-            ? { S: '#c9d0df', W: '#8b5a2b' }
+          : kind === 'flask'
+            ? { G: '#dfe9f5', C: '#4fd6a0', L: '#c8ffe6' }
+            : kind === 'pick'
+              ? { S: '#c9d0df', W: '#8b5a2b' }
             : Object.assign({ R: '#d93a4f', W: '#ffffff' }, TONES[base] || TONES.cheddar);
       cache[key] = CM.makeSprite(SHAPES[kind], pal, '#1b1622').toDataURL();
     }

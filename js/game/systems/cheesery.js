@@ -153,19 +153,30 @@
       }
       return null;
     },
-    strainStart(s) {
-      const w = this.labWorker(s);
-      const recipe = this.strainsOpen(s) && w ? this.strainTarget(s) : null;
-      if (!recipe || s.lab.job) return CM.fail(s.lab.job ? 'lab-busy' : 'invalid');
+    // Buscar una cepa. A mano el jugador elige la receta; el investigador sigue a la línea.
+    // Sin base suficiente, el encargo a mano queda apuntado y el laboratorio la reserva.
+    strainStart(s, recipeId, source) {
+      if (!this.strainsOpen(s)) return CM.fail('locked');
+      const recipe = recipeId ? this.recipe(s, recipeId) : this.strainTarget(s);
+      if (!recipe || B.cheesery.strainBases.indexOf(parseKey(recipe.key).base) < 0) return CM.fail('invalid');
+      const missing = Object.keys(B.strains).filter((id) => has(recipe).indexOf(id) < 0);
+      if (!missing.length) return CM.fail('known');
+      if (s.lab.job) return CM.fail('lab-busy');
       const base = parseKey(recipe.key).base;
       const cost = this.labCost(s);
-      if (s.inv.base[base] < cost) return CM.fail('no-base');
+      if (s.inv.base[base] < cost) {
+        if (source === 'worker' || source === 'queue') return CM.fail('no-base');
+        s.lab.next = recipe.key;
+        s.lab.want = base;
+        return CM.ok({ queued: true });
+      }
+      if (s.lab.next === recipe.key) s.lab.next = '';
       s.inv.base[base] -= cost;
       s.totals.baseConsumed += cost;
       s.zones[q.zoneOfBase(base)].stats.baseUsed += cost;
-      const missing = Object.keys(B.strains).filter((id) => has(recipe).indexOf(id) < 0);
-      const total = Math.max(1000, Math.round((this.labTime(s) * B.cheesery.strainTime) / CM.mice.work(s, 'research', 'all').speed));
-      s.lab.job = { key: recipe.key, strain: missing[Math.floor(CM.rand(s) * missing.length)], remaining: total, total, source: 'worker', retried: false };
+      const w = this.labWorker(s) ? CM.mice.work(s, 'research', 'all') : null;
+      const total = Math.max(1000, Math.round((this.labTime(s) * B.cheesery.strainTime) / (w ? w.speed : 1)));
+      s.lab.job = { key: recipe.key, strain: missing[Math.floor(CM.rand(s) * missing.length)], remaining: total, total, source: w ? 'worker' : 'manual', retried: false };
       CM.emit(s, 'labStart', { key: recipe.key, strain: s.lab.job.strain });
       return CM.ok();
     },
@@ -336,8 +347,10 @@
       // Un encargo a mano que esperaba base va antes que la dirección.
       if (s.lab.next && !s.lab.job) {
         const combo = parseKey(s.lab.next);
-        if (!combo || comboLocked(s, combo) || this.recipeByKey(s, s.lab.next)) s.lab.next = '';
-        else if (this.experiment(s, combo, 'queue').ok) s.lab.next = '';
+        const known = combo && this.recipeByKey(s, s.lab.next);
+        // De una receta conocida, lo apuntado es buscarle una cepa.
+        const res = !combo || comboLocked(s, combo) ? CM.fail('invalid') : known ? this.strainStart(s, known.id, 'queue') : this.experiment(s, combo, 'queue');
+        if (res.ok || (res.reason !== 'no-base' && res.reason !== 'no-coins')) s.lab.next = '';
         else {
           s.lab.want = combo.base;
           return;
@@ -348,7 +361,7 @@
         if (s.lab.dir === 'strain') {
           // Cepas: trabaja sobre la receta que cocina la línea.
           const target = this.strainsOpen(s) ? this.strainTarget(s) : null;
-          if (target && !this.strainStart(s).ok) s.lab.want = parseKey(target.key).base;
+          if (target && !this.strainStart(s, null, 'worker').ok) s.lab.want = parseKey(target.key).base;
           else s.lab.want = '';
           return;
         }

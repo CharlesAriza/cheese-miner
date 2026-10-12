@@ -186,7 +186,7 @@
     delete s.lab.auto;
     s.lab.dir = typeof s.lab.dir === 'string' && /^(value|fast|strain|(base|ingredient|treatment|maturation):[a-z]+)$/.test(s.lab.dir) ? s.lab.dir : '';
     s.lab.want = typeof s.lab.want === 'string' && B.bases[s.lab.want] ? s.lab.want : '';
-    s.lab.next = typeof s.lab.next === 'string' && CM.cheesery.parseKey(s.lab.next) && !CM.cheesery.recipeByKey(s, s.lab.next) ? s.lab.next : '';
+    s.lab.next = typeof s.lab.next === 'string' && CM.cheesery.parseKey(s.lab.next) ? s.lab.next : '';
     s.lab.job = cleanJob(s.lab.job, ['key']);
     if (s.lab.job && s.lab.job.strain) {
       const r = CM.cheesery.recipeByKey(s, s.lab.job.key);

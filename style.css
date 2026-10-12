@@ -3764,38 +3764,390 @@ button {
 }
 
 
-/* Cepas del Cheese Lab */
+/* ---------- Barra de etapas con LAB: seis casillas, el laboratorio aparte de la cadena ---------- */
+.chain {
+  gap: 7px;
+}
+.tile:not(:last-child)::after {
+  right: -8px;
+}
+.tile[data-st='shop']::after {
+  display: none;
+}
+.tile.labtile {
+  margin-left: 3px;
+  background: #24384a;
+  border-color: #17303f;
+}
+.tile.labtile.sel {
+  background: #2f5870;
+  border-color: var(--pick);
+}
+.tile.labtile u {
+  color: var(--pick);
+}
+.tile.labtile.working .mini i {
+  background: var(--pick);
+}
+
+/* ---------- Cheese Lab ---------- */
+.labhead {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-family: var(--text);
+}
+.panel button.labwho,
+.labnow {
+  flex: 1;
+  min-width: 0;
+  padding: 8px;
+  background: var(--bg);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: none;
+}
+.panel button.labwho {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  font-family: var(--text);
+  color: inherit;
+}
+.labwho .pix.face {
+  width: 40px;
+  height: 40px;
+  flex: none;
+}
+.labwho .labhole {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  font-size: 18px;
+  color: var(--quiet);
+  border: 2px dashed #4a4458;
+  border-radius: 8px;
+}
+.labwho span,
+.labnow {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.labwho b,
+.labnow b {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.labwho small,
+.labnow small {
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  color: var(--quiet);
+}
+.labnow > small {
+  font-family: var(--pixel);
+  font-size: 6px;
+  color: var(--pick);
+}
+.labwho em,
+.labrow em,
+.labdir em {
+  font-family: var(--pixel);
+  font-style: normal;
+  font-size: 6px;
+  color: var(--pick);
+}
+.labwho em {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+}
+.labnow .bar {
+  margin: 3px 0 0;
+}
+.labnow .bar i {
+  background: var(--pick);
+}
+.labwait {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--quiet);
+}
+.tabs.labtabs {
+  margin-bottom: 10px;
+}
+.tabs.labtabs button.labnew {
+  border-color: var(--pick);
+  color: var(--pick);
+}
+
+/* Dirección: un botón que enseña la elegida y abre el selector */
+.panel button.labdir,
+.panel button.labrow {
+  width: 100%;
+  margin: 0 0 8px;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 2px 8px;
+  text-align: left;
+  font-family: var(--text);
+  color: inherit;
+  background: var(--panel-2);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+}
+.labdir small {
+  grid-column: 1 / -1;
+  font-family: var(--pixel);
+  font-size: 6px;
+  color: var(--pick);
+}
+.labdir b {
+  font-size: 16px;
+  font-weight: 700;
+}
+.labdir span {
+  grid-column: 1;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--quiet);
+}
+.labdir em {
+  grid-row: 2 / span 2;
+  grid-column: 2;
+}
+.panel button.labdir.open,
+.panel button.labrow.open {
+  border-color: var(--pick);
+}
+.labdirsel {
+  margin: -4px 0 10px;
+  padding: 8px;
+  background: var(--bg);
+  border-radius: 8px;
+}
+.labrow b {
+  font-family: var(--pixel);
+  font-size: 8px;
+  font-weight: normal;
+}
+.labrow span {
+  grid-column: 1;
+  font-size: 11px;
+  color: var(--quiet);
+}
+.labrow em {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+}
+.labhand {
+  margin-bottom: 8px;
+}
+.labbuild {
+  margin-bottom: 10px;
+  padding: 10px;
+  font-family: var(--text);
+  background: var(--bg);
+  border: 2px dashed #4a4458;
+  border-radius: 8px;
+}
+.labbuild > b {
+  display: block;
+  font-family: var(--pixel);
+  font-size: 9px;
+  font-weight: normal;
+  color: var(--pick);
+}
+.labbuild > small {
+  display: block;
+  margin: 6px 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+/* Cepas */
 .strainnew {
   margin: 0 0 10px;
   padding: 10px;
+  font-family: var(--text);
+  background: #1f3a4d;
   border: 2px solid var(--pick);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
-  font-family: var(--text);
 }
 .strainnew > b {
   display: block;
+  font-family: var(--pixel);
+  font-size: 9px;
+  font-weight: normal;
   color: var(--pick);
-  font-family: var(--pixel, inherit);
-  font-size: 11px;
-  letter-spacing: 1px;
 }
 .strainnew > small {
   display: block;
-  margin: 6px 0 8px;
-  font-size: 13px;
-  line-height: 1.35;
+  margin: 4px 0 6px;
+  font-size: 12px;
+  color: var(--muted);
 }
 .strainnew > div {
   display: flex;
   gap: 8px;
+  margin-top: 8px;
 }
 .strainnew > div button {
   flex: 1;
 }
-.strainrow > small {
-  display: block;
-  margin-top: 4px;
+.straincmp {
+  width: 100%;
+  border-collapse: collapse;
   font-size: 12px;
+}
+.straincmp th,
+.straincmp td {
+  padding: 4px 6px;
+  text-align: right;
+  border-bottom: 1px solid #ffffff14;
+}
+.straincmp th:first-child {
+  text-align: left;
+  font-weight: 400;
   color: var(--quiet);
+}
+.straincmp tr:first-child th {
+  font-size: 10px;
+  color: var(--quiet);
+}
+.straincmp td {
+  font-weight: 700;
+}
+.strainpick {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  overflow-x: auto;
+}
+.panel .strainpick button.chip {
+  flex: none;
+  white-space: nowrap;
+  font-family: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.strainhero {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 10px;
+  font-family: var(--text);
+  background: var(--bg);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+}
+.strainhero > div {
+  flex: 1;
+  min-width: 0;
+}
+.strainhero b {
+  display: block;
+  font-size: 14px;
+}
+.strainhero small {
+  display: block;
+  font-size: 11px;
+  color: var(--quiet);
+}
+.strainhero > span {
+  font-family: var(--pixel);
+  font-size: 7px;
+  color: var(--gold);
+  text-align: right;
+}
+.strainhero > span small {
+  margin-top: 3px;
+  font-family: var(--text);
+  font-size: 10px;
+}
+.straingrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.panel button.straincard,
+.straincard {
+  min-height: 88px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+  font-family: var(--text);
+  color: inherit;
+  background: var(--panel-2);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+}
+.straincard > b {
+  font-family: var(--pixel);
+  font-size: 8px;
+  font-weight: normal;
+}
+.straincard ul {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.straincard li s {
+  color: var(--quiet);
+  font-size: 10px;
+}
+.straincard em {
+  align-self: flex-end;
+  font-family: var(--pixel);
+  font-style: normal;
+  font-size: 6px;
+  color: var(--quiet);
+}
+.panel button.straincard.on {
+  background: #4a3f1c;
+  border-color: var(--gold);
+}
+.straincard.on em {
+  color: var(--gold);
+}
+.straincard.unknown {
+  min-height: 56px;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 2px dashed #4a4458;
+  color: var(--quiet);
+}
+.straincard.unknown b {
+  font-size: 16px;
+}
+.straincard.unknown small {
+  font-size: 11px;
+}
+
+.panel button.buy.wide + button.labrow {
+  margin-top: 8px;
 }
