@@ -63,6 +63,15 @@
     return Math.max(1, Math.round(f.value * mastery * (1 + q.mods(s)('cheeseValue')) * q.depthRich(s, zone) * (plain ? 1 : strainValue(recipe.strain))));
   }
 
+  // Lo que deja un queso de una receta a igual maestría y sin cepa: su precio de venta
+  // menos lo que cuesta el ingrediente. Así compara recetas el Cheesemaker, para que una
+  // receta nueva y mejor no quede arrinconada por otra que solo lleva más tiempo hecha.
+  function potential(s, recipe) {
+    const combo = parseKey(recipe.key);
+    const zone = q.zoneOfBase(combo.base);
+    return formula(combo).value * (1 + q.mods(s)('cheeseValue')) * q.depthRich(s, zone) * q.priceMult(s) - B.ingredients[combo.ingredient].coinCost;
+  }
+
   function defaultName(combo) {
     return [B.maturations[combo.maturation].adj, B.treatments[combo.treatment].adj, B.ingredients[combo.ingredient].adj, B.bases[combo.base].name].filter(Boolean).join(' ');
   }
@@ -121,6 +130,7 @@
     jobTime,
     masteryLevel,
     valueOf,
+    potential,
     defaultName,
     unlockedBases,
     partLocked,
@@ -148,7 +158,7 @@
         if (unlockedBases(s).indexOf(base) < 0) continue;
         const lane = this.laneRecipe(s, q.zoneOfBase(base));
         if (open(lane)) return lane;
-        const rest = s.recipes.filter((r) => parseKey(r.key).base === base && open(r)).sort((a, b) => valueOf(s, b, true) - valueOf(s, a, true));
+        const rest = s.recipes.filter((r) => parseKey(r.key).base === base && open(r)).sort((a, b) => potential(s, b) - potential(s, a));
         if (rest.length) return rest[0];
       }
       return null;
@@ -449,18 +459,19 @@
     },
     // Receta fijada a mano en la línea de su base.
     isCooking: (s, recipe) => s.zones[q.zoneOfBase(parseKey(recipe.key).base)].cookRecipe === recipe.id,
-    // Qué cocina el Cheesemaker en una línea: la receta fijada o, si no hay,
-    // la más valiosa que conozca de ese queso y cuyo ingrediente pueda pagar.
+    // Qué cocina el Cheesemaker en una línea: la receta fijada o, si no hay, la de más
+    // potencial (lo que deja a igual maestría) de ese queso cuyo ingrediente pueda pagar.
+    // El potencial no depende de lo que se haya cocinado, así que no va saltando de una a otra.
     laneRecipe(s, zoneId) {
       const pinned = this.recipe(s, s.zones[zoneId].cookRecipe);
       if (pinned) return pinned;
       const base = q.zoneDef(zoneId).base;
       let best = null;
-      let top = -1;
+      let top = -Infinity;
       for (const r of s.recipes) {
         const combo = parseKey(r.key);
         if (combo.base !== base || s.coins < B.ingredients[combo.ingredient].coinCost) continue;
-        const value = valueOf(s, r, true);
+        const value = potential(s, r);
         if (value > top) {
           top = value;
           best = r;

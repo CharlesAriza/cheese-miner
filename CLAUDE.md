@@ -77,7 +77,7 @@ Edificio propio en la colonia (gratis tras 3 recetas a mano). **Empieza sencillo
 
 Interfaz: pestaña LAB en la barra de etapas (seis casillas; la del laboratorio va aparte de la cadena) y panel con cabecera común y, cuando hay cepas, dos secciones, RECIPES y STRAINS. Lo que ocupa mucho (selector de dirección, receta a mano) va plegado. LAB aparece en la barra con la primera receta; antes, la primera se descubre desde CHEESE.
 
-Cheesery: dos vistas. PRODUCTION es una tarjeta por línea (receta entera, progreso, quién cocina, por qué está parada) y solo la elegida se abre con sus acciones; RECIPE BOOK lista las recetas de un queso para comparar y fijar una. Investigar es cosa del laboratorio.
+Cheesery: dos vistas. PRODUCTION es una tarjeta por línea (receta entera, progreso, quién cocina, por qué está parada) y solo la elegida se abre con sus acciones; RECIPE BOOK lista las recetas de un queso para comparar y fijar una. Investigar es cosa del laboratorio. El Cheesemaker sin receta fijada cocina la de más potencial: lo que deja a igual maestría y sin cepa, descontado el ingrediente (no la de mayor precio hoy, que arrinconaba recetas nuevas mejores). Una cepa equipada en una receta que la línea no cocina se avisa en STRAINS con un botón para fijarla; nunca cambia sola.
 
 Cepas (prototipo, solo Cheddar): Quick-set, Dense y Teaching. Cada cepa da algo y pide algo; ninguna sube el valor sin coste en otra parte de la cadena. El investigador las encuentra, el jugador elige cuál usa y las encontradas no se pierden. Antes de ampliar (más quesos, Raw-pressed, dos cepas por receta) hay que jugarlo.
 

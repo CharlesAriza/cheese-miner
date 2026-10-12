@@ -481,6 +481,18 @@
     truthy(CM.cheesery.valueOf(t, better) > CM.cheesery.valueOf(t, t.recipes[0]), 'the smoked one is worth more');
     staff(t, 'cheesemaking');
     eq(CM.cheesery.laneRecipe(t, 'cheddar').id, better.id, 'unpinned: picks the most valuable');
+    // A igual maestría: una receta muy hecha no tapa a otra mejor que acaba de llegar
+    t.recipes[0].made = 5000;
+    truthy(CM.cheesery.valueOf(t, t.recipes[0]) > CM.cheesery.valueOf(t, better) && CM.cheesery.laneRecipe(t, 'cheddar').id === better.id, 'a well-practised recipe does not hide a better new one');
+    // Y cuenta lo que cuesta el ingrediente: no cocina a pérdidas una receta más cara
+    const pricey = CM.cheesery.labDiscover(t, CM.cheesery.keyOf(Object.assign({}, COMBO, { ingredient: 'truffle' })), 1);
+    t.coins = 1000;
+    truthy(CM.shop.price(t, pricey) > CM.shop.price(t, better) && CM.shop.price(t, pricey) - 60 < CM.shop.price(t, better) && CM.cheesery.laneRecipe(t, 'cheddar').id === better.id, 'nor does it cook at a loss a cheese whose ingredient costs more than it adds');
+    t.recipes.pop();
+    t.totals.recipes -= 1;
+    delete t.lots[pricey.id];
+    t.totals.lotsProduced -= 1;
+    t.recipes[0].made = 0;
     CM.cheesery.assign(t, t.recipes[0].id);
     eq(CM.cheesery.laneRecipe(t, 'cheddar').id, t.recipes[0].id, 'pinned: cooks what you chose');
     CM.cheesery.unassign(t, 'cheddar');

@@ -306,7 +306,7 @@
       h += btn('strain:' + fr.id + ':' + f.strain, 'USE ' + B.strains[f.strain].name.toUpperCase(), { cls: 'buy' }) + btn('strainkeep', 'KEEP ' + STRAIN_NAME(cur).toUpperCase(), { cls: 'chip' }) + '</div></div>';
     }
     // Recetas con cepas a la vista: la que cocina la línea, las que ya tienen alguna y las mejores.
-    const pool = s.recipes.filter((r) => B.cheesery.strainBases.indexOf(C.parseKey(r.key).base) >= 0).sort((a, b) => C.valueOf(s, b, true) - C.valueOf(s, a, true));
+    const pool = s.recipes.filter((r) => B.cheesery.strainBases.indexOf(C.parseKey(r.key).base) >= 0).sort((a, b) => C.potential(s, b) - C.potential(s, a));
     if (!pool.length) return h + '<p class="hint">You know no Cheddar recipe yet.</p>';
     const lane = C.laneRecipe(s, q.zoneOfBase(B.cheesery.strainBases[0]));
     const shown = pool.filter((r, i) => r === lane || (r.strains || []).length || i < 3 || r.id === ui.strainRecipe);
@@ -316,6 +316,10 @@
     const combo = C.parseKey(r.key);
     if (shown.length > 1) h += '<div class="strainpick">' + shown.map((x) => btn('strainrecipe:' + x.id, esc(x.name) + (x === lane ? ' · cooking' : ''), { cls: 'chip' + (x === r ? ' on' : '') })).join('') + '</div>';
     h += '<div class="strainhero" data-strain="' + (want || 'plain') + '"><i class="straindish">' + I.img('lot', combo.base, 'big') + '</i><div><small>SPECIMEN</small><b>' + esc(r.name) + '</b><span>' + (r === lane ? 'Your ' + B.bases[combo.base].name + ' line cooks this one' : 'Not being cooked now') + '</span></div><em>' + strainIcon(want) + STRAIN_NAME(want).toUpperCase() + (r.next !== undefined ? '<small>next batch</small>' : '') + '</em></div>';
+    // Una cepa equipada en una receta que la línea no cocina no hace nada: se dice, y se
+    // ofrece fijar esa receta. Nunca se cambia sola.
+    const cook = CM.mice.at(s, 'cheesemaking', q.zoneOfBase(combo.base));
+    if (want && lane && r !== lane && cook) h += '<div class="strainidle"><span><b>' + STRAIN_NAME(want) + ' is equipped, but it is doing nothing yet.</b> ' + esc(cook.name) + ' is cooking ' + esc(lane.name) + '.</span>' + btn('cook:' + r.id, 'COOK THIS ONE', { cls: 'buy' }) + '</div>';
     h += '<div class="straingrid">';
     const plain = strainStats(s, r, '');
     for (const id of [''].concat(Object.keys(B.strains))) {
@@ -434,7 +438,7 @@
     if (r) {
       const combo = C.parseKey(r.key);
       const coins = B.ingredients[combo.ingredient].coinCost;
-      const why = !mouse ? 'You choose what to make here.' : pinned ? 'Pinned by you: ' + esc(mouse.name) + ' always cooks this one.' : esc(mouse.name) + ' cooks your most valuable ' + name + ' recipe.';
+      const why = !mouse ? 'You choose what to make here.' : pinned ? 'Pinned by you: ' + esc(mouse.name) + ' always cooks this one.' : esc(mouse.name) + ' cooks the ' + name + ' recipe that pays best once mastered.';
       h += '<p>' + (mouse ? '<i class="ctag ' + (pinned ? 'pin' : 'best') + '">' + (pinned ? 'PINNED' : 'BEST') + '</i>' : '') + strainTag(r) + why + '</p>';
       if (cooking && lane && lane.id !== cooking.id) h += '<p class="cnext">Next batch: ' + esc(lane.name) + '</p>';
       h += '<ul class="cfacts"><li><b>' + C.baseUse(r) + '</b>' + name + ' Base each' + (coins ? ' + ' + coins + 'c' : '') + '</li><li><b>' + CM.fmt(have) + '</b>Base in stock</li><li><b>' + CM.fmt(CM.shop.price(s, r)) + '</b>coins each</li></ul>';
@@ -460,8 +464,8 @@
     const pinnedId = C.recipe(s, z.cookRecipe) ? z.cookRecipe : '';
     let h = '<div class="tabs">' + btn('cview:lines', 'PRODUCTION', {}) + btn('noop', 'RECIPE BOOK ' + s.recipes.length + '/' + C.totalCombos(), { cls: 'on' }) + '</div>';
     if (bases.length > 1) h += '<div class="bookbases">' + bases.map((b) => btn('bookbase:' + b, I.img('base', b) + B.bases[b].name, { cls: 'chip' + (b === base ? ' on' : '') })).join('') + '</div>';
-    const list = s.recipes.filter((r) => C.parseKey(r.key).base === base).sort((a, b) => C.valueOf(s, b, true) - C.valueOf(s, a, true));
-    h += '<p class="hint">' + (!list.length ? 'You know no ' + B.bases[base].name + ' recipe yet. Discover one in LAB.' : mouse ? esc(mouse.name) + ' cooks the most valuable ' + B.bases[base].name + ' recipe on its own (BEST). Tap a recipe to pin another.' : 'Nobody cooks ' + B.bases[base].name + ': tap a recipe to make it by hand.') + '</p>';
+    const list = s.recipes.filter((r) => C.parseKey(r.key).base === base).sort((a, b) => C.potential(s, b) - C.potential(s, a));
+    h += '<p class="hint">' + (!list.length ? 'You know no ' + B.bases[base].name + ' recipe yet. Discover one in LAB.' : mouse ? esc(mouse.name) + ' cooks on its own the ' + B.bases[base].name + ' recipe that pays best once mastered (BEST), even if another sells for more today. Tap a recipe to pin another.' : 'Nobody cooks ' + B.bases[base].name + ': tap a recipe to make it by hand.') + '</p>';
     for (const r of list) {
       const combo = C.parseKey(r.key);
       const isPinned = pinnedId === r.id;

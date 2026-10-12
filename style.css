@@ -4734,3 +4734,29 @@ button {
 .flyer {
   width: 18px;
 }
+
+/* Cepa equipada en una receta que no se está cocinando */
+.strainidle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 8px;
+  font-family: var(--text);
+  font-size: 12px;
+  line-height: 1.35;
+  color: #ffe9a0;
+  background: #3a3220;
+  border: 2px solid #ffd43a;
+  border-radius: 8px;
+}
+.strainidle span {
+  flex: 1;
+}
+.strainidle b {
+  display: block;
+  color: #fff;
+}
+.panel .strainidle button {
+  flex: none;
+}
