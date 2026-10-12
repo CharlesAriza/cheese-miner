@@ -188,7 +188,7 @@
   const HAT_NAMES = ['Helmet', 'Cap', 'Bobble hat', 'Top hat', 'Bow', 'Crown'];
   const ACC_NAMES = ['', 'Glasses', 'Eye patch', 'Moustache', 'Blush'];
   // Rasgos que se ven en el cuerpo del ratón.
-  const MARKS = { nocturnal: 'glow', moonlit: 'glow', lucky: 'clover', midas: 'goldpaws', goldenpaws: 'goldpaws', glutton: 'belly', strong: 'headband', heavyhands: 'headband', dreamer: 'zzz', lazy: 'zzz', fast: 'bolt', wired: 'bolt', timeskipper: 'bolt', kingofmice: 'cape', conductor: 'cape', ancient: 'cape', deepdiver: 'goggles', abyssal: 'goggles' };
+  const MARKS = { nocturnal: 'glow', moonlit: 'glow', lucky: 'clover', midas: 'goldpaws', goldenpaws: 'goldpaws', glutton: 'belly', strong: 'headband', heavyhands: 'headband', dreamer: 'zzz', lazy: 'zzz', kingofmice: 'cape', conductor: 'cape', ancient: 'cape', deepdiver: 'goggles', abyssal: 'goggles' };
   function marksOf(m) {
     const out = {};
     if (Array.isArray(m.traits)) for (const t of traitsOf(m)) if (MARKS[t.id]) out[MARKS[t.id]] = true;

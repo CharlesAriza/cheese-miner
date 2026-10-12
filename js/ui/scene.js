@@ -151,13 +151,11 @@
     }
     if (has('clover')) px(1, 5, 2, 2, '#3fbf5a');
     if (has('zzz')) {
-      px(16, 0, 3, 1, '#bfe8fd');
+      // una Z de dormilón
+      px(15, 0, 4, 1, '#bfe8fd');
       px(17, 1, 1, 1, '#bfe8fd');
-      px(16, 2, 3, 1, '#bfe8fd');
-    }
-    if (has('bolt')) {
-      px(0, 14, 2, 1, '#ffe55c');
-      px(0, 16, 3, 1, '#ffe55c');
+      px(16, 2, 1, 1, '#bfe8fd');
+      px(15, 3, 4, 1, '#bfe8fd');
     }
     if (has('cape')) px(3, 9, 4, 1, '#ffcf2e');
     const scarf = SCARVES[r];

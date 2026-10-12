@@ -970,6 +970,7 @@
   let modalHandlers = {};
   function showModal(html, handlers) {
     modalHandlers = handlers || {};
+    $('modal-body').classList.remove('badflash'); // el destello rojo de una manía no se queda para la siguiente ventana
     $('modal-body').innerHTML = html;
     $('modal').hidden = false;
   }

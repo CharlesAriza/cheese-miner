@@ -376,14 +376,25 @@
     const cols = K.CHAIN.slice(0, 4);
     let h = '<div class="colony"><div class="crow head"><span></span>' + cols.map((k) => '<span>' + POST_NAME[k] + '</span>').join('') + '</div>';
     for (const z of q.openZones(s)) {
-      let notes = '';
+      // Una misma combinación entre varios vecinos seguidos se cuenta una vez, con todos los implicados.
+      const found = {};
+      const mark = (l, a, b) => {
+        const f = found[l.id] || (found[l.id] = { link: l, jobs: [] });
+        for (const k of [a, b]) if (f.jobs.indexOf(k) < 0) f.jobs.push(k);
+      };
       h += '<div class="crow"><span class="rock">' + I.img('raw', z.base) + '<small>' + B.bases[z.base].name + '</small></span>';
       cols.forEach((k, i) => {
         const built = k === 'mining' || s.built[B.skills[k].station];
         h += built ? postCell(s, ui, k, z.id) : '<span></span>';
-        if (i && built) K.linksAt(s, cols[i - 1], z.id, k, z.id).forEach((l) => (notes += comboNote(l, B.skills[cols[i - 1]].name + ' + ' + B.skills[k].name)));
+        if (i && built) K.linksAt(s, cols[i - 1], z.id, k, z.id).forEach((l) => mark(l, cols[i - 1], k));
       });
-      if (s.built.shop) K.linksAt(s, 'cheesemaking', z.id, 'trading', 'all').forEach((l) => (notes += comboNote(l, 'Cheesemaking + Shop')));
+      if (s.built.shop) K.linksAt(s, 'cheesemaking', z.id, 'trading', 'all').forEach((l) => mark(l, 'cheesemaking', 'trading'));
+      let notes = '';
+      for (const id of Object.keys(found)) {
+        const f = found[id];
+        const names = f.jobs.map((k) => (k === 'trading' ? 'Shop' : B.skills[k].name));
+        notes += comboNote(f.jobs.length > 2 ? Object.assign({}, f.link, { desc: f.link.desc.replace(/^Both /, 'All ' + f.jobs.length + ' ').replace(/: both /, ': all ' + f.jobs.length + ' ') }) : f.link, names.join(' + '));
+      }
       K.setsAt(s, z.id).forEach((d) => (notes += comboNote(d, 'whole rock')));
       h += '</div>' + notes;
     }
