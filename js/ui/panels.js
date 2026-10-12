@@ -326,7 +326,7 @@
       const then = skill ? mouseRate(s, withTrait(id), skill, zone) : '';
       h += btn('trait:' + m.id + ':' + i, '<span>' + traitChip(id) + (T[id].kind === 'legend' ? '<span class="legtag">LEGENDARY</span>' : '') + '<small>' + traitDesc(id) + '</small>' + (then && then !== now ? '<em>Here: ' + then + '</em>' : skill && T[id].job && T[id].job !== skill ? '<em>No change on this post</em>' : '') + '</span>', { cls: 'opt ' + KIND_CLS[T[id].kind] });
     });
-    if (offer.kind === 'level') h += btn('trait:' + m.id + ':mystery', '<span><span class="stat tmyst">? MYSTERY TRAIT</span><small>Any trait in the game. It could be a legendary... <span class="tbad">or a quirk</span>.</small></span>', { cls: 'opt tmyst' });
+    if (offer.kind === 'level') h += btn('trait:' + m.id + ':mystery', '<i class="qmark">?</i><span><span class="stat tmyst">MYSTERY TRAIT</span><small>Any trait in the game. It could be a <span class="tleg">legendary</span>... <span class="tbad">or a quirk</span>.</small></span>', { cls: 'opt tmyst' });
     const cost = K.rerollCost(m);
     return h + btn('reroll:' + m.id, '<span>REROLL THESE THREE</span>' + coin(cost) + '<small>next reroll: ' + CM.fmt(cost * M.rerollGrowth) + '</small>', { off: s.coins < cost, cls: 'rerollbtn', cost }) + '</div>';
   }

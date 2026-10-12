@@ -3463,3 +3463,72 @@ button {
   margin-top: auto;
   padding: 9px 2px;
 }
+
+/* Casilla misteriosa: la apuesta. Violeta, con un «?» grande y un brillo que la recorre. */
+.panel button.opt.tmyst {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  background: linear-gradient(120deg, #2a1c4d, #1a1230);
+  border: 2px dashed #b18cff;
+}
+
+.panel button.opt.tmyst::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40%;
+  width: 30%;
+  background: linear-gradient(100deg, transparent, #ffffff33, transparent);
+  animation: sweep 2.4s ease-in-out infinite;
+}
+
+@keyframes sweep {
+  0%,
+  35% {
+    left: -40%;
+  }
+  100% {
+    left: 120%;
+  }
+}
+
+.qmark {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-family: var(--pixel);
+  font-size: 18px;
+  font-style: normal;
+  color: #1a1230;
+  background: #b18cff;
+  border-radius: 8px;
+  animation: wobble 1.6s ease-in-out infinite;
+}
+
+@keyframes wobble {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(6deg) scale(1.08);
+  }
+}
+
+.panel button.opt.tmyst .stat.tmyst {
+  font-family: var(--pixel);
+  font-size: 9px;
+  color: #d9c7ff;
+}
+
+.tleg {
+  font-weight: 700;
+  color: var(--gold);
+}
