@@ -283,3 +283,18 @@ Casual, a lo largo de cuatro horas:
 Una colonia casual a las 2 h a la que se le regalan seis joyas en sus líneas (tres con dos legendarios) gana x2,7 a x3,2 la hora siguiente; con un tendero con dos legendarios de cantidad, x3,9 a x4,6 (sería x7,5 si su cantidad contara entera); con todo a la vez, x10 a x13 (x21 con la tienda entera).
 
 **Aviso sobre estas medidas.** Dos partidas del bot con un cambio mínimo pueden diferir en un factor dos, porque el azar de candidatos y rasgos se desvía. Las medidas de «Equilibrio de la cadena» y «Stocks a largo plazo» son anteriores al laboratorio y a los precios nuevos de las rocas: valen para las proporciones entre etapas, no para las cifras absolutas. Con recetas buenas la quesería limita más a menudo (unas cuatro de cada cinco veces en la partida casual), por un factor entre 1 y 2.
+
+## BUY ALL y el final de las mejoras (13-10-2026)
+
+No cambia ningún precio ni multiplicador: solo el orden en que BUY ALL compra. Antes recorría los árboles en orden (Mining primero) y vaciaba cada uno antes de pasar al siguiente; ahora compra siempre lo más barato de todos. Misma partida, mismas monedas, con el botón antiguo y con el nuevo:
+
+| Partida del bot casual | Monedas | Antes | Ahora |
+| --- | --- | --- | --- |
+| 10 min + 4 min sin comprar | 511 | 9 mejoras, todas de Mining | 13 mejoras en cinco habilidades |
+| 45 min + 10 min sin comprar | 2,5 M | 74 mejoras (63 de Mining) | 153 mejoras en siete árboles |
+| 100 min + 10 min sin comprar | 1,4 T | 11 mejoras | 15 mejoras |
+| 5 h, seis rocas, + 60 min sin comprar | 6,2 Qa | 1 mejora (55 % de las monedas) | 1 mejora (55 % de las monedas) |
+
+El bot no usa este botón (compra árbol a árbol), así que el ritmo medido no cambia.
+
+**Problema de fondo, sin tocar.** Al final de la partida el botón no tiene qué comprar porque las mejoras se acaban, no porque falle: de las 19 mejoras con tope quedan 3 a los 90 minutos y ninguna a las 5 horas. Solo quedan las de tamaño, que triplican su precio en cada rango: a las 5 horas la más barata cuesta 1,5 veces las monedas que hay y se compra una cada 40 a 60 minutos. Los gerentes tampoco compran ahí, porque nada baja del 10 % de las monedas. El cambio mínimo que lo arreglaría es dar contenido a ese tramo (la propuesta de mejoras por hitos cada 10 rangos); está sin decidir y no se ha construido.

@@ -7,7 +7,7 @@
     <title>Cheese Miner</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" />
-    <link rel="stylesheet" href="style.css?v=1791867918" />
+    <link rel="stylesheet" href="style.css?v=1791870110" />
   </head>
   <body>
     <div id="app">
@@ -50,21 +50,31 @@
           <button class="tile labtile" data-st="lab" hidden><img class="pix" alt="" /><b>LAB</b><u></u><i class="mini"><i></i></i><em></em></button>
         </nav>
         <section class="dock">
+          <!-- Qué roca se mira: una ficha igual por roca. Solo aparece con dos o más. -->
+          <div class="rockstrip" id="dock-rocks" hidden></div>
           <div class="dhead">
             <div class="dtitle"><b id="dock-title"></b><span id="dock-xpnum"></span></div>
             <div class="bar xp"><i id="dock-xp"></i></div>
-            <small id="dock-status"></small>
+            <!-- Dos renglones de alto fijo: qué hace esta etapa y cómo va la línea de la roca. -->
+            <div class="dinfo" id="dock-info"><small id="dock-status"></small><small id="dock-why"></small></div>
           </div>
-          <div id="dock-zones"></div>
           <div class="drow">
             <button class="act big" id="dock-main"><i class="fill"></i><b></b><small></small></button>
-            <div id="dock-side"></div>
+            <div id="dock-side" hidden>
+              <button class="dwork" id="dock-worker"><img class="pix" alt="" /><span><b></b><u></u></span></button>
+              <button class="dbook" id="dock-book" hidden>RECIPES</button>
+            </div>
+          </div>
+          <!-- Mejoras: la más barata de esta habilidad, su árbol y comprar todo lo que alcance. -->
+          <div class="dups">
+            <button class="dup quick" id="up-quick"><b></b><span><img class="pix" alt="" /><u></u></span></button>
+            <button class="dup" id="up-tree"><b>UPGRADES</b><u></u></button>
+            <button class="dup all" id="up-all"><b>BUY ALL</b><u></u></button>
           </div>
         </section>
         <nav class="tools">
           <button id="nav-colony">COLONY<i class="dot"></i></button>
           <button id="nav-mice">MICE<i class="dot"></i></button>
-          <button id="nav-all">BUY ALL</button>
           <button id="nav-menu" class="gear">MENU</button>
         </nav>
       </footer>
@@ -86,21 +96,21 @@
       </div>
     </div>
 
-    <script src="js/game/config/balance.js?v=1791867918"></script>
-    <script src="js/game/config/traits.js?v=1791867918"></script>
-    <script src="js/playtest/telemetry.js?v=1791867918"></script>
-    <script src="js/game/state.js?v=1791867918"></script>
-    <script src="js/game/systems/skills.js?v=1791867918"></script>
-    <script src="js/game/systems/mice.js?v=1791867918"></script>
-    <script src="js/game/systems/production.js?v=1791867918"></script>
-    <script src="js/game/systems/cheesery.js?v=1791867918"></script>
-    <script src="js/game/simulation.js?v=1791867918"></script>
-    <script src="js/storage.js?v=1791867918"></script>
-    <script src="js/playtest/devtools.js?v=1791867918"></script>
-    <script src="js/ui/sfx.js?v=1791867918"></script>
-    <script src="js/ui/icons.js?v=1791867918"></script>
-    <script src="js/ui/scene.js?v=1791867918"></script>
-    <script src="js/ui/panels.js?v=1791867918"></script>
-    <script src="js/ui/main.js?v=1791867918"></script>
+    <script src="js/game/config/balance.js?v=1791870110"></script>
+    <script src="js/game/config/traits.js?v=1791870110"></script>
+    <script src="js/playtest/telemetry.js?v=1791870110"></script>
+    <script src="js/game/state.js?v=1791870110"></script>
+    <script src="js/game/systems/skills.js?v=1791870110"></script>
+    <script src="js/game/systems/mice.js?v=1791870110"></script>
+    <script src="js/game/systems/production.js?v=1791870110"></script>
+    <script src="js/game/systems/cheesery.js?v=1791870110"></script>
+    <script src="js/game/simulation.js?v=1791870110"></script>
+    <script src="js/storage.js?v=1791870110"></script>
+    <script src="js/playtest/devtools.js?v=1791870110"></script>
+    <script src="js/ui/sfx.js?v=1791870110"></script>
+    <script src="js/ui/icons.js?v=1791870110"></script>
+    <script src="js/ui/scene.js?v=1791870110"></script>
+    <script src="js/ui/panels.js?v=1791870110"></script>
+    <script src="js/ui/main.js?v=1791870110"></script>
   </body>
 </html>

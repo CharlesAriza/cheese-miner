@@ -671,6 +671,69 @@
       CM.emit(s, 'promoted', { id: m.id, rank: m.rank });
       return CM.ok();
     },
+    // Rangos que el nivel de un ratón ya permite, uno tras otro: lo que cuesta cada paso y
+    // lo que cuesta llegar hasta él desde donde está.
+    promoteSteps(s, m) {
+      const out = [];
+      let total = 0;
+      for (let r = m.rank + 1; r < M.ranks.length && level(m) >= M.ranks[r].level; r++) {
+        total += M.ranks[r].cost;
+        out.push({ rank: r, name: M.ranks[r].name, cost: M.ranks[r].cost, total });
+      }
+      return out;
+    },
+    // Una selección de ascensos, { id: rango de destino }. 'all': todos hasta donde su nivel
+    // permite. 'afford': los pasos más baratos primero, mientras alcancen las monedas.
+    promotePicks(s, mode) {
+      const picks = {};
+      const steps = [];
+      for (const m of s.mice) for (const st of this.promoteSteps(s, m)) steps.push({ id: m.id, rank: st.rank, cost: st.cost });
+      if (mode === 'afford') steps.sort((a, b) => a.cost - b.cost || a.rank - b.rank);
+      let left = s.coins;
+      for (const st of steps) {
+        if (mode === 'afford') {
+          if (st.cost > left) break;
+          left -= st.cost;
+        }
+        picks[st.id] = Math.max(picks[st.id] || 0, st.rank);
+      }
+      return picks;
+    },
+    // Lo que cuesta una selección, contando solo los pasos que siguen siendo válidos.
+    promoteCost(s, picks) {
+      const out = { mice: 0, steps: 0, cost: 0 };
+      for (const m of s.mice) {
+        const to = picks[m.id];
+        if (!to) continue;
+        const steps = this.promoteSteps(s, m).filter((st) => st.rank <= to);
+        if (!steps.length) continue;
+        out.mice += 1;
+        out.steps += steps.length;
+        out.cost += steps[steps.length - 1].total;
+      }
+      return out;
+    },
+    // Varios ascensos de una vez. Cada paso es un ascenso normal, con su requisito y su coste;
+    // si el total no alcanza no se cobra nada, para que nunca se quede a medias.
+    promoteMany(s, picks) {
+      const plan = this.promoteCost(s, picks);
+      if (!plan.steps) return CM.fail('invalid');
+      if (s.coins < plan.cost) return CM.fail('no-coins');
+      const out = { mice: 0, steps: 0, cost: 0, managers: 0 };
+      for (const m of s.mice) {
+        const to = picks[m.id];
+        if (!to) continue;
+        let did = 0;
+        while (m.rank < to && this.promote(s, m.id).ok) {
+          did += 1;
+          out.cost += M.ranks[m.rank].cost;
+          if (M.ranks[m.rank].manager) out.managers += 1;
+        }
+        out.steps += did;
+        if (did) out.mice += 1;
+      }
+      return CM.ok(out);
+    },
     // Los gerentes compran la mejora más barata de su oficio, si el jugador lo permite.
     managersTick(s) {
       if (!s.settings.managersBuy) return;

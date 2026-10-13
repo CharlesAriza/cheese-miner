@@ -494,7 +494,6 @@ button {
 }
 
 .dhead {
-  min-height: 34px;
   margin-bottom: 6px;
 }
 
@@ -533,48 +532,9 @@ button {
   align-items: stretch;
 }
 
-#dock-side {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  justify-content: center;
-}
-
-#dock-side:empty {
-  display: none;
-}
-
-#dock-side button {
-  flex: 1;
-  padding: 6px 4px;
-  font-size: 7px;
-  line-height: 1.5;
-  background: #3fa860;
-  border: 2px solid var(--ink);
-  border-radius: 6px;
-  box-shadow: 0 3px 0 var(--ink);
-}
-
-#dock-side button.off {
-  background: #4a4458;
-  color: #a79fc0;
-}
-
-#dock-side button.off[data-cost],
 .panel button.off[data-cost] {
   background: linear-gradient(90deg, #58704e var(--p, 0%), #4a4458 var(--p, 0%));
   color: #d5cfe6;
-}
-
-#dock-side button:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 var(--ink);
-}
-
-#dock-side .tag {
-  text-align: center;
 }
 
 .act {
@@ -1457,65 +1417,6 @@ button {
   background-size: 200% 100%;
 }
 
-#dock-zones {
-  display: flex;
-  gap: 5px;
-  margin-bottom: 6px;
-}
-
-#dock-zones:empty {
-  display: none;
-}
-
-.zchip {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 3px;
-  padding: 4px 5px;
-  font-size: 6px;
-  background: var(--panel-2);
-  border: 2px solid var(--ink);
-  border-radius: 6px;
-}
-
-.zchip .pix {
-  width: 14px;
-}
-
-.zchip.on {
-  border-color: #ffe55c;
-  background: #5a4f7a;
-}
-
-.zchip i {
-  flex: 1 0 100%;
-  height: 4px;
-  background: var(--ink);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.zchip i i {
-  display: block;
-  height: 100%;
-  background: #aab0c0;
-}
-
-.zchip.vein i i {
-  background: #ffcf2e;
-}
-
-#dock-side button.calm {
-  background: var(--panel-2);
-}
-
-#dock-side button.ready {
-  animation: hot 0.9s ease-in-out infinite;
-}
-
 .rank {
   font-family: var(--text);
   font-size: 11px;
@@ -1585,122 +1486,6 @@ button {
 }
 
 /* ---------- Líneas de producción ---------- */
-#dock-zones {
-  flex-direction: column;
-  gap: 4px;
-}
-
-.lane {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 2px 6px;
-  width: 100%;
-  padding: 4px 6px;
-  text-align: left;
-  background: var(--panel-2);
-  border: 2px solid var(--ink);
-  border-left: 5px solid #8b84a3;
-  border-radius: 6px;
-}
-
-.lane.ok {
-  border-left-color: #5fcf6a;
-}
-
-.lane.on {
-  border-color: #ffe55c;
-  background: #4a4068;
-}
-
-.lhead {
-  flex: 0 0 58px;
-  min-width: 0;
-}
-
-.lhead b {
-  display: block;
-  font-weight: normal;
-  font-size: 7px;
-  color: #ffe55c;
-}
-
-.lhead u {
-  display: block;
-  margin-top: 3px;
-  font-size: 5px;
-  text-decoration: none;
-  color: var(--muted);
-}
-
-.lane em {
-  flex: 1 0 100%;
-  font-family: var(--text);
-  font-style: normal;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1.2;
-  color: var(--muted);
-}
-
-.lane em:empty {
-  display: none;
-}
-
-.lane em.warn {
-  color: #ffd43a;
-}
-
-.lane em.bad {
-  color: #ff8a9c;
-}
-
-.lrow {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.lcell {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 2px 4px;
-}
-
-.lcell .pix {
-  width: 14px;
-}
-
-.lcell b {
-  font-weight: normal;
-  font-size: 8px;
-}
-
-.lcell > i {
-  flex: 1 0 100%;
-  height: 3px;
-  background: var(--ink);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.lcell > i > i {
-  display: block;
-  height: 100%;
-  background: #5fcf6a;
-}
-
-.lrow .arrow {
-  flex: none;
-  border: 3px solid transparent;
-  border-left: 4px solid var(--muted);
-}
-
 /* La escena nunca se queda sin sitio: si el panel crece, se desplaza él. */
 .stage {
   min-height: 30%;
@@ -1792,12 +1577,6 @@ button {
   font-size: 9px;
   font-weight: 700;
   color: #ffe9a8;
-}
-
-#dock-side button.small {
-  flex: 0 0 auto;
-  padding: 6px 4px;
-  font-size: 6px;
 }
 
 .tools button {
@@ -2769,10 +2548,6 @@ button {
   background: var(--panel-2);
 }
 
-#dock-side button.warn {
-  color: #ffd43a;
-}
-
 .pix.face {
   width: 56px;
   flex: none;
@@ -3536,43 +3311,6 @@ button {
 }
 
 /* Con más de tres rocas: la que miras va desplegada y las demás son fichas pequeñas en una fila */
-#dock-zones.many {
-  flex-direction: row;
-  flex-wrap: wrap;
-}
-
-#dock-zones.many .lane.on {
-  order: -1;
-  flex: 1 0 100%;
-}
-
-#dock-zones.many .lane:not(.on) {
-  flex: 1 1 0;
-  min-width: 0;
-  width: auto;
-  padding: 4px 3px 4px 5px;
-}
-
-#dock-zones.many .lane:not(.on) .lrow,
-#dock-zones.many .lane:not(.on) em {
-  display: none;
-}
-
-#dock-zones.many .lane:not(.on) .lhead {
-  flex: 1;
-}
-
-#dock-zones.many .lane:not(.on) .lhead b {
-  overflow: hidden;
-  font-size: 6px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.lane.need {
-  border-left-color: #ff8a9c;
-}
-
 .lanegroup.brie {
   border-color: #fbf3d6;
 }
@@ -5816,4 +5554,569 @@ div.mc-row {
   height: 100%;
   width: 0;
   background: var(--gold);
+}
+
+
+/* ---------- Panel inferior de alto fijo ----------
+   Cada renglón reserva su sitio: nada crece ni encoge mientras el juego corre, así la
+   escena no cambia de tamaño. Los textos largos se cortan con puntos suspensivos. */
+.dock {
+  font-variant-numeric: tabular-nums;
+}
+.dtitle {
+  height: 13px;
+  align-items: center;
+}
+.dtitle b {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dhead .bar.xp {
+  margin: 4px 0 5px;
+}
+.dinfo {
+  height: 32px;
+  overflow: hidden;
+}
+.dinfo small {
+  height: 16px;
+  line-height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dinfo #dock-why {
+  font-size: 11px;
+  color: var(--muted);
+}
+.dinfo #dock-why.good {
+  color: #8df09a;
+}
+.dinfo.wide #dock-status {
+  display: -webkit-box;
+  height: 32px;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.dinfo.wide #dock-why {
+  display: none;
+}
+
+/* Rocas: fichas iguales en una fila. Con más de las que caben, la fila se desliza. */
+.rockstrip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(44px, 1fr);
+  gap: 4px;
+  height: 40px;
+  margin-bottom: 7px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.rockstrip::-webkit-scrollbar {
+  display: none;
+}
+.rockstrip[hidden],
+#dock-side[hidden],
+.dbook[hidden] {
+  display: none;
+}
+.rchip {
+  position: relative;
+  min-width: 0;
+  height: 40px;
+  padding: 3px 2px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: var(--panel-2);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+}
+.rchip .pix {
+  width: 16px;
+  height: 14px;
+  object-fit: contain;
+}
+.rchip b {
+  max-width: 100%;
+  overflow: hidden;
+  font-family: var(--text);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #d5cfe6;
+}
+.rchip.on {
+  background: #4a4068;
+  border-color: #ffe55c;
+}
+.rchip.on b {
+  color: #ffe55c;
+}
+.rdot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  background: #5fcf6a;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+}
+.rchip.warn .rdot {
+  background: #ffd43a;
+}
+.rchip.need .rdot {
+  background: #ff5a7a;
+}
+
+/* Acción principal y quién trabaja ahí */
+.drow {
+  height: 76px;
+}
+.act {
+  flex: 1.3;
+  min-height: 0;
+  height: 100%;
+}
+.act small {
+  display: -webkit-box;
+  max-height: 25px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+#dock-side {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.dwork,
+.dbook,
+.dup {
+  min-width: 0;
+  background: var(--panel-2);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  box-shadow: 0 3px 0 var(--ink);
+  overflow: hidden;
+}
+.dwork:active,
+.dbook:active,
+.dup:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--ink);
+}
+.dwork {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 5px;
+  text-align: left;
+}
+.dwork .pix {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+.dwork.empty .pix {
+  display: none;
+}
+.dwork span {
+  flex: 1;
+  min-width: 0;
+}
+.dwork b,
+.dwork u {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dwork b {
+  font-family: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 14px;
+}
+.dwork u {
+  margin-top: 2px;
+  font-family: var(--text);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 12px;
+  text-decoration: none;
+  color: var(--muted);
+}
+.dwork.empty {
+  text-align: center;
+}
+.dwork.empty b {
+  color: #ffd43a;
+}
+.dwork.ready {
+  border-color: #ffe55c;
+}
+.dwork.ready u {
+  color: #ffe55c;
+}
+.dbook {
+  flex: none;
+  height: 26px;
+  font-size: 7px;
+}
+
+/* Mejoras: tres huecos fijos */
+.dups {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr 1fr;
+  gap: 5px;
+  height: 40px;
+  margin-top: 8px;
+}
+.dup {
+  height: 37px;
+  padding: 0 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.dup b {
+  max-width: 100%;
+  overflow: hidden;
+  font-weight: normal;
+  font-size: 7px;
+  line-height: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dup u,
+.dup span {
+  max-width: 100%;
+  overflow: hidden;
+  font-family: var(--text);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 12px;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #ffe9a8;
+}
+.dup.quick b {
+  font-family: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 12px;
+}
+.dup.quick span {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.dup.quick .pix {
+  width: 11px;
+}
+.dup.quick.none .pix {
+  display: none;
+}
+.dup.ready {
+  background: #3fa860;
+}
+.dup.ready u {
+  color: #fff;
+}
+.dup.off {
+  color: #a79fc0;
+}
+.dup.off[data-cost] {
+  background: linear-gradient(90deg, #58704e var(--p, 0%), var(--panel-2) var(--p, 0%));
+  color: #d5cfe6;
+}
+.dup.has u {
+  color: #8df09a;
+}
+/* El tiempo que falta va en el mismo renglón que el precio: el botón no crece. */
+.dup[data-eta]:not([data-eta=''])::after {
+  display: none;
+}
+.dup.quick[data-eta]:not([data-eta='']) span::after,
+.dup.all[data-eta]:not([data-eta='']) u::after {
+  content: ' · ' attr(data-eta);
+}
+
+/* Marcadores de arriba: el ritmo por minuto tiene su sitio aunque aún no haya dato. */
+.res em {
+  height: 11px;
+  min-height: 0;
+  line-height: 11px;
+  overflow: hidden;
+}
+/* El objetivo ocupa siempre dos renglones: un texto más largo no empuja la escena. */
+.obj-row {
+  height: 22px;
+  overflow: hidden;
+}
+#obj-text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+#obj-num {
+  flex: none;
+  white-space: nowrap;
+}
+
+@media (max-width: 345px) {
+  .rchip b {
+    font-size: 8px;
+  }
+  .dup b {
+    font-size: 6px;
+  }
+  .dup.quick b {
+    font-size: 10px;
+  }
+  .dwork .pix {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* ---------- MICE: ascensos pendientes ---------- */
+.pm-tools {
+  display: flex;
+  gap: 5px;
+  margin: 8px 0;
+}
+.pm-tools button {
+  flex: 1;
+}
+.pm-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-bottom: 5px;
+  padding: 6px 8px;
+  background: var(--bg);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.pm-row.on {
+  background: #2b3a2c;
+  border-color: #5fcf6a;
+}
+.pm-main {
+  flex: 1;
+  min-width: 0;
+}
+.pm-main b {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+.pm-main b i {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.pm-main small {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  font-family: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.pm-main small u {
+  text-decoration: none;
+  color: #ffe55c;
+}
+.pm-main small.pm-gain b {
+  display: inline;
+  font-size: 11px;
+  color: #8df09a;
+}
+.pm-side {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
+.pm-row.dear .pm-side {
+  color: #ff8a9c;
+}
+.pm-check {
+  width: 20px;
+  height: 20px;
+  background: #1b1622;
+  border: 2px solid #8b84a3;
+  border-radius: 5px;
+}
+.pm-row.on .pm-check {
+  background: #5fcf6a;
+  border-color: #fff;
+  box-shadow: inset 0 0 0 3px #2b3a2c;
+}
+.pm-steps {
+  flex: 1 0 100%;
+  display: flex;
+  gap: 5px;
+}
+.pm-steps button {
+  flex: 1;
+  min-width: 0;
+}
+.pm-foot {
+  position: sticky;
+  bottom: -1px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px;
+  background: var(--panel);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: 0 -4px 0 #0c091080;
+}
+.pm-foot > div {
+  flex: 1;
+  min-width: 0;
+}
+.pm-foot b {
+  display: block;
+  font-family: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+.pm-foot small {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.pm-foot small.pm-short {
+  color: #ff8a9c;
+}
+.pm-foot button {
+  flex: none;
+  min-width: 112px;
+  min-height: 40px;
+}
+.pm-done {
+  margin: 8px 0;
+  padding: 8px;
+  background: #2b3a2c;
+  border: 2px solid #5fcf6a;
+  border-radius: 8px;
+}
+.pm-done b {
+  display: block;
+  font-size: 9px;
+  font-weight: normal;
+  color: #8df09a;
+}
+.pm-done small {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Pantallas bajas: el panel se compacta para que la escena y la barra de abajo quepan. */
+@media (max-height: 700px) {
+  .stage {
+    min-height: 24%;
+  }
+  .rockstrip,
+  .rchip {
+    height: 34px;
+  }
+  .rchip {
+    gap: 1px;
+  }
+  .drow {
+    height: 62px;
+  }
+  .act {
+    gap: 4px;
+    padding: 4px;
+  }
+  .dups {
+    margin-top: 7px;
+  }
+}
+@media (max-height: 600px) {
+  .drow {
+    height: 54px;
+  }
+  .dock {
+    margin-top: 6px;
+    padding: 5px 7px;
+  }
+  .tools {
+    margin-top: 5px;
+  }
+}
+@media (max-width: 345px) {
+  .rchip {
+    padding: 3px 0 0;
+  }
+}
+@media (max-width: 345px) {
+  .rchip b {
+    letter-spacing: -0.4px;
+  }
+  .dwork {
+    gap: 3px;
+    padding: 2px 3px;
+  }
+  .dwork u {
+    font-size: 9px;
+    letter-spacing: -0.2px;
+  }
+}
+.pm-main small.pm-gain {
+  white-space: normal;
+}
+.pm-steps button.chip {
+  min-height: 0;
+  padding: 5px 2px;
+  font-family: var(--text);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
 }

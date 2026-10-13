@@ -40,12 +40,18 @@
     strainRecipe: null,
     combo: { base: 'cheddar', ingredient: 'herbs', treatment: 'washed', maturation: 'fresh' },
     lastHtml: '',
-    dockHtml: null,
-    lanesKey: null,
+    rocksKey: null,
     dockKind: 'mine',
     shown: {},
   };
   const els = { floaters: $('floaters'), banner: $('banner'), toast: $('toast'), combo: $('combo'), main: $('dock-main'), flyers: $('flyers'), bubbles: $('bubbles') };
+  // Piezas fijas del panel inferior: se les cambia el texto, nunca se rehacen.
+  const dk = {
+    rocks: $('dock-rocks'), info: $('dock-info'), why: $('dock-why'), side: $('dock-side'),
+    worker: $('dock-worker'), face: $('dock-worker').querySelector('img'), workName: $('dock-worker').querySelector('b'), workSub: $('dock-worker').querySelector('u'), book: $('dock-book'),
+    quick: $('up-quick'), quickName: $('up-quick').querySelector('b'), quickCost: $('up-quick').querySelector('u'),
+    tree: $('up-tree'), treeNum: $('up-tree').querySelector('u'), all: $('up-all'), allNum: $('up-all').querySelector('u'),
+  };
   const tiles = {};
   document.querySelectorAll('#chain .tile').forEach((t) => (tiles[t.dataset.st] = t));
   let dirty = false;
@@ -359,6 +365,9 @@
         dirty = true;
         break;
       case 'promoted': {
+        dirty = true;
+        // En un ascenso en bloque se celebra una vez, con el resumen.
+        if (ui.bulkPromo) break;
         const mouse = CM.mice.byId(state, ev.id);
         play('goal');
         scene.celebrate();
@@ -492,7 +501,6 @@
     ui.station = st;
     scene.select(st);
     if (!quiet) scene.focus(st);
-    ui.dockHtml = null;
   }
   // Cambia la roca que se ve en la escena. Todas siguen trabajando.
   function focusZone(id) {
@@ -501,8 +509,6 @@
     scene.onEvent({ type: 'zoneFocus' }, state, Date.now(), id);
     setIcons();
     syncShown();
-    ui.dockHtml = null;
-    ui.lanesKey = null;
   }
 
   const progress = (job) => (job ? 1 - job.remaining / job.total : 0);
@@ -635,7 +641,7 @@
       m.kind = 'mine';
       m.label = 'MINE';
       if (info.vein) {
-        m.status = def.name + ': vein exposed, ' + CM.fmt(z.veinRemaining) + ' Raw Cheese inside';
+        m.status = 'Vein exposed: ' + CM.fmt(z.veinRemaining) + ' Raw Cheese inside';
         m.tone = 'good';
         // Con la veta a la vista, este mismo botón taladra: sin paso intermedio.
         const ds = CM.drilling.status(state, ui.zone);
@@ -646,7 +652,7 @@
         m.mode = ds === 'ready' ? 'hot' : '';
       } else {
         const need = q.veinHits(state, ui.zone);
-        m.status = 'Mining finds the vein; it gives no cheese · power ' + round1(q.pickPower(state)) + (auto ? ' · ' + worker.name + ' is mining' : '');
+        m.status = 'Power ' + round1(q.pickPower(state)) + ' · mining finds the vein, not cheese';
         m.sub = 'Search ' + CM.fmt(Math.floor(z.discover)) + '/' + CM.fmt(need);
         m.fill = z.discover / need;
         m.mode = 'hot';
@@ -660,7 +666,7 @@
       m.label = isDrill ? 'DRILL' : 'REFINE';
       const y = isDrill ? q.drillYield(state, ui.zone) : q.refineBatch(state) * q.refineMult(state);
       const d = isDrill ? q.drillDuration(state) : q.refineDuration(state);
-      m.status = (isDrill ? '+' + round1(y) + ' Raw' : q.refineBatch(state) * B.refinery.rawPerBase + ' Raw > ' + round1(y) + ' Base') + ' / ' + P.secs(d) + ' · ' + perMin(y, d) + '/min' + (auto ? ' · automated' : '');
+      m.status = (isDrill ? '+' + round1(y) + ' Raw' : q.refineBatch(state) * B.refinery.rawPerBase + ' Raw > ' + round1(y) + ' Base') + ' / ' + P.secs(d) + ' · ' + perMin(y, d) + '/min';
       if (info.state === 'working') {
         m.sub = auto ? 'Auto · hold to boost' : 'HOLD TO BOOST!';
         m.fill = info.progress;
@@ -669,7 +675,7 @@
         m.sub = 'Tap to start';
         m.mode = 'hot';
       } else {
-        m.status = { 'no-vein': 'Waiting: no vein exposed in ' + def.name + '. Mine the rock', 'no-raw': 'Waiting: needs ' + B.refinery.rawPerBase + ' Raw ' + B.bases[def.base].name + ' from its drill' }[info.reason];
+        m.status = { 'no-vein': 'Waiting for a vein in ' + def.name, 'no-raw': 'Waiting for ' + B.refinery.rawPerBase + ' Raw ' + B.bases[def.base].name + ' from its drill' }[info.reason];
         m.tone = info.state === 'blocked' ? 'bad' : 'warn';
         m.sub = BUBBLE[info.reason] || 'Waiting';
         m.mode = info.state === 'blocked' ? 'blocked' : 'idle';
@@ -683,7 +689,7 @@
       const cheese = B.bases[def.base].name;
       if (job) {
         const r = job.recipeId ? CM.cheesery.recipe(state, job.recipeId) : null;
-        m.status = (job.kind === 'experiment' && !r ? 'Experimenting with a new combination' : 'Making ' + (r ? r.name : 'cheese')) + (auto ? ' · automated' : '');
+        m.status = (job.kind === 'experiment' && !r ? 'Experimenting with a new combination' : 'Making ' + (r ? r.name : 'cheese'));
         m.kind = 'cheeseBoost';
         m.label = 'SPEED UP';
         m.sub = 'Hold to boost';
@@ -705,7 +711,7 @@
     const buyer = q.buyer(state);
     m.kind = 'sell';
     m.label = 'SELL';
-    m.status = 'Customers: ' + buyer.name + ' (x' + buyer.mult + ') · ' + q.sellCount(state) + ' per sale / ' + P.secs(q.sellDuration(state)) + (auto ? ' · automated' : '');
+    m.status = buyer.name + ' pay x' + buyer.mult + ' · ' + q.sellCount(state) + ' per sale / ' + P.secs(q.sellDuration(state));
     if (info.state === 'working') {
       m.sub = (auto ? 'Auto · ' : '') + 'selling for ' + CM.fmt(state.jobs.shop.coins);
       m.fill = info.progress;
@@ -714,7 +720,7 @@
       m.sub = q.lotsTotal(state) + ' cheese to sell';
       m.mode = 'hot';
     } else {
-      m.status = 'No cheese to sell yet. Make some in the Cheesery';
+      m.status = 'No cheese to sell yet: make some in CHEESE';
       m.tone = 'warn';
       m.sub = 'NO CHEESE';
     }
@@ -738,92 +744,149 @@
     for (const cls of ['hot', 'locked', 'idle', 'blocked']) set(els.main, cls, m.mode === cls);
     for (const s2 of STATIONS) set(els.main, 'st-' + s2, s2 === st);
 
-    // Compra rápida: la mejora más barata de esta habilidad, de un toque y sin
-    // abrir el árbol. Debajo, el acceso al árbol entero.
-    let side = '';
+    // Mejoras: tres huecos que no cambian de sitio ni de tamaño. La más barata de esta
+    // habilidad (de un toque, sin abrir el árbol), el árbol entero y BUY ALL.
+    let pick = null;
     if (m.tree) {
-      let pick = null;
-      let locked = 0;
       for (const node of B.trees[skill]) {
         const info = CM.tree.info(state, skill, node.id);
-        if (info.locked) locked += 1;
-        else if (!info.maxed && (!pick || info.cost < pick.cost)) pick = { node, cost: info.cost, can: info.canBuy };
+        if (!info.locked && !info.maxed && (!pick || info.cost < pick.cost)) pick = { id: node.id, name: node.name, cost: info.cost, can: info.canBuy };
       }
-      if (pick) side += P.btn('node:' + skill + ':' + pick.node.id, P.esc(pick.node.name) + '<br>' + P.coin(pick.cost), { cls: 'buy' + (pick.can ? ' ready' : ''), off: !pick.can, cost: pick.cost });
-      const n = CM.tree.affordable(state, skill);
-      side += P.btn('tree:' + skill, m.book ? 'TREE' : 'ALL UPGRADES' + (n > 1 ? ' · ' + n : ''), { cls: 'buy calm small' });
-      if (m.book) side += P.btn('open:cheese', 'RECIPES', { cls: 'buy calm small' });
-      // Quién trabaja en este puesto.
-      const worker = CM.mice.at(state, skill, ui.zone);
-      if (state.built.house) side += P.btn(worker ? 'open:mice:' + worker.id : 'open:mice', worker ? (CM.mice.promoteInfo(state, worker).can ? 'PROMOTE ' + P.esc(worker.name).toUpperCase() : P.esc(worker.name) + ' · LV ' + CM.mice.level(worker)) : 'NO MOUSE HERE', { cls: 'buy calm small' + (worker ? (worker.offer || CM.mice.promoteInfo(state, worker).can ? ' ready' : '') : ' warn') });
     }
-    if (side !== ui.dockHtml) {
-      ui.dockHtml = side;
-      $('dock-side').innerHTML = side;
+    ui.quick = pick ? { skill, id: pick.id } : null;
+    set(dk.quickName, 'text', pick ? pick.name : m.tree ? 'ALL MAXED' : 'NO UPGRADES YET');
+    set(dk.quickCost, 'text', pick ? CM.fmt(pick.cost) : '');
+    set(dk.quick, 'off', !pick || !pick.can);
+    set(dk.quick, 'ready', !!pick && pick.can);
+    set(dk.quick, 'none', !pick);
+    costOf(dk.quick, pick && !pick.can ? pick.cost : 0);
+    const ups = m.tree ? CM.tree.affordable(state, skill) : 0;
+    set(dk.treeNum, 'text', !m.tree ? 'LOCKED' : ups ? ups + ' READY' : 'TREE');
+    set(dk.tree, 'has', ups > 0);
+    set(dk.tree, 'off', !m.tree);
+
+    // Quién trabaja en este puesto: siempre en el mismo hueco.
+    const showSide = !!state.built.house && m.tree;
+    if (dk.side.hidden === showSide) dk.side.hidden = !showSide;
+    if (showSide) {
+      const w = CM.mice.at(state, skill, ui.zone);
+      const pr = w ? CM.mice.promoteInfo(state, w) : null;
+      ui.workerId = w ? w.id : '';
+      const faceKey = w ? w.id + '|' + w.rank : '';
+      if (dk.face.dataset.k !== faceKey) {
+        dk.face.dataset.k = faceKey;
+        if (w) dk.face.src = CM.mouseUrl(w);
+      }
+      set(dk.workName, 'text', w ? w.name : 'NO MOUSE');
+      set(dk.workSub, 'text', w ? (pr.can ? 'PROMOTE!' : 'LV ' + CM.mice.level(w) + ' ' + B.mice.ranks[w.rank].name) : 'Tap to assign one');
+      set(dk.worker, 'empty', !w);
+      set(dk.worker, 'ready', !!(w && pr.can));
+      const book = st === 'cheesery';
+      if (dk.book.hidden === book) dk.book.hidden = !book;
     }
 
-    updateLanes();
+    const why = updateRocks();
+    const def = q.zoneDef(ui.zone);
+    // Sin línea que contar (antes del taladro, o en un edificio sin construir), la explicación usa los dos renglones.
+    const line = m.tree && why ? def.name + ' · depth ' + state.zones[ui.zone].depth + ' · ' + why[0] : '';
+    set(dk.why, 'text', line);
+    set(dk.why, 'cls', why ? why[1] || 'good' : '');
+    set(dk.info, 'wide', !line);
   }
 
-  // ---------- Líneas: una fila por queso, con su recorrido completo ----------
-  // Roca -> Raw -> Base -> queso. Cada paso con su cantidad y su barra, y una
-  // frase que dice qué le pasa a esa línea. Tocar una fila la enseña en la escena.
-  const laneEls = {};
+  // Pone o quita el precio que un botón enseña cuánto falta para pagar.
+  function costOf(el, cost) {
+    const v = cost ? String(cost) : '';
+    if ((el.dataset.cost || '') === v) return;
+    if (v) el.dataset.cost = v;
+    else {
+      delete el.dataset.cost;
+      el.dataset.eta = '';
+      el.style.removeProperty('--p');
+    }
+  }
+  // BUY ALL enseña antes de tocarlo cuántas mejoras compraría y lo que cuestan; si no alcanza
+  // para ninguna, cuál es la siguiente.
+  function updateBuyAll() {
+    const plan = (ui.plan = CM.tree.sweep(state, true));
+    set(dk.allNum, 'text', plan.bought ? plan.bought + ' · ' + CM.fmt(plan.cost) : plan.next ? 'NEXT ' + CM.fmt(plan.next.cost) : 'ALL MAXED');
+    set(dk.all, 'ready', plan.bought > 0);
+    set(dk.all, 'off', !plan.bought);
+    costOf(dk.all, plan.bought || !plan.next ? 0 : plan.next.cost);
+  }
+  const TREE_NAME = (k) => (B.skills[k] ? B.skills[k].name : k === 'lab' ? 'Lab' : 'Colony');
+  let boughtAt = 0;
+  function buyEverything() {
+    // Un doble toque no tapa el resumen de la compra con un «no alcanza».
+    if (performance.now() - boughtAt < 700) return;
+    const r = CM.tree.sweep(state);
+    if (r.bought) boughtAt = performance.now();
+    drainEvents();
+    dirty = true;
+    updateBuyAll();
+    renderPanel();
+    if (r.bought) return toast('Bought ' + r.bought + ' upgrade' + (r.bought === 1 ? '' : 's') + ' for ' + CM.fmt(r.cost) + ': ' + Object.keys(r.bySkill).map((k) => TREE_NAME(k) + ' ' + r.bySkill[k]).join(', '), true);
+    report(CM.fail('no-coins'), dk.all);
+    if (r.next) toast('Next upgrade: ' + CM.tree.node(r.next.skill, r.next.id).name + ' (' + TREE_NAME(r.next.skill) + ') for ' + CM.fmt(r.next.cost));
+  }
+
+  // ---------- Rocas: una ficha igual por roca ----------
+  // Todas trabajan a la vez; la ficha dice de un vistazo cómo va cada línea (verde, ámbar,
+  // rojo) y tocarla la enseña en la escena. Los números de la roca elegida están arriba.
+  const rockEls = {};
   function laneWhy(def) {
     const z = state.zones[def.id];
     const name = B.bases[def.base].name;
     const auto = (k) => q.auto(state, k, def.id);
     if (!z.veinRevealed) {
       const pct = Math.floor((z.discover / q.veinHits(state, def.id)) * 100);
-      return auto('mining') ? ['A mouse is searching for the next vein: ' + pct + '%', ''] : ['No vein: mine this rock (' + pct + '%)', 'warn'];
+      return auto('mining') ? ['Searching for the next vein ' + pct + '%', ''] : ['No vein: mine this rock (' + pct + '%)', 'warn'];
     }
     if (!state.built.drill) return ['Vein found: build the drill', 'warn'];
     if (!auto('drilling') && !z.drillJob) return ['Drill idle: tap DRILL', 'warn'];
-    if (state.built.refinery && !auto('refining') && !z.refJob && CM.refining.status(state, def.id) === 'ready') return ['Raw ' + name + ' waiting: tap REFINE', 'warn'];
+    if (state.built.refinery && !auto('refining') && !z.refJob && CM.refining.status(state, def.id) === 'ready') return ['Raw waiting: tap REFINE', 'warn'];
     if (state.built.cheesery) {
       const cs = CM.cheesery.status(state, def.id);
-      if (cs === 'no-recipe') return ['No ' + name + ' recipe yet: discover one in CHEESE', 'bad'];
+      if (cs === 'no-recipe') return ['No recipe yet: discover one in CHEESE', 'bad'];
       if (cs === 'no-coins') return ['No coins for the ingredient', 'bad'];
-      if (cs === 'idle' && state.inv.base[def.base] >= B.cheesery.lotBase) return [name + ' Base waiting: make cheese', 'warn'];
+      if (cs === 'idle' && state.inv.base[def.base] >= B.cheesery.lotBase) return ['Base waiting: make cheese', 'warn'];
     }
     return ['Running', 'good'];
   }
-  function updateLanes() {
+  // Devuelve el estado de la línea que se está mirando (o null si aún no hay líneas).
+  function updateRocks() {
     const open = state.built.drill ? q.openZones(state) : [];
-    const key = open.map((d) => d.id).join(',') + '|' + ui.zone;
-    if (key !== ui.lanesKey) {
-      ui.lanesKey = key;
+    const show = open.length > 1;
+    const key = show ? open.map((d) => d.id).join(',') : '';
+    if (key !== ui.rocksKey) {
+      ui.rocksKey = key;
       let h = '';
-      for (const def of open) {
-        const cell = (kind, part) => '<span class="lcell">' + I.img(kind, def.base) + '<b data-l="' + part + '"></b><i><i data-l="' + part + 'bar"></i></i></span>';
-        h += '<button data-act="zone:' + def.id + '" data-lane="' + def.id + '" class="lane' + (ui.zone === def.id ? ' on' : '') + '"><span class="lhead"><b>' + B.bases[def.base].name + '</b><u data-l="depth"></u></span><span class="lrow">' + cell('raw', 'raw') + '<i class="arrow"></i>' + cell('base', 'base') + '<i class="arrow"></i>' + cell('lot', 'lots') + '</span><em data-l="why"></em></button>';
-      }
-      $('dock-zones').innerHTML = h;
-      $('dock-zones').classList.toggle('many', open.length > 3);
-      for (const def of open) {
-        const root = $('dock-zones').querySelector('[data-lane="' + def.id + '"]');
-        laneEls[def.id] = {};
-        root.querySelectorAll('[data-l]').forEach((el) => (laneEls[def.id][el.dataset.l] = el));
-      }
+      if (show) for (const def of open) h += '<button data-zone="' + def.id + '" class="rchip">' + I.img('raw', def.base) + '<b>' + P.esc(B.bases[def.base].name) + '</b><i class="rdot"></i></button>';
+      dk.rocks.innerHTML = h;
+      dk.rocks.hidden = !show;
+      for (const id of Object.keys(rockEls)) delete rockEls[id];
+      dk.rocks.querySelectorAll('.rchip').forEach((el) => (rockEls[el.dataset.zone] = el));
+      ui.rockShown = null;
     }
+    let mine = null;
     for (const def of open) {
-      const z = state.zones[def.id];
-      const e = laneEls[def.id];
       const why = laneWhy(def);
-      set(e.depth, 'text', 'DEPTH ' + z.depth);
-      // La frase solo ocupa sitio cuando la línea necesita algo; si va bien, basta el borde verde.
-      set(e.why, 'text', why[1] === 'good' ? '' : why[0]);
-      set(e.why, 'cls', why[1]);
-      set(e.raw.closest('.lane'), 'ok', why[1] === 'good');
-      set(e.raw.closest('.lane'), 'need', why[1] === 'bad');
-      set(e.raw, 'text', CM.fmt(state.inv.raw[def.base]));
-      set(e.base, 'text', CM.fmt(state.inv.base[def.base]));
-      set(e.lots, 'text', CM.fmt(q.lotsOfBase(state, def.base)));
-      // Bajo cada recurso, el progreso del ciclo que lo está produciendo.
-      set(e.rawbar, 'width', Math.round(progress(z.drillJob) * 100) + '%');
-      set(e.basebar, 'width', Math.round(progress(z.refJob) * 100) + '%');
-      set(e.lotsbar, 'width', Math.round(progress(z.cookJob) * 100) + '%');
+      if (def.id === ui.zone) mine = why;
+      const el = rockEls[def.id];
+      if (!el) continue;
+      set(el, 'on', def.id === ui.zone);
+      set(el, 'warn', why[1] === 'warn');
+      set(el, 'need', why[1] === 'bad');
     }
+    // Con más rocas de las que caben, la elegida queda siempre a la vista.
+    if (show && ui.rockShown !== ui.zone && rockEls[ui.zone]) {
+      ui.rockShown = ui.zone;
+      const el = rockEls[ui.zone];
+      const box = dk.rocks;
+      if (el.offsetLeft < box.scrollLeft) box.scrollLeft = el.offsetLeft;
+      else if (el.offsetLeft + el.offsetWidth > box.scrollLeft + box.clientWidth) box.scrollLeft = el.offsetLeft + el.offsetWidth - box.clientWidth;
+    }
+    return mine;
   }
 
   // Acción del botón grande según la estación.
@@ -982,24 +1045,31 @@
   for (const id of ['res-raw', 'res-base', 'res-lots']) $(id).addEventListener('click', () => openPanel('stock'));
   $('nav-menu').addEventListener('click', () => openPanel('options'));
   const muteLabel = () => {};
-  // Compra todo lo que alcance en todos los árboles, de más barato a más caro.
-  const buyable = () => Object.keys(B.trees).reduce((a, k) => a + ((B.skills[k] ? state.built[B.skills[k].station] !== false : true) ? CM.tree.affordable(state, k, true) : 0), 0);
-  $('nav-all').addEventListener('click', () => {
-    let bought = 0;
-    for (let round = 0; round < 50; round++) {
-      let any = 0;
-      for (const skill of Object.keys(B.trees)) {
-        const r = CM.tree.buyAll(state, skill);
-        if (r.ok) any += r.bought;
-      }
-      if (!any) break;
-      bought += any;
-    }
+  // Botones fijos del panel inferior.
+  const dockTap = (fn) => () => {
+    fn();
     drainEvents();
-    ui.dockHtml = null;
+    renderPanel();
     dirty = true;
-    if (bought) toast('Bought ' + bought + ' upgrade' + (bought === 1 ? '' : 's'), true);
-    else report(CM.fail('no-coins'), $('nav-all'));
+  };
+  dk.quick.addEventListener('click', dockTap(() => (ui.quick ? report(CM.tree.buy(state, ui.quick.skill, ui.quick.id), dk.quick) : report(CM.fail('locked'), dk.quick))));
+  dk.tree.addEventListener('click', () => (B.trees[SKILL[ui.station]] && (ui.station === 'rock' || state.built[ui.station]) ? openTree(SKILL[ui.station]) : report(CM.fail('locked'), dk.tree)));
+  dk.all.addEventListener('click', buyEverything);
+  dk.worker.addEventListener('click', () => {
+    openPanel('mice');
+    // Con ratón, su ficha; sin él, los candidatos para este puesto.
+    if (ui.workerId) ui.card = ui.workerId;
+    else {
+      const skill = SKILL[ui.station];
+      const post = CM.mice.posts(state).find((p) => p.skill === skill && (p.zone === ui.zone || p.zone === 'all'));
+      if (post) ui.pick = { type: 'post', key: post.key };
+    }
+    renderPanel();
+  });
+  dk.book.addEventListener('click', () => openPanel('cheese'));
+  dk.rocks.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-zone]');
+    if (el) focusZone(el.dataset.zone);
   });
   // Clic suave en cualquier botón que no sea el de acción principal (ese ya suena por sí mismo).
   document.addEventListener('pointerdown', (e) => {
@@ -1088,6 +1158,38 @@
       return r;
     },
     promote: (id) => CM.mice.promote(state, id),
+    // Ascensos pendientes: se eligen, se ve el total y se confirma una sola vez.
+    promos: () => {
+      ui.miceTab = 'promos';
+      ui.promo = CM.mice.promotePicks(state, 'afford');
+      ui.promoDone = null;
+    },
+    promoback: () => void (ui.miceTab = ''),
+    promosel: (id) => {
+      const m = CM.mice.byId(state, id);
+      const steps = m ? CM.mice.promoteSteps(state, m) : [];
+      if (!steps.length) return;
+      if (ui.promo[id]) delete ui.promo[id];
+      else ui.promo[id] = steps[steps.length - 1].rank;
+    },
+    promoto: (id, rank) => void (ui.promo[id] = Number(rank)),
+    promoset: (mode) => void (ui.promo = mode === 'none' ? {} : CM.mice.promotePicks(state, mode)),
+    promogo: () => {
+      const plan = CM.mice.promoteCost(state, ui.promo);
+      // Un segundo toque, con la selección ya gastada, no hace nada.
+      if (!plan.steps) return;
+      ui.bulkPromo = true;
+      const r = CM.mice.promoteMany(state, ui.promo);
+      drainEvents();
+      ui.bulkPromo = false;
+      if (!r.ok) return r;
+      ui.promo = {};
+      ui.promoDone = r;
+      play('goal');
+      scene.celebrate();
+      toast('Promoted ' + r.mice + (r.mice === 1 ? ' mouse' : ' mice') + ' for ' + CM.fmt(r.cost), true);
+      return r;
+    },
     care: (id, kind, what, to) => {
       const r = CM.mice.careStart(state, id, kind, what, to);
       if (r.ok) ui.retrain = null;
@@ -1162,13 +1264,9 @@
     report(fn.apply(null, parts.slice(1)), el);
     drainEvents();
     renderPanel();
-    ui.dockHtml = null;
-    ui.lanesKey = null;
     dirty = true;
   }
   $('sheet').addEventListener('click', onAct);
-  $('dock-side').addEventListener('click', onAct);
-  $('dock-zones').addEventListener('click', onAct);
   $('sheet').addEventListener('click', (e) => {
     if (e.target === $('sheet')) closePanel();
   });
@@ -1438,8 +1536,7 @@
           ui.pick = null;
           K.dismiss(state, id);
           drainEvents();
-          ui.dockHtml = null;
-          ui.lanesKey = null;
+          ui.rocksKey = null;
           dirty = true;
         },
       }
@@ -1507,6 +1604,7 @@
     tiles.cheesery.querySelector('img').src = I.url('lot', base);
     tiles.shop.querySelector('img').src = I.url('coin');
     tiles.lab.querySelector('img').src = I.url('flask');
+    dk.quick.querySelector('img').src = I.url('coin');
   }
 
   // Los contadores ruedan hacia su valor real en vez de saltar.
@@ -1585,9 +1683,7 @@
     const mice = CM.construction.buildInfo(state, 'house').canBuild || state.candidates.length > 0 || (state.built.house && !!CM.mice.freePost(state) && state.coins >= CM.mice.recruitCost(state)) || state.mice.some((m) => m.offer || CM.mice.promoteInfo(state, m).can);
     $('nav-mice').querySelector('.dot').classList.toggle('on', !!mice);
     set($('nav-mice'), 'goal', GOAL_AT[CM.sim.objective(state).id] === 'mice');
-    const n = buyable();
-    set($('nav-all'), 'text', n ? 'BUY ALL ' + n : 'BUY ALL');
-    set($('nav-all'), 'ready', n > 0);
+    updateBuyAll();
   }
 
   // ---------- Bucle ----------

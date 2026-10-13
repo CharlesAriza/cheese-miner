@@ -74,6 +74,44 @@
       }
       return bought ? CM.ok({ bought }) : CM.fail('no-coins');
     },
+    // Árboles que mira BUY ALL: los de edificios ya construidos, la colonia y el laboratorio.
+    open: (s, skill) => !B.skills[skill] || s.built[B.skills[skill].station] !== false,
+    // BUY ALL: mira todos los árboles a la vez y compra siempre lo más barato que quede, hasta
+    // que no alcance para nada. Así una habilidad no se lleva todas las monedas por ir primera
+    // en la lista. Con `dry` no toca la partida: solo dice qué compraría y cuánto costaría.
+    // Devuelve { bought, cost, bySkill, next }: `next` es lo siguiente que no se puede pagar.
+    sweep(s, dry) {
+      const w = dry ? Object.create(s) : s;
+      if (dry) {
+        w.coins = s.coins;
+        w.nodes = Object.assign({}, s.nodes);
+      }
+      const out = { bought: 0, cost: 0, bySkill: {}, next: null };
+      for (let guard = 0; guard < 500; guard++) {
+        let best = null;
+        for (const skill of Object.keys(B.trees)) {
+          if (!this.open(s, skill)) continue;
+          for (const node of B.trees[skill]) {
+            if (node.unlock) continue; // lo que abre una función lo compra el jugador, leyendo qué es
+            const info = this.info(w, skill, node.id);
+            if (info.locked || info.maxed) continue;
+            if (!best || info.cost < best.cost) best = { skill, id: node.id, cost: info.cost };
+          }
+        }
+        if (!best || w.coins < best.cost) {
+          out.next = best;
+          break;
+        }
+        if (dry) {
+          w.coins -= best.cost;
+          w.nodes[best.skill + '.' + best.id] = (w.nodes[best.skill + '.' + best.id] || 0) + 1;
+        } else if (!this.buy(s, best.skill, best.id).ok) break;
+        out.bought += 1;
+        out.cost += best.cost;
+        out.bySkill[best.skill] = (out.bySkill[best.skill] || 0) + 1;
+      }
+      return out;
+    },
     // Cuántos nudos de un árbol se pueden comprar ahora mismo.
     // `bulk`: solo lo que compraría BUY ALL (sin las mejoras que abren funciones).
     affordable: (s, skill, bulk) => B.trees[skill].filter((n) => !(bulk && n.unlock) && CM.tree.info(s, skill, n.id).canBuy).length,

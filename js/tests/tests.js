@@ -1242,6 +1242,166 @@
     truthy(new Set(back.mice.map((m) => m.look)).size === back.mice.length, 'and each one is different');
   });
 
+  test('buy all: sweeps every tree cheapest first, says beforehand what it will buy, and never pays twice', () => {
+    const make = (coins) => {
+      const g = fresh();
+      CM.dev.unlockBuildings(g);
+      g.devUsed = false;
+      g.coins = coins;
+      return g;
+    };
+    const s = make(5000);
+    const plan = CM.tree.sweep(s, true);
+    eq(s.coins, 5000, 'the preview spends nothing');
+    eq(Object.keys(s.nodes).filter((k) => s.nodes[k]).length, Object.keys(make(5000).nodes).filter((k) => make(5000).nodes[k]).length, 'and buys nothing');
+    truthy(plan.bought > 3 && Object.keys(plan.bySkill).length > 1, 'it reaches several trees, not only the first one');
+    // El mismo recorrido, hecho a mano: siempre lo más barato de todos los árboles.
+    const o = make(5000);
+    let steps = 0;
+    for (let guard = 0; guard < 500; guard++) {
+      let best = null;
+      for (const skill of Object.keys(B.trees)) {
+        for (const n of B.trees[skill]) {
+          const info = CM.tree.info(o, skill, n.id);
+          if (n.unlock || info.locked || info.maxed) continue;
+          if (!best || info.cost < best.cost) best = { skill, id: n.id, cost: info.cost };
+        }
+      }
+      if (!best || best.cost > o.coins) break;
+      truthy(CM.tree.buy(o, best.skill, best.id).ok, 'manual purchase ' + guard);
+      steps += 1;
+    }
+    const real = CM.tree.sweep(s);
+    eq(real.bought, plan.bought, 'it buys what the preview said');
+    eq(real.cost, plan.cost, 'for the price the preview said');
+    eq(real.bought, steps, 'the same number of upgrades as buying the cheapest one by hand each time');
+    eq(JSON.stringify(s.nodes), JSON.stringify(o.nodes), 'and exactly the same upgrades');
+    eq(s.coins, 5000 - plan.cost, 'coins go down by the total, once');
+    truthy(real.next && real.next.cost > s.coins, 'it says which upgrade comes next and it cannot be paid yet');
+    // Un segundo toque no compra ni cobra nada.
+    const coins = s.coins;
+    const again = CM.tree.sweep(s);
+    eq(again.bought, 0, 'a second tap buys nothing');
+    eq(s.coins, coins, 'and charges nothing');
+    // Sin monedas: nada, y dice qué es lo siguiente.
+    const poor = make(0);
+    eq(CM.tree.sweep(poor).bought, 0, 'no coins, no purchase');
+    truthy(CM.tree.sweep(poor, true).next, 'but it still names the next upgrade');
+    // Las mejoras que abren una función las compra el jugador.
+    const lab = make(1e9);
+    lab.built.lab = true;
+    CM.tree.sweep(lab);
+    eq(CM.tree.rank(lab, 'lab', 'assistant'), 0, 'never an upgrade that opens a function');
+    // Lo que aún no está construido no se mejora.
+    const early = fresh();
+    early.coins = 1e4;
+    const e = CM.tree.sweep(early);
+    truthy(e.bought > 0 && !e.bySkill.drilling && !e.bySkill.trading, 'trees of buildings not built yet are left alone');
+    // Un presupuesto enorme: se detiene, no deja monedas negativas y no rompe nada.
+    const rich = make(1e40);
+    const big = CM.tree.sweep(rich, true);
+    const done = CM.tree.sweep(rich);
+    eq(done.bought, big.bought, 'a huge budget: preview and purchase agree');
+    truthy(rich.coins >= 0 && done.bought <= 500, 'and it stops');
+    valid(s);
+    valid(rich);
+    // Guardar y cargar conserva lo comprado.
+    const back = CM.storage.parse(JSON.stringify(s), s.lastSavedAt);
+    eq(JSON.stringify(back.nodes), JSON.stringify(s.nodes), 'upgrades survive a reload');
+    eq(back.coins, s.coins, 'and so do the coins');
+  });
+
+  test('mice: several promotions at once cost and do exactly what one by one would', () => {
+    const R = B.mice.ranks;
+    const xpAt = (lv) => ((B.mice.xpBase * (Math.pow(B.mice.xpGrowth, lv - 1) - 1)) / (B.mice.xpGrowth - 1)) * 1.001;
+    // Una colonia con `n` ratones listos: niveles y rangos variados, algunos con varios rangos acumulados.
+    const make = (n, coins) => {
+      const g = fresh();
+      CM.dev.unlockBuildings(g);
+      g.devUsed = false;
+      const posts = ['drilling', 'refining', 'mining', 'cheesemaking', 'trading'];
+      for (let i = 0; i < n; i++) {
+        const m = staff(g, posts[i % 5], 'cheddar', i < 5 ? {} : { post: '' });
+        m.xp = xpAt([12, 30, 45][i % 3]);
+        m.rank = i % 3 === 1 && i % 2 === 1 ? 1 : 0;
+      }
+      // Dos que no pueden ascender: uno sin nivel y otro ya en lo más alto.
+      staff(g, 'mining', 'cheddar', { post: '' }).xp = xpAt(5);
+      staff(g, 'mining', 'cheddar', { post: '', rank: R.length - 1 }).xp = xpAt(50);
+      g.coins = coins;
+      return g;
+    };
+    const ranks = (g) => g.mice.map((m) => m.rank).join('');
+    for (const n of [1, 5, 15, 26]) {
+      const s = make(n, 1e12);
+      const all = CM.mice.promotePicks(s, 'all');
+      eq(Object.keys(all).length, n, n + ' ready: select all picks exactly those who can go up');
+      const before = ranks(s);
+      const plan = CM.mice.promoteCost(s, all);
+      eq(ranks(s), before, 'selecting buys nothing');
+      eq(s.coins, 1e12, 'and charges nothing');
+      // Lo mismo, uno a uno, en otra partida igual.
+      const o = make(n, 1e12);
+      let taps = 0;
+      for (const m of o.mice) while (CM.mice.promote(o, m.id).ok) taps += 1;
+      const r = CM.mice.promoteMany(s, all);
+      truthy(r.ok, 'bulk promotion goes through');
+      eq(r.steps, taps, 'as many ranks as tapping PROMOTE ' + taps + ' times');
+      eq(r.mice, n, 'for every selected mouse');
+      eq(r.cost, plan.cost, 'the charge is the total shown');
+      eq(s.coins, o.coins, 'coins end exactly as one by one');
+      eq(ranks(s), ranks(o), 'ranks end exactly as one by one');
+      eq(s.totals.coinsSpent, o.totals.coinsSpent, 'and so does the money spent');
+      for (let i = 0; i < s.mice.length; i++) if (s.mice[i].post) eq(CM.mice.here(s, s.mice[i]), CM.mice.here(o, o.mice[i]), 'same output on the post');
+      // Un segundo toque: ya no queda nada que ascender.
+      const coins = s.coins;
+      eq(CM.mice.promoteMany(s, all).ok, false, 'a second confirmation does nothing');
+      eq(s.coins, coins, 'and charges nothing');
+      valid(s);
+      const back = CM.storage.parse(JSON.stringify(s), s.lastSavedAt);
+      eq(back.mice.map((m) => m.rank).join(''), ranks(s), 'ranks survive a reload');
+    }
+    // Varios rangos acumulados: cada paso cobra el suyo y no se salta el requisito de nivel.
+    const s = make(3, 1e12);
+    const [a, b, c] = s.mice;
+    b.rank = 0;
+    eq(CM.mice.promoteSteps(s, a).map((x) => x.rank).join(''), '1', 'LV 12: one rank ready');
+    eq(CM.mice.promoteSteps(s, b).map((x) => x.rank).join(''), '12', 'LV 30: two ranks ready');
+    eq(CM.mice.promoteSteps(s, c).map((x) => x.rank).join(''), '123', 'LV 45: three ranks ready');
+    eq(CM.mice.promoteSteps(s, c)[2].total, R[1].cost + R[2].cost + R[3].cost, 'reaching the third costs the three of them');
+    // Selección parcial, y un destino más alto de lo que el nivel permite.
+    const pick = {};
+    pick[a.id] = 3;
+    pick[c.id] = 2;
+    const part = CM.mice.promoteMany(s, pick);
+    eq(a.rank, 1, 'a mouse never goes past what its level allows');
+    eq(c.rank, 2, 'a mouse stops at the rank chosen for it');
+    eq(b.rank, 0, 'a mouse that was not selected stays as it was');
+    eq(part.cost, R[1].cost + R[1].cost + R[2].cost, 'and only those ranks are charged');
+    eq(s.coins, 1e12 - part.cost, 'once');
+    // Si el total no alcanza, no se cobra nada: nunca se queda a medias.
+    const poor = make(15, R[1].cost * 3);
+    const want = CM.mice.promotePicks(poor, 'all');
+    const was = ranks(poor);
+    eq(CM.mice.promoteMany(poor, want).reason, 'no-coins', 'not enough for the whole selection');
+    eq(ranks(poor), was, 'nobody is promoted');
+    eq(poor.coins, R[1].cost * 3, 'nothing is charged');
+    // AFFORDABLE: los rangos más baratos primero, hasta donde llegan las monedas.
+    const some = CM.mice.promotePicks(poor, 'afford');
+    eq(Object.keys(some).length, 3, 'affordable picks the three cheapest ranks');
+    truthy(CM.mice.promoteCost(poor, some).cost <= poor.coins, 'and they fit in the budget');
+    truthy(CM.mice.promoteMany(poor, some).ok, 'so they go through');
+    eq(poor.coins, 0, 'spending exactly their price');
+    // Una selección vieja (un ratón que ya no está) no rompe nada.
+    const stale = make(2, 1e12);
+    const old = CM.mice.promotePicks(stale, 'all');
+    old.ghost = 3;
+    stale.mice.shift();
+    const res = CM.mice.promoteMany(stale, old);
+    eq(res.mice, 1, 'a stale selection promotes only who is still there');
+    valid(stale);
+  });
+
   test('save/load keeps the state; damaged and old saves start clean', () => {
     CM.storage.clear();
     const s = withCheese();

@@ -1,10 +1,10 @@
 # Resultados de pruebas
 
-Última ejecución: 12 de octubre de 2026, con el árbol de mejoras del Cheese Lab y la Cheesery rediseñada.
+Última ejecución: 13 de octubre de 2026, con el panel inferior de alto fijo, el BUY ALL global y los ascensos en bloque.
 
 ## Pruebas automáticas
 
-Ejecutadas abriendo `tests.html` en el navegador. **40 de 40 pasan.**
+Ejecutadas abriendo `tests.html` en el navegador. **42 de 42 pasan.**
 
 | Prueba | Resultado |
 | --- | --- |
@@ -40,6 +40,8 @@ Ejecutadas abriendo `tests.html` en el navegador. **40 de 40 pasan.**
 | Valor del queso: fórmula, sinergias, maestría, bodega y nivel de Trading | pasa |
 | Cheesemaker y Shopkeeper llevan solos el final de la cadena, dentro de sus límites | pasa |
 | La automatización solo espera por lo que le falta, nunca por espacio | pasa |
+| BUY ALL: recorre todos los árboles de más barato a más caro, dice antes lo que comprará y nunca cobra dos veces | pasa |
+| Ratones: varios ascensos de una vez cuestan y hacen exactamente lo mismo que uno a uno (1, 5, 15 y 26 ratones; rangos acumulados; selección parcial; sin monedas; selección vieja) | pasa |
 | Guardar y cargar mantiene el estado; guardados dañados o antiguos empiezan limpios | pasa |
 | Las recompensas por objetivo se pagan una vez, y nunca por picar | pasa |
 | Las dev tools marcan la partida y no rompen invariantes | pasa |
@@ -69,6 +71,26 @@ Hechas sobre el juego real, pulsando los controles:
 - Reiniciar deja la partida a cero.
 - Sin desbordamiento horizontal a 320×640 y 375×812.
 - Sin errores en la consola durante todo lo anterior.
+
+### Panel inferior, BUY ALL y ascensos (13-10-2026)
+
+Medido en el navegador con vista móvil emulada, con el juego a velocidad ×20 y pasando por las cinco etapas (unas 300 a 400 lecturas por medida del alto y la posición de cada bloque):
+
+| Vista | Partida | Resultado |
+| --- | --- | --- |
+| 360×740 | 45 min, 2 rocas | ningún bloque cambia de alto ni de posición (antes el panel iba de 234 a 292 px y la escena de 222 a 279) |
+| 320×640 | 5 h, 6 rocas | ningún bloque cambia; el panel se compacta y cabe sin desplazarse |
+| 375×812 | 100 min, 3 rocas | ningún bloque cambia |
+| escritorio (1024×768) | 5 h, 6 rocas | ningún bloque cambia |
+| 390×844 | partida nueva | solo revisión visual (Mining y un edificio sin construir) |
+
+Lo único que se mueve es el botón grande cuando late para pedir un toque, que es una animación a propósito.
+
+- BUY ALL: con 38 monedas anuncia «2 · 36», compra esas dos y cobra 36; un doble toque no cobra de más; sin nada que comprar enseña la siguiente mejora y su precio.
+- Ascensos: con 21 ratones listos, SELECT ALL y NONE no compran; quitar una fila y elegir un rango más bajo cambian el total; tres toques seguidos en PROMOTE cobran una sola vez (361.968.000, lo mismo que suma la lista) y sale un único aviso.
+- Sin errores en la consola.
+
+No comprobado aquí: 375 y 390 px con partidas largas más allá de lo indicado, y ningún teléfono real.
 
 ## Lo que NO está probado
 

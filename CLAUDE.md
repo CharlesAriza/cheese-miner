@@ -51,6 +51,8 @@ Hecho:
 - Venta por ciclos; el nivel de Trading trae mejores compradores.
 - Edificios con seis aspectos según sus mejoras, subsuelo que baja con la profundidad de la roca (capas, pozo, carteles, montacargas), pueblo que crece y ratones que acarrean.
 - Primeros pasos a fuego lento: cada edificio de la cadena se anuncia, su casilla se marca como nueva y el jugador va a su panel a construirlo. Compra rápida de mejoras desde cada etapa, «BUY ALL» global y Cheesemaker que elige la mejor receta.
+- **Panel inferior de alto fijo** (13-10-2026): ficha por roca, título y experiencia, dos renglones de información, acción + ratón del puesto, y fila de mejoras (la más barata, el árbol, BUY ALL). Sus piezas son fijas en `index.html` y solo se les cambia el texto. **Nada del panel, del marcador ni del objetivo puede cambiar de alto mientras el juego corre**: la escena es `flex: 1` y se redimensionaría. Un texto nuevo va en un renglón que ya existe, cortado con puntos suspensivos.
+- **BUY ALL** (`CM.tree.sweep`) recorre todos los árboles a la vez y compra siempre lo más barato que quede; con `dry` solo dice qué compraría, y eso es lo que enseña el botón. No compra mejoras que abren funciones ni árboles de edificios sin construir. Los gerentes siguen igual: compran solos lo que cuesta menos del 10 % de las monedas.
 - Progreso offline con la misma simulación.
 
 Hito 2, ratones como personajes: Mouse House, reclutar eligiendo uno de tres, nivel propio, cuatro rangos (el gerente compra mejoras solo), un puesto por etapa y roca, colocación automática, BEST FIT y despido voluntario (sin reembolso). Sustituye a los antiguos nudos de ratón de los árboles.
@@ -76,6 +78,8 @@ Interfaz de MICE (14-10-2026): tres pestañas. **COLONY** agrupa los puestos por
 Avisos: un rasgo normal es un aviso breve y queda en el diario; uno legendario se celebra a pantalla completa (si llegó con el juego cerrado, al cerrar el resumen de vuelta, que agrupa lo ocurrido).
 
 Rendimiento (15-10-2026): simular horas de ausencia con la colonia llena era lento (una hora, 5 s). Ahora tarda 0,35 s con el mismo resultado exacto, comprobado bit a bit. Cómo: (1) `CM.memo` guarda dentro de un avance las respuestas que no cambian (qué rinde un ratón, cuánto vale un queso, efectos de mejoras) y `CM.rev` las invalida: sube con cada evento que no sea rutinario y en los pocos sitios que cambian algo sin evento. **Quien añada una mecánica que cambie el rendimiento de un ratón, un precio o un tiempo sin emitir un evento debe subir `CM.rev`.** (2) La receta de cada línea y las candidatas del laboratorio se recalculan solo cuando cambia lo que las decide. (3) El libro de recetas tiene índice. (4) Con el juego cerrado no se construyen los eventos rutinarios que nadie escucha. La prueba «offline: the fast path, the slow path...» compara las tres formas de calcular; `CM.noMemo = true` apaga la memoria para comparar. Las ausencias de más de 30 minutos se calculan a trozos con una barra de progreso (`offlineStart/offlineRun/offlineEnd`); guardar a medias conserva lo que falte. Los avisos (`toast`) hacen cola en vez de pisarse.
+
+Ascensos en bloque (13-10-2026): el aviso «N can be promoted» de COLONY y ROSTER abre la lista de ratones con nivel para ascender (clases `pm-`). Se eligen uno a uno o con SELECT ALL / AFFORDABLE / NONE, se elige hasta qué rango cuando hay varios acumulados, se ve el total frente a las monedas y se confirma una vez. `CM.mice.promoteMany` usa el ascenso normal paso a paso; si el total no alcanza no cobra nada. No hay ascenso automático.
 
 ### Cheese Lab
 

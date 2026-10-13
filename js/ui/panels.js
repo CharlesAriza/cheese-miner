@@ -110,7 +110,9 @@
     if (skill === 'colony') h += zonesBlock(s);
     if (skill === 'lab') h += btn('open:lab', '<b>BACK TO THE LAB</b><span>The lab starts simple. Each upgrade here teaches it something new.</span><em>BACK</em>', { cls: 'labrow' });
     const n = CM.tree.affordable(s, skill, true);
-    if (skill !== 'lab' || n) h += btn('buyAll:' + skill, n ? 'BUY EVERYTHING I CAN AFFORD' : 'NOTHING AFFORDABLE YET', { off: !n, cls: 'buy wide serveall' });
+    if (skill !== 'lab' || n) h += btn('buyAll:' + skill, n ? 'BUY EVERYTHING I CAN AFFORD HERE' : 'NOTHING AFFORDABLE YET', { off: !n, cls: 'buy wide serveall' });
+    // Qué compra cada cosa: este botón, BUY ALL y los gerentes.
+    if (isSkill) h += '<p class="hint">This tree only. BUY ALL on the main screen does every skill at once, always the cheapest upgrade first.' + (s.mice.some((m) => M.ranks[m.rank].manager) ? ' Your managers already buy, on their own, upgrades of their job that cost under ' + Math.round(M.managerBudget * 100) + '% of your coins.' : '') + '</p>';
     for (const br of skill === 'lab' ? LAB_BRANCHES : BRANCHES) {
       const nodes = B.trees[skill].filter((x) => x.branch === br[0]);
       if (!nodes.length) continue;
@@ -727,7 +729,7 @@
     const idle = s.mice.filter((m) => !m.post);
     const empty = K.posts(s).filter((p) => !K.at(s, p.skill, p.zone));
     let notes = '';
-    if (promos.length) notes += btn('rosterfilter:promote', '<b>' + promos.length + '</b> can be promoted', { cls: 'mc-note up' });
+    if (promos.length) notes += btn('promos', '<b>' + promos.length + '</b> can be promoted', { cls: 'mc-note up' });
     if (idle.length) notes += btn('rosterfilter:free', '<b>' + idle.length + '</b> with no post', { cls: 'mc-note' });
     if (empty.length && !idle.length) notes += btn('miceview:house', '<b>' + empty.length + '</b> empty ' + (empty.length === 1 ? 'post' : 'posts'), { cls: 'mc-note' });
     if (s.care && K.byId(s, s.care.id)) notes += btn('miceview:house', 'Bed: <b>' + esc(K.byId(s, s.care.id).name) + '</b> ' + clock(s.care.remaining), { cls: 'mc-note bed' });
@@ -769,6 +771,40 @@
     return h;
   }
 
+  // ---- Ascensos pendientes: elegir varios, ver el total y confirmar una vez ----
+  // Las clases de esta vista empiezan por `pm-`. Nada se compra hasta confirmar.
+  const RARITY_NAME = ['', 'Rare', 'Legendary'];
+  function promosView(s, ui) {
+    const K = CM.mice;
+    const sel = ui.promo || {};
+    const list = s.mice.map((m) => ({ m, steps: K.promoteSteps(s, m) })).filter((x) => x.steps.length);
+    list.sort((a, b) => a.steps[0].cost - b.steps[0].cost || K.level(b.m) - K.level(a.m));
+    let h = btn('promoback', '<b>PROMOTIONS</b><span>A promotion makes a mouse faster for good. Nothing is bought until you confirm.</span><em>BACK</em>', { cls: 'labrow' });
+    const done = ui.promoDone;
+    if (done) h += '<div class="pm-done"><b>' + plural(done.mice, 'mouse', 'mice') + ' promoted</b><small>' + plural(done.steps, 'rank') + ' for ' + CM.fmt(done.cost) + ' coins' + (done.managers ? ' · ' + plural(done.managers, 'new manager') + ' buying upgrades' : '') + '</small></div>';
+    if (!list.length) return h + '<p class="hint">' + (done ? 'Nobody else is ready for a promotion.' : 'No mouse is ready for a promotion yet. They get there by working.') + '</p>';
+    const plan = K.promoteCost(s, sel);
+    h += '<div class="pm-tools">' + btn('promoset:all', 'SELECT ALL', { cls: 'chip' }) + btn('promoset:afford', 'AFFORDABLE', { cls: 'chip' }) + btn('promoset:none', 'NONE', { cls: 'chip' }) + '</div>';
+    for (const { m, steps } of list) {
+      const to = sel[m.id] && steps.some((st) => st.rank === sel[m.id]) ? sel[m.id] : 0;
+      const step = steps.find((st) => st.rank === to) || steps[steps.length - 1];
+      const after = Object.assign({}, m, { rank: step.rank });
+      const [skill, zone] = m.post ? m.post.split(':') : [];
+      const gain = skill ? mouseRate(s, m, skill, zone) + ' &gt; <b>' + mouseRate(s, after, skill, zone) + '</b>' : 'No post: it will work faster once placed';
+      h += '<div role="button" tabindex="0" data-act="promosel:' + m.id + '" class="pm-row' + (to ? ' on' : '') + (step.total > s.coins ? ' dear' : '') + '">' + portrait(m) +
+        '<span class="pm-main"><b>' + esc(m.name) + '<i>LV ' + K.level(m) + (m.rarity ? ' · ' + RARITY_NAME[m.rarity] : '') + '</i></b>' +
+        '<small>' + M.ranks[m.rank].name + ' &gt; <u>' + step.name + '</u></small><small class="pm-gain">' + gain + (M.ranks[step.rank].manager ? ' · buys upgrades on its own' : '') + '</small></span>' +
+        '<span class="pm-side">' + coin(step.total) + '<i class="pm-check"></i></span>';
+      // Con varios rangos acumulados se elige hasta dónde; cada rango cobra su precio.
+      if (steps.length > 1) h += '<span class="pm-steps">' + steps.map((st) => btn('promoto:' + m.id + ':' + st.rank, st.name + ' ' + CM.fmt(st.total), { cls: 'chip' + (to === st.rank ? ' on' : '') })).join('') + '</span>';
+      h += '</div>';
+    }
+    const short = plan.cost > s.coins;
+    h += '<div class="pm-foot"><div><b>' + (plan.steps ? plural(plan.mice, 'mouse', 'mice') + ' · ' + plural(plan.steps, 'rank') : 'Nothing selected') + '</b><small class="' + (short ? 'pm-short' : '') + '">' + coin(plan.cost) + ' of your ' + CM.fmt(s.coins) + (short ? ' · ' + CM.fmt(plan.cost - s.coins) + ' short' : '') + '</small></div>' +
+      btn('promogo', plan.steps ? 'PROMOTE ' + plan.mice : 'PROMOTE', { cls: 'buy' + (plan.steps && !short ? ' ready' : ''), off: !plan.steps || short }) + '</div>';
+    return h;
+  }
+
   // ---- ROSTER: todos los ratones, ordenables y filtrables ----
   const ROSTER_SORT = [['post', 'Post'], ['level', 'Level'], ['rarity', 'Rarity'], ['power', 'Output']];
   const ROSTER_SHOW = [['all', 'All'], ['free', 'No post'], ['legend', 'Legendary'], ['promote', 'Promote'], ['quirk', 'Quirks']];
@@ -790,7 +826,9 @@
     if (likes) list = list.filter((m) => m.aff && m.aff[likes]);
     list.sort(likes ? (a, b) => m2(b, likes) - m2(a, likes) || by(a, b) : by);
     const name = (table, id) => table.find((o) => o[0] === id)[1];
-    let h = '<button data-act="rosteropts" class="mc-filter' + (ui.rosterOpts ? ' open' : '') + '"><span>Sort: <b>' + name(ROSTER_SORT, sort) + '</b> · Show: <b>' + name(ROSTER_SHOW, show) + (likes ? ', likes ' + JOB_SHORT[likes] : '') + '</b> · ' + list.length + '/' + s.mice.length + '</span><em>' + (ui.rosterOpts ? 'CLOSE' : 'CHANGE') + '</em></button>';
+    const ready = s.mice.filter((m) => canPromote(s, m)).length;
+    let h = ready ? '<div class="mc-notes">' + btn('promos', '<b>' + ready + '</b> can be promoted', { cls: 'mc-note up' }) + '</div>' : '';
+    h += '<button data-act="rosteropts" class="mc-filter' + (ui.rosterOpts ? ' open' : '') + '"><span>Sort: <b>' + name(ROSTER_SORT, sort) + '</b> · Show: <b>' + name(ROSTER_SHOW, show) + (likes ? ', likes ' + JOB_SHORT[likes] : '') + '</b> · ' + list.length + '/' + s.mice.length + '</span><em>' + (ui.rosterOpts ? 'CLOSE' : 'CHANGE') + '</em></button>';
     if (ui.rosterOpts) {
       const chips = (table, act, cur) => table.map((o) => btn(act + ':' + o[0], o[1], { cls: 'chip' + (cur === o[0] ? ' on' : '') })).join('');
       h += '<div class="mc-opts"><small>SORT BY</small><div>' + chips(ROSTER_SORT, 'micesort', sort) + '</div><small>SHOW</small><div>' + chips(ROSTER_SHOW, 'rosterfilter', show) + '</div><small>LIKES THE JOB</small><div>' + K.JOBS.map((k) => btn('rosterlikes:' + k, JOB_SHORT[k], { cls: 'chip' + (likes === k ? ' on' : '') })).join('') + '</div></div>';
@@ -1009,6 +1047,7 @@
     }
     if (s.candidates.length) return recruitView(s, ui);
     if (ui.miceTab === 'album') return albumView(s);
+    if (ui.miceTab === 'promos') return promosView(s, ui);
     const shown = ui.card ? K.byId(s, ui.card) : null;
     if (shown) return cardView(s, ui, shown);
     const posts = K.posts(s);
