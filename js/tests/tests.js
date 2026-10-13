@@ -1278,6 +1278,15 @@
     eq(JSON.stringify(s.nodes), JSON.stringify(o.nodes), 'and exactly the same upgrades');
     eq(s.coins, 5000 - plan.cost, 'coins go down by the total, once');
     truthy(real.next && real.next.cost > s.coins, 'it says which upgrade comes next and it cannot be paid yet');
+    // Cada rango comprado se nota al momento, también con muchas mejoras ya compradas.
+    const full = make(1e40);
+    CM.tree.sweep(full);
+    for (const [skill, id, fn] of [['cheesemaking', 'moulds', () => q.cheeseBatch(full)], ['trading', 'counter', () => q.sellCount(full)], ['refining', 'vat', () => q.refineBatch(full)], ['drilling', 'bit', () => q.drillYield(full, 'cheddar')]]) {
+      const was = fn();
+      full.coins = 1e300;
+      truthy(CM.tree.buy(full, skill, id).ok, 'one more rank of ' + id);
+      truthy(fn() > was, 'a new rank of ' + id + ' takes effect at once');
+    }
     // Un segundo toque no compra ni cobra nada.
     const coins = s.coins;
     const again = CM.tree.sweep(s);

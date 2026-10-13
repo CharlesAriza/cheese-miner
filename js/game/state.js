@@ -154,7 +154,9 @@
   }
   function modsNow(s) {
     let stamp = 0;
-    for (const k in s.nodes) stamp = stamp * 31 + s.nodes[k] + k.length;
+    // En enteros de 32 bits: con un número normal, pasadas unas diez mejoras el sello perdía
+    // precisión y un rango nuevo de las últimas no se notaba hasta que cambiaba otra.
+    for (const k in s.nodes) stamp = (Math.imul(stamp, 31) + s.nodes[k] * 131 + k.length) | 0;
     if (modsCache.src === s.nodes && modsCache.stamp === stamp) return modsCache.get;
     const m = {};
     for (const skill of Object.keys(B.trees)) {

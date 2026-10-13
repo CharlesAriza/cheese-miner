@@ -6120,3 +6120,20 @@ div.mc-row {
   font-weight: 700;
   white-space: nowrap;
 }
+
+/* Monedas: el ritmo por minuto empieza bajo el icono y usa todo el ancho de la casilla,
+   para que una cifra larga no se corte. El alto es el mismo de antes. */
+#res-coins {
+  align-items: flex-start;
+}
+#res-coins em {
+  position: relative;
+  width: calc(100% + 27px);
+  margin-left: -27px;
+}
+@media (max-width: 345px) {
+  .lanecells .res em {
+    font-size: 8px;
+    letter-spacing: -0.2px;
+  }
+}

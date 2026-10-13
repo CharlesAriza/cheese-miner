@@ -1624,7 +1624,7 @@
     set($('lots'), 'text', CM.fmt(roll('lots', q.lotsOfBase(state, hb))));
     const hname = B.bases[hb].name.toUpperCase();
     // El nombre del queso en los tres; la forma del icono dice si es Raw, Base o queso.
-    set($('lane-name'), 'text', hname);
+    set($('lane-name'), 'text', hname + ' · PER MIN');
     set($('lanegroup'), 'cls', 'lanegroup ' + hb);
 
     const obj = CM.sim.objective(state);
@@ -1652,12 +1652,13 @@
   // Ingresos por minuto bajo cada contador: lo que hace que un idle se sienta vivo.
   function updateRates() {
     const r = CM.telemetry.rates(state);
-    const show = (id, value) => {
+    // Los tres contadores de la roca son estrechos: la unidad va una vez, en su etiqueta.
+    const show = (id, value, unit) => {
       const v = Math.round(value);
-      set($(id), 'text', v ? (v > 0 ? '+' : '') + CM.fmt(v) + '/min' : '');
+      set($(id), 'text', v ? (v > 0 ? '+' : '') + CM.fmt(v) + (unit || '') : '');
       set($(id), 'neg', v < 0);
     };
-    show('rate-coins', r.coins);
+    show('rate-coins', r.coins, '/min');
     const lane = r.lanes[ui.zone];
     show('rate-raw', lane.raw - lane.rawUsed);
     show('rate-base', lane.base - lane.baseUsed);
