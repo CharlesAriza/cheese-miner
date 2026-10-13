@@ -52,6 +52,7 @@ Hecho:
 - Edificios con seis aspectos según sus mejoras, subsuelo que baja con la profundidad de la roca (capas, pozo, carteles, montacargas), pueblo que crece y ratones que acarrean.
 - Primeros pasos a fuego lento: cada edificio de la cadena se anuncia, su casilla se marca como nueva y el jugador va a su panel a construirlo. Compra rápida de mejoras desde cada etapa, «BUY ALL» global y Cheesemaker que elige la mejor receta.
 - **Panel inferior de alto fijo** (13-10-2026): ficha por roca, título y experiencia, dos renglones de información, acción + ratón del puesto, y fila de mejoras (la más barata, el árbol, BUY ALL). Sus piezas son fijas en `index.html` y solo se les cambia el texto. **Nada del panel, del marcador ni del objetivo puede cambiar de alto mientras el juego corre**: la escena es `flex: 1` y se redimensionaría. Un texto nuevo va en un renglón que ya existe, cortado con puntos suspensivos.
+- El efecto de las mejoras se guarda en caché con un sello de los rangos comprados (`modsNow`, enteros de 32 bits). Un sello con números normales perdía precisión y los rangos nuevos tardaban en aplicarse.
 - **BUY ALL** (`CM.tree.sweep`) recorre todos los árboles a la vez y compra siempre lo más barato que quede; con `dry` solo dice qué compraría, y eso es lo que enseña el botón. No compra mejoras que abren funciones ni árboles de edificios sin construir. Los gerentes siguen igual: compran solos lo que cuesta menos del 10 % de las monedas.
 - Progreso offline con la misma simulación.
 

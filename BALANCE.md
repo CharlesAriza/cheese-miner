@@ -298,3 +298,16 @@ No cambia ningún precio ni multiplicador: solo el orden en que BUY ALL compra. 
 El bot no usa este botón (compra árbol a árbol), así que el ritmo medido no cambia.
 
 **Problema de fondo, sin tocar.** Al final de la partida el botón no tiene qué comprar porque las mejoras se acaban, no porque falle: de las 19 mejoras con tope quedan 3 a los 90 minutos y ninguna a las 5 horas. Solo quedan las de tamaño, que triplican su precio en cada rango: a las 5 horas la más barata cuesta 1,5 veces las monedas que hay y se compra una cada 40 a 60 minutos. Los gerentes tampoco compran ahí, porque nada baja del 10 % de las monedas. El cambio mínimo que lo arreglaría es dar contenido a ese tramo (la propuesta de mejoras por hitos cada 10 rangos); está sin decidir y no se ha construido.
+
+## Las mejoras tardaban en notarse (arreglado el 13-10-2026)
+
+Desde el primer día, el juego recordaba el efecto total de las mejoras con un sello numérico que perdía precisión a partir de unas diez mejoras distintas compradas. Un rango nuevo de las que iban detrás (More Moulds entre ellas) no se aplicaba hasta que se compraba otra de las primeras o se recargaba la partida; por eso el árbol enseñaba «Now: 20 / Next: 20». No se perdía nada, pero llegaba tarde. Ahora cada rango cuenta al momento.
+
+Todas las medidas anteriores de este documento se tomaron con ese retraso. Seis partidas casuales de 4 horas, mismas semillas, antes y después del arreglo:
+
+| | Rocas 2ª a 6ª (min, mediana) | Monedas ganadas a las 4 h (mediana) |
+| --- | --- | --- |
+| Antes | 35 / 65 / 100 / 153 / 230 (una de seis no abre la 6ª) | 190 T |
+| Después | 35 / 65 / 95 / 140 / 205 (una de seis no abre la 6ª) | 268 T |
+
+El arranque no cambia; desde la cuarta roca va algo más rápido. No se ha reajustado ningún precio.

@@ -4,7 +4,7 @@
 
 ## Pruebas automáticas
 
-Ejecutadas abriendo `tests.html` en el navegador. **42 de 42 pasan.**
+Ejecutadas abriendo `tests.html` en el navegador. **42 de 42 pasan** (también tras arreglar la caché de efectos de las mejoras; la prueba de BUY ALL comprueba ahora que cada rango nuevo se nota al momento).
 
 | Prueba | Resultado |
 | --- | --- |
@@ -89,6 +89,7 @@ Lo único que se mueve es el botón grande cuando late para pedir un toque, que 
 - BUY ALL: con 38 monedas anuncia «2 · 36», compra esas dos y cobra 36; un doble toque no cobra de más; sin nada que comprar enseña la siguiente mejora y su precio.
 - Ascensos: con 21 ratones listos, SELECT ALL y NONE no compran; quitar una fila y elegir un rango más bajo cambian el total; tres toques seguidos en PROMOTE cobran una sola vez (361.968.000, lo mismo que suma la lista) y sale un único aviso.
 - Sin errores en la consola.
+- Marcador: a 320×640 con cifras de final de partida («+107T/min», «+58.5K») ningún número se corta y el alto del marcador no cambia (57 px). La unidad «per min» de los tres contadores de la roca va una vez, en su etiqueta.
 
 No comprobado aquí: 375 y 390 px con partidas largas más allá de lo indicado, y ningún teléfono real.
 
