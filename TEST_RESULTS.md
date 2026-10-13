@@ -142,6 +142,14 @@ En el navegador, con una partida casual de 5 horas (seis rocas) y 12 refuerzos r
 - Tocando: doce refuerzos colocados uno a uno; quitar uno de la refinería de Cheddar y ponerlo en el taladro de Parmesan cambia la Base de la refinería a x1,5 y la velocidad del taladro a x1,5; devuelto a su sitio, tras recargar la página siguen los doce donde estaban.
 - La prueba de ausencia de cuatro horas con objetivo de refuerzo en curso y la de igualdad offline (ahora con un refuerzo en la refinería) pasan.
 
+### Tres ajustes de cierre (13-10-2026)
+
+En el navegador a 320×640, con una partida guardada por la versión anterior (carga sin migración) y la colonia automatizada:
+
+- La chapa de dos refuerzos apila sus galones por debajo de 345 px: ya no roza «UP!». Casillas 55×47 y controles 348 px, igual que antes.
+- Con todos los objetivos cumplidos la franja mide 16 px en vez de 51 y la escena gana esa altura (214 px).
+- Efectos durante 15 s con el intervalo final de 1,2 s, a 360×760 mirando la quesería y la tienda de Cheddar: como mucho 2 números y 5 iconos a la vez (media 1,3 y 2,4). Antes los topes eran 26 y 30.
+
 No comprobado jugando: una partida a mano de varias horas con refuerzos, ni nada en un teléfono real.
 
 ## Lo que NO está probado

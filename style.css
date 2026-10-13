@@ -6635,3 +6635,29 @@ div.mc-row {
     width: 11px;
   }
 }
+
+/* Todo cumplido: un renglón fino, sin barra. El siguiente objetivo le devuelve su tamaño. */
+.objective.idle {
+  padding: 2px 8px;
+  box-shadow: none;
+  background: #cdbf98;
+}
+.objective.idle .obj-row {
+  justify-content: center;
+  height: auto;
+  font-size: 6px;
+}
+.objective.idle .bar {
+  display: none;
+}
+/* A 320 px la chapa de dos refuerzos apila sus galones: ocupa lo que la de uno y no roza la
+   etiqueta UP! de la otra esquina. */
+@media (max-width: 345px) {
+  .tile[data-boost='2']::before {
+    content: '\25B2\A\25B2';
+    white-space: pre;
+    line-height: 0.72;
+    letter-spacing: -1px;
+    padding: 1px 3px 3px;
+  }
+}

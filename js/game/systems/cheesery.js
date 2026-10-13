@@ -641,13 +641,15 @@
       const xm = w ? CM.mice.reward(s, 'cheesemaking', zoneId, B.mice.xpPerAction * ((strainOf(recipe) || {}).teach || 1)) : 1;
       // El nivel de la habilidad y el ratón ya agrandaron la hornada al empezar
       // (gastando su Base). Aquí solo queda la suerte: a veces la hornada sale doble.
+      let made = n;
       if (w && job.kind !== 'experiment' && CM.mice.out(s, w) > w.yield * 1.5) {
+        made += n;
         s.lots[recipe.id] += n;
         s.totals.lotsProduced += n;
         z.stats.lots += n;
       }
       CM.skills.addXp(s, 'cheesemaking', B.xp.perCheese * recipeXp(recipe) * xm);
-      CM.emit(s, 'lotDone', { zone: zoneId, recipeId: recipe.id, source: job.source });
+      CM.emit(s, 'lotDone', { zone: zoneId, recipeId: recipe.id, amount: made, source: job.source });
       if (masteryLevel(recipe) > before) CM.emit(s, 'masteryUp', { recipeId: recipe.id, level: masteryLevel(recipe) });
       if (job.lotsLeft > 0) job.remaining = job.total = jobTime(s, parseKey(job.key), recipe);
       else {

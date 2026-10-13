@@ -70,7 +70,7 @@
   function float(text, id, cls) {
     if (covered()) return;
     const at = scene.anchor(id);
-    if (at[0] < 0.03 || at[0] > 0.97 || els.floaters.childElementCount > 26) return;
+    if (at[0] < 0.03 || at[0] > 0.97 || els.floaters.childElementCount > 8) return;
     const el = document.createElement('div');
     el.className = 'float ' + cls;
     el.innerHTML = text;
@@ -145,7 +145,7 @@
   }
   // Iconos que vuelan de un sitio a otro: enseñan de dónde sale y a dónde va cada recurso.
   function fly(src, from, to, count, onArrive) {
-    if (covered() || els.flyers.childElementCount > 30) return onArrive && onArrive();
+    if (covered() || els.flyers.childElementCount > 10) return onArrive && onArrive();
     const a = pointOf(from);
     // Llegan al icono del contador, no encima de la cifra.
     const b = pointOf((to.querySelector && to.querySelector('img.pix')) || to);
@@ -174,6 +174,21 @@
         if (i === n - 1 && onArrive) onArrive();
       };
     }
+  }
+  // Con la colonia automatizada cada etapa termina un ciclo por segundo: un número y unos iconos
+  // por cada uno tapaban a los ratones y el marcador. Lo que producen los ratones se junta y se
+  // enseña de vez en cuando con el total real; lo que hace el jugador con su dedo sale siempre.
+  const FX_EVERY = 1200;
+  const paced = {};
+  function pace(key, amount, everyMs, manual) {
+    const now = performance.now();
+    const p = paced[key] || (paced[key] = { at: 0, sum: 0 });
+    p.sum += amount;
+    if (!manual && now - p.at < everyMs) return 0;
+    const total = p.sum;
+    p.at = now;
+    p.sum = 0;
+    return total;
   }
   const bump = (id) => retrigger($(id), 'bump');
   const tileBump = (st) => retrigger(tiles[st], 'bump');
@@ -233,8 +248,14 @@
         break;
       case 'drillDone':
         play('raw');
-        if (here) float(I.img('raw', ev.base) + '+' + CM.fmt(ev.amount), 'rock', 'raw');
-        fly(I.url('raw', ev.base), here ? 'rock' : tiles.drill, $('res-raw'), Math.min(4, ev.amount), () => bump('res-raw'));
+        // Números e iconos solo de la roca que se mira: el marcador de arriba es el suyo.
+        if (here) {
+          const n = pace('raw:' + ev.zone, ev.amount, FX_EVERY, ev.source === 'manual');
+          if (n) {
+            float(I.img('raw', ev.base) + '+' + CM.fmt(n), 'rock', 'raw');
+            fly(I.url('raw', ev.base), 'rock', $('res-raw'), Math.min(2, n), () => bump('res-raw'));
+          }
+        }
         tileBump('drill');
         break;
       case 'deeper':
@@ -249,15 +270,25 @@
         break;
       case 'refineDone':
         play('base');
-        float(I.img('base', ev.base) + '+' + CM.fmt(ev.amount), 'refinery', 'base');
-        fly(I.url('base', ev.base), 'refinery', $('res-base'), Math.min(4, ev.amount), () => bump('res-base'));
+        if (here) {
+          const n = pace('base:' + ev.zone, ev.amount, FX_EVERY, ev.source === 'manual');
+          if (n) {
+            float(I.img('base', ev.base) + '+' + CM.fmt(n), 'refinery', 'base');
+            fly(I.url('base', ev.base), 'refinery', $('res-base'), Math.min(2, n), () => bump('res-base'));
+          }
+        }
         tileBump('refinery');
         break;
       case 'lotDone': {
         const base = recipeBase(ev.recipeId);
         play('lot');
-        float(I.img('lot', base) + '+1', 'cheesery', 'lot');
-        fly(I.url('lot', base), 'cheesery', $('res-lots'), 1, () => bump('res-lots'));
+        if (here) {
+          const n = pace('lot:' + ev.zone, ev.amount || 1, FX_EVERY, ev.source === 'manual');
+          if (n) {
+            float(I.img('lot', base) + '+' + CM.fmt(n), 'cheesery', 'lot');
+            fly(I.url('lot', base), 'cheesery', $('res-lots'), 1, () => bump('res-lots'));
+          }
+        }
         tileBump('cheesery');
         break;
       }
@@ -445,8 +476,13 @@
       case 'sale':
         play('coin');
         buzz(15);
-        fly(I.url('coin'), 'shop', $('res-coins'), Math.min(5, 2 + ev.count), () => bump('res-coins'));
-        float(I.img('coin') + '+' + CM.fmt(ev.coins), 'shop', 'coins');
+        {
+          const n = pace('coins', ev.coins, FX_EVERY, ev.source === 'manual');
+          if (n) {
+            fly(I.url('coin'), 'shop', $('res-coins'), ev.source === 'manual' ? Math.min(5, 2 + ev.count) : 2, () => bump('res-coins'));
+            float(I.img('coin') + '+' + CM.fmt(n), 'shop', 'coins');
+          }
+        }
         tileBump('shop');
         break;
       case 'levelUp': {
@@ -1726,6 +1762,8 @@
     set($('lanegroup'), 'cls', 'lanegroup ' + hb);
 
     const obj = CM.sim.objective(state);
+    // Sin nada pendiente, la franja se queda en un renglón fino; vuelve a su tamaño con el siguiente objetivo.
+    set($('objective'), 'idle', !!obj.done);
     set($('obj-text'), 'text', (obj.done ? '' : 'GOAL: ') + obj.text + (obj.reward ? '  (+' + CM.fmt(obj.reward) + ' coins)' : ''));
     set($('obj-num'), 'text', obj.hasBar ? CM.fmt(obj.cur) + '/' + CM.fmt(obj.max) : '');
     set($('obj-fill'), 'width', (obj.hasBar ? Math.round((obj.cur / obj.max) * 100) : obj.done ? 100 : 0) + '%');
