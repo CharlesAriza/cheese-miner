@@ -91,6 +91,12 @@ Tres mejoras especiales para probar jugando si el tramo medio gana decisiones. C
 - **Cheese Board.** Las ventas valen más cuanto más repartidas estén entre ingredientes, tratamientos y maduraciones: en cada familia se calcula el número efectivo de tipos según lo vendido en los últimos ~10 minutos, y cada tipo efectivo de más da un 20 %. Un tipo que apenas vende apenas cuenta. Se cambia fijando otra receta en una roca; el Cheesemaker sin receta fijada sigue eligiendo por potencial, sin mirar la tabla.
 - **Grand Master.** Un único título para toda la colonia, que el jugador da a un ratón desde su ficha y puede pasar a otro (cada uno conserva su experiencia). Su grado sale de las hornadas cocinadas en su vida (el primero a 20.000, otro cada vez que se doblan) y cada grado sube un 10 % el queso de la roca donde cocina. Fuera de un puesto de quesero no cuenta.
 
+**Cheese Board está aparcado (decisión del 13-10-2026).** Medido en ingresos netos da entre un 2 % y un 10 %, y el mejor reparto es siempre el mismo (otro tratamiento en las rocas que no son la más rica); ni medirlo por producción ni dar más peso a ingredientes y maduraciones lo arregla. No se desarrolla más hasta que haya cepas en más quesos. Cómo dejarlo en pausa sin romper partidas (pendiente de aplicar, con el visto bueno del propietario):
+
+- Marcar el nudo `board` como aparcado: no se lista en el árbol, no se anuncia y su objetivo de producción no cuenta para quien no lo tenga. Grand Master pasa a abrirse con el primer objetivo.
+- Quien ya lo compró lo conserva tal cual: `s.nodes['cheesemaking.board']` y `s.board` se siguen leyendo, su tarjeta sigue en la Cheesery y sus ventas siguen cobrando el bono. No hace falta migración ni subir la versión del guardado.
+- No se devuelve el precio ni se borra nada: «nada se pierde».
+
 Quien toque el valor del queso: el título entra en `valueNow` (memorizado por `CM.rev`; nombrar, mover y subir de grado emiten evento) y la tabla multiplica las monedas de cada venta en `shop.start`, fuera de la memoria.
 
 ### Cheese Lab
