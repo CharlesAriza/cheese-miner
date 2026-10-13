@@ -108,7 +108,15 @@ En el navegador, a 360×740, sobre partidas preparadas:
 - Cheese Board: la tarjeta de la Cheesery enseña el reparto de ventas por familia y el bono.
 - Grand Master: nombrar a un ratón desde su ficha le pone la estrella en el retrato, y el panel inferior dice su grado.
 
-No comprobado jugando: una partida entera con los hitos de principio a fin (solo simulada con el bot), el aspecto de la rueda en movimiento, cambiar de Grand Master varias veces desde la interfaz, ni nada en un teléfono real.
+Validación interactiva posterior (mismo día, 360×740, partidas del bot cargadas en el juego a las 2, 6 y 12 horas, a velocidad ×20 por tramos):
+
+- Al comprar Grand Wheel ya no aparece después el aviso «is waiting»: salen «NEW MILESTONE: GRAND WHEEL» y «GRAND WHEEL UNLOCKED!».
+- Con 5 rocas, en 13 minutos de juego: 2 franjas de Grand Wheel (solo la roca que se mira) entre otras 10 noticias; con 6 rocas a las 12 horas, 1 franja en 12 minutos y ninguna otra. La franja queda dentro de la escena; marcador, objetivo, escena y panel no cambian de alto.
+- La franja de la rueda es ahora dorada y dura más; comprobé su clase y su texto, pero no conseguí una captura limpia de ella.
+- Grand Master: cinco cambios seguidos de título desde la ficha (tres queseros, el tendero y vuelta al primero). Tras cada uno, el guardado tiene un solo titular, una sola estrella en la lista y las hornadas de todos los ratones intactas.
+- Cheese Board: fijar «Vintage Smoked Truffle Parmesan» desde RECIPE BOOK y dejar correr 12 minutos lleva la tarjeta a «Brined 79 % · Smoked 21 %, +10 %» y x1,10.
+
+No comprobado jugando: una partida a mano de principio a fin, el aspecto de la rueda a velocidad normal, ni nada en un teléfono real.
 
 ## Lo que NO está probado
 

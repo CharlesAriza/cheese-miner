@@ -346,3 +346,39 @@ Lo que aporta cada uno (la misma colonia, 30 minutos con y sin el hito, a las 6 
 - Monedas a las 12 horas: 23,6 y 30,0 Qa con hitos sin decidir, 33,3 y 24,4 Qa decidiendo, 29,9 y 25,6 Qa sin hitos. La diferencia entre partidas es mayor que el efecto: no cambia la economía de forma apreciable.
 - Tienda: en una de las dos semillas, con hitos se acumularon entre 2,6 y 4,3 millones de quesos sin vender (sin hitos, unos cientos). Más queso aprieta a Trading.
 - Cheese Board, cálculo aparte sobre cuatro colonias: el mejor reparto solo cambia tratamientos (cambiar ingrediente o maduración cuesta un 35 % y un 43 % del valor de esa roca y no compensa), y poner recetas flojas en las tres rocas más pobres pierde entre un 17 % y un 26 %.
+
+## Validación de los tres hitos (13-10-2026)
+
+Sin cambiar ninguna cifra. Colonias casuales con seis rocas y los tres hitos comprados (semillas 12 y 13, a las 6, 12 y 24 horas).
+
+**Cheese Board, ingresos netos.** La misma colonia, 20 minutos de rodaje y 60 de medida, monedas ganadas después de vender, frente a dejar que cada roca cocine su mejor receta:
+
+| Colonia | Una roca cambiada | Dos | El mejor reparto (4 o 5 rocas) | Recetas flojas en las rocas pobres |
+| --- | --- | --- | --- | --- |
+| Semilla 13, 6 h | +1,1 % | +2,5 % | +5,6 % | −22 % |
+| Semilla 13, 12 h (la tienda vende el 94 %) | +2,9 % | +3,8 % | +2,1 % | −13 % |
+| Semilla 12, 6 h (dos rocas ricas, 37 % y 31 %) | +6,4 % | +8,4 % | +6,6 % | −19 % |
+| Semilla 12, 12 h | +5,0 % | +8,0 % | +8,2 % | −12 % |
+| Semilla 12, 24 h | +4,3 % | +4,8 % | +3,8 % | −14 % |
+| Semilla 13, 6 h, tienda forzada al 63 % | +1,2 % | +2,5 % | −0,4 % | −15 % |
+| Semilla 13, 6 h, Base forzada a escasear | +1,2 % | +0,7 % | +1,7 % | −21 % |
+
+El reparto que gana siempre es el mismo: tratamiento distinto (ahumado o lavado) en las rocas que no son la más rica. Cambiar ingrediente o maduración en la segunda roca pierde entre un 3,5 % y un 5,5 %. El bono tarda unos 25 minutos en asentarse tras fijar recetas y luego oscila: con el mejor reparto, entre x1,18 y x1,32 dentro de una misma hora.
+
+**Grand Master, candidatos.** Ingresos de la colonia frente a no dar el título, a 1 hora y a 6 horas:
+
+| Candidato (semilla 13, roca más rica: Blue) | 1 h | 6 h |
+| --- | --- | --- |
+| El quesero que ya está en Blue (común, 145.000 hornadas, grado 3) | x1,17 | x1,22 |
+| Quesero veterano de otra roca, movido a Blue (95.700 hornadas, grado 3, rinde 1,6 veces) | x1,27 | x1,23 |
+| Legendario de más rendimiento, movido a Blue (79.900 hornadas, grado 2) | x1,14 | x1,15 |
+| Ratón que adora el oficio pero nunca ha cocinado, movido a Blue | x1,03 | x1,05 (llega a grado 3 en 6 h) |
+| Raro que hace de tendero, movido a Blue | x0,95 | x0,96 |
+
+En la semilla 12 gana otra opción: dar el título al veterano de la segunda roca sin moverlo (x1,13 en la primera hora; movido a la más rica, x1,07 al principio y x1,19 a las 6 horas), frente a x1,09 del quesero de la roca más rica. En todos los casos las hornadas de cada ratón se conservan al mover o cambiar el título.
+
+**Contador, 24 horas (semilla 12, con objetivos de prueba añadidos solo para medir).** Los tres primeros objetivos se cumplen en 65, 100 y 105 minutos; desde la hora 12, en 165 a 175 minutos, de forma estable. La estimación al fijarlos decía unas 3 horas en todos. Una ausencia de 3 horas a la hora 8 cocinó 52 M de quesos, cumplió dos objetivos seguidos y dio 105 ruedas; el objetivo en curso no cambió al guardar y recargar.
+
+**Offline frente a en directo.** La misma colonia 20 minutos con pasos de 100 ms y de 1.000 ms: quesos y monedas a menos de un 1 % y las mismas 12 ruedas.
+
+**Tienda.** Semilla 12: vende el 100 % a las 12 y a las 24 horas. Semilla 13 a las 12 horas: 3,8 M de quesos guardados, vende el 96 % de lo que se cocina; lo que no vende es el queso más barato (un rango más de Bigger Counter sube las ventas al 99 % y los ingresos no cambian de forma apreciable). Ese rango cuesta 10,3 Qa con 9,1 Qa en caja; Quick Sales está al máximo.

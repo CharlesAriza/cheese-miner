@@ -6316,3 +6316,17 @@ div.mc-row {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* La franja de una Grand Wheel: dorada y más larga, distinta de las noticias corrientes. */
+#banner.wheel {
+  padding: 14px 6px;
+  font-size: 15px;
+  white-space: pre-line;
+  color: #3a2a14;
+  background: linear-gradient(180deg, #ffe55c, #ff9a1f);
+  border-color: #fff;
+  text-shadow: 1px 1px #fff3b0;
+}
+#banner.wheel.show {
+  animation-duration: 3.2s;
+}

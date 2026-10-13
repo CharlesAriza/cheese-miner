@@ -80,10 +80,12 @@
     els.floaters.appendChild(el);
     el.addEventListener('animationend', () => el.remove());
   }
-  function banner(text) {
+  function banner(text, kind) {
     // Detrás de un panel la franja no se vería: la noticia va en el aviso de arriba.
     if (covered()) return toast(text, true);
     els.banner.textContent = text;
+    // La Grand Wheel tiene su propia franja, dorada, para no confundirse con las demás noticias.
+    els.banner.classList.toggle('wheel', kind === 'wheel');
     retrigger(els.banner, 'show');
   }
   // Los avisos hacen cola: cada uno se lee entero antes de dar paso al siguiente, en vez de
@@ -381,13 +383,15 @@
         if (ev.zone === ui.zone && !covered()) {
           play('goal');
           scene.celebrate();
-          banner('GRAND WHEEL! +' + CM.fmt(ev.lots) + ' ' + B.bases[q.zoneDef(ev.zone).base].name.toUpperCase());
+          banner('GRAND WHEEL!\n+' + CM.fmt(ev.lots) + ' ' + B.bases[q.zoneDef(ev.zone).base].name.toUpperCase(), 'wheel');
         }
         break;
       case 'masterNamed': {
         const mouse = CM.mice.byId(state, ev.id);
         play('goal');
         scene.celebrate();
+        // Si el título cambia varias veces seguidas, solo se anuncia el último.
+        for (let i = toastQueue.length - 1; i >= 0; i--) if (toastQueue[i].text.indexOf(' IS YOUR GRAND MASTER!') > 0) toastQueue.splice(i, 1);
         if (mouse) banner(mouse.name.toUpperCase() + ' IS YOUR GRAND MASTER!');
         dirty = true;
         break;
@@ -1418,6 +1422,8 @@
     };
     const c = cards[id];
     if (!c) return;
+    // Ya está comprado: el aviso de que esperaba, si aún hacía cola, sobra.
+    for (let i = toastQueue.length - 1; i >= 0; i--) if (toastQueue[i].text.indexOf(' is waiting in CHEESE') > 0) toastQueue.splice(i, 1);
     banner(c[0] + ' UNLOCKED!');
     scene.celebrate();
     showModal('<h2>' + c[0] + '</h2><div class="hero">' + I.img(c[3], baseOfZone(), 'huge') + '</div><p class="lead">' + c[1] + '</p><ul class="list">' + c[2].map((l) => '<li>' + l + '</li>').join('') + '</ul><div class="row"><button class="buy wide" data-m="ok">GOT IT</button></div>', { ok: () => {} });
