@@ -354,10 +354,10 @@
     CM.tree.buy(base, 'trading', 'prices');
     // Con los tres hitos comprados y un Grand Master cocinando: ruedas, tabla y título también cuentan igual.
     for (const id of ['wheel', 'board', 'master']) base.nodes['cheesemaking.' + id] = 1;
-    // Y con dos refuerzos colocados y un objetivo de refuerzo en curso.
-    base.boost.goals = 3;
-    base.boost.seen = 3;
-    base.boosts = ['drilling:cheddar', 'drilling:cheddar', 'trading:all'];
+    // Y con refuerzos colocados (también en la refinería) y un objetivo de refuerzo en curso.
+    base.boost.goals = 4;
+    base.boost.seen = 4;
+    base.boosts = ['drilling:cheddar', 'drilling:cheddar', 'trading:all', 'refining:cheddar'];
     base.master = CM.mice.at(base, 'cheesemaking', 'cheddar').id;
     CM.mice.at(base, 'cheesemaking', 'cheddar').jobs.cheesemaking = 39900;
     const text = JSON.stringify(base);
@@ -1742,6 +1742,117 @@
     eq(BO.owned(got), B.zones.length - 2, 'an older save gets the boosts its rocks are worth');
     eq(got.boosts.length, 0, 'all of them free to place');
     valid(s);
+  });
+
+  test('boosts: on a refinery a boost gives more Base from the same Raw, not speed', () => {
+    const BO = CM.boosts;
+    // La misma refinería con Raw de sobra, veinte minutos, con cero, uno y dos refuerzos.
+    const line = (n, extra) => {
+      const g = withChain();
+      g.inv.raw.cheddar = 1e9;
+      const m = staff(g, 'refining', 'cheddar', extra);
+      g.boost.goals = n;
+      for (let i = 0; i < n; i++) truthy(BO.place(g, 'refining:cheddar').ok, 'place boost ' + (i + 1));
+      CM.rev += 1;
+      const raw0 = g.totals.rawConsumed, base0 = g.totals.baseProduced, xp0 = g.skills.refining.xp;
+      const speed = CM.mice.work(g, 'refining', 'cheddar').speed;
+      run(g, 20 * 60000);
+      valid(g);
+      return { g, m, speed, raw: g.totals.rawConsumed - raw0, base: g.totals.baseProduced - base0, xp: g.skills.refining.xp - xp0, mouseXp: m.xp, jobs: m.jobs.refining };
+    };
+    const a = line(0), b = line(1), c = line(2);
+    eq(b.speed, a.speed, 'one boost does not make the refiner faster');
+    eq(c.speed, a.speed, 'nor do two');
+    eq(BO.mult(b.g, 'refining', 'cheddar'), 1, 'no speed from a refinery boost');
+    eq(b.raw, a.raw, 'it uses the same Raw');
+    eq(c.raw, a.raw, 'with two as well');
+    near(b.base / a.base, B.boosts.base, 0.01, 'one boost: 1.5 times the Base');
+    near(c.base / a.base, B.boosts.base * B.boosts.base, 0.01, 'two boosts: 2.25 times');
+    eq(b.xp, a.xp, 'the same batches, so the same Refining experience');
+    eq(c.mouseXp, a.mouseXp, 'and the same experience for the mouse');
+    eq(c.jobs, a.jobs, 'and the same progress towards its speciality');
+    // Lo que rinde el ratón se multiplica encima: afinidad y refuerzo no se pisan.
+    const keen = line(0, { aff: { refining: 2 } }), keen2 = line(2, { aff: { refining: 2 } });
+    truthy(keen.base > a.base, 'a mouse with affinity refines more by itself');
+    near(keen2.base / keen.base, B.boosts.base * B.boosts.base, 0.01, 'and its boosts multiply that');
+    // Sin ratón en el puesto, el refuerzo no hace nada (como en las demás etapas).
+    const hand = (n) => {
+      const g = withChain();
+      g.inv.raw.cheddar = 1000;
+      g.boost.goals = n;
+      for (let i = 0; i < n; i++) BO.place(g, 'refining:cheddar');
+      CM.rev += 1;
+      truthy(CM.refining.start(g, 'cheddar', 'manual').ok, 'refine by hand');
+      run(g, q.refineDuration(g) + STEP);
+      return g.totals.baseProduced;
+    };
+    eq(hand(2), hand(0), 'refining by hand gets nothing from a boost');
+    // Las mismas palabras en toda la interfaz.
+    eq(BO.label('refining', 1), '+50% BASE', 'one on a refinery');
+    eq(BO.label('refining', 2), 'x2.25 BASE', 'two on a refinery');
+    eq(BO.label('drilling', 1), '+50% SPEED', 'one anywhere else');
+    eq(BO.label('trading', 2), 'x2.25 SPEED', 'two anywhere else');
+    // Mover el refuerzo de la refinería a otra etapa: allí da velocidad y aquí deja de dar Base.
+    const mv = line(1).g;
+    staff(mv, 'drilling', 'cheddar');
+    truthy(BO.remove(mv, 'refining:cheddar').ok, 'take it back from the refinery');
+    truthy(BO.place(mv, 'drilling:cheddar').ok, 'and put it on the drill');
+    CM.rev += 1;
+    eq(BO.baseMult(mv, 'cheddar'), 1, 'the refinery is back to normal');
+    near(BO.mult(mv, 'drilling', 'cheddar'), B.boosts.speed, 1e-9, 'and the drill is faster');
+    // Guardar y cargar con la hornada a medias: la Base de más ya está en la hornada, no se duplica.
+    const mid = line(2).g;
+    const live = JSON.parse(JSON.stringify(mid));
+    const back = CM.storage.parse(JSON.stringify(mid), mid.lastSavedAt);
+    eq(JSON.stringify(back.boosts), JSON.stringify(mid.boosts), 'the refinery boosts survive a reload');
+    eq(BO.baseMult(back, 'cheddar'), B.boosts.base * B.boosts.base, 'and still give the same');
+    run(live, 60000);
+    run(back, 60000);
+    eq(back.totals.baseProduced, live.totals.baseProduced, 'a reloaded game refines exactly the same');
+    // La capacidad que usan las pistas cuenta la Base de más.
+    const cap = (g) => { CM.rev += 1; return BO.capacity(g, q.zoneDef('cheddar')); };
+    staff(a.g, 'drilling', 'cheddar');
+    staff(a.g, 'mining', 'cheddar');
+    staff(c.g, 'drilling', 'cheddar');
+    staff(c.g, 'mining', 'cheddar');
+    near(cap(c.g).refining / cap(a.g).refining, B.boosts.base * B.boosts.base, 1e-9, 'the refinery turns out 2.25 times');
+    near(cap(c.g).supply / cap(a.g).supply, B.boosts.base * B.boosts.base, 1e-9, 'and so does what the mine and the drill are worth in cheese');
+  });
+
+  test('boosts: the hints also point at the refinery when a rock is short of Base', () => {
+    const BO = CM.boosts;
+    const s = withCheese();
+    s.coins = 1e40;
+    while (CM.zones.next(s)) CM.zones.unlock(s, CM.zones.next(s).id);
+    for (const k of ['mining', 'drilling', 'refining', 'cheesemaking']) staff(s, k, 'cheddar');
+    // Sin Base ni Raw esperando y con un taladro muy lento: frena el suministro.
+    s.inv.base.cheddar = 0;
+    s.inv.raw.cheddar = 0;
+    node(s, 'cheesemaking.moulds', 0);
+    CM.mice.at(s, 'drilling', 'cheddar').traits = [];
+    CM.mice.at(s, 'cheesemaking', 'cheddar').xp = 1e9;
+    CM.rev += 1;
+    const c = BO.capacity(s, q.zoneDef('cheddar'));
+    if (c.supply < c.cheesemaking && c.supply < c.refining) {
+      truthy(['mining', 'drilling'].indexOf(BO.hint(s, 'cheddar')) >= 0, 'the mine or the drill is marked as slow');
+      truthy(BO.alsoRefine(s, 'cheddar'), 'and the refinery as another way to get more Base');
+      BO.place(s, 'refining:cheddar');
+      BO.place(s, 'refining:cheddar');
+      CM.rev += 1;
+      eq(BO.alsoRefine(s, 'cheddar'), false, 'not once its two boosts are there');
+    } else throw new Error('setup: the rock should be short of supply (' + JSON.stringify(c) + ')');
+    // Con Base de sobra, la pista es la quesería y la refinería no se marca.
+    s.inv.base.cheddar = 1e12;
+    BO.remove(s, 'refining:cheddar');
+    CM.rev += 1;
+    eq(BO.hint(s, 'cheddar'), 'cheesemaking', 'Base piling up points at the cheesery');
+    eq(BO.alsoRefine(s, 'cheddar'), false, 'and more Base would not help');
+    // Sin refinador no hay nada que reforzar ahí.
+    s.inv.base.cheddar = 0;
+    const r = CM.mice.at(s, 'refining', 'cheddar');
+    r.post = '';
+    CM.rev += 1;
+    eq(BO.alsoRefine(s, 'cheddar'), false, 'an empty refinery is never suggested');
   });
 
   test('boosts: with every rock open the next ones are earned by cooking, also while away, once', () => {

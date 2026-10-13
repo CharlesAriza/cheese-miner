@@ -26,7 +26,7 @@ La pantalla es el cuartel general. Abajo está la **cadena**: MINE → DRILL →
 | Ver el árbol entero de una etapa | **UPGRADES** en su panel |
 | Comprar un hito (Grand Wheel, Grand Master) | **UPGRADES** de Cheesemaking, rama MILESTONES; BUY ALL no los compra |
 | Nombrar al Grand Master | Abrir un ratón en MICE → NAME GRAND MASTER |
-| Colocar o mover un refuerzo | **BOOSTS** → tocar el puesto (etapa de una roca, o la tienda); si no queda ninguno libre, tocar uno colocado lo recupera |
+| Colocar o mover un refuerzo | **BOOSTS** → tocar el puesto (etapa de una roca, o la tienda); si no queda ninguno libre, tocar uno colocado lo recupera. Da +50 % de velocidad; en una refinería, +50 % de Base con el mismo Raw. Los puestos reforzados llevan marco y chapa azules |
 | Ascender a varios ratones de una vez | MICE → aviso «N can be promoted»: se eligen, se ve el total y se confirma una vez |
 | Comprar todo lo que alcance en un árbol | **BUY EVERYTHING I CAN AFFORD** |
 | Descubrir y cocinar recetas | Etapa CHEESE → botón grande |

@@ -47,7 +47,7 @@
   const els = { floaters: $('floaters'), banner: $('banner'), toast: $('toast'), combo: $('combo'), main: $('dock-main'), flyers: $('flyers'), bubbles: $('bubbles') };
   // Piezas fijas del panel inferior: se les cambia el texto, nunca se rehacen.
   const dk = {
-    rocks: $('dock-rocks'), info: $('dock-info'), why: $('dock-why'), side: $('dock-side'),
+    rocks: $('dock-rocks'), boost: $('dock-boost'), info: $('dock-info'), why: $('dock-why'), side: $('dock-side'),
     worker: $('dock-worker'), face: $('dock-worker').querySelector('img'), workName: $('dock-worker').querySelector('b'), workSub: $('dock-worker').querySelector('u'), book: $('dock-book'),
     quick: $('up-quick'), quickName: $('up-quick').querySelector('b'), quickCost: $('up-quick').querySelector('u'),
     tree: $('up-tree'), treeNum: $('up-tree').querySelector('u'), all: $('up-all'), allNum: $('up-all').querySelector('u'),
@@ -406,7 +406,7 @@
       case 'boostEarned':
         play('goal');
         banner(ev.n > 1 ? ev.n + ' BOOSTS TO PLACE!' : 'NEW BOOST!');
-        toast((ev.n > 1 ? ev.n + ' boosts wait' : 'A boost waits') + ' in BOOSTS: more speed for the post you choose', true);
+        toast((ev.n > 1 ? ev.n + ' boosts wait' : 'A boost waits') + ' in BOOSTS: more speed for the post you choose, or more Base from a refinery', true);
         dirty = true;
         break;
       case 'boostPlaced':
@@ -625,8 +625,8 @@
       set(tile, 'sel', ui.station === st);
       set(tile, 'goal', goalAt === st && ui.station !== st);
       set(tile.querySelector('.mini > i'), 'width', Math.round(info.progress * 100) + '%');
-      // Refuerzos de esta etapa en la roca que se mira: uno o dos galones en la casilla.
-      const nb = String(CM.boosts.at(state, skill, ui.zone) || '');
+      // Refuerzos de esta etapa en la roca que se mira: marco azul y una chapa con uno o dos galones.
+      const nb = String((info.state !== 'locked' && info.state !== 'build' && CM.boosts.at(state, skill, ui.zone)) || '');
       if (tile.dataset.boost !== nb) tile.dataset.boost = nb;
       set(tile.querySelector('u'), 'text', 'LV ' + q.level(state, skill));
       const auto = q.auto(state, skill, ui.zone);
@@ -718,7 +718,8 @@
       const isDrill = st === 'drill';
       m.kind = isDrill ? 'drill' : 'refine';
       m.label = isDrill ? 'DRILL' : 'REFINE';
-      const y = isDrill ? q.drillYield(state, ui.zone) : q.refineBatch(state) * q.refineMult(state);
+      // Con refuerzos, la refinería saca más Base del mismo Raw: se enseña la cifra real.
+      const y = isDrill ? q.drillYield(state, ui.zone) : q.refineBatch(state) * q.refineMult(state) * CM.boosts.baseMult(state, ui.zone);
       const d = isDrill ? q.drillDuration(state) : q.refineDuration(state);
       m.status = (isDrill ? '+' + round1(y) + ' Raw' : q.refineBatch(state) * B.refinery.rawPerBase + ' Raw > ' + round1(y) + ' Base') + ' / ' + P.secs(d) + ' · ' + perMin(y, d) + '/min';
       if (info.state === 'working') {
@@ -797,6 +798,10 @@
     set($('dock-xpnum'), 'text', m.tree ? (p.maxed ? 'MAX' : CM.fmt(p.cur) + '/' + CM.fmt(p.need) + ' xp') : '');
     set($('dock-status'), 'text', m.status);
     set($('dock-status'), 'cls', m.tone);
+    // Refuerzos del puesto que se mira, con lo que dan («+50% SPEED», «x2.25 BASE»).
+    const nb = m.tree ? CM.boosts.at(state, skill, ui.zone) : 0;
+    set(dk.boost, 'text', nb ? CM.boosts.label(skill, nb) : '');
+    if (dk.boost.dataset.n !== String(nb || '')) dk.boost.dataset.n = String(nb || '');
     set(els.main.querySelector('b'), 'text', m.label);
     set(els.main.querySelector('small'), 'text', m.sub);
     set(els.main.querySelector('.fill'), 'width', Math.round(m.fill * 100) + '%');

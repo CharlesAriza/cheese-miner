@@ -106,15 +106,16 @@
   // Cada línea refina su propio queso, a la vez que las demás.
   CM.refining = {
     // Plan del siguiente ciclo de una línea: cuántas tandas entran y cuánta base sale.
-    plan(s, zoneId, mouseYield, cycleMult) {
+    plan(s, zoneId, mouseYield, cycleMult, boost) {
       const z = s.zones[zoneId];
       const base = q.zoneDef(zoneId).base;
       // El nivel de Refining y el ratón agrandan la tanda (y gastan el Raw que le toca); solo
-      // Double Press saca más Base del mismo Raw. Así lo que entra y lo que sale van a la par.
+      // Double Press y los refuerzos del puesto sacan más Base del mismo Raw. Así lo que entra y
+      // lo que sale van a la par.
       const size = q.refineBatch(s) * q.skillMult(s, 'refining') * (mouseYield || 1) * (cycleMult || 1);
       const batches = Math.min(Math.max(1, Math.floor(size)), Math.floor(s.inv.raw[base] / B.refinery.rawPerBase));
       if (batches < 1) return null;
-      const wanted = batches * (1 + q.mods(s)('refBonus')) + z.refCarry;
+      const wanted = batches * (1 + q.mods(s)('refBonus')) * (boost || 1) + z.refCarry;
       return { base, batches, amount: Math.floor(wanted), carry: wanted - Math.floor(wanted) };
     },
     status(s, zoneId) {
@@ -131,7 +132,7 @@
       const z = s.zones[zoneId];
       const w = source === 'worker' ? CM.mice.work(s, 'refining', zoneId) : null;
       const cyc = CM.cycle(q.refineDuration(s) / (w ? w.speed : 1));
-      const plan = this.plan(s, zoneId, w ? CM.mice.out(s, w) : 1, cyc.mult);
+      const plan = this.plan(s, zoneId, w ? CM.mice.out(s, w) : 1, cyc.mult, CM.boosts.baseMult(s, zoneId));
       const used = plan.batches * B.refinery.rawPerBase;
       const total = cyc.total;
       s.inv.raw[plan.base] -= used;

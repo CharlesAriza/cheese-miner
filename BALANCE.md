@@ -385,6 +385,37 @@ En la semilla 12 gana otra opción: dar el título al veterano de la segunda roc
 
 **Tienda.** Semilla 12: vende el 100 % a las 12 y a las 24 horas. Semilla 13 a las 12 horas: 3,8 M de quesos guardados, vende el 96 % de lo que se cocina; lo que no vende es el queso más barato (un rango más de Bigger Counter sube las ventas al 99 % y los ingresos no cambian de forma apreciable). Ese rango cuesta 10,3 Qa con 9,1 Qa en caja; Quick Sales está al máximo.
 
+## Refuerzo de Refining: más Base en vez de velocidad (13-10-2026)
+
+Cifra en `B.boosts.base` (1,5; dos refuerzos, 2,25). En las demás etapas no cambia nada.
+
+**Por qué.** La refinería tiene capacidad de sobra (1–3,4 veces lo que le llega): acelerarla no daba nada (un refuerzo ahí subía los ingresos un 3 % o más en 5 de 71 casos, con techo x1,07). Sacando más Base del mismo Raw sirve en las rocas que se quedan sin Base.
+
+**Medido antes de implementar** (`sim-headless.js`, regla cambiada solo en ejecución; 21 partidas de 24 horas y 12 comparaciones desde un mismo estado, una hora de ingresos, 71 casos de refinería):
+
+| | Velocidad (antes) | Más Base (ahora) |
+|---|---|---|
+| Casos en que un refuerzo en Refining sube ingresos ≥ 3 % | 5 de 71 | 19 de 71 |
+| Mejor caso con uno | x1,07 | x1,20 |
+| Mejor caso con dos | no medido | x1,32 |
+| Refuerzos que una colocación libre pone en Refining (de 11) | 1, 1 y 0 | 3, 3 y 3 |
+
+En esos mismos estados el mejor refuerzo en Drilling da x1,01–1,14, en Cheesemaking x1,01–1,17, en Mining x1,00–1,27 y en Trading x1,00–1,02: la refinería queda en el mismo rango. En las rocas con Base de sobra (la mayoría) no hace nada. Dense no interactúa (x1,00–1,02). Los totales de partidas enteras no distinguen las dos reglas: bailan hasta x1,7 con la misma regla.
+
+**Reservas de Base.** Con dos refuerzos en la mejor refinería, a las cuatro horas esa roca pasa de cero Base a 2–5 horas de consumo en 10 de 12 estados: el segundo refuerzo suele acabar en reserva porque pasa a frenar el cocinado. Con uno no se midió.
+
+**Con el código ya implementado** (una colonia casual a las 6 horas, una hora desde el mismo estado, refuerzos en una sola refinería):
+
+| Roca | Refuerzos | Base | Raw gastado | Monedas | Experiencia del refinador | Experiencia de Refining |
+|---|---|---|---|---|---|---|
+| Cheddar (Base de sobra) | 1 / 2 | x1,50 / x2,25 | x1,00 | x1,000 | x1,00 | x1,000 |
+| Emmental | 1 / 2 | x1,50 / x2,25 | x1,00 | x1,000 | x1,00 | x1,000 |
+| Blue (sin Base) | 1 / 2 | x1,37 / x2,05 | x0,91 | x1,137 / x1,145 | x0,91 | x0,96 |
+
+La experiencia no cambia porque se hacen las mismas hornadas (en Blue baja un 9 % porque esa partida, al cocinar más, deriva y le llega menos Raw: no es efecto directo). Con la regla anterior de velocidad la experiencia del refinador sí bajaba (x0,54–0,82 con dos refuerzos), porque las hornadas se agrupaban.
+
+**Ritmo casual:** sin cambios (el bot no coloca refuerzos y el primero llega con la tercera roca): rocas 2–6 a los 36 / 63 / 94,7 / 138,7 / 218,3 minutos.
+
 ## Refuerzos y Blasting Charges: prototipo (13-10-2026)
 
 Cifras en `B.boosts` y en el nudo `mining.charge`, todas provisionales. Bigger Counter sigue en +18.

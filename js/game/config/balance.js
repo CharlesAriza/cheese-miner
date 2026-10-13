@@ -272,6 +272,7 @@ CM.BALANCE = {
   // en una etapa de una roca, o en la tienda. No cuestan monedas ni se pierden.
   boosts: {
     speed: 1.5, // lo que multiplica cada refuerzo la velocidad de su puesto
+    base: 1.5, // en la refinería no da velocidad: multiplica la Base que sale del mismo Raw
     perPost: 2, // como mucho, dos en el mismo puesto
     fromRock: 3, // el primero llega al abrir la tercera roca; después, uno por roca
     hours: 3, // con todas las rocas abiertas: uno por objetivo de producción (horas del mejor ritmo sostenido)

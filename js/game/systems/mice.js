@@ -427,7 +427,8 @@
     },
     workNow(s, skill, zone) {
       const m = this.at(s, skill, zone);
-      // Un refuerzo en el puesto multiplica su velocidad, trabaje quien trabaje en él.
+      // Un refuerzo en el puesto multiplica su velocidad, trabaje quien trabaje en él (en la
+      // refinería no: ahí da más Base, y eso se aplica al planear la hornada).
       return m ? { m, skill, speed: speed(m, skill, s, zone) * CM.boosts.mult(s, skill, zone), yield: yieldMult(m, skill, s, zone), double: doubleChance(m, skill, s, zone) } : null;
     },
     // Cantidad de un ciclo concreto: con suerte, sale doble.

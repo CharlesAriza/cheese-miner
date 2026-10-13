@@ -1,10 +1,10 @@
 # Resultados de pruebas
 
-Última ejecución: 13 de octubre de 2026, con el prototipo de refuerzos y Blasting Charges. Ejecutadas en el navegador (`tests.html`) y fuera de él (`sim-headless.js`), con el mismo resultado.
+Última ejecución: 13 de octubre de 2026, con el refuerzo de Refining que da más Base y el rediseño visual de los refuerzos (51 de 51). Ejecutadas en el navegador (`tests.html`) y fuera de él (`sim-headless.js`), con el mismo resultado.
 
 ## Pruebas automáticas
 
-Ejecutadas abriendo `tests.html` en el navegador. **49 de 49 pasan** (también tras arreglar la caché de efectos de las mejoras; la prueba de BUY ALL comprueba ahora que cada rango nuevo se nota al momento).
+Ejecutadas abriendo `tests.html` en el navegador. **51 de 51 pasan** (también tras arreglar la caché de efectos de las mejoras; la prueba de BUY ALL comprueba ahora que cada rango nuevo se nota al momento).
 
 | Prueba | Resultado |
 | --- | --- |
@@ -47,6 +47,8 @@ Ejecutadas abriendo `tests.html` en el navegador. **49 de 49 pasan** (también t
 | Cheese Board: paga por una mezcla real de ventas; un tipo que apenas vende apenas cuenta; el bono de una venta es el que había antes de ella | pasa |
 | Grand Master: un solo título, que da el jugador; vale según lo cocinado por ese ratón y solo mientras cocina; pasa a otro sin perder experiencia | pasa |
 | Refuerzos: velocidad de más para el puesto que elige el jugador, dos por puesto, nunca se pierden (colocar, quitar, mover, producción real, guardados dañados y partidas anteriores) | pasa |
+| Refuerzos: en una refinería dan más Base del mismo Raw, no velocidad (cero, uno y dos; mismo Raw, mismas hornadas y misma experiencia; con afinidad encima; nada a mano sin ratón; mover a otra etapa; guardar y cargar a media hornada; capacidad) | pasa |
+| Refuerzos: las pistas marcan también la refinería cuando a la roca le falta Base, y dejan de hacerlo con dos refuerzos, con Base de sobra o sin refinador | pasa |
 | Refuerzos: con todas las rocas abiertas se ganan cocinando, también en una ausencia de 4 horas con un objetivo en curso, una sola vez | pasa |
 | Mining: Blasting Charges se abre cuando Sharper Pick llega a su último rango y no se acaba | pasa |
 | Guardar y cargar mantiene el estado; guardados dañados o antiguos empiezan limpios | pasa |
@@ -129,6 +131,16 @@ En el navegador, con una partida del bot de 12 horas y seis rocas cargada en el 
 - Tocando: dos refuerzos en la quesería de Blue, uno en la mina de Parmesan y uno en la tienda; un tercer toque en Blue con todo colocado quita uno; tocar otro puesto lo pone ahí. El guardado refleja cada paso y el punto de BOOSTS se apaga cuando no queda ninguno libre.
 - Pantalla principal: la casilla CHEESE lleva dos galones y SELL uno al mirar Blue; el panel, la escena y la barra de abajo miden lo mismo que antes (255 / 256 / 32 px).
 - 320×640: los cuatro botones de la barra caben sin cortarse, el panel no se desplaza y la rejilla no se desborda.
+
+### Refuerzo de Refining y rediseño visual (13-10-2026)
+
+En el navegador, con una partida casual de 5 horas (seis rocas) y 12 refuerzos repartidos entre puestos con cero, uno y dos:
+
+- 360×760 y 320×640: las casillas reforzadas llevan marco azul y chapa con uno o dos galones; se distinguen de las normales de un vistazo, también la elegida (borde amarillo y marco azul a la vez). Con y sin refuerzos, la barra de etapas, el panel y cada casilla miden lo mismo (controles 348 px, panel 234 px, casillas 55×47 a 320 px).
+- El panel del puesto enseña la chapa con lo que da («+50% SPEED», «x2.25 BASE») y, en la refinería, la Base real por hornada (124 Raw > 742,1 Base con dos; 494,8 con uno).
+- BOOSTS: rejilla de seis rocas con casillas de alto fijo (48 px), «+50%» o «x2.25» bajo el icono, la unidad (SPEED o BASE) en la cabecera de cada columna, «SLOW?» y «+BASE?» como pistas, y la tienda con «x2.25 SPEED».
+- Tocando: doce refuerzos colocados uno a uno; quitar uno de la refinería de Cheddar y ponerlo en el taladro de Parmesan cambia la Base de la refinería a x1,5 y la velocidad del taladro a x1,5; devuelto a su sitio, tras recargar la página siguen los doce donde estaban.
+- La prueba de ausencia de cuatro horas con objetivo de refuerzo en curso y la de igualdad offline (ahora con un refuerzo en la refinería) pasan.
 
 No comprobado jugando: una partida a mano de varias horas con refuerzos, ni nada en un teléfono real.
 

@@ -556,27 +556,33 @@
   // un refuerzo libre; si no cabe o no queda ninguno libre, quita uno de ahí. Las clases
   // empiezan por `bo-`.
   const BOOST_COLS = [['mining', 'MINE', 'pick'], ['drilling', 'DRILL', 'raw'], ['refining', 'REFINE', 'base'], ['cheesemaking', 'CHEESE', 'lot']];
-  const pips = (n) => (n ? '<i class="bo-pips">' + '<i></i>'.repeat(n) + '</i>' : '');
+  // Chapa de un puesto reforzado: uno o dos galones, igual que en la barra de etapas.
+  const boChip = (n) => (n ? '<i class="bo-chip">' + '&#9650;'.repeat(n) + '</i>' : '');
+  // Lo que dan n refuerzos en una casilla, sin la unidad (va en la cabecera de la columna).
+  const boGain = (skill, n) => (n ? '<u>' + CM.boosts.label(skill, n).split(' ')[0] + '</u>' : '');
   function boostsPanel(s) {
     const BO = CM.boosts;
     const owned = BO.owned(s);
     const free = BO.free(s);
-    const times = 'x' + B.boosts.speed;
-    let h = '<div class="bo-head"><div><b>' + free + '</b><small>FREE</small></div><div><b>' + s.boosts.length + '</b><small>PLACED</small></div><p>A boost makes one post work <b>' + times + ' as fast</b>, whoever works there. Two on the same post: x' + (B.boosts.speed * B.boosts.speed) + '. Up to ' + B.boosts.perPost + ' per post.</p></div>';
+    let h = '<div class="bo-head"><div><b>' + free + '</b><small>FREE</small></div><div><b>' + s.boosts.length + '</b><small>PLACED</small></div><p>A boost gives one post <b>' + BO.label('mining', 1).toLowerCase() + '</b>, whoever works there. On a refinery it gives <b>' + BO.label('refining', 1).split(' ')[0] + ' Base</b> from the same Raw instead. Up to ' + B.boosts.perPost + ' per post.</p></div>';
     // Cuándo llega el siguiente.
     const nx = BO.next(s);
     if (nx && nx.kind === 'rock') h += '<div class="bo-next"><b>NEXT BOOST</b><span>when you open ' + (owned ? 'your next rock' : 'your third rock') + '</span></div>';
     else if (nx) h += '<div class="bo-next"><b>NEXT BOOST</b><span>' + CM.fmt(nx.cur) + ' / ' + CM.fmt(nx.need) + ' cheese cooked</span><div class="bar"><i style="width:' + Math.round((nx.cur / nx.need) * 100) + '%"></i></div><small>' + (nx.etaMs ? 'About ' + span(nx.etaMs) + ' at your pace. ' : '') + 'It counts while you are away too.</small></div>';
     if (!owned) return h + '<p class="hint">You have no boosts yet.</p>';
     h += '<p class="hint">' + (free ? 'Tap a post to put a boost there.' : 'All placed. Tap a boosted post to take one back, then tap where you want it.') + ' Moving them costs nothing.</p>';
-    h += '<div class="bo-grid"><span></span>' + BOOST_COLS.map((c) => '<small>' + c[1] + '</small>').join('');
+    h += '<div class="bo-grid"><span></span>' + BOOST_COLS.map((c) => '<small>' + c[1] + '<i>' + (c[0] === 'refining' ? 'BASE' : 'SPEED') + '</i></small>').join('');
+    let more = false;
     for (const def of q.openZones(s)) {
       const slow = BO.hint(s, def.id);
+      const also = BO.alsoRefine(s, def.id);
+      more = more || also;
       h += '<b>' + I.img('raw', def.base) + esc(B.bases[def.base].name) + '</b>';
       for (const c of BOOST_COLS) {
         const n = BO.at(s, c[0], def.id);
         const staffed = !!CM.mice.at(s, c[0], def.id);
-        h += '<button data-act="boost:' + c[0] + ':' + def.id + '" class="bo-cell' + (n ? ' has n' + n : '') + (staffed ? '' : ' empty') + (slow === c[0] ? ' slow' : '') + '">' + I.img(c[2], def.base) + pips(n) + (slow === c[0] ? '<em>SLOW?</em>' : '') + '</button>';
+        const tag = slow === c[0] ? '<em>SLOW?</em>' : also && c[0] === 'refining' ? '<em>+BASE?</em>' : '';
+        h += '<button data-act="boost:' + c[0] + ':' + def.id + '" class="bo-cell' + (n ? ' has n' + n : '') + (staffed ? '' : ' empty') + (tag ? ' slow' : '') + '">' + boChip(n) + I.img(c[2], def.base) + boGain(c[0], n) + tag + '</button>';
       }
     }
     h += '</div>';
@@ -584,9 +590,9 @@
     if (s.built.shop) {
       const n = BO.at(s, 'trading', 'all');
       const slow = BO.shopHint(s);
-      h += '<button data-act="boost:trading:all" class="bo-shop' + (n ? ' has n' + n : '') + (slow ? ' slow' : '') + '">' + I.img('coin') + '<span><b>SHOP</b><small>' + (slow ? 'Cheese is piling up here' : 'Sells the cheese of every rock') + '</small></span>' + pips(n) + (slow ? '<em>SLOW?</em>' : '') + '</button>';
+      h += '<button data-act="boost:trading:all" class="bo-shop' + (n ? ' has n' + n : '') + (slow ? ' slow' : '') + '">' + boChip(n) + I.img('coin') + '<span><b>SHOP</b><small>' + (slow ? 'Cheese is piling up here' : 'Sells the cheese of every rock') + '</small></span>' + (n ? '<u>' + BO.label('trading', n) + '</u>' : '') + (slow ? '<em>SLOW?</em>' : '') + '</button>';
     }
-    h += '<p class="hint">SLOW? marks the stage that may be holding a rock back. It is a hint, not a sum: try it and watch your coins per minute. A post with no mouse gets nothing from a boost.</p>';
+    h += '<p class="hint">SLOW? marks the stage that may be holding a rock back.' + (more ? ' +BASE? means the rock is short of Base: a boost on its refinery would also bring more.' : '') + ' They are hints, not sums: try it and watch your coins per minute. A post with no mouse gets nothing from a boost.</p>';
     if (s.boosts.length) h += btn('boostclear', 'TAKE ALL BOOSTS BACK', { cls: 'mini' });
     return h;
   }

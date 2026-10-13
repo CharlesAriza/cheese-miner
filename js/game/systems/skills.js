@@ -253,7 +253,8 @@
 
   // ---------- Refuerzos ----------
   // Capacidad de más, permanente, que el jugador reparte: cada refuerzo multiplica la velocidad
-  // de un puesto (una etapa de una roca, o la tienda). Se ganan abriendo rocas y, con todas
+  // de un puesto (una etapa de una roca, o la tienda). La refinería es la excepción: le sobra
+  // velocidad, así que ahí cada refuerzo saca más Cheese Base del mismo Raw. Se ganan abriendo rocas y, con todas
   // abiertas, cumpliendo objetivos de producción (las mismas reglas que los hitos: cifra fija,
   // ritmo sostenido, cuenta todo lo cocinado, también con el juego cerrado). Se mueven cuando
   // se quiera y nunca se pierden. Lo que rinde un ratón no cambia: el refuerzo es del puesto.
@@ -270,7 +271,17 @@
       for (const k of s.boosts) if (k === key) n += 1;
       return n;
     },
-    mult: (s, skill, zone) => (s.boosts.length ? Math.pow(BO.speed, CM.boosts.at(s, skill, zone)) : 1),
+    // Velocidad que da al puesto (en la refinería, ninguna).
+    mult: (s, skill, zone) => (s.boosts.length && skill !== 'refining' ? Math.pow(BO.speed, CM.boosts.at(s, skill, zone)) : 1),
+    // Base de más que saca la refinería de una roca del mismo Raw. Como todo refuerzo, sin ratón
+    // en el puesto no hace nada.
+    baseMult: (s, zone) => (s.boosts.length && CM.mice.at(s, 'refining', zone) ? Math.pow(BO.base, CM.boosts.at(s, 'refining', zone)) : 1),
+    // Lo que da en un puesto con n refuerzos, en las mismas palabras en toda la interfaz:
+    // «+50% SPEED», «x2.25 BASE».
+    label(skill, n) {
+      const by = skill === 'refining' ? BO.base : BO.speed;
+      return (n === 1 ? '+' + Math.round((by - 1) * 100) + '%' : 'x' + Math.round(Math.pow(by, n) * 100) / 100) + (skill === 'refining' ? ' BASE' : ' SPEED');
+    },
     // Puestos que admiten refuerzo: las cuatro etapas de cada roca abierta y la tienda.
     spots: (s) => CM.mice.posts(s).filter((p) => BOOST_JOBS.indexOf(p.skill) >= 0),
     place(s, key) {
@@ -326,10 +337,11 @@
       const z = def.id;
       const per = (skill) => { const m = K.at(s, skill, z); return m ? K.speed(m, skill, s, z) * this.mult(s, skill, z) * K.yieldMult(m, skill, s, z) : 0; };
       const recipe = C.laneRecipe(s, z);
-      const cheesePerRaw = (1 + q.mods(s)('refBonus')) / B.refinery.rawPerBase / B.cheesery.lotBase;
+      const more = this.baseMult(s, z);
+      const cheesePerRaw = ((1 + q.mods(s)('refBonus')) * more) / B.refinery.rawPerBase / B.cheesery.lotBase;
       const mining = per('mining') * (q.veinCapacity(s, z) / q.veinHits(s, z)) * q.pickPower(s) * (1000 / q.minerInterval(s)) * cheesePerRaw;
       const drilling = per('drilling') * (q.drillYield(s, z) / (q.drillDuration(s) / 1000)) * cheesePerRaw;
-      const refining = (per('refining') * q.refineBatch(s) * q.refineMult(s)) / (q.refineDuration(s) / 1000) / B.cheesery.lotBase;
+      const refining = (per('refining') * q.refineBatch(s) * q.refineMult(s) * more) / (q.refineDuration(s) / 1000) / B.cheesery.lotBase;
       const cheesemaking = recipe ? (per('cheesemaking') * q.cheeseBatch(s) * q.skillMult(s, 'cheesemaking')) / (C.jobTime(s, C.parseKey(recipe.key), recipe) / 1000) : 0;
       return { mining, drilling, refining, cheesemaking, supply: mining && drilling ? (mining * drilling) / (mining + drilling) : 0 };
     },
@@ -341,6 +353,12 @@
       if (c.cheesemaking <= c.supply && c.cheesemaking <= c.refining) return 'cheesemaking';
       if (c.refining <= c.supply) return 'refining';
       return c.mining < c.drilling ? 'mining' : 'drilling';
+    },
+    // Cuando a una roca le falta Base (frenan la mina o el taladro), reforzar su refinería también
+    // la da: saca más del mismo Raw. Se marca como segunda pista, sin decir cuál conviene más.
+    alsoRefine(s, zoneId) {
+      const h = this.hint(s, zoneId);
+      return (h === 'mining' || h === 'drilling') && !!CM.mice.at(s, 'refining', zoneId) && this.at(s, 'refining', zoneId) < BO.perPost;
     },
     // La tienda frena cuando el queso se le amontona: más de cinco minutos de ventas esperando.
     shopHint(s) {
