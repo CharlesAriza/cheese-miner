@@ -311,3 +311,38 @@ Todas las medidas anteriores de este documento se tomaron con ese retraso. Seis 
 | Después | 35 / 65 / 95 / 140 / 205 (una de seis no abre la 6ª) | 268 T |
 
 El arranque no cambia; desde la cuarta roca va algo más rápido. No se ha reajustado ningún precio.
+
+## Hitos de Cheesemaking: prototipo (13-10-2026)
+
+Cifras en `B.milestones`, todas provisionales. El bot de las pruebas no compra hitos, así que el ritmo medido del juego base no cambia.
+
+| Hito | Se abre con | Precio | Efecto |
+| --- | --- | --- | --- |
+| Grand Wheel | More Moulds 20 | 174 B | cada 10 min de cocinado, una rueda que vale 2 min más de esa línea |
+| Cheese Board | primer objetivo de producción | 40 T | +20 % por cada tipo efectivo de más en ingredientes, tratamientos y maduraciones, según lo vendido |
+| Grand Master | segundo objetivo de producción | 200 T | +10 % por grado en la roca donde cocina; grado 1 a 20.000 hornadas, otro cada vez que se doblan |
+
+Objetivo de producción: tres horas del mejor ritmo sostenido (media de media hora, sin ruedas), redondeado a dos cifras y fijo hasta cumplirse.
+
+Medido con el bot casual comprando cada hito en cuanto puede, 12 horas, semillas 12 y 13:
+
+| | Se abre | Se compra |
+| --- | --- | --- |
+| Grand Wheel | 1 h 20 – 1 h 35 | 1 h 30 – 1 h 45 |
+| Cheese Board | 2 h 05 – 2 h 40 | 2 h 35 – 3 h |
+| Grand Master | 3 h 40 – 4 h 20 | 4 h 35 – 5 h 15 |
+
+Los objetivos se cumplen en 45 a 100 minutos y no en tres horas, porque a esas alturas la producción todavía se multiplica; con la producción ya plana serían tres horas de verdad.
+
+Lo que aporta cada uno (la misma colonia, 30 minutos con y sin el hito, a las 6 y a las 12 horas):
+
+| Hito | Sin decidir nada | Decidiendo |
+| --- | --- | --- |
+| Grand Wheel | x1,09 a x1,17 | igual: no hay nada que decidir |
+| Cheese Board | x1,00 (todas las rocas cocinan lo mismo) | x1,21 a x1,30 bruto alternando tratamientos; hay que restar el valor que se pierde al cocinar recetas peores |
+| Grand Master | x1,00 a x1,15 (título al quesero de la roca más rica, que suele ser el más novato) | x1,04 a x1,17 (título al quesero con más oficio, movido a la roca que más vende) |
+
+- Ruedas: unas 5 por hora y línea; entre el 16 % y el 19 % de producción extra (no llega al 20 % porque las líneas no cocinan todo el tiempo).
+- Monedas a las 12 horas: 23,6 y 30,0 Qa con hitos sin decidir, 33,3 y 24,4 Qa decidiendo, 29,9 y 25,6 Qa sin hitos. La diferencia entre partidas es mayor que el efecto: no cambia la economía de forma apreciable.
+- Tienda: en una de las dos semillas, con hitos se acumularon entre 2,6 y 4,3 millones de quesos sin vender (sin hitos, unos cientos). Más queso aprieta a Trading.
+- Cheese Board, cálculo aparte sobre cuatro colonias: el mejor reparto solo cambia tratamientos (cambiar ingrediente o maduración cuesta un 35 % y un 43 % del valor de esa roca y no compensa), y poner recetas flojas en las tres rocas más pobres pierde entre un 17 % y un 26 %.

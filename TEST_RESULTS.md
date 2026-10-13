@@ -1,10 +1,10 @@
 # Resultados de pruebas
 
-Última ejecución: 13 de octubre de 2026, con el panel inferior de alto fijo, el BUY ALL global y los ascensos en bloque.
+Última ejecución: 13 de octubre de 2026, con el prototipo de hitos de Cheesemaking (Grand Wheel, Cheese Board, Grand Master).
 
 ## Pruebas automáticas
 
-Ejecutadas abriendo `tests.html` en el navegador. **42 de 42 pasan** (también tras arreglar la caché de efectos de las mejoras; la prueba de BUY ALL comprueba ahora que cada rango nuevo se nota al momento).
+Ejecutadas abriendo `tests.html` en el navegador. **46 de 46 pasan** (también tras arreglar la caché de efectos de las mejoras; la prueba de BUY ALL comprueba ahora que cada rango nuevo se nota al momento).
 
 | Prueba | Resultado |
 | --- | --- |
@@ -42,6 +42,10 @@ Ejecutadas abriendo `tests.html` en el navegador. **42 de 42 pasan** (también t
 | La automatización solo espera por lo que le falta, nunca por espacio | pasa |
 | BUY ALL: recorre todos los árboles de más barato a más caro, dice antes lo que comprará y nunca cobra dos veces | pasa |
 | Ratones: varios ascensos de una vez cuestan y hacen exactamente lo mismo que uno a uno (1, 5, 15 y 26 ratones; rangos acumulados; selección parcial; sin monedas; selección vieja) | pasa |
+| Hitos: se abren por un rango o por un objetivo de producción, y solo los compra el jugador (ni BUY ALL ni los gerentes); el objetivo queda fijo, usa el ritmo sostenido, las ruedas no lo inflan y producir menos no lo abarata | pasa |
+| Grand Wheel: una cada diez minutos de cocinado, vale dos más, no gasta Base ni monedas y mantiene la cadencia con una cepa más rápida | pasa |
+| Cheese Board: paga por una mezcla real de ventas; un tipo que apenas vende apenas cuenta; el bono de una venta es el que había antes de ella | pasa |
+| Grand Master: un solo título, que da el jugador; vale según lo cocinado por ese ratón y solo mientras cocina; pasa a otro sin perder experiencia | pasa |
 | Guardar y cargar mantiene el estado; guardados dañados o antiguos empiezan limpios | pasa |
 | Las recompensas por objetivo se pagan una vez, y nunca por picar | pasa |
 | Las dev tools marcan la partida y no rompen invariantes | pasa |
@@ -92,6 +96,19 @@ Lo único que se mueve es el botón grande cuando late para pedir un toque, que 
 - Marcador: a 320×640 con cifras de final de partida («+107T/min», «+58.5K») ningún número se corta y el alto del marcador no cambia (57 px). La unidad «per min» de los tres contadores de la roca va una vez, en su etiqueta.
 
 No comprobado aquí: 375 y 390 px con partidas largas más allá de lo indicado, y ningún teléfono real.
+
+### Hitos de Cheesemaking (13-10-2026)
+
+En el navegador, a 360×740, sobre partidas preparadas:
+
+- Con More Moulds 20 se anuncia Grand Wheel, la casilla CHEESE marca NEW! y el botón UPGRADES dice MILESTONE!; BUY ALL no lo compra.
+- Comprar cada hito abre su explicación. Los tres se compran desde la rama MILESTONES del árbol.
+- Objetivo de producción: el árbol enseña «1383 / 5.8M cheese cooked» con su barra y el tiempo estimado.
+- Grand Wheel: a velocidad ×20 sale el aviso «GRAND WHEEL! +122K CHEDDAR» dentro de la escena, sin tapar el marcador, y la Cheesery cuenta atrás hasta la siguiente.
+- Cheese Board: la tarjeta de la Cheesery enseña el reparto de ventas por familia y el bono.
+- Grand Master: nombrar a un ratón desde su ficha le pone la estrella en el retrato, y el panel inferior dice su grado.
+
+No comprobado jugando: una partida entera con los hitos de principio a fin (solo simulada con el bot), el aspecto de la rueda en movimiento, cambiar de Grand Master varias veces desde la interfaz, ni nada en un teléfono real.
 
 ## Lo que NO está probado
 

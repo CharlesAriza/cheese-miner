@@ -121,6 +121,7 @@
       }
       CM.cheesery.labTick(s, dt);
       CM.mice.careTick(s, dt);
+      CM.milestones.tick(s);
       runJob(dt, () => s.jobs.shop, q.auto(s, 'trading', 'all'), () => CM.shop.start(s, 'worker'), () => CM.shop.complete(s));
       updateGoals(s);
     },
@@ -146,7 +147,14 @@
     },
     objective(s) {
       const goal = GOALS.find((g) => s.goalsDone[g.id] === undefined);
-      if (!goal) return { text: 'All goals complete. Keep growing your empire!', cur: 1, max: 1, done: true, reward: 0 };
+      if (!goal) {
+        // Sin objetivos de arranque: lo siguiente es el hito de producción, o el que espera a ser comprado.
+        const wait = CM.milestones.waiting(s)[0];
+        if (wait) return { id: 'milestone', text: 'New milestone in CHEESE upgrades: ' + wait.name, cur: 1, max: 1, reward: 0 };
+        const quota = CM.milestones.goal(s);
+        if (quota) return { id: 'quota', text: 'Cook ' + CM.fmt(quota.need) + ' cheese for the next Cheesemaking milestone', cur: quota.cur, max: quota.need, hasBar: true, reward: 0 };
+        return { text: 'All goals complete. Keep growing your empire!', cur: 1, max: 1, done: true, reward: 0 };
+      }
       const p = goal.prog ? goal.prog(s) : [0, 1];
       return { id: goal.id, text: goal.text, cur: Math.min(p[0], p[1]), max: p[1], hasBar: !!goal.prog, reward: B.goalRewards[goal.id] || 0 };
     },

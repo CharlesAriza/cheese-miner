@@ -6137,3 +6137,182 @@ div.mc-row {
     letter-spacing: -0.2px;
   }
 }
+
+/* ---------- Hitos (prototipo) ---------- */
+.dup.hito {
+  border-color: #ffe55c;
+  animation: goal 0.8s ease-in-out infinite;
+}
+.dup.hito u {
+  color: #ffe55c;
+}
+.ms-goal {
+  margin: 8px 0;
+  padding: 8px;
+  background: var(--bg);
+  border: 2px solid #ffe55c;
+  border-radius: 8px;
+}
+.ms-goal > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.ms-goal b {
+  font-size: 8px;
+  font-weight: normal;
+  color: #ffe55c;
+}
+.ms-goal span {
+  font-family: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
+.ms-goal small {
+  display: block;
+  margin-top: 5px;
+  font-family: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--muted);
+}
+.ms-goal .bar i {
+  background: #ffcf2e;
+}
+/* Cheese Board */
+.cb-card {
+  margin-bottom: 8px;
+  padding: 8px;
+  background: var(--bg);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+}
+.cb-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.cb-head b {
+  font-size: 9px;
+  font-weight: normal;
+  color: #ffe55c;
+}
+.cb-head em {
+  font-family: var(--text);
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 700;
+  color: #8df09a;
+}
+.cb-card small {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--muted);
+}
+.cb-fam {
+  margin-top: 8px;
+}
+.cb-fam > div {
+  display: flex;
+  justify-content: space-between;
+  font-size: 6px;
+}
+.cb-fam u {
+  font-family: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  color: #8df09a;
+}
+.cb-bar {
+  display: flex;
+  height: 10px;
+  margin-top: 4px;
+  background: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.cb-bar i {
+  display: block;
+  height: 100%;
+}
+.cb-bar .c0 {
+  background: #ffcf2e;
+}
+.cb-bar .c1 {
+  background: #5aa9ff;
+}
+.cb-bar .c2 {
+  background: #ff9f3a;
+}
+.cb-bar .c3 {
+  background: #c58bff;
+}
+/* Grand Master */
+.gm-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 8px;
+  background: var(--bg);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+}
+.gm-box.on {
+  display: block;
+  background: #33290f;
+  border-color: var(--gold);
+}
+.gm-box > div {
+  flex: 1;
+  min-width: 0;
+}
+.gm-box b {
+  display: block;
+  font-size: 8px;
+  font-weight: normal;
+  color: #ffe55c;
+}
+.gm-box small {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--muted);
+}
+.gm-box small.gm-warn {
+  color: #ffd43a;
+}
+.gm-star {
+  position: absolute;
+  top: -6px;
+  right: -5px;
+  font-size: 12px;
+  line-height: 1;
+  text-decoration: none;
+  color: #ffe55c;
+  text-shadow: 1px 1px 0 var(--ink), -1px 1px 0 var(--ink), 1px -1px 0 var(--ink), -1px -1px 0 var(--ink);
+}
+.cb-fam > div {
+  align-items: baseline;
+  gap: 6px;
+}
+.cb-fam > div small {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

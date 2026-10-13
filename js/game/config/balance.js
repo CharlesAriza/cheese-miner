@@ -233,6 +233,11 @@ CM.BALANCE = {
       { id: 'press', branch: 'special', name: 'Double Press', desc: '2% more Cheese Base from the same Raw', level: 9, max: 50, cost: 250, growth: 1.38, eff: { refBonus: 0.02 } },
     ],
     cheesemaking: [
+      // Hitos (prototipo): compra única y deliberada (`unlock`: BUY ALL y los gerentes no los
+      // tocan). `gate` dice qué los abre: un rango de otra mejora o un objetivo de producción.
+      { id: 'wheel', branch: 'milestone', unlock: true, gate: { rank: ['moulds', 20] }, name: 'Grand Wheel', desc: 'Every 10 minutes of cooking, each line turns out a Grand Wheel worth 2 more minutes of its cheese', level: 1, max: 1, cost: 1.74e11, growth: 1, eff: {} },
+      { id: 'board', branch: 'milestone', unlock: true, gate: { quota: 1 }, name: 'Cheese Board', desc: 'Customers pay more when your sales are a real mix of ingredients, treatments and maturations', level: 1, max: 1, cost: 4e13, growth: 1, eff: {} },
+      { id: 'master', branch: 'milestone', unlock: true, gate: { quota: 2 }, name: 'Grand Master', desc: 'Name one mouse Grand Master: the cheese it cooks is worth more, the more it has cooked in its life', level: 1, max: 1, cost: 2e14, growth: 1, eff: {} },
       { id: 'moulds', branch: 'power', name: 'More Moulds', desc: '+1 cheese per batch', level: 1, max: 999, cost: 50, growth: 3, eff: { cheeseBatch: 1 } },
       { id: 'curds', branch: 'power', name: 'Faster Curds', desc: 'Cheese cooks 8% faster', level: 1, max: 60, cost: 30, growth: 1.33, eff: { cheeseSpeed: 0.08 } },
       { id: 'cellar', branch: 'special', name: 'Cheese Cellar', desc: 'Every cheese is worth 8% more', level: 5, max: 80, cost: 150, growth: 1.38, eff: { cheeseValue: 0.08 } },
@@ -258,6 +263,15 @@ CM.BALANCE = {
     colony: [
       { id: 'lamp', branch: 'special', name: 'Night Lamp', desc: 'Your mice keep working 2 more hours while you are away', level: 0, max: 10, cost: 500, growth: 2.2, eff: { offlineHours: 2 } },
     ],
+  },
+
+  // Hitos de Cheesemaking (prototipo, cifras provisionales).
+  milestones: {
+    hours: 3, // cada objetivo de producción pide estas horas de tu mejor ritmo sostenido (con la producción aún creciendo se cumple antes)
+    bucketMs: 600000, // el ritmo sostenido es la media de tres ventanas de 10 minutos
+    wheel: { everyMs: 600000, worthMs: 120000 }, // una rueda cada 10 min de cocinado; vale 2 min de esa línea
+    board: { per: 0.2, tauMs: 600000 }, // +20 % por cada tipo «efectivo» de más en cada familia; ventas de los últimos ~10 min
+    master: { from: 20000, per: 0.1 }, // primer grado a las 20.000 hornadas; uno más cada vez que las dobla; +10 % por grado
   },
 
   // Cuántos rangos de la rama POWER hacen falta para cada aspecto del edificio.

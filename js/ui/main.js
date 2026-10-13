@@ -364,6 +364,41 @@
         toast(ev.name + ' left the colony' + (ev.post && !state.mice.some((m) => m.post === ev.post) ? '. ' + CM.mice.postLabel(ev.post) + ' has no mouse now' : ''), true);
         dirty = true;
         break;
+      case 'milestoneOpen': {
+        const node = CM.tree.node('cheesemaking', ev.id);
+        play('goal');
+        banner('NEW MILESTONE: ' + node.name.toUpperCase());
+        toast(node.name + ' is waiting in CHEESE > UPGRADES', true);
+        dirty = true;
+        break;
+      }
+      case 'quotaSet':
+        toast('Next milestone: cook ' + CM.fmt(ev.need) + ' cheese', true);
+        dirty = true;
+        break;
+      // La rueda siempre se cobra; solo se celebra la de la roca que se está mirando.
+      case 'grandWheel':
+        if (ev.zone === ui.zone && !covered()) {
+          play('goal');
+          scene.celebrate();
+          banner('GRAND WHEEL! +' + CM.fmt(ev.lots) + ' ' + B.bases[q.zoneDef(ev.zone).base].name.toUpperCase());
+        }
+        break;
+      case 'masterNamed': {
+        const mouse = CM.mice.byId(state, ev.id);
+        play('goal');
+        scene.celebrate();
+        if (mouse) banner(mouse.name.toUpperCase() + ' IS YOUR GRAND MASTER!');
+        dirty = true;
+        break;
+      }
+      case 'masterUp': {
+        const mouse = CM.mice.byId(state, ev.id);
+        play('goal');
+        if (mouse) toast(mouse.name + ' is now Grand Master ' + ev.grade + ': its cheese is worth +' + Math.round(ev.grade * B.milestones.master.per * 100) + '%', true);
+        dirty = true;
+        break;
+      }
       case 'promoted': {
         dirty = true;
         // En un ascenso en bloque se celebra una vez, con el resumen.
@@ -438,6 +473,7 @@
           scene.celebrate();
         }
         if (ev.skill === 'lab' && node.unlock) labUpgradeCard(ev.id);
+        if (node.gate) milestoneCard(ev.id);
         if (ev.skill === 'cheesemaking' && ev.id === 'maker' && state.recipes.length) {
           ui.cheeseTab = 'book';
           openPanel('cheese');
@@ -542,7 +578,7 @@
   }
 
   // Qué estación pide el objetivo actual.
-  const GOAL_AT = { zone4: 'colony', zone5: 'colony', zone6: 'colony', house: 'mice', mouse: 'mice', allAuto: 'mice', promote: 'mice', vein: 'rock', drill: 'drill', raw: 'drill', refinery: 'refinery', base: 'refinery', cheesery: 'cheesery', recipe: 'cheesery', shop: 'shop', sale: 'shop', recipes8: 'cheesery', zone2: 'colony', zone3: 'colony', depth3: 'rock' };
+  const GOAL_AT = { quota: 'cheesery', milestone: 'cheesery', zone4: 'colony', zone5: 'colony', zone6: 'colony', house: 'mice', mouse: 'mice', allAuto: 'mice', promote: 'mice', vein: 'rock', drill: 'drill', raw: 'drill', refinery: 'refinery', base: 'refinery', cheesery: 'cheesery', recipe: 'cheesery', shop: 'shop', sale: 'shop', recipes8: 'cheesery', zone2: 'colony', zone3: 'colony', depth3: 'rock' };
 
   const BUBBLE = { 'no-raw': 'NO RAW', 'no-recipe': 'NO RECIPE', 'no-base': 'NO BASE', 'no-cheese': 'NO CHEESE' };
   const bubbles = {};
@@ -570,14 +606,15 @@
       const tile = tiles[st];
       const skill = SKILL[st];
       for (const cls of ['locked', 'build', 'ready', 'working', 'waiting', 'blocked']) set(tile, cls, info.state === cls);
-      set(tile, 'isnew', info.state === 'build');
+      const hito = st === 'cheesery' && info.state !== 'locked' && info.state !== 'build' && CM.milestones.waiting(state).length > 0;
+      set(tile, 'isnew', info.state === 'build' || hito);
       set(tile, 'sel', ui.station === st);
       set(tile, 'goal', goalAt === st && ui.station !== st);
       set(tile.querySelector('.mini > i'), 'width', Math.round(info.progress * 100) + '%');
       set(tile.querySelector('u'), 'text', 'LV ' + q.level(state, skill));
       const auto = q.auto(state, skill, ui.zone);
       const ups = info.state !== 'locked' && info.state !== 'build' ? CM.tree.affordable(state, skill) : 0;
-      set(tile.querySelector('em'), 'text', info.state === 'locked' ? 'LOCK' : info.state === 'build' ? 'NEW!' : ups ? 'UP! ' + ups : auto ? 'AUTO' : '');
+      set(tile.querySelector('em'), 'text', info.state === 'locked' ? 'LOCK' : info.state === 'build' || hito ? 'NEW!' : ups ? 'UP! ' + ups : auto ? 'AUTO' : '');
       // Aviso sobre el edificio solo cuando está parado por algo.
       const reason = info.state === 'blocked' || (auto && info.state === 'waiting') ? BUBBLE[info.reason] : '';
       if (st !== 'rock') bubble(st, reason || '', 'bad');
@@ -690,6 +727,11 @@
       if (job) {
         const r = job.recipeId ? CM.cheesery.recipe(state, job.recipeId) : null;
         m.status = (job.kind === 'experiment' && !r ? 'Experimenting with a new combination' : 'Making ' + (r ? r.name : 'cheese'));
+        // Cuánto cocinado falta para la siguiente Grand Wheel de esta línea.
+        if (CM.milestones.has(state, 'wheel')) {
+          const left = Math.max(0, B.milestones.wheel.everyMs - z.wheelMs) / 1000;
+          m.status = 'Grand Wheel in ' + Math.floor(left / 60) + ':' + String(Math.floor(left % 60)).padStart(2, '0') + ' · ' + m.status;
+        }
         m.kind = 'cheeseBoost';
         m.label = 'SPEED UP';
         m.sub = 'Hold to boost';
@@ -750,7 +792,7 @@
     if (m.tree) {
       for (const node of B.trees[skill]) {
         const info = CM.tree.info(state, skill, node.id);
-        if (!info.locked && !info.maxed && (!pick || info.cost < pick.cost)) pick = { id: node.id, name: node.name, cost: info.cost, can: info.canBuy };
+        if (!node.unlock && !info.locked && !info.maxed && (!pick || info.cost < pick.cost)) pick = { id: node.id, name: node.name, cost: info.cost, can: info.canBuy };
       }
     }
     ui.quick = pick ? { skill, id: pick.id } : null;
@@ -761,8 +803,11 @@
     set(dk.quick, 'none', !pick);
     costOf(dk.quick, pick && !pick.can ? pick.cost : 0);
     const ups = m.tree ? CM.tree.affordable(state, skill) : 0;
-    set(dk.treeNum, 'text', !m.tree ? 'LOCKED' : ups ? ups + ' READY' : 'TREE');
-    set(dk.tree, 'has', ups > 0);
+    // Un hito esperando se anuncia aquí: se compra dentro, leyéndolo.
+    const hito = m.tree && skill === 'cheesemaking' && CM.milestones.waiting(state).length > 0;
+    set(dk.treeNum, 'text', !m.tree ? 'LOCKED' : hito ? 'MILESTONE!' : ups ? ups + ' READY' : 'TREE');
+    set(dk.tree, 'has', ups > 0 || hito);
+    set(dk.tree, 'hito', hito);
     set(dk.tree, 'off', !m.tree);
 
     // Quién trabaja en este puesto: siempre en el mismo hueco.
@@ -778,7 +823,8 @@
         if (w) dk.face.src = CM.mouseUrl(w);
       }
       set(dk.workName, 'text', w ? w.name : 'NO MOUSE');
-      set(dk.workSub, 'text', w ? (pr.can ? 'PROMOTE!' : 'LV ' + CM.mice.level(w) + ' ' + B.mice.ranks[w.rank].name) : 'Tap to assign one');
+      const gm = w && w.id === state.master && CM.milestones.has(state, 'master');
+      set(dk.workSub, 'text', w ? (pr.can ? 'PROMOTE!' : gm ? 'Grand Master ' + CM.milestones.masterGrade(w) : 'LV ' + CM.mice.level(w) + ' ' + B.mice.ranks[w.rank].name) : 'Tap to assign one');
       set(dk.worker, 'empty', !w);
       set(dk.worker, 'ready', !!(w && pr.can));
       const book = st === 'cheesery';
@@ -1158,6 +1204,7 @@
       return r;
     },
     promote: (id) => CM.mice.promote(state, id),
+    namemaster: (id) => CM.milestones.nameMaster(state, id),
     // Ascensos pendientes: se eligen, se ve el total y se confirma una sola vez.
     promos: () => {
       ui.miceTab = 'promos';
@@ -1362,6 +1409,20 @@
     showModal('<h2>' + c[0] + '</h2><div class="hero">' + I.img('flask', '', 'huge') + '</div><p class="lead">' + c[1] + '</p><ul class="list">' + c[2].map((l) => '<li>' + l + '</li>').join('') + '</ul><div class="row"><button class="buy" data-m="ok">' + c[3] + '</button></div>', { ok: c[4] });
   }
 
+  // Explica el hito que se acaba de comprar: qué hace y qué se puede decidir con él.
+  function milestoneCard(id) {
+    const cards = {
+      wheel: ['GRAND WHEEL', 'Every line now turns out a <b>Grand Wheel</b> from time to time.', ['Each line makes one after every 10 minutes of cooking.', 'A wheel is worth 2 more minutes of that line\'s cheese, on top of what it makes.', 'It costs no Base and no coins, and it also happens while you are away.', 'The Cheesery shows how long until the next one.'], 'lot'],
+      board: ['CHEESE BOARD', 'Customers now pay more for a <b>real mix</b> of cheeses.', ['The mix is measured on what you actually sell: ingredients, treatments and maturations.', 'Selling two types in equal parts counts as two. A type that barely sells barely counts.', 'To change the mix, fix a different recipe for a rock in the RECIPE BOOK. It stays fixed.', 'The Cheesery shows the board and what it adds to every sale.'], 'coin'],
+      master: ['GRAND MASTER', 'You can now give one mouse the title of <b>Grand Master</b>.', ['Open a mouse in MICE and name it. Only one mouse holds the title.', 'The cheese it cooks is worth more with every grade: the first at 20K batches cooked in its life, and one more each time that doubles.', 'It only counts while it works on a Cheesemaking post, for that rock.', 'You can pass the title on. Each mouse keeps the experience it has.'], 'lot'],
+    };
+    const c = cards[id];
+    if (!c) return;
+    banner(c[0] + ' UNLOCKED!');
+    scene.celebrate();
+    showModal('<h2>' + c[0] + '</h2><div class="hero">' + I.img(c[3], baseOfZone(), 'huge') + '</div><p class="lead">' + c[1] + '</p><ul class="list">' + c[2].map((l) => '<li>' + l + '</li>').join('') + '</ul><div class="row"><button class="buy wide" data-m="ok">GOT IT</button></div>', { ok: () => {} });
+  }
+
   // Explica qué se acaba de comprar al abrir una roca.
   function zoneOpened(id) {
     const def = q.zoneDef(id);
@@ -1385,6 +1446,7 @@
     const lines = [];
     if (sum.coins > 0) lines.push(I.img('coin') + 'Coins earned: +' + CM.fmt(sum.coins));
     if (d.lotsProduced) lines.push(I.img('lot', base) + 'Cheese made: +' + CM.fmt(d.lotsProduced) + ' (sold ' + CM.fmt(d.lotsSold) + ')');
+    if (d.wheels) lines.push(I.img('lot', base) + 'Grand Wheels: ' + d.wheels + ' (+' + CM.fmt(d.wheelLots) + ' cheese)');
     if (d.baseProduced) lines.push(I.img('base', base) + 'Cheese Base refined: +' + CM.fmt(d.baseProduced));
     if (d.rawProduced) lines.push(I.img('raw', base) + 'Raw Cheese drilled: +' + CM.fmt(d.rawProduced));
     if (d.veinsFound) lines.push('Veins found: ' + d.veinsFound);

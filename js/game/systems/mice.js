@@ -443,7 +443,10 @@
       this.addXp(s, m, n * Math.max(0.1, 1 + trait(m, 'mouseXp', skill)));
       // Cada trabajo le acerca a su rasgo de oficio; la afinidad lo acelera.
       const grade = gradeOf(m, skill);
+      const title = m.id === s.master && skill === 'cheesemaking' ? CM.milestones.masterGrade(m) : -1;
       m.jobs[skill] = (m.jobs[skill] || 0) + n * affinity(m, skill).learn * Math.max(0.1, 1 + trait(m, 'jobXp', skill));
+      // El Grand Master sube de grado cocinando: su queso vale más desde ese momento.
+      if (title >= 0 && CM.milestones.masterGrade(m) > title) CM.emit(s, 'masterUp', { id: m.id, grade: CM.milestones.masterGrade(m) });
       if (gradeOf(m, skill) > grade) {
         CM.emit(s, 'specUp', { id: m.id, skill, grade: gradeOf(m, skill) });
         this.note(s, m);
@@ -643,6 +646,7 @@
       s.totals.miceRecruited = Math.max(s.totals.miceRecruited, s.mice.length);
       const m = s.mice.splice(i, 1)[0];
       if (s.care && s.care.id === m.id) s.care = null; // la cama queda libre
+      if (s.master === m.id) s.master = ''; // el título queda libre
       CM.emit(s, 'dismissed', { name: m.name, post: m.post });
       this.fillEmpty(s);
       return CM.ok();
@@ -742,6 +746,7 @@
         const skill = m.post.split(':')[0];
         let best = null;
         for (const node of B.trees[skill] || []) {
+          if (node.unlock) continue; // los hitos y lo que abre funciones los compra el jugador
           const info = CM.tree.info(s, skill, node.id);
           if (info.canBuy && (!best || info.cost < best.cost)) best = { id: node.id, cost: info.cost };
         }

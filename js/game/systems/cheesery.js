@@ -113,7 +113,7 @@
     const f = known(recipe.key).f;
     const mastery = 1 + B.cheesery.masteryValue * (masteryLevel(recipe) - 1);
     const zone = q.zoneOfBase(known(recipe.key).combo.base);
-    return Math.max(1, Math.round(f.value * mastery * (1 + q.mods(s)('cheeseValue')) * q.depthRich(s, zone) * (plain ? 1 : strainValue(recipe.strain))));
+    return Math.max(1, Math.round(f.value * mastery * CM.milestones.masterMult(s, zone) * (1 + q.mods(s)('cheeseValue')) * q.depthRich(s, zone) * (plain ? 1 : strainValue(recipe.strain))));
   }
 
   // Lo que deja un queso de una receta a igual maestría y sin cepa: su precio de venta
@@ -615,11 +615,26 @@
       }
       const before = masteryLevel(recipe);
       const n = job.kind === 'experiment' ? 1 : Math.max(1, job.per || 1);
-      recipe.made = (recipe.made || 0) + n;
+      // Grand Wheel: cada 10 minutos de cocinado, la línea saca una rueda que vale dos minutos
+      // más de su producción. No gasta Base ni monedas, y ocurre igual con el juego cerrado.
+      let wheel = 0;
+      if (job.kind === 'produce' && s.nodes['cheesemaking.wheel']) {
+        z.wheelMs += job.total;
+        if (z.wheelMs >= B.milestones.wheel.everyMs) {
+          z.wheelMs -= B.milestones.wheel.everyMs;
+          wheel = Math.max(1, Math.round(n * (B.milestones.wheel.worthMs / job.total)));
+        }
+      }
+      recipe.made = (recipe.made || 0) + n + wheel;
       if (masteryLevel(recipe) > before) CM.rev += 1; // vale más y se cocina antes desde ya
-      s.lots[recipe.id] = (s.lots[recipe.id] || 0) + n;
-      s.totals.lotsProduced += n;
-      z.stats.lots += n;
+      s.lots[recipe.id] = (s.lots[recipe.id] || 0) + n + wheel;
+      s.totals.lotsProduced += n + wheel;
+      z.stats.lots += n + wheel;
+      if (wheel) {
+        s.totals.wheels += 1;
+        s.totals.wheelLots += wheel;
+        CM.emit(s, 'grandWheel', { zone: zoneId, recipeId: recipe.id, lots: wheel });
+      }
       job.lotsLeft -= 1;
       const w = job.source === 'worker' ? CM.mice.work(s, 'cheesemaking', zoneId) : null;
       // Teaching: el quesero aprende más con cada hornada de esa cepa.
@@ -674,16 +689,25 @@
       let coins = 0;
       let count = 0;
       let top = stock[0].id;
+      // Cheese Board: el bono es el que había antes de esta venta; luego la venta cuenta para el siguiente.
+      const board = !!s.nodes['cheesemaking.board'];
+      const boardMult = board ? s.board.mult : 1;
+      if (board) CM.milestones.boardFade(s);
       for (const r of stock) {
         const n = Math.min(left, s.lots[r.id]);
         if (n <= 0) break;
         const price = prices[r.id];
         s.lots[r.id] -= n;
         coins += price * n;
+        if (board) CM.milestones.sold(s, r, price * n);
         count += n;
         left -= n;
       }
       const total = cyc.total;
+      if (board) {
+        CM.milestones.boardUpdate(s);
+        coins = Math.round(coins * boardMult);
+      }
       if (w) coins = Math.max(1, Math.round(coins * CM.mice.out(s, w)));
       // Una venta es una acción: la experiencia depende de lo mejor que vendes, no de cuántos.
       const xp = B.xp.perSale * recipeXp(stock[0]);

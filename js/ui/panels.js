@@ -88,6 +88,7 @@
   }
 
   const BRANCHES = [
+    ['milestone', 'MILESTONES', 'One of a kind. You buy each one yourself: BUY ALL and managers leave them alone'],
     ['power', 'POWER', 'More output. Each rank changes how the building looks'],
     ['auto', 'TEMPO', 'Faster cycles for this stage, whoever does the work'],
     ['special', 'SPECIAL', 'What makes this skill different'],
@@ -113,6 +114,7 @@
     if (skill !== 'lab' || n) h += btn('buyAll:' + skill, n ? 'BUY EVERYTHING I CAN AFFORD HERE' : 'NOTHING AFFORDABLE YET', { off: !n, cls: 'buy wide serveall' });
     // Qué compra cada cosa: este botón, BUY ALL y los gerentes.
     if (isSkill) h += '<p class="hint">This tree only. BUY ALL on the main screen does every skill at once, always the cheapest upgrade first.' + (s.mice.some((m) => M.ranks[m.rank].manager) ? ' Your managers already buy, on their own, upgrades of their job that cost under ' + Math.round(M.managerBudget * 100) + '% of your coins.' : '') + '</p>';
+    if (skill === 'cheesemaking') h += quotaBlock(s);
     for (const br of skill === 'lab' ? LAB_BRANCHES : BRANCHES) {
       const nodes = B.trees[skill].filter((x) => x.branch === br[0]);
       if (!nodes.length) continue;
@@ -129,6 +131,20 @@
       }
     }
     return h;
+  }
+
+  // Cuánto falta para algo, en palabras.
+  const span = (ms) => {
+    const mins = Math.max(1, Math.round(ms / 60000));
+    return mins < 60 ? mins + ' min' : Math.floor(mins / 60) + ' h ' + (mins % 60 ? (mins % 60) + ' min' : '');
+  };
+  const GRADES = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+  const roman = (n) => GRADES[n] || String(n);
+  // El objetivo de producción que abre el siguiente hito: cifra fija, barra y tiempo estimado.
+  function quotaBlock(s) {
+    const g = CM.milestones.goal(s);
+    if (!g) return '';
+    return '<div class="ms-goal"><div><b>NEXT MILESTONE</b><span>' + CM.fmt(g.cur) + ' / ' + CM.fmt(g.need) + ' cheese cooked</span></div><div class="bar"><i style="width:' + Math.round((g.cur / g.need) * 100) + '%"></i></div><small>' + (g.etaMs ? 'About ' + span(g.etaMs) + ' at your pace. ' : '') + 'The goal is set and does not move. Everything you cook counts, also while you are away.</small></div>';
   }
 
   // Zonas: se suman, todas producen a la vez.
@@ -497,9 +513,39 @@
     const zones = q.openZones(s);
     const sel = zones.some((z) => z.id === ui.cheeseLine) ? ui.cheeseLine : '';
     let h = '<div class="tabs">' + btn('noop', 'PRODUCTION', { cls: 'on' }) + btn('cview:book', 'RECIPE BOOK ' + s.recipes.length + '/' + C.totalCombos(), {}) + '</div>';
+    if (CM.milestones.has(s, 'board')) h += boardCard(s);
     for (const def of zones) h += cheeseLine(s, ui, def, def.id === sel);
     if (!q.isAutomated(s, 'cheesemaking')) h += '<p class="hint">Each cheese is cooked on its own line, all at once. A mouse on Cheesemaking keeps its line going on its own.</p>';
     return h + btn('open:lab', '<b>CHEESE LAB</b><span>new recipes are discovered there</span><em>OPEN</em>', { cls: 'labrow' });
+  }
+
+  // Cheese Board: qué se vende de cada tipo y lo que eso sube todas las ventas.
+  // Las clases de esta tarjeta empiezan por `cb-`.
+  const FAMILY = { ingredient: ['INGREDIENTS', B.ingredients], treatment: ['TREATMENTS', B.treatments], maturation: ['MATURATIONS', B.maturations] };
+  function boardCard(s) {
+    const fams = CM.milestones.boardFamilies(s);
+    let h = '<div class="cb-card"><div class="cb-head"><b>CHEESE BOARD</b><em>x' + s.board.mult.toFixed(2) + ' on every sale</em></div><small>Customers pay more when your recent sales are a real mix. A type that barely sells barely counts: each rock keeps the recipe you fix for it in the RECIPE BOOK.</small>';
+    for (const id of Object.keys(FAMILY)) {
+      const f = fams[id];
+      const parts = f.shares.filter((x) => x.share >= 0.005).sort((a, b) => b.share - a.share);
+      h += '<div class="cb-fam"><div><span>' + FAMILY[id][0] + '</span><small>' + (parts.length ? parts.map((x) => FAMILY[id][1][x.id].name + ' ' + Math.round(x.share * 100) + '%').join(' · ') : 'No sales yet') + '</small><u>+' + Math.round((f.eff - 1) * B.milestones.board.per * 100) + '%</u></div><i class="cb-bar">' + parts.map((x, i) => '<i class="c' + i + '" style="width:' + (x.share * 100).toFixed(1) + '%"></i>').join('') + '</i></div>';
+    }
+    return h + '</div>';
+  }
+  // El título de Grand Master en la ficha de un ratón.
+  function masterBlock(s, m) {
+    if (!CM.milestones.has(s, 'master')) return '';
+    const MS = CM.milestones;
+    const jobs = Math.floor((m.jobs && m.jobs.cheesemaking) || 0);
+    const grade = MS.masterGrade(m);
+    const pct = (g) => '+' + Math.round(g * B.milestones.master.per * 100) + '%';
+    const next = 'Next grade at ' + CM.fmt(MS.masterNext(grade)) + ' batches cooked (now ' + CM.fmt(jobs) + ').';
+    if (s.master === m.id) {
+      const cooking = m.post && m.post.split(':')[0] === 'cheesemaking';
+      return '<div class="gm-box on"><b>&#9733; GRAND MASTER' + (grade ? ' ' + roman(grade) : '') + '</b><small>' + (grade ? 'The cheese it cooks is worth ' + pct(grade) + '. ' : 'No grade yet. ') + next + '</small>' + (cooking ? '' : '<small class="gm-warn">The title only counts while it cooks: put it on a Cheesemaking post.</small>') + '</div>';
+    }
+    const cur = MS.master(s);
+    return '<div class="gm-box"><div><b>GRAND MASTER</b><small>One mouse in the colony holds the title. ' + (grade ? 'This one would be grade ' + roman(grade) + ' (' + pct(grade) + ' on the cheese it cooks). ' : 'This one has no grade yet. ') + next + (cur ? ' ' + esc(cur.name) + ' holds it now and keeps its experience.' : '') + '</small></div>' + btn('namemaster:' + m.id, cur ? 'GIVE IT<br>THE TITLE' : 'NAME<br>GRAND MASTER', { cls: 'mini' }) + '</div>';
   }
 
   // ---------- DESPENSA ----------
@@ -642,7 +688,9 @@
   const mult = (n) => 'x' + (n >= 10 ? Math.round(n) : (Math.round(n * 10) / 10).toFixed(1));
   const JOB_SHORT = { mining: 'Mine', drilling: 'Drill', refining: 'Refine', cheesemaking: 'Cheese', trading: 'Sell', research: 'Lab' };
   // Retrato con marco de rareza (gris, azul, dorado): se reconoce sin leer.
-  const portrait = (m, size) => '<i class="mc-face r' + (m.rarity || 0) + (size ? ' ' + size : '') + '"><img class="pix' + (CM.mice.isLegend(m) ? ' glow' : '') + '" alt="" src="' + CM.mouseUrl(m) + '"></i>';
+  // El Grand Master lleva una estrella en su retrato, allí donde salga.
+  let GM = '';
+  const portrait = (m, size) => '<i class="mc-face r' + (m.rarity || 0) + (size ? ' ' + size : '') + (m.id === GM ? ' gm' : '') + '"><img class="pix' + (CM.mice.isLegend(m) ? ' glow' : '') + '" alt="" src="' + CM.mouseUrl(m) + '">' + (m.id === GM ? '<u class="gm-star">&#9733;</u>' : '') + '</i>';
   const rankLv = (m) => 'LV ' + CM.mice.level(m) + ' · ' + M.ranks[m.rank].name;
   const canPromote = (s, m) => CM.mice.promoteInfo(s, m).can;
   const quirksOf = (m) => m.traits.concat(m.learned).filter((id) => T[id] && T[id].kind === 'quirk');
@@ -901,6 +949,7 @@
     // Afinidades: los seis oficios, de un vistazo.
     h += '<div class="mc-affs">' + K.JOBS.map((k) => '<i class="a' + ((m.aff && m.aff[k]) || 0) + (k === skill ? ' here' : '') + '">' + JOB_SHORT[k] + hearts(m.aff && m.aff[k]) + '</i>').join('') + '</div>';
     if (busy && s.care.id === m.id) h += careBox(s);
+    h += masterBlock(s, m);
 
     // Rasgos: lo que es. Una manía se puede tratar en la cama.
     const all = m.traits.concat(m.learned).filter((id) => T[id]);
@@ -1102,6 +1151,7 @@
       return { cheese: 'CHEESERY', lab: 'CHEESE LAB', stock: 'PANTRY', mice: 'MICE', options: 'MENU', dev: 'PLAYTEST TOOLS' }[name];
     },
     render(name, s, ui) {
+      GM = s.master && s.nodes['cheesemaking.master'] ? s.master : '';
       return { tree: treePanel, cheese: cheesePanel, lab: labPanel, stock: stockPanel, mice: micePanel, options: optionsPanel, dev: devPanel }[name](s, ui);
     },
   };

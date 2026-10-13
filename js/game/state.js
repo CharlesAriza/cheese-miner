@@ -2,7 +2,7 @@
 (function () {
   const B = CM.BALANCE;
 
-  CM.SAVE_VERSION = 8;
+  CM.SAVE_VERSION = 9;
   CM.events = []; // cola que consume la UI para dar feedback
   CM.muted = false; // true durante la simulación offline: no hay feedback visual
 
@@ -15,10 +15,10 @@
   CM.memo = null;
   CM.rev = 0;
   // Eventos que se repiten sin parar y no cambian ninguna de esas respuestas.
-  const ROUTINE = { cheeseStart: 1, drillDone: 1, drillStart: 1, hit: 1, lotDone: 1, refineDone: 1, refineStart: 1, sale: 1, sellStart: 1, reveal: 1, purchase: 1, labStart: 1, labSetback: 1, goal: 1, cheeseBoost: 1, drillBoost: 1, refineBoost: 1, sellBoost: 1, careStart: 1, candidates: 1 };
+  const ROUTINE = { grandWheel: 1, cheeseStart: 1, drillDone: 1, drillStart: 1, hit: 1, lotDone: 1, refineDone: 1, refineStart: 1, sale: 1, sellStart: 1, reveal: 1, purchase: 1, labStart: 1, labSetback: 1, goal: 1, cheeseBoost: 1, drillBoost: 1, refineBoost: 1, sellBoost: 1, careStart: 1, candidates: 1 };
 
   // Los que además nadie escucha con el juego cerrado (ni la interfaz ni la telemetría).
-  const SILENT = { cheeseStart: 1, drillDone: 1, drillStart: 1, hit: 1, lotDone: 1, refineDone: 1, refineStart: 1, sale: 1, sellStart: 1, labStart: 1 };
+  const SILENT = { grandWheel: 1, cheeseStart: 1, drillDone: 1, drillStart: 1, hit: 1, lotDone: 1, refineDone: 1, refineStart: 1, sale: 1, sellStart: 1, labStart: 1 };
 
   CM.emit = function (state, type, data) {
     if (CM.muted && SILENT[type]) return null;
@@ -76,6 +76,7 @@
         cookJob: null,
         cookCarry: 0, // fracción de queso pendiente por el rendimiento del ratón
         cookRecipe: '', // receta fijada para el ratón quesero de esta línea
+        wheelMs: 0, // tiempo de cocinado acumulado hacia la siguiente Grand Wheel
         stats: { raw: 0, rawUsed: 0, base: 0, baseUsed: 0, lots: 0 }, // producido y gastado, para los ritmos
       };
     });
@@ -105,6 +106,13 @@
       // `dir` es la dirección que marca el jugador: '' (ninguna), 'value', 'fast',
       // 'base:<id>', 'ingredient:<id>', 'treatment:<id>' o 'maturation:<id>'.
       care: null, // la cama de la Mouse House: { id, kind, what, to, remaining, total }
+      // Hitos. `quota`: objetivo de producción en curso (need = 0: ninguno) y el ritmo
+      // sostenido que lo fija. `board`: ventas recientes por ingrediente, tratamiento y
+      // maduración. `master`: el ratón con el título de Grand Master.
+      quota: { done: 0, from: 0, need: 0, best: 0, mark: 0, at: 0, b0: 0, b1: 0, b2: 0, full: 0 },
+      msOpen: Object.fromEntries(B.trees.cheesemaking.filter((n) => n.gate).map((n) => [n.id, 0])),
+      board: { at: 0, mult: 1, v: Object.fromEntries([].concat(Object.keys(B.ingredients), Object.keys(B.treatments), Object.keys(B.maturations)).map((k) => [k, 0])) },
+      master: '',
       news: [], // diario de la colonia: últimos rasgos y especialidades que han desarrollado
       inbox: [], // novedades que contar al jugador al volver (rasgos que llegaron solos)
       lab: { job: null, dir: '', want: '', next: '', strains: false, found: null },
@@ -119,6 +127,8 @@
         baseProduced: 0,
         baseConsumed: 0,
         lotsProduced: 0,
+        wheels: 0, // Grand Wheels terminadas
+        wheelLots: 0, // quesos que han dado (ya contados en lotsProduced)
         lotsSold: 0,
         coinsEarned: 0,
         coinsSpent: 0,

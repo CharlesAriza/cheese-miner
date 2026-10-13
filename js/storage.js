@@ -189,6 +189,16 @@
     const patient = isObj(c) ? s.mice.find((m) => m.id === c.id) : null;
     s.care = patient && c.total > 0 && Number.isFinite(c.remaining) && ((c.kind === 'quirk' && TR[c.what] && TR[c.what].kind === 'quirk' && patient.traits.concat(patient.learned).indexOf(c.what) >= 0) || (c.kind === 'spec' && patient.spec[c.what] && TR[c.to] && TR[c.to].job === c.what)) ? { id: c.id, kind: c.kind, what: c.what, to: c.kind === 'spec' ? c.to : '', remaining: Math.max(0, Math.min(c.remaining, c.total)), total: c.total } : null;
 
+    // Hitos: números sanos, y el título solo para un ratón que exista.
+    for (const k of Object.keys(s.quota)) s.quota[k] = pos(s.quota[k]);
+    s.quota.full = Math.min(3, nat(s.quota.full));
+    for (const k of Object.keys(s.msOpen)) s.msOpen[k] = s.msOpen[k] ? 1 : 0;
+    for (const k of Object.keys(s.board.v)) s.board.v[k] = pos(s.board.v[k]);
+    s.board.at = pos(s.board.at);
+    s.board.mult = Number.isFinite(s.board.mult) ? Math.max(1, Math.min(10, s.board.mult)) : 1;
+    if (!s.mice.some((m) => m.id === s.master)) s.master = '';
+    for (const def of B.zones) s.zones[def.id].wheelMs = Math.min(pos(s.zones[def.id].wheelMs), B.milestones.wheel.everyMs);
+
     // Cada línea solo puede cocinar recetas de su propia base.
     for (const def of B.zones) {
       const z = s.zones[def.id];
@@ -320,6 +330,7 @@
     if (isObj(data) && data.version === 5) migrate5(data);
     if (isObj(data) && data.version === 6) migrate6(data);
     if (isObj(data) && data.version === 7) data.version = 8; // rasgos automáticos: lo pendiente lo resuelve sanitize
+    if (isObj(data) && data.version === 8) data.version = 9; // hitos: todo empieza en sus valores por defecto
     if (!isObj(data) || data.version !== CM.SAVE_VERSION) return null;
     const s = CM.createState(now);
     try {

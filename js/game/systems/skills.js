@@ -40,6 +40,7 @@
       if (!why && skill === 'lab' && !s.built.lab) why = 'Build the Cheese Lab';
       if (!why && node.needs && !this.rank(s, skill, node.needs)) why = 'Needs ' + this.node(skill, node.needs).name;
       if (!why && node.needLevel && q.level(s, node.needLevel.skill) < node.needLevel.level) why = 'Needs ' + B.skills[node.needLevel.skill].name + ' LV ' + node.needLevel.level;
+      if (!why && node.gate && !CM.milestones.gateOk(s, node)) why = CM.milestones.gateText(s, node);
       const locked = !!why;
       const maxed = rank >= node.max;
       return { rank, max: node.max, cost, locked, why, maxed, canBuy: !locked && !maxed && s.coins >= cost };
@@ -115,6 +116,134 @@
     // Cuántos nudos de un árbol se pueden comprar ahora mismo.
     // `bulk`: solo lo que compraría BUY ALL (sin las mejoras que abren funciones).
     affordable: (s, skill, bulk) => B.trees[skill].filter((n) => !(bulk && n.unlock) && CM.tree.info(s, skill, n.id).canBuy).length,
+  };
+
+  // ---------- Hitos ----------
+  // Mejoras especiales de compra única. Las dos primeras piezas de la estructura: unas se abren
+  // con un rango de otra mejora y otras con un objetivo de producción («cocina N quesos»).
+  // El objetivo se fija una vez, con dos horas de tu mejor ritmo SOSTENIDO (media de media hora,
+  // sin contar las Grand Wheels), y no cambia hasta cumplirse: producir más lo acerca y producir
+  // menos no lo abarata. Cuenta todo lo cocinado, también con el juego cerrado.
+  const MS = B.milestones;
+  // Cifra redonda (dos cifras significativas), para que se lea bien.
+  const nice = (n) => {
+    const p = Math.pow(10, Math.max(0, Math.floor(Math.log10(Math.max(1, n))) - 1));
+    return Math.max(1, Math.ceil(n / p) * p);
+  };
+  CM.milestones = {
+    nodes: () => B.trees.cheesemaking.filter((n) => n.gate),
+    has: (s, id) => !!s.nodes['cheesemaking.' + id],
+    gateOk(s, node) {
+      const g = node.gate;
+      if (g.rank) return CM.tree.rank(s, 'cheesemaking', g.rank[0]) >= g.rank[1];
+      return s.quota.done >= g.quota;
+    },
+    gateText(s, node) {
+      const g = node.gate;
+      if (g.rank) return 'Needs ' + CM.tree.node('cheesemaking', g.rank[0]).name + ' ' + g.rank[1];
+      const goal = this.goal(s);
+      return goal && s.quota.done + 1 === g.quota ? 'Cook ' + CM.fmt(goal.left) + ' more cheese' : 'Comes after the milestone before it';
+    },
+    // El objetivo en curso: { cur, need, left, etaMs } o null.
+    goal(s) {
+      const Q = s.quota;
+      if (!Q.need) return null;
+      const cur = Math.min(Q.need, s.totals.lotsProduced - Q.from);
+      const rate = this.sustained(s);
+      return { n: Q.done + 1, cur, need: Q.need, left: Q.need - cur, etaMs: rate > 0 ? ((Q.need - cur) / rate) * 3600000 : 0 };
+    },
+    // Quesos por hora, de media, en la última media hora (sin Grand Wheels).
+    sustained: (s) => (s.quota.full >= 3 ? ((s.quota.b0 + s.quota.b1 + s.quota.b2) / 3) * (3600000 / MS.bucketMs) : 0),
+    // Hitos abiertos y aún sin comprar.
+    waiting: (s) => CM.milestones.nodes().filter((n) => s.msOpen[n.id] && !s.nodes['cheesemaking.' + n.id]),
+    tick(s) {
+      const Q = s.quota;
+      if (s.clock - Q.at >= MS.bucketMs) {
+        const regular = s.totals.lotsProduced - s.totals.wheelLots;
+        Q.b2 = Q.b1;
+        Q.b1 = Q.b0;
+        Q.b0 = regular - Q.mark;
+        Q.mark = regular;
+        Q.at = s.clock;
+        Q.full = Math.min(3, Q.full + 1);
+        if (Q.full >= 3) Q.best = Math.max(Q.best, this.sustained(s));
+      }
+      const all = this.nodes();
+      // El contador empieza cuando ya están abiertos los hitos que dependen de un rango.
+      if (!Q.need && Q.best > 0 && Q.done < all.filter((n) => n.gate.quota).length && all.every((n) => !n.gate.rank || s.msOpen[n.id])) {
+        Q.from = s.totals.lotsProduced;
+        Q.need = nice(Q.best * MS.hours);
+        CM.emit(s, 'quotaSet', { need: Q.need });
+      }
+      if (Q.need && s.totals.lotsProduced - Q.from >= Q.need) {
+        Q.done += 1;
+        Q.need = 0;
+        CM.emit(s, 'quotaDone', { n: Q.done });
+      }
+      for (const node of all) {
+        if (s.msOpen[node.id] || !this.gateOk(s, node)) continue;
+        s.msOpen[node.id] = 1;
+        CM.emit(s, 'milestoneOpen', { id: node.id });
+      }
+    },
+    // --- Cheese Board: lo que se vende de cada tipo, con las ventas viejas pesando cada vez menos ---
+    sold(s, recipe, coins) {
+      const b = s.board;
+      const c = CM.cheesery.parseKey(recipe.key);
+      b.v[c.ingredient] += coins;
+      b.v[c.treatment] += coins;
+      b.v[c.maturation] += coins;
+    },
+    // Antes de una venta: las ventas anteriores se van olvidando.
+    boardFade(s) {
+      const b = s.board;
+      const f = Math.exp(-(s.clock - b.at) / MS.board.tauMs);
+      for (const k of Object.keys(b.v)) b.v[k] *= f;
+      b.at = s.clock;
+    },
+    // Cuántos tipos «efectivos» hay en una familia: uno si todo es lo mismo; tres si tres se
+    // reparten las ventas a partes iguales. Un tipo que apenas vende apenas cuenta.
+    boardFamilies(s) {
+      const fam = { ingredient: Object.keys(B.ingredients), treatment: Object.keys(B.treatments), maturation: Object.keys(B.maturations) };
+      const out = {};
+      for (const name of Object.keys(fam)) {
+        let sum = 0;
+        let sq = 0;
+        for (const k of fam[name]) {
+          sum += s.board.v[k];
+          sq += s.board.v[k] * s.board.v[k];
+        }
+        out[name] = { eff: sq > 0 ? (sum * sum) / sq : 1, shares: fam[name].map((k) => ({ id: k, share: sum > 0 ? s.board.v[k] / sum : 0 })) };
+      }
+      return out;
+    },
+    boardUpdate(s) {
+      const f = this.boardFamilies(s);
+      s.board.mult = 1 + MS.board.per * (f.ingredient.eff - 1 + (f.treatment.eff - 1) + (f.maturation.eff - 1));
+    },
+    // --- Grand Master ---
+    // Grado según las hornadas de su vida: el primero a las 20.000, y otro cada vez que las dobla.
+    masterGrade(m) {
+      const jobs = (m && m.jobs && m.jobs.cheesemaking) || 0;
+      return jobs < MS.master.from ? 0 : Math.floor(Math.log2(jobs / MS.master.from)) + 1;
+    },
+    masterNext: (grade) => MS.master.from * Math.pow(2, grade),
+    master: (s) => (s.master ? CM.mice.byId(s, s.master) : null),
+    // Lo que sube el queso de una roca: solo si el Grand Master es quien cocina ahí.
+    masterMult(s, zone) {
+      if (!s.master || !s.nodes['cheesemaking.master']) return 1;
+      const cook = CM.mice.at(s, 'cheesemaking', zone);
+      return cook && cook.id === s.master ? 1 + MS.master.per * this.masterGrade(cook) : 1;
+    },
+    nameMaster(s, id) {
+      if (!s.nodes['cheesemaking.master']) return CM.fail('locked');
+      const m = CM.mice.byId(s, id);
+      if (!m) return CM.fail('invalid');
+      if (s.master === id) return CM.fail('invalid');
+      s.master = id;
+      CM.emit(s, 'masterNamed', { id });
+      return CM.ok();
+    },
   };
 
   // Edificios de la cadena: gratis, se desbloquean por hitos.

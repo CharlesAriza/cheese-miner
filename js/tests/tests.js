@@ -23,6 +23,9 @@
   function eq(actual, expected, label) {
     if (actual !== expected) throw new Error((label || 'value') + ': expected ' + expected + ', got ' + actual);
   }
+  function near(actual, expected, tol, label) {
+    if (!(Math.abs(actual - expected) <= tol)) throw new Error(label + ': expected about ' + expected + ', got ' + actual);
+  }
   function truthy(v, label) {
     if (!v) throw new Error(label + ': expected truthy');
   }
@@ -349,6 +352,10 @@
     staff(base, 'research', 'all', { traits: ['scholar', 'lazy'] });
     CM.tree.buy(base, 'drilling', 'bit');
     CM.tree.buy(base, 'trading', 'prices');
+    // Con los tres hitos comprados y un Grand Master cocinando: ruedas, tabla y título también cuentan igual.
+    for (const id of ['wheel', 'board', 'master']) base.nodes['cheesemaking.' + id] = 1;
+    base.master = CM.mice.at(base, 'cheesemaking', 'cheddar').id;
+    CM.mice.at(base, 'cheesemaking', 'cheddar').jobs.cheesemaking = 39900;
     const text = JSON.stringify(base);
     const AWAY = 40 * 60 * 1000;
     const play = (how) => {
@@ -373,6 +380,8 @@
     const slow = play('slow');
     const slices = play('slices');
     truthy(fast.sum.coins > 0 && fast.sum.delta.lotsProduced > 0 && fast.s.recipes.length > base.recipes.length, 'the colony worked, sold and researched while away');
+    truthy(fast.sum.delta.wheels >= 1 && fast.sum.delta.wheelLots > 0, 'Grand Wheels also happen while away (' + fast.sum.delta.wheels + ')');
+    truthy(CM.milestones.masterGrade(CM.milestones.master(fast.s)) >= 2 && fast.s.quota.at > 0, 'the Grand Master kept learning and the production goal kept counting');
     truthy(fast.sum.mouseNews.some((n) => n.to > n.from), 'and the mice levelled up');
     eq(fast.json === slow.json, true, 'remembering answers inside a step changes nothing: coins, stock, levels, traits and research are identical');
     eq(fast.json === slices.json, true, 'catching up in slices gives the same game as doing it in one go');
@@ -1409,6 +1418,231 @@
     const res = CM.mice.promoteMany(stale, old);
     eq(res.mice, 1, 'a stale selection promotes only who is still there');
     valid(stale);
+  });
+
+  test('milestones: opened by a rank or by a production goal, bought only by the player', () => {
+    const s = fresh();
+    CM.dev.unlockBuildings(s);
+    s.devUsed = false;
+    s.coins = 1e30;
+    const MS = CM.milestones;
+    eq(CM.tree.info(s, 'cheesemaking', 'wheel').locked, true, 'Grand Wheel starts locked');
+    eq(CM.tree.info(s, 'cheesemaking', 'wheel').why, 'Needs More Moulds 20', 'and says what opens it');
+    eq(CM.tree.buy(s, 'cheesemaking', 'wheel').ok, false, 'so it cannot be bought yet');
+    // BUY ALL sube More Moulds, pero no compra el hito que eso abre.
+    CM.tree.sweep(s);
+    truthy(CM.tree.rank(s, 'cheesemaking', 'moulds') >= 20, 'BUY ALL takes More Moulds past rank 20');
+    MS.tick(s);
+    eq(s.msOpen.wheel, 1, 'which opens Grand Wheel');
+    eq(MS.waiting(s).map((n) => n.id).join(), 'wheel', 'and it waits to be bought');
+    s.coins = 1e30;
+    CM.tree.sweep(s);
+    eq(MS.has(s, 'wheel'), false, 'BUY ALL leaves a milestone alone');
+    const boss = staff(s, 'cheesemaking', 'cheddar', { rank: B.mice.ranks.length - 1 });
+    s.settings.managersBuy = true;
+    for (let i = 0; i < 50; i++) CM.mice.managersTick(s);
+    eq(MS.has(s, 'wheel'), false, 'and so does a manager');
+    truthy(boss && CM.tree.buy(s, 'cheesemaking', 'wheel').ok, 'the player buys it');
+    eq(CM.tree.buy(s, 'cheesemaking', 'wheel').ok, false, 'once');
+    eq(CM.tree.info(s, 'cheesemaking', 'board').locked, true, 'the next one waits for a production goal');
+
+    // --- El objetivo de producción ---
+    // Media hora cocinando a 6.000 quesos por hora fija el ritmo sostenido.
+    const cook = (g, perBucket, buckets, wheelPer) => {
+      for (let i = 0; i < buckets; i++) {
+        g.clock += B.milestones.bucketMs;
+        g.totals.lotsProduced += perBucket + (wheelPer || 0);
+        g.totals.wheelLots += wheelPer || 0;
+        MS.tick(g);
+      }
+    };
+    eq(MS.goal(s), null, 'no goal before there is a pace to measure');
+    cook(s, 1000, 2);
+    eq(s.quota.need, 0, 'twenty minutes are not a sustained pace yet');
+    cook(s, 1000, 1);
+    eq(s.quota.best, 6000, 'half an hour at 1,000 per ten minutes is 6,000 an hour');
+    const H = B.milestones.hours;
+    eq(s.quota.need, 6000 * H, 'the goal is that many hours of that pace');
+    const from = s.quota.from;
+    // Bajar la producción no abarata el objetivo ni el ritmo de referencia.
+    cook(s, 10, 6);
+    eq(s.quota.need, 6000 * H, 'producing less does not make the goal cheaper');
+    eq(s.quota.from, from, 'and does not restart it');
+    eq(s.quota.best, 6000, 'nor lower the pace the next goal will use');
+    eq(MS.goal(s).cur, 60, 'what was cooked still counts');
+    // Las Grand Wheels cuentan para llegar, pero no inflan el ritmo de referencia.
+    const a = JSON.parse(JSON.stringify(s));
+    const b = JSON.parse(JSON.stringify(s));
+    cook(a, 2000, 3);
+    cook(b, 2000, 3, 5000);
+    eq(b.quota.best, a.quota.best, 'wheels do not inflate the sustained pace');
+    eq(a.quota.done, 0, 'without wheels the goal is not reached yet');
+    eq(b.quota.done, 1, 'with them it is: everything cooked counts towards it');
+    // Producir más lo acerca; al cumplirse abre el hito y fija el siguiente.
+    cook(a, 5000, 3);
+    eq(a.quota.done, 1, 'cooking more reaches the goal sooner');
+    eq(a.msOpen.board, 1, 'reaching it opens Cheese Board');
+    eq(CM.tree.info(a, 'cheesemaking', 'board').locked, false, 'which can now be bought');
+    cook(a, 5000, 1);
+    eq(a.quota.need, 30000 * H, 'the next goal uses the best sustained pace so far (30,000 an hour)');
+    eq(CM.tree.info(a, 'cheesemaking', 'master').why, 'Cook ' + CM.fmt(MS.goal(a).left) + ' more cheese', 'and the milestone behind it says how much is left');
+    cook(a, 30000, 4);
+    eq(a.quota.done, 2, 'second goal reached');
+    eq(a.msOpen.master, 1, 'Grand Master opens');
+    cook(a, 30000, 6);
+    eq(a.quota.need, 0, 'no more goals than milestones to open');
+    const back = CM.storage.parse(JSON.stringify(a), a.lastSavedAt);
+    eq(JSON.stringify(back.quota), JSON.stringify(a.quota), 'the goal survives a reload');
+    eq(JSON.stringify(back.msOpen), JSON.stringify(a.msOpen), 'and so does what is open');
+  });
+
+  test('grand wheel: one every ten minutes of cooking, worth two more, free and the same for any recipe', () => {
+    const make = (wheel, strain) => {
+      const g = withCheese();
+      g.inv.base.cheddar = 1e9;
+      g.coins = 1e9;
+      staff(g, 'cheesemaking', 'cheddar');
+      if (wheel) g.nodes['cheesemaking.wheel'] = 1;
+      if (strain) {
+        g.recipes[0].strains = [strain];
+        g.recipes[0].strain = strain;
+      }
+      CM.rev += 1;
+      return g;
+    };
+    const off = make(false);
+    const on = make(true);
+    run(on, 9 * 60000);
+    eq(on.totals.wheels, 0, 'none before ten minutes of cooking');
+    run(on, 2 * 60000);
+    eq(on.totals.wheels, 1, 'the first one after ten minutes');
+    run(on, 49 * 60000);
+    run(off, 60 * 60000);
+    truthy(on.totals.wheels === 5 || on.totals.wheels === 6, 'about six in an hour (' + on.totals.wheels + ')');
+    eq(off.totals.wheels, 0, 'none without the milestone');
+    const regular = on.totals.lotsProduced - on.totals.wheelLots;
+    // (Un poco más que sin ruedas: lo que dan cuenta para la maestría, y la receta se cocina antes.)
+    near(regular / off.totals.lotsProduced, 1, 0.03, 'the line makes its usual cheese on top');
+    near(on.totals.wheelLots / regular, (on.totals.wheels * 2) / 60, 0.02, 'each wheel is worth two more minutes of the line');
+    near(on.totals.baseConsumed / regular / (off.totals.baseConsumed / off.totals.lotsProduced), 1, 0.001, 'it uses no extra Cheese Base: the same per cheese cooked');
+    eq(on.totals.coinsSpent, off.totals.coinsSpent, 'and no extra coins');
+    truthy(on.recipes[0].made > off.recipes[0].made, 'so it adds to its mastery count');
+    valid(on);
+    // Con una cepa que cocina el doble de rápido, la cadencia es la misma en tiempo.
+    const quick = make(true, 'quick');
+    run(quick, 60 * 60000);
+    truthy(quick.totals.wheels === 5 || quick.totals.wheels === 6, 'a faster strain keeps the same pace of wheels (' + quick.totals.wheels + ')');
+    near(quick.totals.wheelLots / (quick.totals.lotsProduced - quick.totals.wheelLots), (quick.totals.wheels * 2) / 60, 0.02, 'and each is still worth two minutes of that line');
+    valid(quick);
+    const back = CM.storage.parse(JSON.stringify(on), on.lastSavedAt);
+    eq(back.zones.cheddar.wheelMs, on.zones.cheddar.wheelMs, 'progress to the next wheel survives a reload');
+  });
+
+  test('cheese board: pays for a real mix of sales, and a type that barely sells barely counts', () => {
+    const MS = CM.milestones;
+    const s = withCheese();
+    s.inv.base.cheddar = 1000;
+    s.skills.cheesemaking.xp = q.xpForLevel(5);
+    const second = CM.cheesery.experiment(s, { base: 'cheddar', ingredient: 'herbs', treatment: 'smoked', maturation: 'fresh' });
+    eq(second.ok, true, 'a second recipe, with another treatment (' + second.reason + ')');
+    run(s, CM.cheesery.labTime(s) + 1000);
+    const [a, b] = s.recipes;
+    const reset = () => {
+      for (const k of Object.keys(s.board.v)) s.board.v[k] = 0;
+      s.board.at = s.clock;
+    };
+    const mix = (x, y) => {
+      reset();
+      MS.sold(s, a, x);
+      MS.sold(s, b, y);
+      MS.boardUpdate(s);
+      return s.board.mult;
+    };
+    eq(mix(100, 0), 1, 'one type of everything: no bonus');
+    near(mix(100, 100), 1 + B.milestones.board.per, 0.0001, 'two treatments selling the same count as two');
+    truthy(mix(990, 10) < 1.005, 'a treatment that is 1% of sales adds next to nothing (' + mix(990, 10).toFixed(4) + ')');
+    truthy(mix(700, 300) > mix(900, 100) && mix(900, 100) > mix(990, 10), 'the more even the mix, the higher the bonus');
+    eq(MS.boardFamilies(s).ingredient.eff, 1, 'the families are counted apart: one ingredient is still one');
+    // Las ventas viejas pesan cada vez menos.
+    mix(100, 100);
+    s.clock += B.milestones.board.tauMs;
+    MS.boardFade(s);
+    near(s.board.v.washed, 100 / Math.E, 0.001, 'old sales fade');
+    // En una venta de verdad: el bono es el que había antes de ella.
+    reset();
+    s.board.mult = 1;
+    s.nodes['cheesemaking.board'] = 1;
+    s.jobs.shop = null;
+    for (const r of s.recipes) s.lots[r.id] = 3;
+    const plain = s.recipes.reduce((sum, r) => sum + CM.shop.price(s, r) * 3, 0);
+    truthy(CM.shop.start(s, 'manual').ok, 'sell both');
+    eq(s.jobs.shop.coins, plain, 'the first sale pays the plain price');
+    truthy(s.board.mult > 1, 'and puts both treatments on the board');
+    const mult = s.board.mult;
+    run(s, q.sellDuration(s) + STEP);
+    for (const r of s.recipes) s.lots[r.id] = 3;
+    s.jobs.shop = null;
+    truthy(CM.shop.start(s, 'manual').ok, 'sell again');
+    near(s.jobs.shop.coins / plain, mult, 0.02, 'the next sale pays the bonus');
+    // Sin el hito, nada cambia.
+    const t = withCheese();
+    t.lots[t.recipes[0].id] = 3;
+    t.jobs.shop = null;
+    CM.shop.start(t, 'manual');
+    eq(t.board.mult, 1, 'without the milestone there is no board');
+    eq(Object.values(t.board.v).reduce((x, y) => x + y, 0), 0, 'and sales are not tracked');
+    const back = CM.storage.parse(JSON.stringify(s), s.lastSavedAt);
+    eq(JSON.stringify(back.board), JSON.stringify(s.board), 'the board survives a reload');
+    valid(s);
+  });
+
+  test('grand master: one title, given by the player, as strong as the cheese that mouse has cooked', () => {
+    const MS = CM.milestones;
+    const s = withCheese();
+    const cook = staff(s, 'cheesemaking', 'cheddar');
+    const miner = staff(s, 'mining', 'cheddar');
+    cook.jobs.cheesemaking = 20000;
+    miner.jobs.cheesemaking = 80000;
+    const r = s.recipes[0];
+    const value = () => {
+      CM.rev += 1;
+      return CM.cheesery.valueOf(s, r);
+    };
+    const plain = value();
+    eq(MS.nameMaster(s, cook.id).reason, 'locked', 'no title before the milestone');
+    s.nodes['cheesemaking.master'] = 1;
+    eq(MS.masterGrade({ jobs: { cheesemaking: 19999 } }), 0, 'no grade under 20,000 batches');
+    eq(MS.masterGrade(cook), 1, 'grade 1 at 20,000');
+    eq(MS.masterGrade({ jobs: { cheesemaking: 40000 } }), 2, 'grade 2 at 40,000');
+    eq(MS.masterGrade(miner), 3, 'grade 3 at 80,000');
+    eq(MS.masterNext(3), 160000, 'and the next at 160,000');
+    eq(value(), plain, 'the milestone alone changes nothing: somebody has to be named');
+    truthy(MS.nameMaster(s, cook.id).ok, 'the player names the cook');
+    near(value() / plain, 1.1, 0.01, 'its cheese is worth 10% more at grade 1');
+    eq(MS.masterMult(s, 'gouda'), 1, 'only on the rock where it cooks');
+    // Otro ratón recibe el título: solo hay uno, y cada cual conserva su experiencia.
+    truthy(MS.nameMaster(s, miner.id).ok, 'the title passes to another mouse');
+    eq(s.master, miner.id, 'only one holds it');
+    eq(cook.jobs.cheesemaking, 20000, 'the old one keeps its experience');
+    eq(value(), plain, 'a Grand Master that is not cooking adds nothing');
+    truthy(CM.mice.assign(s, miner.id, 'cheesemaking:cheddar').ok, 'put it on the cheesemaking post');
+    near(value() / plain, 1.3, 0.01, 'now its three grades count');
+    // Cocinando sube de grado.
+    miner.jobs.cheesemaking = 159999;
+    CM.events.length = 0;
+    CM.mice.reward(s, 'cheesemaking', 'cheddar');
+    eq(MS.masterGrade(miner), 4, 'cooking takes it to the next grade');
+    truthy(CM.events.some((e) => e.type === 'masterUp' && e.grade === 4), 'and the game says so');
+    near(value() / plain, 1.4, 0.01, 'worth 40% from that moment');
+    const back = CM.storage.parse(JSON.stringify(s), s.lastSavedAt);
+    eq(back.master, miner.id, 'the title survives a reload');
+    // Si se va de la colonia, el título queda libre.
+    CM.mice.dismiss(s, miner.id);
+    eq(s.master, '', 'a Grand Master that leaves frees the title');
+    const ghost = JSON.parse(JSON.stringify(s));
+    ghost.master = 'nobody';
+    eq(CM.storage.parse(JSON.stringify(ghost), s.lastSavedAt).master, '', 'a title for a mouse that is not there is dropped on load');
+    valid(s);
   });
 
   test('save/load keeps the state; damaged and old saves start clean', () => {

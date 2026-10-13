@@ -82,6 +82,17 @@ Rendimiento (15-10-2026): simular horas de ausencia con la colonia llena era len
 
 Ascensos en bloque (13-10-2026): el aviso «N can be promoted» de COLONY y ROSTER abre la lista de ratones con nivel para ascender (clases `pm-`). Se eligen uno a uno o con SELECT ALL / AFFORDABLE / NONE, se elige hasta qué rango cuando hay varios acumulados, se ve el total frente a las monedas y se confirma una vez. `CM.mice.promoteMany` usa el ascenso normal paso a paso; si el total no alcanza no cobra nada. No hay ascenso automático.
 
+### Hitos de Cheesemaking (prototipo jugable, 13-10-2026)
+
+Tres mejoras especiales para probar jugando si el tramo medio gana decisiones. Cifras provisionales en `B.milestones`; lógica en `CM.milestones` (`skills.js`). Son nudos del árbol con `unlock: true` y `gate`: **los compra el jugador** (ni BUY ALL ni los gerentes), se anuncian al abrirse y explican qué hacen al comprarlos.
+
+- **Desbloqueo.** Grand Wheel se abre con More Moulds 20. Los siguientes, con un **objetivo de producción**: «cocina N quesos». N se fija una vez (tres horas del mejor ritmo sostenido: media de media hora, sin contar las ruedas) y no cambia hasta cumplirse. Producir más lo acerca; producir menos no lo abarata. Cuenta todo lo cocinado, también offline. Se enseña en el árbol de Cheesemaking y, acabados los objetivos de arranque, en la franja de objetivo. No es una mecánica sin fin: hoy solo abre dos hitos.
+- **Grand Wheel.** Cada 10 minutos de cocinado, cada línea saca una rueda que vale 2 minutos más de su producción (+20 % de media). No gasta Base ni monedas y ocurre igual con el juego cerrado. Solo se celebra la de la roca que se está mirando; la Cheesery dice cuánto falta.
+- **Cheese Board.** Las ventas valen más cuanto más repartidas estén entre ingredientes, tratamientos y maduraciones: en cada familia se calcula el número efectivo de tipos según lo vendido en los últimos ~10 minutos, y cada tipo efectivo de más da un 20 %. Un tipo que apenas vende apenas cuenta. Se cambia fijando otra receta en una roca; el Cheesemaker sin receta fijada sigue eligiendo por potencial, sin mirar la tabla.
+- **Grand Master.** Un único título para toda la colonia, que el jugador da a un ratón desde su ficha y puede pasar a otro (cada uno conserva su experiencia). Su grado sale de las hornadas cocinadas en su vida (el primero a 20.000, otro cada vez que se doblan) y cada grado sube un 10 % el queso de la roca donde cocina. Fuera de un puesto de quesero no cuenta.
+
+Quien toque el valor del queso: el título entra en `valueNow` (memorizado por `CM.rev`; nombrar, mover y subir de grado emiten evento) y la tabla multiplica las monedas de cada venta en `shop.start`, fuera de la memoria.
+
 ### Cheese Lab
 
 Edificio propio en la colonia (gratis tras 3 recetas a mano). **Empieza sencillo y gana funciones con su propio árbol de mejoras** (`B.trees.lab`, sin nivel de habilidad): Research Assistant abre el puesto de Research; Advanced Research, las direcciones de investigación (antes, el ratón va siempre a por la receta más valiosa); Strain Research (Cheesemaking 10), la sección STRAINS. Además, dos mejoras de eficiencia (velocidad y coste). Las mejoras que abren una función las compra el jugador una a una, nunca BUY ALL, y cada una se explica al comprarla. La interfaz solo enseña lo desbloqueado. El oficio Research usa el sistema de ratones tal cual. Pendiente: las recetas son finitas (216).
