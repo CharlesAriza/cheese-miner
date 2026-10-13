@@ -26,6 +26,8 @@
     'no-base': 'Not enough Cheese Base',
     'no-cheese': 'No cheese to sell. Make some in the Cheesery',
     'no-coins': 'Not enough coins',
+    'no-boost': 'No free boost: take one off another post first',
+    'boost-full': 'A post takes two boosts at most',
     'level-locked': 'Your skill level is too low for that',
     'part-locked': 'You have not unlocked that ingredient yet',
     locked: 'Not unlocked yet',
@@ -48,6 +50,7 @@
   const round1 = (n) => Math.round(n * 10) / 10;
   const SHOW = {
     pickPower: (s) => round1(q.pickPower(s)) + ' search per hit',
+    pickMult: (s) => round1(q.pickPower(s)) + ' search per hit',
     critMult: (s) => 'crits hit x' + round1(q.critMult(s)),
     minerSpeed: (s) => 'a swing every ' + secs(q.minerInterval(s)),
     veinCap: (s) => CM.fmt(q.veinCapacity(s, B.zones[0].id)) + ' Raw in a ' + B.zones[0].name + ' vein',
@@ -546,6 +549,46 @@
     }
     const cur = MS.master(s);
     return '<div class="gm-box"><div><b>GRAND MASTER</b><small>One mouse in the colony holds the title. ' + (grade ? 'This one would be grade ' + roman(grade) + ' (' + pct(grade) + ' on the cheese it cooks). ' : 'This one has no grade yet. ') + next + (cur ? ' ' + esc(cur.name) + ' holds it now and keeps its experience.' : '') + '</small></div>' + btn('namemaster:' + m.id, cur ? 'GIVE IT<br>THE TITLE' : 'NAME<br>GRAND MASTER', { cls: 'mini' }) + '</div>';
+  }
+
+  // ---------- REFUERZOS ----------
+  // Una rejilla: una fila por roca y una columna por etapa, más la tienda. Tocar una casilla pone
+  // un refuerzo libre; si no cabe o no queda ninguno libre, quita uno de ahí. Las clases
+  // empiezan por `bo-`.
+  const BOOST_COLS = [['mining', 'MINE', 'pick'], ['drilling', 'DRILL', 'raw'], ['refining', 'REFINE', 'base'], ['cheesemaking', 'CHEESE', 'lot']];
+  const pips = (n) => (n ? '<i class="bo-pips">' + '<i></i>'.repeat(n) + '</i>' : '');
+  function boostsPanel(s) {
+    const BO = CM.boosts;
+    const owned = BO.owned(s);
+    const free = BO.free(s);
+    const times = 'x' + B.boosts.speed;
+    let h = '<div class="bo-head"><div><b>' + free + '</b><small>FREE</small></div><div><b>' + s.boosts.length + '</b><small>PLACED</small></div><p>A boost makes one post work <b>' + times + ' as fast</b>, whoever works there. Two on the same post: x' + (B.boosts.speed * B.boosts.speed) + '. Up to ' + B.boosts.perPost + ' per post.</p></div>';
+    // Cuándo llega el siguiente.
+    const nx = BO.next(s);
+    if (nx && nx.kind === 'rock') h += '<div class="bo-next"><b>NEXT BOOST</b><span>when you open ' + (owned ? 'your next rock' : 'your third rock') + '</span></div>';
+    else if (nx) h += '<div class="bo-next"><b>NEXT BOOST</b><span>' + CM.fmt(nx.cur) + ' / ' + CM.fmt(nx.need) + ' cheese cooked</span><div class="bar"><i style="width:' + Math.round((nx.cur / nx.need) * 100) + '%"></i></div><small>' + (nx.etaMs ? 'About ' + span(nx.etaMs) + ' at your pace. ' : '') + 'It counts while you are away too.</small></div>';
+    if (!owned) return h + '<p class="hint">You have no boosts yet.</p>';
+    h += '<p class="hint">' + (free ? 'Tap a post to put a boost there.' : 'All placed. Tap a boosted post to take one back, then tap where you want it.') + ' Moving them costs nothing.</p>';
+    h += '<div class="bo-grid"><span></span>' + BOOST_COLS.map((c) => '<small>' + c[1] + '</small>').join('');
+    for (const def of q.openZones(s)) {
+      const slow = BO.hint(s, def.id);
+      h += '<b>' + I.img('raw', def.base) + esc(B.bases[def.base].name) + '</b>';
+      for (const c of BOOST_COLS) {
+        const n = BO.at(s, c[0], def.id);
+        const staffed = !!CM.mice.at(s, c[0], def.id);
+        h += '<button data-act="boost:' + c[0] + ':' + def.id + '" class="bo-cell' + (n ? ' has n' + n : '') + (staffed ? '' : ' empty') + (slow === c[0] ? ' slow' : '') + '">' + I.img(c[2], def.base) + pips(n) + (slow === c[0] ? '<em>SLOW?</em>' : '') + '</button>';
+      }
+    }
+    h += '</div>';
+    // La tienda: una sola, para todas las rocas.
+    if (s.built.shop) {
+      const n = BO.at(s, 'trading', 'all');
+      const slow = BO.shopHint(s);
+      h += '<button data-act="boost:trading:all" class="bo-shop' + (n ? ' has n' + n : '') + (slow ? ' slow' : '') + '">' + I.img('coin') + '<span><b>SHOP</b><small>' + (slow ? 'Cheese is piling up here' : 'Sells the cheese of every rock') + '</small></span>' + pips(n) + (slow ? '<em>SLOW?</em>' : '') + '</button>';
+    }
+    h += '<p class="hint">SLOW? marks the stage that may be holding a rock back. It is a hint, not a sum: try it and watch your coins per minute. A post with no mouse gets nothing from a boost.</p>';
+    if (s.boosts.length) h += btn('boostclear', 'TAKE ALL BOOSTS BACK', { cls: 'mini' });
+    return h;
   }
 
   // ---------- DESPENSA ----------
@@ -1148,11 +1191,11 @@
       if (name === 'lab' && s && !s.recipes.length) return 'YOUR FIRST RECIPE';
       if (name === 'lab' && s && !s.built.lab) return 'RECIPES';
       if (name === 'tree') return ui.tree === 'colony' ? 'COLONY' : ui.tree === 'lab' ? 'LAB UPGRADES' : B.skills[ui.tree].name.toUpperCase() + ' UPGRADES';
-      return { cheese: 'CHEESERY', lab: 'CHEESE LAB', stock: 'PANTRY', mice: 'MICE', options: 'MENU', dev: 'PLAYTEST TOOLS' }[name];
+      return { cheese: 'CHEESERY', lab: 'CHEESE LAB', stock: 'PANTRY', mice: 'MICE', boosts: 'BOOSTS', options: 'MENU', dev: 'PLAYTEST TOOLS' }[name];
     },
     render(name, s, ui) {
       GM = s.master && s.nodes['cheesemaking.master'] ? s.master : '';
-      return { tree: treePanel, cheese: cheesePanel, lab: labPanel, stock: stockPanel, mice: micePanel, options: optionsPanel, dev: devPanel }[name](s, ui);
+      return { tree: treePanel, cheese: cheesePanel, lab: labPanel, stock: stockPanel, mice: micePanel, boosts: boostsPanel, options: optionsPanel, dev: devPanel }[name](s, ui);
     },
   };
 })();

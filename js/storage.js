@@ -201,6 +201,18 @@
     if (!s.mice.some((m) => m.id === s.master)) s.master = '';
     for (const def of B.zones) s.zones[def.id].wheelMs = Math.min(pos(s.zones[def.id].wheelMs), B.milestones.wheel.everyMs);
 
+    // Refuerzos: solo en puestos que existen, dos por puesto como mucho y nunca más de los ganados.
+    for (const k of Object.keys(s.boost)) s.boost[k] = nat(s.boost[k]);
+    {
+      const valid = CM.boosts.spots(s).map((p) => p.key);
+      const kept = [];
+      for (const k of Array.isArray(s.boosts) ? s.boosts : []) {
+        if (valid.indexOf(k) < 0 || kept.filter((x) => x === k).length >= B.boosts.perPost || kept.length >= CM.boosts.owned(s)) continue;
+        kept.push(k);
+      }
+      s.boosts = kept;
+    }
+
     // Cada línea solo puede cocinar recetas de su propia base.
     for (const def of B.zones) {
       const z = s.zones[def.id];
@@ -333,6 +345,7 @@
     if (isObj(data) && data.version === 6) migrate6(data);
     if (isObj(data) && data.version === 7) data.version = 8; // rasgos automáticos: lo pendiente lo resuelve sanitize
     if (isObj(data) && data.version === 8) data.version = 9; // hitos: todo empieza en sus valores por defecto
+    if (isObj(data) && data.version === 9) data.version = 10; // refuerzos: los que ya tocan por rocas abiertas se entregan al cargar
     if (!isObj(data) || data.version !== CM.SAVE_VERSION) return null;
     const s = CM.createState(now);
     try {

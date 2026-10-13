@@ -39,6 +39,7 @@
       let why = B.skills[skill] && q.level(s, skill) < node.level ? 'Needs ' + B.skills[skill].name + ' LV ' + node.level : '';
       if (!why && skill === 'lab' && !s.built.lab) why = 'Build the Cheese Lab';
       if (!why && node.needs && !this.rank(s, skill, node.needs)) why = 'Needs ' + this.node(skill, node.needs).name;
+      if (!why && node.needsMax && this.rank(s, skill, node.needsMax) < this.node(skill, node.needsMax).max) why = 'Needs ' + this.node(skill, node.needsMax).name + ' ' + this.node(skill, node.needsMax).max;
       if (!why && node.needLevel && q.level(s, node.needLevel.skill) < node.needLevel.level) why = 'Needs ' + B.skills[node.needLevel.skill].name + ' LV ' + node.needLevel.level;
       if (!why && node.gate && !CM.milestones.gateOk(s, node)) why = CM.milestones.gateText(s, node);
       const locked = !!why;
@@ -247,6 +248,106 @@
       s.master = id;
       CM.emit(s, 'masterNamed', { id });
       return CM.ok();
+    },
+  };
+
+  // ---------- Refuerzos ----------
+  // Capacidad de más, permanente, que el jugador reparte: cada refuerzo multiplica la velocidad
+  // de un puesto (una etapa de una roca, o la tienda). Se ganan abriendo rocas y, con todas
+  // abiertas, cumpliendo objetivos de producción (las mismas reglas que los hitos: cifra fija,
+  // ritmo sostenido, cuenta todo lo cocinado, también con el juego cerrado). Se mueven cuando
+  // se quiera y nunca se pierden. Lo que rinde un ratón no cambia: el refuerzo es del puesto.
+  const BO = B.boosts;
+  const BOOST_JOBS = ['mining', 'drilling', 'refining', 'cheesemaking', 'trading'];
+  CM.boosts = {
+    JOBS: BOOST_JOBS,
+    owned: (s) => Math.max(0, s.totals.zonesUnlocked - (BO.fromRock - 1)) + s.boost.goals,
+    free: (s) => CM.boosts.owned(s) - s.boosts.length,
+    at(s, skill, zone) {
+      if (!s.boosts.length) return 0;
+      const key = CM.mice.postKey(skill, zone);
+      let n = 0;
+      for (const k of s.boosts) if (k === key) n += 1;
+      return n;
+    },
+    mult: (s, skill, zone) => (s.boosts.length ? Math.pow(BO.speed, CM.boosts.at(s, skill, zone)) : 1),
+    // Puestos que admiten refuerzo: las cuatro etapas de cada roca abierta y la tienda.
+    spots: (s) => CM.mice.posts(s).filter((p) => BOOST_JOBS.indexOf(p.skill) >= 0),
+    place(s, key) {
+      if (this.free(s) <= 0) return CM.fail('no-boost');
+      if (!this.spots(s).some((p) => p.key === key)) return CM.fail('invalid');
+      if (s.boosts.filter((k) => k === key).length >= BO.perPost) return CM.fail('boost-full');
+      s.boosts.push(key);
+      CM.emit(s, 'boostPlaced', { key });
+      return CM.ok();
+    },
+    // Quitarlo lo devuelve a la reserva: se puede volver a colocar donde sea.
+    remove(s, key) {
+      const i = s.boosts.lastIndexOf(key);
+      if (i < 0) return CM.fail('invalid');
+      s.boosts.splice(i, 1);
+      CM.emit(s, 'boostRemoved', { key });
+      return CM.ok();
+    },
+    // Cuándo llega el siguiente: { kind: 'rock', left } o { kind: 'goal', cur, need, left, etaMs } o null.
+    next(s) {
+      const rocksLeft = B.zones.length - s.totals.zonesUnlocked;
+      if (rocksLeft > 0) return { kind: 'rock', rock: Math.max(BO.fromRock, s.totals.zonesUnlocked + 1) };
+      if (!s.boost.need) return null;
+      const cur = Math.min(s.boost.need, s.totals.lotsProduced - s.boost.from);
+      const rate = CM.milestones.sustained(s);
+      return { kind: 'goal', cur, need: s.boost.need, left: s.boost.need - cur, etaMs: rate > 0 ? ((s.boost.need - cur) / rate) * 3600000 : 0 };
+    },
+    tick(s) {
+      const b = s.boost;
+      // Con todas las rocas abiertas, el siguiente refuerzo se gana cocinando.
+      if (s.totals.zonesUnlocked >= B.zones.length) {
+        if (!b.need && s.quota.best > 0) {
+          b.from = s.totals.lotsProduced;
+          b.need = nice(s.quota.best * BO.hours);
+        }
+        if (b.need && s.totals.lotsProduced - b.from >= b.need) {
+          b.goals += 1;
+          b.need = 0;
+        }
+      }
+      const owned = this.owned(s);
+      if (owned > b.seen) {
+        CM.emit(s, 'boostEarned', { n: owned - b.seen, owned });
+        b.seen = owned;
+      }
+    },
+    // --- Orientación: qué etapa puede estar frenando a una roca ---
+    // La etapa más abajo en la cadena con material de sobra esperando delante; si ninguna, la
+    // de menor capacidad (mina y taladro se turnan: juntos rinden menos que cada uno). Es una
+    // aproximación para orientar, no la respuesta exacta.
+    capacity(s, def) {
+      const K = CM.mice, C = CM.cheesery;
+      const z = def.id;
+      const per = (skill) => { const m = K.at(s, skill, z); return m ? K.speed(m, skill, s, z) * this.mult(s, skill, z) * K.yieldMult(m, skill, s, z) : 0; };
+      const recipe = C.laneRecipe(s, z);
+      const cheesePerRaw = (1 + q.mods(s)('refBonus')) / B.refinery.rawPerBase / B.cheesery.lotBase;
+      const mining = per('mining') * (q.veinCapacity(s, z) / q.veinHits(s, z)) * q.pickPower(s) * (1000 / q.minerInterval(s)) * cheesePerRaw;
+      const drilling = per('drilling') * (q.drillYield(s, z) / (q.drillDuration(s) / 1000)) * cheesePerRaw;
+      const refining = (per('refining') * q.refineBatch(s) * q.refineMult(s)) / (q.refineDuration(s) / 1000) / B.cheesery.lotBase;
+      const cheesemaking = recipe ? (per('cheesemaking') * q.cheeseBatch(s) * q.skillMult(s, 'cheesemaking')) / (C.jobTime(s, C.parseKey(recipe.key), recipe) / 1000) : 0;
+      return { mining, drilling, refining, cheesemaking, supply: mining && drilling ? (mining * drilling) / (mining + drilling) : 0 };
+    },
+    hint(s, zoneId) {
+      const def = q.zoneDef(zoneId);
+      const c = this.capacity(s, def);
+      if (s.inv.base[def.base] > 200 * B.cheesery.lotBase * q.cheeseBatch(s)) return 'cheesemaking';
+      if (s.inv.raw[def.base] > 200 * q.refineBatch(s) * B.refinery.rawPerBase) return 'refining';
+      if (c.cheesemaking <= c.supply && c.cheesemaking <= c.refining) return 'cheesemaking';
+      if (c.refining <= c.supply) return 'refining';
+      return c.mining < c.drilling ? 'mining' : 'drilling';
+    },
+    // La tienda frena cuando el queso se le amontona: más de cinco minutos de ventas esperando.
+    shopHint(s) {
+      const w = CM.mice.work(s, 'trading', 'all');
+      if (!w) return false;
+      const perMin = (q.sellCount(s) / (q.sellDuration(s) / 1000 / w.speed)) * 60;
+      return q.lotsTotal(s) > perMin * 5;
     },
   };
 

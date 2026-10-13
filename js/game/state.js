@@ -2,7 +2,7 @@
 (function () {
   const B = CM.BALANCE;
 
-  CM.SAVE_VERSION = 9;
+  CM.SAVE_VERSION = 10;
   CM.events = []; // cola que consume la UI para dar feedback
   CM.muted = false; // true durante la simulación offline: no hay feedback visual
 
@@ -113,6 +113,10 @@
       msOpen: Object.fromEntries(B.trees.cheesemaking.filter((n) => n.gate).map((n) => [n.id, 0])),
       board: { at: 0, mult: 1, v: Object.fromEntries([].concat(Object.keys(B.ingredients), Object.keys(B.treatments), Object.keys(B.maturations)).map((k) => [k, 0])) },
       master: '',
+      // Refuerzos: dónde está colocado cada uno (la clave de su puesto, repetida si hay dos) y el
+      // objetivo de producción hacia el siguiente (need = 0: ninguno en curso).
+      boosts: [],
+      boost: { goals: 0, from: 0, need: 0, seen: 0 },
       news: [], // diario de la colonia: últimos rasgos y especialidades que han desarrollado
       inbox: [], // novedades que contar al jugador al volver (rasgos que llegaron solos)
       lab: { job: null, dir: '', want: '', next: '', strains: false, found: null },
@@ -234,7 +238,7 @@
     // Todo lo guardado, para el aspecto del almacén (crece con lo que tienes).
     stockTotal: (s) => q.rawTotal(s) + q.baseTotal(s) + q.lotsTotal(s),
 
-    pickPower: (s) => (B.mining.pickPower + mods(s)('pickPower')) * q.skillMult(s, 'mining'),
+    pickPower: (s) => (B.mining.pickPower + mods(s)('pickPower')) * (1 + mods(s)('pickMult')) * q.skillMult(s, 'mining'),
     critMult: (s) => B.mining.critMultiplier + mods(s)('critMult'),
     minerInterval: (s) => B.mining.minerIntervalMs / (1 + mods(s)('minerSpeed')),
     // Raw Cheese por ciclo en una zona (puede tener decimales; se acumulan).

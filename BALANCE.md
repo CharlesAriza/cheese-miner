@@ -384,3 +384,54 @@ En la semilla 12 gana otra opción: dar el título al veterano de la segunda roc
 **Offline frente a en directo.** La misma colonia 20 minutos con pasos de 100 ms y de 1.000 ms: quesos y monedas a menos de un 1 % y las mismas 12 ruedas.
 
 **Tienda.** Semilla 12: vende el 100 % a las 12 y a las 24 horas. Semilla 13 a las 12 horas: 3,8 M de quesos guardados, vende el 96 % de lo que se cocina; lo que no vende es el queso más barato (un rango más de Bigger Counter sube las ventas al 99 % y los ingresos no cambian de forma apreciable). Ese rango cuesta 10,3 Qa con 9,1 Qa en caja; Quick Sales está al máximo.
+
+## Refuerzos y Blasting Charges: prototipo (13-10-2026)
+
+Cifras en `B.boosts` y en el nudo `mining.charge`, todas provisionales. Bigger Counter sigue en +18.
+
+**Arranque.** Blasting Charges se abre cuando Sharper Pick llega a su último rango. El bot casual de las pruebas: primera venta, primer ratón, automatización y las rocas 2ª a 4ª, igual que antes (36 / 63 / 95 min); la 5ª pasa de 145 a 139 min y la 6ª de 226 a 218.
+
+**Validación con el código real** (`sim-headless.js`, 18 partidas de 24 horas: dos colonias casuales y una con ratones optimizados; el bot compra como siempre y los refuerzos se colocan según cada estrategia).
+
+Monedas a las 24 horas respecto a tener los refuerzos sin colocar (misma semilla):
+
+| Colocación | Casual 12 | Casual 13 | Ratones optimizados |
+| --- | --- | --- | --- |
+| Al azar | x1,10 | x1,13 | x0,87 |
+| Siguiendo solo las pistas del panel, sin mover | x1,65 | x1,19 | x1,16 |
+| Informada, sin mover | x1,49 | x1,29 | x1,23 |
+| Revisada cada 4 horas (6 a 10 movimientos en 24 h) | x2,09 | x1,37 | x1,46 |
+
+Los totales de dos partidas distintas bailan mucho (la economía nueva sin colocar nada sale x0,83, x1,65 y x0,62 respecto a la publicada, sin más cambio que Mining a partir de la hora 1). La medida limpia es la misma colonia con y sin sus refuerzos:
+
+| Cuatro horas de ausencia a partir de la hora 12 | Casual 12 | Casual 13 | Optimizados |
+| --- | --- | --- | --- |
+| Colocación informada, sin mover | x1,06 | x1,18 | x1,51 |
+| Revisada cada 4 horas | x1,26 | x1,23 | x1,47 |
+| Siguiendo las pistas | x1,32 | x1,37 | x1,90 |
+
+**Reservas.** Horas de consumo que representa la Base guardada en la roca que más tiene, a las 24 horas:
+
+| | Casual 12 | Casual 13 | Optimizados |
+| --- | --- | --- | --- |
+| Publicada | 11,8 h | 10,0 h | 12,8 h |
+| Nueva, sin colocar refuerzos | 22,8 h | 19,9 h | 18,0 h |
+| Refuerzos al azar | 30,2 h | 39,2 h | 12,1 h |
+| Colocación informada | 3,4 h | 0,0 h | 18,5 h |
+| Revisada cada 4 horas | 5,3 h | 9,6 h | 9,9 h |
+
+El Raw apenas se guarda en ningún caso (menos de 4 horas, casi siempre cero), salvo con la colocación por pistas en una colonia (9 h en una roca). El queso terminado se vende casi todo (98–100 %), excepto en una colonia sin refuerzos colocados, donde la tienda se satura sola con +18: vende el 69 % y guarda 116 M; un refuerzo en la tienda lo resuelve.
+
+**Qué etapas responden** (+50 % en un puesto, 15 minutos; el mejor puesto de cada etapa, a las 12 y 24 horas):
+
+| Etapa | Publicada | Con refuerzos bien colocados |
+| --- | --- | --- |
+| Cheesemaking | x1,10 a x1,40 | x1,02 a x1,26 |
+| Mining | x1,01 a x1,14 | x1,00 a x1,10 |
+| Drilling | x1,00 a x1,01 | x1,00 a x1,05 |
+| Refining | x1,00 a x1,01 | x1,00 a x1,04 |
+| Trading | x0,98 a x1,01 | x0,96 a x1,09 |
+
+Refining sigue sin pesar casi nada en ningún escenario: los refuerzos no le dan papel.
+
+**¿Puede un refuerzo perjudicar?** No se ha encontrado ningún efecto directo. Cada puesto, 30 minutos, cinco tiradas de azar: el peor caso queda entre x0,965 y x1,009, y el resultado sin tocar nada ya varía entre x0,983 y x1,018 solo por el azar. Las partidas en las que «al azar» acababa por debajo de «sin refuerzos» son divergencia entre partidas.

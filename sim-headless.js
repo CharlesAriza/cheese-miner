@@ -14,7 +14,9 @@
 // Da exactamente la misma partida que tests.html?bot con la misma semilla, unas diez veces
 // más rápido, y aguanta partidas de 24 horas (la pestaña oculta del navegador se caía).
 var window = globalThis;
-var location = { search: '?bot', href: '' };
+// Por defecto carga solo el bot. Para pasar las pruebas: definir antes HEADLESS_SEARCH = '' (todas)
+// o '?only=texto', y leer después window.TEST_RESULTS.
+var location = { search: typeof HEADLESS_SEARCH === 'string' ? HEADLESS_SEARCH : '?bot', href: '' };
 var localStorage = (function () { const m = {}; return { getItem: (k) => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); }, removeItem: (k) => { delete m[k]; } }; })();
 var performance = { now: () => Date.now() };
 var navigator = { userAgent: 'jsc' };

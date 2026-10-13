@@ -427,7 +427,8 @@
     },
     workNow(s, skill, zone) {
       const m = this.at(s, skill, zone);
-      return m ? { m, skill, speed: speed(m, skill, s, zone), yield: yieldMult(m, skill, s, zone), double: doubleChance(m, skill, s, zone) } : null;
+      // Un refuerzo en el puesto multiplica su velocidad, trabaje quien trabaje en él.
+      return m ? { m, skill, speed: speed(m, skill, s, zone) * CM.boosts.mult(s, skill, zone), yield: yieldMult(m, skill, s, zone), double: doubleChance(m, skill, s, zone) } : null;
     },
     // Cantidad de un ciclo concreto: con suerte, sale doble.
     out(s, w) {

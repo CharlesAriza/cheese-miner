@@ -122,6 +122,7 @@
       CM.cheesery.labTick(s, dt);
       CM.mice.careTick(s, dt);
       CM.milestones.tick(s);
+      CM.boosts.tick(s);
       runJob(dt, () => s.jobs.shop, q.auto(s, 'trading', 'all'), () => CM.shop.start(s, 'worker'), () => CM.shop.complete(s));
       updateGoals(s);
     },

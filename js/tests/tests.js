@@ -354,6 +354,10 @@
     CM.tree.buy(base, 'trading', 'prices');
     // Con los tres hitos comprados y un Grand Master cocinando: ruedas, tabla y título también cuentan igual.
     for (const id of ['wheel', 'board', 'master']) base.nodes['cheesemaking.' + id] = 1;
+    // Y con dos refuerzos colocados y un objetivo de refuerzo en curso.
+    base.boost.goals = 3;
+    base.boost.seen = 3;
+    base.boosts = ['drilling:cheddar', 'drilling:cheddar', 'trading:all'];
     base.master = CM.mice.at(base, 'cheesemaking', 'cheddar').id;
     CM.mice.at(base, 'cheesemaking', 'cheddar').jobs.cheesemaking = 39900;
     const text = JSON.stringify(base);
@@ -1654,6 +1658,180 @@
     const ghost = JSON.parse(JSON.stringify(s));
     ghost.master = 'nobody';
     eq(CM.storage.parse(JSON.stringify(ghost), s.lastSavedAt).master, '', 'a title for a mouse that is not there is dropped on load');
+    valid(s);
+  });
+
+  test('boosts: extra speed for the post the player chooses, two per post, never lost', () => {
+    const BO = CM.boosts;
+    const s = withCheese();
+    s.coins = 1e40;
+    const cook = staff(s, 'cheesemaking', 'cheddar', { aff: { cheesemaking: 2 } });
+    staff(s, 'trading', 'all');
+    CM.rev += 1;
+    eq(BO.owned(s), 0, 'no boosts with one rock');
+    eq(BO.place(s, 'cheesemaking:cheddar').reason, 'no-boost', 'so nothing to place');
+    // El primero llega con la tercera roca; después, uno por roca.
+    truthy(CM.zones.unlock(s, CM.zones.next(s).id).ok, 'second rock');
+    eq(BO.owned(s), 0, 'still none with two rocks');
+    truthy(CM.zones.unlock(s, CM.zones.next(s).id).ok, 'third rock');
+    eq(BO.owned(s), 1, 'the third rock brings the first boost');
+    CM.events.length = 0;
+    BO.tick(s);
+    eq(CM.events.filter((e) => e.type === 'boostEarned').length, 1, 'and the game says so');
+    BO.tick(s);
+    eq(CM.events.filter((e) => e.type === 'boostEarned').length, 1, 'once');
+    while (CM.zones.next(s)) CM.zones.unlock(s, CM.zones.next(s).id);
+    eq(BO.owned(s), B.zones.length - 2, 'one more for every rock after that');
+    // Colocar: multiplica la velocidad del puesto, no toca al ratón.
+    const speed = () => {
+      CM.rev += 1;
+      return CM.mice.work(s, 'cheesemaking', 'cheddar').speed;
+    };
+    const plain = speed();
+    const own = CM.mice.speed(cook, 'cheesemaking', s, 'cheddar');
+    const yieldBefore = CM.mice.work(s, 'cheesemaking', 'cheddar').yield;
+    truthy(BO.place(s, 'cheesemaking:cheddar').ok, 'place one on the Cheddar cheesery');
+    near(speed() / plain, B.boosts.speed, 1e-9, 'the post works 1.5 times as fast');
+    eq(CM.mice.speed(cook, 'cheesemaking', s, 'cheddar'), own, 'the mouse itself is the same: its affinity and traits still count on top');
+    eq(CM.mice.work(s, 'cheesemaking', 'cheddar').yield, yieldBefore, 'and it makes the same per batch');
+    truthy(BO.place(s, 'cheesemaking:cheddar').ok, 'a second one on the same post');
+    near(speed() / plain, B.boosts.speed * B.boosts.speed, 1e-9, 'two stack: 2.25 times');
+    eq(BO.place(s, 'cheesemaking:cheddar').reason, 'boost-full', 'a third does not fit');
+    eq(BO.mult(s, 'cheesemaking', 'gouda'), 1, 'another rock is untouched');
+    eq(BO.mult(s, 'drilling', 'cheddar'), 1, 'and so is another stage of the same rock');
+    truthy(BO.place(s, 'trading:all').ok, 'the shop takes boosts too');
+    eq(BO.place(s, 'research:all').reason, 'invalid', 'the lab does not');
+    eq(BO.free(s), BO.owned(s) - 3, 'what is placed leaves the free pool');
+    // Mover: se quita y vuelve a la reserva; nada se pierde.
+    const owned = BO.owned(s);
+    truthy(BO.remove(s, 'cheesemaking:cheddar').ok, 'take one back');
+    near(speed() / plain, B.boosts.speed, 1e-9, 'the post keeps the other');
+    eq(BO.owned(s), owned, 'the boost is still yours');
+    truthy(BO.place(s, 'drilling:gouda').ok, 'and goes wherever you want');
+    eq(BO.remove(s, 'refining:brie').reason, 'invalid', 'nothing to take where there is none');
+    // En la producción real: la misma línea, con Base de sobra, cocina más.
+    const line = (boosted) => {
+      const g = withCheese();
+      g.inv.base.cheddar = 1e9;
+      g.recipes[0].made = 5000; // ya dominada: así solo cambia la velocidad del puesto
+      staff(g, 'cheesemaking', 'cheddar');
+      if (boosted) {
+        g.boost.goals = 1;
+        g.boosts = ['cheesemaking:cheddar'];
+      }
+      CM.rev += 1;
+      run(g, 20 * 60000);
+      valid(g);
+      return g.totals.lotsProduced;
+    };
+    near(line(true) / line(false), B.boosts.speed, 0.1, 'a boosted cheesery cooks about 1.5 times the cheese');
+    // Guardar y cargar: se conservan; lo imposible se descarta sin perder los refuerzos.
+    const back = CM.storage.parse(JSON.stringify(s), s.lastSavedAt);
+    eq(JSON.stringify(back.boosts), JSON.stringify(s.boosts), 'placements survive a reload');
+    const odd = JSON.parse(JSON.stringify(s));
+    odd.boosts = ['cheesemaking:cheddar', 'cheesemaking:cheddar', 'cheesemaking:cheddar', 'nowhere:else', 'research:all'];
+    const fixed = CM.storage.parse(JSON.stringify(odd), s.lastSavedAt);
+    eq(JSON.stringify(fixed.boosts), JSON.stringify(['cheesemaking:cheddar', 'cheesemaking:cheddar']), 'a damaged list keeps only what is possible');
+    eq(BO.free(fixed), BO.owned(fixed) - 2, 'and the rest go back to the free pool');
+    // Una partida anterior a los refuerzos recibe los que le tocan por sus rocas.
+    const old = JSON.parse(JSON.stringify(s));
+    delete old.boosts;
+    delete old.boost;
+    old.version = 9;
+    const got = CM.storage.parse(JSON.stringify(old), s.lastSavedAt);
+    eq(BO.owned(got), B.zones.length - 2, 'an older save gets the boosts its rocks are worth');
+    eq(got.boosts.length, 0, 'all of them free to place');
+    valid(s);
+  });
+
+  test('boosts: with every rock open the next ones are earned by cooking, also while away, once', () => {
+    const BO = CM.boosts;
+    const H = B.boosts.hours;
+    const make = () => {
+      const g = withCheese();
+      g.coins = 1e40;
+      while (CM.zones.next(g)) CM.zones.unlock(g, CM.zones.next(g).id);
+      g.inv.base.cheddar = 1e12;
+      staff(g, 'cheesemaking', 'cheddar');
+      staff(g, 'trading', 'all');
+      g.boost.seen = BO.owned(g);
+      CM.rev += 1;
+      return g;
+    };
+    const s = make();
+    const base = BO.owned(s);
+    eq(BO.next(s), null, 'no goal until there is a pace to measure');
+    s.quota.best = 6000;
+    BO.tick(s);
+    eq(s.boost.need, 6000 * H, 'the goal is that many hours of the best sustained pace');
+    const from = s.boost.from;
+    s.quota.best = 60000;
+    BO.tick(s);
+    eq(s.boost.need, 6000 * H, 'and stays fixed even if the pace changes');
+    eq(s.boost.from, from, 'from where it started');
+    s.totals.lotsProduced += 6000 * H - 1;
+    BO.tick(s);
+    eq(BO.owned(s), base, 'one cheese short: not yet');
+    eq(BO.next(s).left, 1, 'and it says how much is left');
+    s.totals.lotsProduced += 1;
+    CM.events.length = 0;
+    BO.tick(s);
+    eq(BO.owned(s), base + 1, 'reaching it gives a boost');
+    eq(CM.events.filter((e) => e.type === 'boostEarned').length, 1, 'announced once');
+    BO.tick(s);
+    eq(BO.owned(s), base + 1, 'the same goal never pays twice');
+    eq(s.boost.need, 60000 * H, 'the next goal uses the best pace so far');
+    // Una ausencia larga con un objetivo en curso: se cumple sola, sin reclamar nada.
+    const away = make();
+    away.quota.best = 300;
+    BO.tick(away);
+    truthy(BO.place(away, 'cheesemaking:cheddar').ok, 'one boost placed before leaving');
+    const need = away.boost.need;
+    const made0 = away.totals.lotsProduced;
+    const text = JSON.stringify(away);
+    const leave = (how) => {
+      const g = CM.storage.parse(text, 1000000);
+      CM.events.length = 0;
+      let sum;
+      if (how === 'slices') {
+        const job = CM.sim.offlineStart(g, g.lastSavedAt + 4 * 3600000);
+        let turns = 0;
+        while (job.left > 0 && turns++ < 100000) CM.sim.offlineRun(job, 0);
+        sum = CM.sim.offlineEnd(job);
+      } else sum = CM.sim.applyOffline(g, g.lastSavedAt + 4 * 3600000);
+      return { g, sum, json: JSON.stringify(g) };
+    };
+    const a = leave('once');
+    const b = leave('slices');
+    truthy(a.g.totals.lotsProduced - made0 >= need, 'four hours away cook more than the goal asked (' + (a.g.totals.lotsProduced - made0) + ' of ' + need + ')');
+    truthy(a.g.boost.goals >= 1, 'so the boost is earned while away');
+    eq(BO.owned(a.g), base + a.g.boost.goals, 'every goal reached is one boost, no more');
+    eq(a.g.boosts.join(), 'cheesemaking:cheddar', 'the one already placed stays where it was');
+    eq(BO.free(a.g), a.g.boost.goals + base - 1, 'the new ones wait, free, for the player');
+    eq(a.json, b.json, 'catching up in slices gives exactly the same boosts and progress');
+    // Volver a cargar el mismo guardado no entrega nada dos veces.
+    const again = CM.storage.parse(a.json, a.g.lastSavedAt);
+    eq(CM.sim.applyOffline(again, again.lastSavedAt), null, 'the same absence is not counted twice');
+    eq(again.boost.goals, a.g.boost.goals, 'nor its boosts');
+    valid(a.g);
+  });
+
+  test('mining: Blasting Charges open when Sharper Pick is at its top rank, and never run out', () => {
+    const s = fresh();
+    s.coins = 1e40;
+    const pick = CM.tree.node('mining', 'pick');
+    eq(CM.tree.info(s, 'mining', 'charge').locked, true, 'locked at the start');
+    eq(CM.tree.info(s, 'mining', 'charge').why, 'Needs Sharper Pick ' + pick.max, 'and says why');
+    s.skills.mining.xp = q.xpForLevel(30);
+    s.nodes['mining.pick'] = pick.max - 1;
+    eq(CM.tree.buy(s, 'mining', 'charge').ok, false, 'still locked one rank short');
+    s.nodes['mining.pick'] = pick.max;
+    CM.rev += 1;
+    const before = q.pickPower(s);
+    truthy(CM.tree.buy(s, 'mining', 'charge').ok, 'buyable once Sharper Pick is done');
+    near(q.pickPower(s) / before, 1.125, 1e-9, 'each rank adds 12.5% to the search power');
+    truthy(CM.tree.cost(s, 'mining', 'charge') > CM.tree.node('mining', 'charge').cost * 2.9, 'and costs three times the one before, like the other size upgrades');
+    truthy(CM.tree.node('mining', 'charge').max > 500, 'with no ceiling');
     valid(s);
   });
 

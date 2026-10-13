@@ -1,10 +1,10 @@
 # Resultados de pruebas
 
-Última ejecución: 13 de octubre de 2026, con el prototipo de hitos de Cheesemaking (Grand Wheel, Cheese Board, Grand Master).
+Última ejecución: 13 de octubre de 2026, con el prototipo de refuerzos y Blasting Charges. Ejecutadas en el navegador (`tests.html`) y fuera de él (`sim-headless.js`), con el mismo resultado.
 
 ## Pruebas automáticas
 
-Ejecutadas abriendo `tests.html` en el navegador. **46 de 46 pasan** (también tras arreglar la caché de efectos de las mejoras; la prueba de BUY ALL comprueba ahora que cada rango nuevo se nota al momento).
+Ejecutadas abriendo `tests.html` en el navegador. **49 de 49 pasan** (también tras arreglar la caché de efectos de las mejoras; la prueba de BUY ALL comprueba ahora que cada rango nuevo se nota al momento).
 
 | Prueba | Resultado |
 | --- | --- |
@@ -46,6 +46,9 @@ Ejecutadas abriendo `tests.html` en el navegador. **46 de 46 pasan** (también t
 | Grand Wheel: una cada diez minutos de cocinado, vale dos más, no gasta Base ni monedas y mantiene la cadencia con una cepa más rápida | pasa |
 | Cheese Board: paga por una mezcla real de ventas; un tipo que apenas vende apenas cuenta; el bono de una venta es el que había antes de ella | pasa |
 | Grand Master: un solo título, que da el jugador; vale según lo cocinado por ese ratón y solo mientras cocina; pasa a otro sin perder experiencia | pasa |
+| Refuerzos: velocidad de más para el puesto que elige el jugador, dos por puesto, nunca se pierden (colocar, quitar, mover, producción real, guardados dañados y partidas anteriores) | pasa |
+| Refuerzos: con todas las rocas abiertas se ganan cocinando, también en una ausencia de 4 horas con un objetivo en curso, una sola vez | pasa |
+| Mining: Blasting Charges se abre cuando Sharper Pick llega a su último rango y no se acaba | pasa |
 | Guardar y cargar mantiene el estado; guardados dañados o antiguos empiezan limpios | pasa |
 | Las recompensas por objetivo se pagan una vez, y nunca por picar | pasa |
 | Las dev tools marcan la partida y no rompen invariantes | pasa |
@@ -117,6 +120,17 @@ Validación interactiva posterior (mismo día, 360×740, partidas del bot cargad
 - Cheese Board: fijar «Vintage Smoked Truffle Parmesan» desde RECIPE BOOK y dejar correr 12 minutos lleva la tarjeta a «Brined 79 % · Smoked 21 %, +10 %» y x1,10.
 
 No comprobado jugando: una partida a mano de principio a fin, el aspecto de la rueda a velocidad normal, ni nada en un teléfono real.
+
+### Refuerzos (13-10-2026)
+
+En el navegador, con una partida del bot de 12 horas y seis rocas cargada en el juego:
+
+- 360×740: al cargar una partida anterior salen «4 BOOSTS TO PLACE!», el botón BOOSTS en la barra de abajo y su punto. El panel enseña libres y colocados, el siguiente objetivo («6481 / 40.0M cheese cooked», con tiempo estimado), la rejilla de seis rocas por cuatro etapas y la tienda.
+- Tocando: dos refuerzos en la quesería de Blue, uno en la mina de Parmesan y uno en la tienda; un tercer toque en Blue con todo colocado quita uno; tocar otro puesto lo pone ahí. El guardado refleja cada paso y el punto de BOOSTS se apaga cuando no queda ninguno libre.
+- Pantalla principal: la casilla CHEESE lleva dos galones y SELL uno al mirar Blue; el panel, la escena y la barra de abajo miden lo mismo que antes (255 / 256 / 32 px).
+- 320×640: los cuatro botones de la barra caben sin cortarse, el panel no se desplaza y la rejilla no se desborda.
+
+No comprobado jugando: una partida a mano de varias horas con refuerzos, ni nada en un teléfono real.
 
 ## Lo que NO está probado
 

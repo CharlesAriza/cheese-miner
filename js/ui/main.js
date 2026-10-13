@@ -403,6 +403,16 @@
         dirty = true;
         break;
       }
+      case 'boostEarned':
+        play('goal');
+        banner(ev.n > 1 ? ev.n + ' BOOSTS TO PLACE!' : 'NEW BOOST!');
+        toast((ev.n > 1 ? ev.n + ' boosts wait' : 'A boost waits') + ' in BOOSTS: more speed for the post you choose', true);
+        dirty = true;
+        break;
+      case 'boostPlaced':
+      case 'boostRemoved':
+        dirty = true;
+        break;
       case 'promoted': {
         dirty = true;
         // En un ascenso en bloque se celebra una vez, con el resumen.
@@ -615,6 +625,9 @@
       set(tile, 'sel', ui.station === st);
       set(tile, 'goal', goalAt === st && ui.station !== st);
       set(tile.querySelector('.mini > i'), 'width', Math.round(info.progress * 100) + '%');
+      // Refuerzos de esta etapa en la roca que se mira: uno o dos galones en la casilla.
+      const nb = String(CM.boosts.at(state, skill, ui.zone) || '');
+      if (tile.dataset.boost !== nb) tile.dataset.boost = nb;
       set(tile.querySelector('u'), 'text', 'LV ' + q.level(state, skill));
       const auto = q.auto(state, skill, ui.zone);
       const ups = info.state !== 'locked' && info.state !== 'build' ? CM.tree.affordable(state, skill) : 0;
@@ -1094,6 +1107,7 @@
   // Tocar un contador de recurso abre la despensa.
   for (const id of ['res-raw', 'res-base', 'res-lots']) $(id).addEventListener('click', () => openPanel('stock'));
   $('nav-menu').addEventListener('click', () => openPanel('options'));
+  $('nav-boosts').addEventListener('click', () => openPanel('boosts'));
   const muteLabel = () => {};
   // Botones fijos del panel inferior.
   const dockTap = (fn) => () => {
@@ -1208,6 +1222,17 @@
       return r;
     },
     promote: (id) => CM.mice.promote(state, id),
+    // Refuerzos: tocar un puesto pone uno libre; si no cabe o no queda ninguno, quita uno de ahí.
+    boost: (skill, zone) => {
+      const key = CM.mice.postKey(skill, zone);
+      const B2 = CM.boosts;
+      if (B2.free(state) > 0 && B2.at(state, skill, zone) < B.boosts.perPost) return B2.place(state, key);
+      if (B2.at(state, skill, zone) > 0) return B2.remove(state, key);
+      return B2.place(state, key);
+    },
+    boostclear: () => {
+      while (state.boosts.length) CM.boosts.remove(state, state.boosts[state.boosts.length - 1]);
+    },
     namemaster: (id) => CM.milestones.nameMaster(state, id),
     // Ascensos pendientes: se eligen, se ve el total y se confirma una sola vez.
     promos: () => {
@@ -1752,6 +1777,10 @@
     const mice = CM.construction.buildInfo(state, 'house').canBuild || state.candidates.length > 0 || (state.built.house && !!CM.mice.freePost(state) && state.coins >= CM.mice.recruitCost(state)) || state.mice.some((m) => m.offer || CM.mice.promoteInfo(state, m).can);
     $('nav-mice').querySelector('.dot').classList.toggle('on', !!mice);
     set($('nav-mice'), 'goal', GOAL_AT[CM.sim.objective(state).id] === 'mice');
+    // BOOSTS aparece con el primer refuerzo; el punto solo avisa de los que están sin colocar.
+    const owned = CM.boosts.owned(state);
+    if ($('nav-boosts').hidden === owned > 0) $('nav-boosts').hidden = !(owned > 0);
+    $('nav-boosts').querySelector('.dot').classList.toggle('on', CM.boosts.free(state) > 0);
     updateBuyAll();
   }
 

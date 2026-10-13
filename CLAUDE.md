@@ -100,6 +100,17 @@ Tres mejoras especiales para probar jugando si el tramo medio gana decisiones. C
 
 Quien toque el valor del queso: el título entra en `valueNow` (memorizado por `CM.rev`; nombrar, mover y subir de grado emiten evento) y la tabla multiplica las monedas de cada venta en `shop.start`, fuera de la memoria.
 
+### Refuerzos (prototipo jugable, 13-10-2026)
+
+Otra dimensión de optimización, distinta de los ratones: no «quién trabaja» sino «dónde hace falta más capacidad». Cifras provisionales en `B.boosts`; lógica en `CM.boosts` (`skills.js`); panel BOOSTS (clases `bo-`).
+
+- **Qué es.** Un refuerzo multiplica por 1,5 la velocidad de un puesto (una etapa de una roca, o la tienda), trabaje quien trabaje en él; dos en el mismo puesto, por 2,25. Como mucho dos por puesto. Entra en `mice.workNow`, así que lo que rinde el ratón (afinidad, rasgos, especialidad) no cambia y se multiplica encima. Un puesto sin ratón no saca nada de un refuerzo.
+- **Cómo se ganan.** Sin moneda nueva: uno al abrir la tercera roca y uno por cada roca siguiente; con todas abiertas, uno por objetivo de producción (tres horas del mejor ritmo sostenido, cifra fija, cuenta todo lo cocinado, también offline). Son permanentes.
+- **Cómo se usan.** BOOSTS aparece en la barra de abajo con el primero. Una rejilla de rocas por etapas, más la tienda: tocar un puesto pone un refuerzo libre; si no cabe o no queda ninguno, quita uno de ahí. Mover no cuesta nada. El punto del botón solo avisa de refuerzos sin colocar: **no hay avisos para recolocar**.
+- **Orientación.** En la rejilla, «SLOW?» marca la etapa que puede estar frenando a cada roca (`CM.boosts.hint`: la etapa más abajo en la cadena con material de sobra delante; si ninguna, la de menor capacidad, con mina y taladro como pareja) y la tienda cuando se le amontona el queso (`shopHint`). Es una pista, no la respuesta: acierta en torno a seis de cada diez rocas.
+- **Mining.** Blasting Charges (`mining.charge`): +12,5 % de potencia de pico por rango, sin tope, al precio de las demás mejoras de tamaño. Se abre cuando Sharper Pick llega a su último rango (`needsMax`), para no tocar el arranque. Bigger Counter sigue en +18.
+- **Lo que no es.** No arregla el agotamiento de los árboles ni sustituye a los futuros hitos de mejoras: BUY ALL compra lo mismo que antes.
+
 ### Cheese Lab
 
 Edificio propio en la colonia (gratis tras 3 recetas a mano). **Empieza sencillo y gana funciones con su propio árbol de mejoras** (`B.trees.lab`, sin nivel de habilidad): Research Assistant abre el puesto de Research; Advanced Research, las direcciones de investigación (antes, el ratón va siempre a por la receta más valiosa); Strain Research (Cheesemaking 10), la sección STRAINS. Además, dos mejoras de eficiencia (velocidad y coste). Las mejoras que abren una función las compra el jugador una a una, nunca BUY ALL, y cada una se explica al comprarla. La interfaz solo enseña lo desbloqueado. El oficio Research usa el sistema de ratones tal cual. Pendiente: las recetas son finitas (216).

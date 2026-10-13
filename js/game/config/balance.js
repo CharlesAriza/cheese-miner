@@ -216,6 +216,8 @@ CM.BALANCE = {
     mining: [
       { id: 'pick', branch: 'power', name: 'Sharper Pick', desc: '+1 search power per hit', level: 1, max: 80, cost: 12, growth: 1.3, eff: { pickPower: 1 } },
       { id: 'swing', branch: 'power', name: 'Heavy Swing', desc: 'Critical hits are 0.5x stronger', level: 6, max: 30, cost: 150, growth: 1.45, eff: { critMult: 0.5 } },
+      // Sin tope: se abre cuando Sharper Pick llega a su último rango (`needsMax`) y empieza costando lo que costaba ese rango.
+      { id: 'charge', branch: 'power', needsMax: 'pick', name: 'Blasting Charges', desc: '12.5% more search power per hit', level: 1, max: 999, cost: 1.2e10, growth: 3, eff: { pickMult: 0.125 } },
       { id: 'paws', branch: 'auto', name: 'Quick Paws', desc: 'The mouse mining each rock swings 10% faster', level: 10, max: 30, cost: 300, growth: 1.42, eff: { minerSpeed: 0.1 } },
       { id: 'sense', branch: 'special', name: 'Vein Sense', desc: 'Every vein holds 4% more cheese', level: 8, max: 40, cost: 200, growth: 1.4, eff: { veinCap: 0.04 } },
       { id: 'deep', branch: 'special', name: 'Deep Riches', desc: 'Each depth level is worth another 0.1% on that rock\'s cheese', level: 20, max: 25, cost: 2000, growth: 1.6, eff: { richDepth: 0.001 } },
@@ -264,6 +266,15 @@ CM.BALANCE = {
     colony: [
       { id: 'lamp', branch: 'special', name: 'Night Lamp', desc: 'Your mice keep working 2 more hours while you are away', level: 0, max: 10, cost: 500, growth: 2.2, eff: { offlineHours: 2 } },
     ],
+  },
+
+  // Refuerzos (prototipo, cifras provisionales): capacidad permanente que el jugador coloca
+  // en una etapa de una roca, o en la tienda. No cuestan monedas ni se pierden.
+  boosts: {
+    speed: 1.5, // lo que multiplica cada refuerzo la velocidad de su puesto
+    perPost: 2, // como mucho, dos en el mismo puesto
+    fromRock: 3, // el primero llega al abrir la tercera roca; después, uno por roca
+    hours: 3, // con todas las rocas abiertas: uno por objetivo de producción (horas del mejor ritmo sostenido)
   },
 
   // Hitos de Cheesemaking (prototipo, cifras provisionales).
