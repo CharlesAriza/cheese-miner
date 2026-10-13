@@ -29,7 +29,36 @@
   }
 
   // Las recetas más elaboradas dan más experiencia.
-  const recipeXp = (recipe) => Math.pow(formula(parseKey(recipe.key)).value / 10, B.xp.recipePower);
+  // La fórmula y los componentes de una clave no cambian nunca: se calculan una vez.
+  // (Solo para leer: quien necesite modificar la combinación usa parseKey.)
+  const keyCache = new Map();
+  function known(key) {
+    let k = keyCache.get(key);
+    if (!k) {
+      const combo = parseKey(key);
+      k = { combo, f: formula(combo) };
+      keyCache.set(key, k);
+    }
+    return k;
+  }
+  const recipeXp = (recipe) => Math.pow(known(recipe.key).f.value / 10, B.xp.recipePower);
+  // Índice de recetas por identificador y por clave, para no recorrer el libro en cada consulta.
+  const bookIndex = new WeakMap();
+  function lookup(s, field, value) {
+    let ix = bookIndex.get(s.recipes);
+    if (!ix || ix.n !== s.recipes.length) {
+      ix = { n: s.recipes.length, id: new Map(), key: new Map() };
+      s.recipes.forEach((r, i) => {
+        ix.id.set(r.id, i);
+        ix.key.set(r.key, i);
+      });
+      bookIndex.set(s.recipes, ix);
+    }
+    const i = ix[field].get(value);
+    const r = i === undefined ? null : s.recipes[i];
+    // Si alguien ha cambiado el libro sin cambiar su tamaño, se busca a mano.
+    return r && r[field] === value ? r : s.recipes.find((x) => x[field] === value) || null;
+  }
 
   const tierOf = (value) => B.tiers.reduce((best, t) => (value >= t.min ? t : best), B.tiers[0]).name;
   const lotTime = (combo) => B.cheesery.baseTimeMs + B.treatments[combo.treatment].timeMs + B.maturations[combo.maturation].timeMs;
@@ -51,15 +80,39 @@
   }
   // Tiempo real por queso: receta, mejoras de velocidad y maestría.
   function jobTime(s, combo, recipe) {
+    const memo = recipe && recipe.id ? CM.memo : null;
+    if (memo) {
+      const k = 'j' + recipe.id;
+      const hit = memo.get(k);
+      if (hit && hit.rev === CM.rev) return hit.v;
+      const v = jobTimeNow(s, combo, recipe);
+      memo.set(k, { rev: CM.rev, v });
+      return v;
+    }
+    return jobTimeNow(s, combo, recipe);
+  }
+  function jobTimeNow(s, combo, recipe) {
     const mastery = Math.max(0.3, 1 - B.cheesery.masteryTime * (masteryLevel(recipe) - 1));
     return Math.max(300, Math.round((lotTime(combo) / (1 + q.mods(s)('cheeseSpeed'))) * mastery * ((strainOf(recipe) || {}).time || 1)));
   }
   // Valor de un queso del libro: fórmula x maestría x mejoras x nivel de Cheesemaking.
   // `plain`: sin contar la cepa (así compara recetas el Cheesemaker).
   function valueOf(s, recipe, plain) {
-    const f = formula(parseKey(recipe.key));
+    const memo = recipe.id ? CM.memo : null;
+    if (memo) {
+      const k = (plain ? 'V' : 'v') + recipe.id;
+      const hit = memo.get(k);
+      if (hit && hit.rev === CM.rev) return hit.v;
+      const v = valueNow(s, recipe, plain);
+      memo.set(k, { rev: CM.rev, v });
+      return v;
+    }
+    return valueNow(s, recipe, plain);
+  }
+  function valueNow(s, recipe, plain) {
+    const f = known(recipe.key).f;
     const mastery = 1 + B.cheesery.masteryValue * (masteryLevel(recipe) - 1);
-    const zone = q.zoneOfBase(parseKey(recipe.key).base);
+    const zone = q.zoneOfBase(known(recipe.key).combo.base);
     return Math.max(1, Math.round(f.value * mastery * (1 + q.mods(s)('cheeseValue')) * q.depthRich(s, zone) * (plain ? 1 : strainValue(recipe.strain))));
   }
 
@@ -67,9 +120,9 @@
   // menos lo que cuesta el ingrediente. Así compara recetas el Cheesemaker, para que una
   // receta nueva y mejor no quede arrinconada por otra que solo lleva más tiempo hecha.
   function potential(s, recipe) {
-    const combo = parseKey(recipe.key);
+    const combo = known(recipe.key).combo;
     const zone = q.zoneOfBase(combo.base);
-    return formula(combo).value * (1 + q.mods(s)('cheeseValue')) * q.depthRich(s, zone) * q.priceMult(s) - B.ingredients[combo.ingredient].coinCost;
+    return known(recipe.key).f.value * (1 + q.mods(s)('cheeseValue')) * q.depthRich(s, zone) * q.priceMult(s) - B.ingredients[combo.ingredient].coinCost;
   }
 
   function defaultName(combo) {
@@ -121,6 +174,7 @@
 
   // Memoria de la receta elegida por línea (por partida) y el ingrediente más caro que existe.
   const laneMemo = new WeakMap();
+  const pickMemo = new WeakMap();
   const laneMaxCoin = Math.max(...Object.keys(B.ingredients).map((k) => B.ingredients[k].coinCost));
 
   CM.cheesery = {
@@ -140,8 +194,8 @@
     partLocked,
     allCombos,
     totalCombos: () => allCombos(Object.keys(B.bases)).length,
-    recipe: (s, id) => s.recipes.find((r) => r.id === id) || null,
-    recipeByKey: (s, key) => s.recipes.find((r) => r.key === key) || null,
+    recipe: (s, id) => (id ? lookup(s, 'id', id) : null),
+    recipeByKey: (s, key) => lookup(s, 'key', key),
 
     // ---------- CHEESE LAB ----------
     // Investigar va aparte de producir. A mano se lanza cada receta; con un ratón en
@@ -215,6 +269,7 @@
       const ratio = strainValue(recipe.strain) / strainValue(recipe.next);
       recipe.strain = recipe.next;
       delete recipe.next;
+      CM.rev += 1;
       const have = s.lots[recipe.id] || 0;
       if (!have) return;
       const exact = have * ratio;
@@ -329,19 +384,33 @@
       const dir = this.labDir(s);
       if (!dir) return null;
       const cost = this.labCost(s);
-      let best = null;
-      for (const combo of allCombos(unlockedBases(s))) {
-        if (!this.labFits(dir, combo) || comboLocked(s, combo) || this.recipeByKey(s, keyOf(combo))) continue;
-        if (onlyAffordable !== false && (s.inv.base[combo.base] < cost || s.coins < B.ingredients[combo.ingredient].coinCost)) continue;
-        const score = dir === 'fast' ? -lotTime(combo) * 1e6 + formula(combo).value * B.bases[combo.base].value : formula(combo).value;
-        if (!best || score > best.score) best = { combo, score };
+      // Las candidatas (encajan en la dirección, están desbloqueadas y no se conocen), de mejor
+      // a peor. Solo cambian al descubrir una receta, subir de nivel o abrir una roca.
+      const stamp = dir + '|' + s.recipes.length + '|' + q.level(s, 'cheesemaking') + '|' + s.totals.zonesUnlocked;
+      let list = pickMemo.get(s.recipes);
+      if (!list || list.stamp !== stamp) {
+        const found = [];
+        for (const combo of allCombos(unlockedBases(s))) {
+          if (!this.labFits(dir, combo) || comboLocked(s, combo) || this.recipeByKey(s, keyOf(combo))) continue;
+          found.push({ combo, score: dir === 'fast' ? -lotTime(combo) * 1e6 + formula(combo).value * B.bases[combo.base].value : formula(combo).value });
+        }
+        // Orden estable: a igual puntuación gana la que se recorre antes, como siempre.
+        found.sort((a, b) => b.score - a.score);
+        list = { stamp, found };
+        pickMemo.set(s.recipes, list);
       }
-      return best ? best.combo : null;
+      for (const c of list.found) {
+        const combo = c.combo;
+        if (onlyAffordable !== false && (s.inv.base[combo.base] < cost || s.coins < B.ingredients[combo.ingredient].coinCost)) continue;
+        return combo;
+      }
+      return null;
     },
     // Añade una receta al libro con su primer queso.
     labDiscover(s, key, made) {
       const recipe = { id: 'r' + s.nextId++, key, name: defaultName(parseKey(key)), at: s.clock, made: made || 1 };
       s.recipes.push(recipe);
+      CM.rev += 1;
       s.totals.recipes += 1;
       s.lots[recipe.id] = 1;
       s.totals.lotsProduced += 1;
@@ -470,19 +539,17 @@
       const pinned = this.recipe(s, s.zones[zoneId].cookRecipe);
       if (pinned) return pinned;
       const base = q.zoneDef(zoneId).base;
-      // Con monedas para cualquier ingrediente, la elegida solo cambia al descubrir una receta
-      // o al moverse los precios: se recuerda un par de segundos en vez de recalcular cada hornada.
+      // Con monedas para cualquier ingrediente, el orden entre las recetas de un queso solo
+      // depende de cuántas hay y del factor común que multiplica su fórmula (mejoras, profundidad
+      // y precios): mientras eso no cambie, la elegida es la misma y no se vuelve a calcular.
       const rich = s.coins >= laneMaxCoin;
-      const stamp = Math.floor(s.clock / 2000) + '|' + s.recipes.length;
-      const memo = rich ? laneMemo.get(s) : null;
-      if (memo && memo[zoneId] && memo[zoneId].stamp === stamp) {
-        const hit = this.recipe(s, memo[zoneId].id);
-        if (hit) return hit;
-      }
+      const stamp = rich ? s.recipes.length + '|' + (1 + q.mods(s)('cheeseValue')) * q.depthRich(s, zoneId) * q.priceMult(s) : '';
+      const memo = rich ? laneMemo.get(s.recipes) : null;
+      if (memo && memo[zoneId] && memo[zoneId].stamp === stamp) return memo[zoneId].r;
       let best = null;
       let top = -Infinity;
       for (const r of s.recipes) {
-        const combo = parseKey(r.key);
+        const combo = known(r.key).combo;
         if (combo.base !== base || s.coins < B.ingredients[combo.ingredient].coinCost) continue;
         const value = potential(s, r);
         if (value > top) {
@@ -491,8 +558,8 @@
         }
       }
       if (rich && best) {
-        if (!laneMemo.get(s)) laneMemo.set(s, {});
-        laneMemo.get(s)[zoneId] = { stamp, id: best.id };
+        if (!laneMemo.get(s.recipes)) laneMemo.set(s.recipes, {});
+        laneMemo.get(s.recipes)[zoneId] = { stamp, r: best };
       }
       return best;
     },
@@ -506,9 +573,9 @@
       const reserve = s.lab.want === zbase ? this.labCost(s) : 0;
       if (reserve && s.inv.base[zbase] - reserve < baseUse(recipe)) return CM.fail('no-base');
       // Si el ciclo ya no puede ser más corto, la velocidad que sobra agranda la hornada.
-      const w = CM.mice.at(s, 'cheesemaking', zoneId);
-      const speed = w ? CM.mice.speed(w, 'cheesemaking', s, zoneId) : 1;
-      const size = q.skillMult(s, 'cheesemaking') * (w ? CM.mice.yieldMult(w, 'cheesemaking', s, zoneId) : 1);
+      const w = CM.mice.work(s, 'cheesemaking', zoneId);
+      const speed = w ? w.speed : 1;
+      const size = q.skillMult(s, 'cheesemaking') * (w ? w.yield : 1);
       const per = this.batchFor(s, recipe, 1, size * CM.cycle(jobTime(s, parseKey(recipe.key), recipe) / speed).mult, reserve);
       return startJob(s, 'produce', parseKey(recipe.key), recipe, 1, baseUse(recipe) * per, 'worker', per);
     },
@@ -549,6 +616,7 @@
       const before = masteryLevel(recipe);
       const n = job.kind === 'experiment' ? 1 : Math.max(1, job.per || 1);
       recipe.made = (recipe.made || 0) + n;
+      if (masteryLevel(recipe) > before) CM.rev += 1; // vale más y se cocina antes desde ya
       s.lots[recipe.id] = (s.lots[recipe.id] || 0) + n;
       s.totals.lotsProduced += n;
       z.stats.lots += n;

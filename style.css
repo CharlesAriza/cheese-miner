@@ -5805,3 +5805,15 @@ div.mc-row {
 .panel .mc-tabs button {
   min-height: 40px;
 }
+
+/* Poniéndose al día tras una ausencia larga */
+.bar.catchbar {
+  height: 12px;
+  margin: 10px 0 4px;
+}
+.bar.catchbar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--gold);
+}

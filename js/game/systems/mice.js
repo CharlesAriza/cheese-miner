@@ -9,7 +9,17 @@
 
   const postKey = (skill, zone) => skill + ':' + (skill === 'trading' || skill === 'research' ? 'all' : zone);
   const xpFor = (level) => (M.xpBase * (Math.pow(M.xpGrowth, level - 1) - 1)) / (M.xpGrowth - 1);
+  // El nivel se recuerda mientras la experiencia siga claramente dentro de su tramo (con un
+  // margen muy por encima del redondeo de la fórmula): cerca del cambio se calcula siempre.
+  const levelMemo = new WeakMap();
   function level(m) {
+    const hit = levelMemo.get(m);
+    if (hit && m.xp >= hit.lo && m.xp < hit.hi) return hit.level;
+    const lv = levelNow(m);
+    levelMemo.set(m, { level: lv, lo: m.xp, hi: lv >= M.maxLevel ? Infinity : xpFor(lv + 1) * (1 - 1e-6) });
+    return lv;
+  }
+  function levelNow(m) {
     const raw = Math.floor(Math.log((m.xp * (M.xpGrowth - 1)) / M.xpBase + 1) / Math.log(M.xpGrowth) + 1e-9) + 1;
     return Math.max(1, Math.min(M.maxLevel, raw));
   }
@@ -33,7 +43,13 @@
   }
 
   // Grado (0-3) del rasgo de oficio de un ratón en una habilidad.
-  const gradeOf = (m, skill) => (m.spec && m.spec[skill] ? M.jobGrades.filter((n) => ((m.jobs && m.jobs[skill]) || 0) >= n).length : 0);
+  function gradeOf(m, skill) {
+    if (!m.spec || !m.spec[skill]) return 0;
+    const done = (m.jobs && m.jobs[skill]) || 0;
+    let g = 0;
+    for (let i = 0; i < M.jobGrades.length; i++) if (done >= M.jobGrades[i]) g += 1;
+    return g;
+  }
   // Todos sus rasgos: de nacimiento, aprendidos y de oficio (con su grado).
   function traitsOf(m) {
     const out = m.traits.concat(m.learned || []).map((id) => ({ id, grade: 1 }));
@@ -49,6 +65,18 @@
   // en el suyo; un rasgo con `noQuirks` anula las manías.
   const fxCache = {};
   function fx(m, skill) {
+    const memo = CM.memo;
+    if (memo) {
+      const k = 'f' + m.id + '|' + skill;
+      const hit = memo.get(k);
+      if (hit && hit.rev === CM.rev) return hit.v;
+      const v = fxNow(m, skill);
+      memo.set(k, { rev: CM.rev, v });
+      return v;
+    }
+    return fxNow(m, skill);
+  }
+  function fxNow(m, skill) {
     const list = traitsOf(m);
     const sig = skill + '|' + list.map((t) => t.id + t.grade).join(',');
     if (fxCache[sig]) return fxCache[sig];
@@ -318,6 +346,7 @@
     record(s, m) {
       const fresh = albumKeys(m).filter((k) => !s.album[k]);
       fresh.forEach((k) => (s.album[k] = true));
+      if (fresh.length) CM.rev += 1;
       return fresh;
     },
     // La simulación abre y cierra cada paso: dentro, las combinaciones de equipo no se recalculan.
@@ -335,7 +364,16 @@
       teamKey = '';
     },
     byId: (s, id) => s.mice.find((m) => m.id === id) || null,
-    at: (s, skill, zone) => s.mice.find((m) => m.post === postKey(skill, zone)) || null,
+    at(s, skill, zone) {
+      const memo = CM.memo;
+      if (!memo) return s.mice.find((m) => m.post === postKey(skill, zone)) || null;
+      const k = 'a' + skill + '|' + zone;
+      const hit = memo.get(k);
+      if (hit && hit.rev === CM.rev && hit.n === s.mice.length) return hit.v;
+      const v = s.mice.find((m) => m.post === postKey(skill, zone)) || null;
+      memo.set(k, { rev: CM.rev, n: s.mice.length, v });
+      return v;
+    },
     // Progreso dentro del nivel actual.
     xpProgress(m) {
       const lv = level(m);
@@ -376,6 +414,18 @@
     // --- Usado por la producción ---
     // Ratón de un puesto con sus multiplicadores, o null si está vacío.
     work(s, skill, zone) {
+      const memo = CM.memo;
+      if (memo) {
+        const k = 'w' + skill + '|' + zone;
+        const hit = memo.get(k);
+        if (hit && hit.rev === CM.rev) return hit.v;
+        const v = this.workNow(s, skill, zone);
+        memo.set(k, { rev: CM.rev, v });
+        return v;
+      }
+      return this.workNow(s, skill, zone);
+    },
+    workNow(s, skill, zone) {
       const m = this.at(s, skill, zone);
       return m ? { m, skill, speed: speed(m, skill, s, zone), yield: yieldMult(m, skill, s, zone), double: doubleChance(m, skill, s, zone) } : null;
     },
@@ -530,6 +580,7 @@
       const free = this.freePost(s);
       if (free) m.post = free.key;
       teamKey = '';
+      CM.rev += 1;
       return !!free;
     },
     // Coloca a los que esperan en la casa (salvo a los que el jugador mandó descansar).

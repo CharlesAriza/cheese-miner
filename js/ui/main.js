@@ -80,13 +80,33 @@
     els.banner.textContent = text;
     retrigger(els.banner, 'show');
   }
+  // Los avisos hacen cola: cada uno se lee entero antes de dar paso al siguiente, en vez de
+  // pisarse. Con cola, cada aviso dura menos; si se acumulan demasiados, se quedan los últimos.
   let toastTimer = 0;
-  function toast(text, good) {
-    els.toast.textContent = text;
-    els.toast.classList.toggle('good', !!good);
+  let toastBusy = false;
+  const toastQueue = [];
+  function nextToast() {
+    const t = toastQueue.shift();
+    if (!t) {
+      toastBusy = false;
+      els.toast.classList.remove('show');
+      return;
+    }
+    toastBusy = true;
+    els.toast.textContent = t.text;
+    els.toast.classList.toggle('good', t.good);
     els.toast.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2400);
+    toastTimer = setTimeout(nextToast, toastQueue.length ? 1500 : 2400);
+  }
+  function toast(text, good) {
+    const last = toastQueue[toastQueue.length - 1];
+    if ((last && last.text === text) || (toastBusy && !toastQueue.length && els.toast.textContent === text)) return;
+    // Un «no se puede» responde a un toque: sale al momento, por delante de la cola.
+    if (!good) toastQueue.unshift({ text, good: false });
+    else toastQueue.push({ text, good: true });
+    while (toastQueue.length > 4) toastQueue.splice(good ? 0 : 1, 1);
+    if (!toastBusy || !good) nextToast();
   }
   const buzz = (pattern) => {
     const active = navigator.userActivation ? navigator.userActivation.hasBeenActive : true;
@@ -1074,7 +1094,7 @@
       return r;
     },
     retrain: (id, skill) => void (ui.retrain = ui.retrain === id + ':' + skill ? null : id + ':' + skill),
-    album: () => void (ui.miceTab = ui.miceTab === 'album' ? '' : 'album'),
+    album: () => void ((ui.miceTab = ui.miceTab === 'album' ? '' : 'album'), ($('sheet-body').scrollTop = 0)),
     dismiss: (id) => void confirmDismiss(id),
     managers: () => void (state.settings.managersBuy = !state.settings.managersBuy),
     tab: (name) => void (ui.cheeseTab = name),
@@ -1285,12 +1305,17 @@
     const TR = B.mice.traits;
     const isLegend = (t) => TR[t] && TR[t].kind === 'legend';
     let jewel = null;
+    // Varios legendarios en una misma ausencia: se nombran los primeros, se cuenta el resto y
+    // se celebra uno solo al cerrar, sin encadenar ventanas.
+    let legends = 0;
     for (const n of news) {
       for (const t of (n.grew || []).filter(isLegend)) {
-        lines.push('<b class="tleg">&#9733; ' + P.esc(n.name) + ' developed a LEGENDARY trait: ' + TR[t].name + '</b>');
+        legends += 1;
+        if (legends <= 3) lines.push('<b class="tleg">&#9733; ' + P.esc(n.name) + ' developed a LEGENDARY trait: ' + TR[t].name + '</b>');
         jewel = jewel || { id: n.id, trait: t };
       }
     }
+    if (legends > 3) lines.push('<b class="tleg">&#9733; ...and ' + (legends - 3) + ' more legendary traits.</b> Find them in MICE: ROSTER, show Legendary');
     if (sum.careDone) {
       const pat = CM.mice.byId(state, sum.careDone.id);
       if (pat) lines.push('Mouse House bed: ' + P.esc(pat.name) + (sum.careDone.kind === 'quirk' ? ' is over <b class="tok">' + TR[sum.careDone.what].name + '</b>' : ' retrained to <b class="tok">' + TR[sum.careDone.to].name + '</b>') + '. The bed is free');
@@ -1345,7 +1370,7 @@
     select('rock');
     setIcons();
     syncShown();
-    CM.storage.save(state, Date.now());
+    saveNow();
     ui.lastHtml = '';
   }
 
@@ -1573,7 +1598,8 @@
   function frame(t) {
     const real = Math.min(250, t - last);
     last = t;
-    if (!CM.dev.paused) {
+    // Mientras se pone al día tras una ausencia, el tiempo de ahora espera.
+    if (!CM.dev.paused && !catching) {
       acc += real * CM.dev.speed;
       let steps = 0;
       while (acc >= STEP && steps < 300) {
@@ -1600,26 +1626,66 @@
     if (dirty || saveTick > 5000) {
       dirty = false;
       saveTick = 0;
-      CM.storage.save(state, Date.now());
+      saveNow();
     }
     requestAnimationFrame(frame);
   }
 
+  // Una ausencia corta se calcula de golpe. Una larga, a trozos: la pantalla sigue viva y
+  // enseña cuánto falta. Los pasos son los mismos, así que el resultado no cambia.
+  let catching = null;
+  // Siguiente trozo en cuanto el navegador haya podido pintar (un canal de mensajes no sufre
+  // el freno que los temporizadores tienen en segundo plano).
+  const later = (fn) => {
+    const ch = new MessageChannel();
+    ch.port1.onmessage = fn;
+    ch.port2.postMessage(0);
+  };
+  // Mientras se pone al día, lo ya calculado llega hasta `now - left`: si el jugador cierra
+  // a medias, lo que falte se cuenta la próxima vez.
+  function saveNow() {
+    CM.storage.save(state, catching ? catching.now - catching.left : Date.now());
+  }
   function comeBack() {
-    const sum = CM.sim.applyOffline(state, Date.now());
-    CM.storage.save(state, Date.now());
-    last = performance.now();
-    acc = 0;
-    syncShown();
-    showOffline(sum);
+    if (catching) return;
+    const job = CM.sim.offlineStart(state, Date.now());
+    const done = (sum) => {
+      catching = null;
+      saveNow();
+      last = performance.now();
+      acc = 0;
+      syncShown();
+      showOffline(sum);
+    };
+    if (!job) return done(null);
+    if (job.simulated <= 30 * 60 * 1000) {
+      CM.sim.offlineRun(job, Infinity);
+      return done(CM.sim.offlineEnd(job));
+    }
+    catching = job;
+    const hours = job.simulated / 3600000;
+    showModal('<h2>WELCOME BACK</h2><p class="lead">Your mice kept working for <b>' + (hours >= 2 ? Math.round(hours) + ' hours' : Math.round(job.simulated / 60000) + ' minutes') + '</b>.</p><p class="hint">Catching up on everything they did...</p><div class="bar catchbar"><i id="catch-fill"></i></div><p class="hint" id="catch-num">0%</p>', {});
+    const slice = () => {
+      if (catching !== job) return;
+      // Con la pestaña en segundo plano nadie mira la barra: trozos largos, para acabar antes.
+      const part = CM.sim.offlineRun(job, document.hidden ? 400 : 60);
+      const fill = $('catch-fill');
+      if (fill) fill.style.width = Math.round(part * 100) + '%';
+      const num = $('catch-num');
+      if (num) num.textContent = Math.round(part * 100) + '%';
+      if (job.left > 0) return void later(slice);
+      closeModal();
+      done(CM.sim.offlineEnd(job));
+    };
+    later(slice);
   }
 
   window.addEventListener('resize', scene.resize);
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) CM.storage.save(state, Date.now());
+    if (document.hidden) saveNow();
     else comeBack();
   });
-  window.addEventListener('pagehide', () => CM.storage.save(state, Date.now()));
+  window.addEventListener('pagehide', () => saveNow());
 
   setIcons();
   syncShown();
@@ -1628,7 +1694,7 @@
   select(STATIONS.indexOf(startAt) >= 0 ? startAt : 'rock');
   if (loaded.recovered) toast('Your save was damaged, so a new game was started');
   if (!loaded.isNew) comeBack();
-  else CM.storage.save(state, Date.now());
+  else saveNow();
   // Acceso para depurar desde la consola del navegador.
   window.CM_DEBUG = {
     scene,

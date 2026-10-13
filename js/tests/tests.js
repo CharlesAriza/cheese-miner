@@ -336,6 +336,50 @@
     valid(t);
   });
 
+  test('offline: the fast path, the slow path and a sliced catch-up give exactly the same game', () => {
+    // Una colonia pequeña pero completa: las cinco etapas con ratón, dos recetas y el laboratorio.
+    const base = withCheese();
+    base.built.house = true;
+    base.built.lab = true;
+    base.nodes['lab.assistant'] = 1;
+    base.coins = 5000;
+    for (const k of CM.skills.list) base.skills[k].xp = q.xpForLevel(12);
+    ['mining', 'drilling', 'refining', 'cheesemaking'].forEach((k, i) => staff(base, k, 'cheddar', { traits: [['lucky', 'dreamer'], ['strong', 'glutton'], ['mentor', 'clumsy'], ['collector', 'picky']][i], xp: 150 }));
+    staff(base, 'trading', 'all', { traits: ['sociable', 'shy'], xp: 190 });
+    staff(base, 'research', 'all', { traits: ['scholar', 'lazy'] });
+    CM.tree.buy(base, 'drilling', 'bit');
+    CM.tree.buy(base, 'trading', 'prices');
+    const text = JSON.stringify(base);
+    const AWAY = 40 * 60 * 1000;
+    const play = (how) => {
+      const s = CM.storage.parse(text, 1000000);
+      CM.events.length = 0;
+      let sum;
+      if (how === 'slices') {
+        const job = CM.sim.offlineStart(s, s.lastSavedAt + AWAY);
+        let turns = 0;
+        while (job.left > 0 && turns++ < 10000) CM.sim.offlineRun(job, 0); // presupuesto cero: se corta a cada rato
+        truthy(turns > 5, 'the catch-up really ran in several slices (' + turns + ')');
+        sum = CM.sim.offlineEnd(job);
+      } else {
+        CM.noMemo = how === 'slow';
+        sum = CM.sim.applyOffline(s, s.lastSavedAt + AWAY);
+        CM.noMemo = false;
+      }
+      valid(s);
+      return { s, sum, json: JSON.stringify(s) };
+    };
+    const fast = play('fast');
+    const slow = play('slow');
+    const slices = play('slices');
+    truthy(fast.sum.coins > 0 && fast.sum.delta.lotsProduced > 0 && fast.s.recipes.length > base.recipes.length, 'the colony worked, sold and researched while away');
+    truthy(fast.sum.mouseNews.some((n) => n.to > n.from), 'and the mice levelled up');
+    eq(fast.json === slow.json, true, 'remembering answers inside a step changes nothing: coins, stock, levels, traits and research are identical');
+    eq(fast.json === slices.json, true, 'catching up in slices gives the same game as doing it in one go');
+    eq(JSON.stringify(fast.sum.delta), JSON.stringify(slices.sum.delta), 'and the same summary');
+    eq(CM.memo, null, 'nothing is remembered outside a simulation step');
+  });
+
   test('offline: only automated stages progress, capped, counted once', () => {
     const a = fresh();
     CM.mining.hit(a, 'cheddar', 'manual');

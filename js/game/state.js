@@ -6,7 +6,23 @@
   CM.events = []; // cola que consume la UI para dar feedback
   CM.muted = false; // true durante la simulación offline: no hay feedback visual
 
+  // ---- Memoria de un paso de simulación ----
+  // Dentro de un paso, casi todo lo que se consulta (qué rinde un ratón, cuánto vale un
+  // queso, los efectos de las mejoras) da siempre lo mismo. `CM.memo` guarda esas respuestas
+  // mientras dura el paso y `CM.rev` sube cada vez que ocurre algo que puede cambiarlas
+  // (un nivel, un rasgo, una mejora, una receta, bajar de profundidad...): una respuesta
+  // solo vale si se guardó con la misma revisión. Fuera de un paso no hay memoria.
+  CM.memo = null;
+  CM.rev = 0;
+  // Eventos que se repiten sin parar y no cambian ninguna de esas respuestas.
+  const ROUTINE = { cheeseStart: 1, drillDone: 1, drillStart: 1, hit: 1, lotDone: 1, refineDone: 1, refineStart: 1, sale: 1, sellStart: 1, reveal: 1, purchase: 1, labStart: 1, labSetback: 1, goal: 1, cheeseBoost: 1, drillBoost: 1, refineBoost: 1, sellBoost: 1, careStart: 1, candidates: 1 };
+
+  // Los que además nadie escucha con el juego cerrado (ni la interfaz ni la telemetría).
+  const SILENT = { cheeseStart: 1, drillDone: 1, drillStart: 1, hit: 1, lotDone: 1, refineDone: 1, refineStart: 1, sale: 1, sellStart: 1, labStart: 1 };
+
   CM.emit = function (state, type, data) {
+    if (CM.muted && SILENT[type]) return null;
+    if (!ROUTINE[type]) CM.rev += 1;
     const ev = Object.assign({ type }, data || {});
     if (CM.telemetry) CM.telemetry.onEvent(state, ev);
     if (!CM.muted) CM.events.push(ev);
@@ -126,6 +142,17 @@
   // cambian los nudos.
   let modsCache = { src: null, stamp: -1, get: null };
   function mods(s) {
+    const memo = CM.memo;
+    if (memo) {
+      const hit = memo.get('mods');
+      if (hit && hit.rev === CM.rev && hit.src === s.nodes) return hit.get;
+      const get = modsNow(s);
+      memo.set('mods', { rev: CM.rev, src: s.nodes, get });
+      return get;
+    }
+    return modsNow(s);
+  }
+  function modsNow(s) {
     let stamp = 0;
     for (const k in s.nodes) stamp = stamp * 31 + s.nodes[k] + k.length;
     if (modsCache.src === s.nodes && modsCache.stamp === stamp) return modsCache.get;
@@ -217,7 +244,14 @@
       return best;
     },
     albumBonus: (s) => Object.keys(s.album).length * B.mice.albumPrice,
-    priceMult: (s) => q.buyer(s).mult * (1 + mods(s)('price')) * q.skillMult(s, 'trading') * (1 + q.albumBonus(s)),
+    priceMult(s) {
+      const memo = CM.memo;
+      const hit = memo && memo.get('pm');
+      if (hit && hit.rev === CM.rev) return hit.v;
+      const v = q.buyer(s).mult * (1 + mods(s)('price')) * q.skillMult(s, 'trading') * (1 + q.albumBonus(s));
+      if (memo) memo.set('pm', { rev: CM.rev, v });
+      return v;
+    },
     offlineCapMs: (s) => (B.offline.baseHours + mods(s)('offlineHours')) * 3600000,
     // Automatización: un puesto trabaja solo si tiene un ratón asignado.
     auto: (s, skill, zone) => s.mice.some((m) => m.post === skill + ':' + (skill === 'trading' ? 'all' : zone)),

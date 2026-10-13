@@ -4,7 +4,7 @@
 
 ## Pruebas automáticas
 
-Ejecutadas abriendo `tests.html` en el navegador. **39 de 39 pasan.**
+Ejecutadas abriendo `tests.html` en el navegador. **40 de 40 pasan.**
 
 | Prueba | Resultado |
 | --- | --- |
@@ -31,6 +31,7 @@ Ejecutadas abriendo `tests.html` en el navegador. **39 de 39 pasan.**
 | Cepas: otra manera de hacer el mismo queso, encontrada por el investigador y elegida por el jugador | pasa |
 | Ratones: cada uno tiene su propio aspecto, y los guardados antiguos reciben uno | pasa |
 | Niveles: curva de experiencia, bloqueo por nivel y comprar todo | pasa |
+| Offline: el camino rápido, el lento y la puesta al día a trozos dan exactamente la misma partida | pasa |
 | Offline: solo progresa lo automatizado, con tope y una sola vez | pasa |
 | Taps rápidos, recarga a mitad de ciclo y venta doble no duplican | pasa |
 | Recetas: descubrir, componentes bloqueados por nivel, renombrar, fabricar, persistir | pasa |

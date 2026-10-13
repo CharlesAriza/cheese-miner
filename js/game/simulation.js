@@ -93,9 +93,13 @@
     step(s, dt) {
       s.clock += dt;
       CM.mice.beginStep(s);
+      // Dentro de un avance largo la memoria se conserva de un paso a otro (nadie toca la
+      // partida desde fuera); en un paso suelto empieza y termina con él.
+      if (!CM.memoKeep) CM.memo = CM.noMemo ? null : new Map();
       try {
         this.run(s, dt);
       } finally {
+        if (!CM.memoKeep) CM.memo = null;
         CM.mice.endStep();
       }
     },
@@ -122,10 +126,22 @@
     },
     advance(s, ms, stepMs) {
       let left = ms;
-      while (left > 0) {
-        const dt = Math.min(stepMs, left);
-        this.step(s, dt);
-        left -= dt;
+      const outer = CM.memoKeep;
+      if (!outer) {
+        CM.memo = CM.noMemo ? null : new Map();
+        CM.memoKeep = true;
+      }
+      try {
+        while (left > 0) {
+          const dt = Math.min(stepMs, left);
+          this.step(s, dt);
+          left -= dt;
+        }
+      } finally {
+        if (!outer) {
+          CM.memoKeep = false;
+          CM.memo = null;
+        }
       }
     },
     objective(s) {
@@ -139,23 +155,62 @@
     // guardado, con tope. Usa exactamente la misma simulación, así que solo
     // produce lo que esté automatizado y tenga recursos y capacidad.
     applyOffline(s, now) {
+      const job = this.offlineStart(s, now);
+      if (!job) return null;
+      this.offlineRun(job, Infinity);
+      return this.offlineEnd(job);
+    },
+    // El mismo cálculo, en tres tiempos, para poder repartir una ausencia larga entre varios
+    // fotogramas sin congelar la pantalla. Los pasos son los mismos: el resultado no cambia.
+    offlineStart(s, now) {
       const away = now - s.lastSavedAt;
       s.lastSavedAt = now; // se consume aquí: recargar no vuelve a contar el mismo tramo
       if (!(away >= B.offline.minMs)) return null;
       const cap = q.offlineCapMs(s);
       const simulated = Math.min(away, cap);
-      const before = Object.assign({}, s.totals);
-      const coins = s.coins;
       const levels = {};
       CM.skills.list.forEach((k) => (levels[k] = q.level(s, k)));
-      const mice = s.mice.map((m) => ({ m, level: CM.mice.level(m), had: m.learned.slice(), specs: Object.assign({}, m.spec), grades: CM.mice.CHAIN.map((k) => CM.mice.gradeOf(m, k)) }));
-      const careBefore = s.care ? Object.assign({}, s.care) : null;
+      return {
+        s,
+        now,
+        away,
+        cap,
+        simulated,
+        left: simulated,
+        before: Object.assign({}, s.totals),
+        coins: s.coins,
+        levels,
+        mice: s.mice.map((m) => ({ m, level: CM.mice.level(m), had: m.learned.slice(), specs: Object.assign({}, m.spec), grades: CM.mice.CHAIN.map((k) => CM.mice.gradeOf(m, k)) })),
+        careBefore: s.care ? Object.assign({}, s.care) : null,
+      };
+    },
+    // Avanza hasta agotar el tiempo pendiente o el presupuesto (ms reales). Devuelve lo hecho (0..1).
+    offlineRun(job, budgetMs) {
+      const s = job.s;
       const wasMuted = CM.muted;
+      const t0 = Date.now();
       CM.muted = true;
       CM.away = true; // los rasgos Nocturno y Casero solo cuentan aquí
-      this.advance(s, simulated, B.offline.stepMs);
-      CM.away = false;
-      CM.muted = wasMuted;
+      CM.memo = CM.noMemo ? null : new Map();
+      CM.memoKeep = true;
+      try {
+        for (let n = 0; job.left > 0; n++) {
+          const dt = Math.min(B.offline.stepMs, job.left);
+          this.step(s, dt);
+          job.left -= dt;
+          if (n % 64 === 63 && Date.now() - t0 >= budgetMs) break;
+        }
+      } finally {
+        CM.memoKeep = false;
+        CM.memo = null;
+        CM.away = false;
+        CM.muted = wasMuted;
+      }
+      return job.simulated ? 1 - job.left / job.simulated : 1;
+    },
+    offlineEnd(job) {
+      const s = job.s;
+      const { away, cap, simulated, before, coins, levels, mice, careBefore } = job;
       s.metrics.offlineMs += simulated;
       s.metrics.offlineReturns += 1;
       const delta = {};

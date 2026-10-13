@@ -75,7 +75,7 @@ Interfaz de MICE (14-10-2026): tres pestañas. **COLONY** agrupa los puestos por
 
 Avisos: un rasgo normal es un aviso breve y queda en el diario; uno legendario se celebra a pantalla completa (si llegó con el juego cerrado, al cerrar el resumen de vuelta, que agrupa lo ocurrido).
 
-Rendimiento: la simulación abre y cierra cada paso (`CM.mice.beginStep/endStep`) para no recalcular las combinaciones de equipo en cada consulta; quien cambie la plantilla dentro de un paso debe poner `teamKey = ''`.
+Rendimiento (15-10-2026): simular horas de ausencia con la colonia llena era lento (una hora, 5 s). Ahora tarda 0,35 s con el mismo resultado exacto, comprobado bit a bit. Cómo: (1) `CM.memo` guarda dentro de un avance las respuestas que no cambian (qué rinde un ratón, cuánto vale un queso, efectos de mejoras) y `CM.rev` las invalida: sube con cada evento que no sea rutinario y en los pocos sitios que cambian algo sin evento. **Quien añada una mecánica que cambie el rendimiento de un ratón, un precio o un tiempo sin emitir un evento debe subir `CM.rev`.** (2) La receta de cada línea y las candidatas del laboratorio se recalculan solo cuando cambia lo que las decide. (3) El libro de recetas tiene índice. (4) Con el juego cerrado no se construyen los eventos rutinarios que nadie escucha. La prueba «offline: the fast path, the slow path...» compara las tres formas de calcular; `CM.noMemo = true` apaga la memoria para comparar. Las ausencias de más de 30 minutos se calculan a trozos con una barra de progreso (`offlineStart/offlineRun/offlineEnd`); guardar a medias conserva lo que falte. Los avisos (`toast`) hacen cola en vez de pisarse.
 
 ### Cheese Lab
 

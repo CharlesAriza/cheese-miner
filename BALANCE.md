@@ -268,6 +268,8 @@ Casual, a lo largo de cuatro horas:
 
 **Por qué se cambió la referencia.** Con los precios anteriores, calibrados con el experto, el jugador casual sin recetas tenía a los 30 minutos unos cientos de monedas y 9.600 ganadas, y no abría la segunda roca ni en 90 minutos. La diferencia venía sobre todo de las recetas: el experto las descubría antes de automatizar y el casual no podía, porque investigar paraba la quesería.
 
+**Tiempo de cálculo de una ausencia (15-10-2026).** Colonia de 26 ratones, seis rocas, 185 recetas, en un ordenador de sobremesa: 2 h en 0,7 s y 24 h en 7,9 s (antes, unos 10 s y 2 minutos). Con inventarios enormes y todas las líneas saturadas, 1 h en 0,7 s (antes 8 s). La ausencia que se simula tiene un tope de 4 h, ampliable a 24 h con Night Lamp, así que 72 h o siete días cuestan lo mismo que 24 h. El resultado es idéntico al de antes.
+
 **Medidas con los rasgos automáticos (14-10-2026).** Las tablas de arriba son anteriores. Con el sistema nuevo, mediana y rango de varias semillas (`audit-runner.js`):
 
 | | Casual (11 partidas) | Optimizando la colocación (12 partidas) |
