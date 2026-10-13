@@ -166,6 +166,8 @@ No comprobado jugando: una partida a mano de varias horas con refuerzos, ni nada
 
 ## Limitaciones conocidas
 
+- **Marcador superior en pantallas estrechas (anotado el 13-10-2026, sin arreglar).** A 320 px, con cifras grandes y la línea de ritmo por minuto debajo, la cifra de un contador se corta contra el siguiente (se vio «33.2M» de Cheese Base recortado). Pendiente; no se abre un rediseño por esto.
+
 - **Las partidas anteriores no se conservan:** el modelo de datos es nuevo.
 - **Arte placeholder.** Los tramos de edificio se distinguen, pero el acabado sigue siendo el de dibujo por código.
 - **Los rangos Master y Manager** solo están cubiertos por pruebas; no los alcancé jugando.
