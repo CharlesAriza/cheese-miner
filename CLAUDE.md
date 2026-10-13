@@ -33,6 +33,7 @@ Shop Titans deja de ser referencia.
 - **Balance centralizado** en `js/game/config/balance.js`, siempre provisional.
 - **El ritmo se calibra con el jugador casual, no con el experto.** El bot tiene un perfil casual (pocos toques, compra cada 20 s, deja de tocar al automatizar); los precios de las rocas se ajustan a él. Un bot experto dio por bueno un arranque que para una persona era desesperante.
 - **La cadena se equilibra con una sola ley:** a igual inversión e iguales ratones, cada etapa procesa una cantidad parecida. Antes de tocar el rendimiento de una etapa, medir las cinco con el bot (`tests.html` informa de la capacidad de cada etapa por roca; `tests.html?bot` carga solo el bot para calibrar desde la consola).
+- **Partidas largas del bot, fuera del navegador:** `sim-headless.js` carga la simulación en el motor de JavaScript de macOS (`jsc`, ver la cabecera del archivo). Misma partida que `tests.html?bot` con la misma semilla, unas diez veces más rápido y sin caerse a las 24 horas. Para medir balance, usar esto antes que la pestaña del navegador.
 - **Al publicar, cambiar el `?v=` de los enlaces de `index.html`** (hoja de estilos y scripts): si no, el móvil sigue con los archivos viejos en caché.
 - **Nombres de clase CSS propios por pantalla:** antes de añadir una clase, comprobar que no existe ya (un `.lrow` y un `.hot` repetidos rompieron la pantalla principal).
 - **Pruebas en el navegador** (`tests.html`). No afirmar que algo está probado si no se ha ejecutado.
