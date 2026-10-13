@@ -1444,7 +1444,7 @@
     eq(MS.has(s, 'wheel'), false, 'and so does a manager');
     truthy(boss && CM.tree.buy(s, 'cheesemaking', 'wheel').ok, 'the player buys it');
     eq(CM.tree.buy(s, 'cheesemaking', 'wheel').ok, false, 'once');
-    eq(CM.tree.info(s, 'cheesemaking', 'board').locked, true, 'the next one waits for a production goal');
+    eq(CM.tree.info(s, 'cheesemaking', 'master').locked, true, 'the next one waits for a production goal');
 
     // --- El objetivo de producción ---
     // Media hora cocinando a 6.000 quesos por hora fija el ritmo sostenido.
@@ -1467,6 +1467,7 @@
     // Bajar la producción no abarata el objetivo ni el ritmo de referencia.
     cook(s, 10, 6);
     eq(s.quota.need, 6000 * H, 'producing less does not make the goal cheaper');
+    eq(JSON.stringify(CM.storage.parse(JSON.stringify(s), s.lastSavedAt).quota), JSON.stringify(s.quota), 'a goal in progress survives a reload');
     eq(s.quota.from, from, 'and does not restart it');
     eq(s.quota.best, 6000, 'nor lower the pace the next goal will use');
     eq(MS.goal(s).cur, 60, 'what was cooked still counts');
@@ -1481,16 +1482,27 @@
     // Producir más lo acerca; al cumplirse abre el hito y fija el siguiente.
     cook(a, 5000, 3);
     eq(a.quota.done, 1, 'cooking more reaches the goal sooner');
-    eq(a.msOpen.board, 1, 'reaching it opens Cheese Board');
-    eq(CM.tree.info(a, 'cheesemaking', 'board').locked, false, 'which can now be bought');
-    cook(a, 5000, 1);
-    eq(a.quota.need, 30000 * H, 'the next goal uses the best sustained pace so far (30,000 an hour)');
-    eq(CM.tree.info(a, 'cheesemaking', 'master').why, 'Cook ' + CM.fmt(MS.goal(a).left) + ' more cheese', 'and the milestone behind it says how much is left');
-    cook(a, 30000, 4);
-    eq(a.quota.done, 2, 'second goal reached');
-    eq(a.msOpen.master, 1, 'Grand Master opens');
+    eq(a.msOpen.master, 1, 'reaching it opens Grand Master');
+    eq(CM.tree.info(a, 'cheesemaking', 'master').locked, false, 'which can now be bought');
     cook(a, 30000, 6);
     eq(a.quota.need, 0, 'no more goals than milestones to open');
+    eq(a.quota.done, 1, 'so the count stays where it was');
+    // Cheese Board está aparcado: no se ofrece ni se anuncia, pero quien lo tiene lo conserva.
+    eq(a.msOpen.board, 0, 'Cheese Board is parked: it never opens for a new game');
+    eq(CM.tree.info(a, 'cheesemaking', 'board').locked, true, 'and cannot be bought');
+    eq(MS.waiting(a).some((n) => n.id === 'board'), false, 'nor is it announced');
+    const owner = JSON.parse(JSON.stringify(b));
+    owner.nodes['cheesemaking.board'] = 1;
+    owner.board.mult = 1.2;
+    owner.quota.done = 1;
+    owner.quota.need = 5000;
+    const kept = CM.storage.parse(JSON.stringify(owner), owner.lastSavedAt);
+    eq(MS.has(kept, 'board'), true, 'a save that already owns it keeps it');
+    eq(kept.board.mult, 1.2, 'with its bonus');
+    eq(MS.nodes(kept).some((n) => n.id === 'board'), true, 'and still sees it in its tree');
+    eq(kept.quota.need, 0, 'a goal that opened nothing any more is dropped');
+    MS.tick(kept);
+    eq(kept.msOpen.master, 1, 'and Grand Master opens with the goal it had already reached');
     const back = CM.storage.parse(JSON.stringify(a), a.lastSavedAt);
     eq(JSON.stringify(back.quota), JSON.stringify(a.quota), 'the goal survives a reload');
     eq(JSON.stringify(back.msOpen), JSON.stringify(a.msOpen), 'and so does what is open');

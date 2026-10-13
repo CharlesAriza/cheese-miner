@@ -236,8 +236,9 @@ CM.BALANCE = {
       // Hitos (prototipo): compra única y deliberada (`unlock`: BUY ALL y los gerentes no los
       // tocan). `gate` dice qué los abre: un rango de otra mejora o un objetivo de producción.
       { id: 'wheel', branch: 'milestone', unlock: true, gate: { rank: ['moulds', 20] }, name: 'Grand Wheel', desc: 'Every 10 minutes of cooking, each line turns out a Grand Wheel worth 2 more minutes of its cheese', level: 1, max: 1, cost: 1.74e11, growth: 1, eff: {} },
-      { id: 'board', branch: 'milestone', unlock: true, gate: { quota: 1 }, name: 'Cheese Board', desc: 'Customers pay more when your sales are a real mix of ingredients, treatments and maturations', level: 1, max: 1, cost: 4e13, growth: 1, eff: {} },
-      { id: 'master', branch: 'milestone', unlock: true, gate: { quota: 2 }, name: 'Grand Master', desc: 'Name one mouse Grand Master: the cheese it cooks is worth more, the more it has cooked in its life', level: 1, max: 1, cost: 2e14, growth: 1, eff: {} },
+      // Cheese Board está aparcado (`parked`): no se ofrece ni se anuncia; quien ya lo compró lo conserva.
+      { id: 'board', branch: 'milestone', unlock: true, parked: true, gate: { quota: 1 }, name: 'Cheese Board', desc: 'Customers pay more when your sales are a real mix of ingredients, treatments and maturations', level: 1, max: 1, cost: 4e13, growth: 1, eff: {} },
+      { id: 'master', branch: 'milestone', unlock: true, gate: { quota: 1 }, name: 'Grand Master', desc: 'Name one mouse Grand Master: the cheese it cooks is worth more, the more it has cooked in its life', level: 1, max: 1, cost: 2e14, growth: 1, eff: {} },
       { id: 'moulds', branch: 'power', name: 'More Moulds', desc: '+1 cheese per batch', level: 1, max: 999, cost: 50, growth: 3, eff: { cheeseBatch: 1 } },
       { id: 'curds', branch: 'power', name: 'Faster Curds', desc: 'Cheese cooks 8% faster', level: 1, max: 60, cost: 30, growth: 1.33, eff: { cheeseSpeed: 0.08 } },
       { id: 'cellar', branch: 'special', name: 'Cheese Cellar', desc: 'Every cheese is worth 8% more', level: 5, max: 80, cost: 150, growth: 1.38, eff: { cheeseValue: 0.08 } },

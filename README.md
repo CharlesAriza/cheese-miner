@@ -24,7 +24,7 @@ La pantalla es el cuartel general. Abajo está la **cadena**: MINE → DRILL →
 | Comprar todo lo que alcance, en todos los árboles | **BUY ALL**, en la fila de mejoras: enseña antes cuántas compraría y por cuánto |
 | Repetir sin machacar | Mantener pulsado el botón grande |
 | Ver el árbol entero de una etapa | **UPGRADES** en su panel |
-| Comprar un hito (Grand Wheel, Cheese Board, Grand Master) | **UPGRADES** de Cheesemaking, rama MILESTONES; BUY ALL no los compra |
+| Comprar un hito (Grand Wheel, Grand Master) | **UPGRADES** de Cheesemaking, rama MILESTONES; BUY ALL no los compra |
 | Nombrar al Grand Master | Abrir un ratón en MICE → NAME GRAND MASTER |
 | Ascender a varios ratones de una vez | MICE → aviso «N can be promoted»: se eligen, se ve el total y se confirma una vez |
 | Comprar todo lo que alcance en un árbol | **BUY EVERYTHING I CAN AFFORD** |

@@ -131,10 +131,14 @@
     return Math.max(1, Math.ceil(n / p) * p);
   };
   CM.milestones = {
-    nodes: () => B.trees.cheesemaking.filter((n) => n.gate),
+    // Los hitos que cuentan para esta partida: un hito aparcado solo existe para quien ya lo compró.
+    nodes: (s) => B.trees.cheesemaking.filter((n) => n.gate && (!n.parked || (s && s.nodes['cheesemaking.' + n.id]))),
     has: (s, id) => !!s.nodes['cheesemaking.' + id],
+    // Cuántos objetivos de producción hay que cumplir en total.
+    goals: () => Math.max(0, ...B.trees.cheesemaking.filter((n) => n.gate && n.gate.quota && !n.parked).map((n) => n.gate.quota)),
     gateOk(s, node) {
       const g = node.gate;
+      if (node.parked) return !!s.nodes['cheesemaking.' + node.id];
       if (g.rank) return CM.tree.rank(s, 'cheesemaking', g.rank[0]) >= g.rank[1];
       return s.quota.done >= g.quota;
     },
@@ -155,7 +159,7 @@
     // Quesos por hora, de media, en la última media hora (sin Grand Wheels).
     sustained: (s) => (s.quota.full >= 3 ? ((s.quota.b0 + s.quota.b1 + s.quota.b2) / 3) * (3600000 / MS.bucketMs) : 0),
     // Hitos abiertos y aún sin comprar.
-    waiting: (s) => CM.milestones.nodes().filter((n) => s.msOpen[n.id] && !s.nodes['cheesemaking.' + n.id]),
+    waiting: (s) => CM.milestones.nodes(s).filter((n) => s.msOpen[n.id] && !s.nodes['cheesemaking.' + n.id]),
     tick(s) {
       const Q = s.quota;
       if (s.clock - Q.at >= MS.bucketMs) {
@@ -168,9 +172,9 @@
         Q.full = Math.min(3, Q.full + 1);
         if (Q.full >= 3) Q.best = Math.max(Q.best, this.sustained(s));
       }
-      const all = this.nodes();
+      const all = this.nodes(s);
       // El contador empieza cuando ya están abiertos los hitos que dependen de un rango.
-      if (!Q.need && Q.best > 0 && Q.done < all.filter((n) => n.gate.quota).length && all.every((n) => !n.gate.rank || s.msOpen[n.id])) {
+      if (!Q.need && Q.best > 0 && Q.done < this.goals() && all.every((n) => !n.gate.rank || s.msOpen[n.id])) {
         Q.from = s.totals.lotsProduced;
         Q.need = nice(Q.best * MS.hours);
         CM.emit(s, 'quotaSet', { need: Q.need });

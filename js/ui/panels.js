@@ -116,7 +116,7 @@
     if (isSkill) h += '<p class="hint">This tree only. BUY ALL on the main screen does every skill at once, always the cheapest upgrade first.' + (s.mice.some((m) => M.ranks[m.rank].manager) ? ' Your managers already buy, on their own, upgrades of their job that cost under ' + Math.round(M.managerBudget * 100) + '% of your coins.' : '') + '</p>';
     if (skill === 'cheesemaking') h += quotaBlock(s);
     for (const br of skill === 'lab' ? LAB_BRANCHES : BRANCHES) {
-      const nodes = B.trees[skill].filter((x) => x.branch === br[0]);
+      const nodes = B.trees[skill].filter((x) => x.branch === br[0] && !(x.parked && !CM.tree.rank(s, skill, x.id)));
       if (!nodes.length) continue;
       h += '<h3>' + (skill === 'colony' ? 'WHILE YOU ARE AWAY' : br[1]) + '</h3><p class="hint">' + (skill === 'colony' ? 'Only stages with a mouse keep going when the game is closed' : br[2]) + '</p>';
       for (const node of nodes) {

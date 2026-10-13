@@ -347,6 +347,8 @@ Lo que aporta cada uno (la misma colonia, 30 minutos con y sin el hito, a las 6 
 - Tienda: en una de las dos semillas, con hitos se acumularon entre 2,6 y 4,3 millones de quesos sin vender (sin hitos, unos cientos). Más queso aprieta a Trading.
 - Cheese Board, cálculo aparte sobre cuatro colonias: el mejor reparto solo cambia tratamientos (cambiar ingrediente o maduración cuesta un 35 % y un 43 % del valor de esa roca y no compensa), y poner recetas flojas en las tres rocas más pobres pierde entre un 17 % y un 26 %.
 
+**Actualización:** Cheese Board está aparcado y ya no se ofrece. Grand Master se abre con el primer objetivo de producción (antes, el segundo), así que llega antes de lo que dice la tabla de arriba: hacia las 2 h – 2 h 40 en vez de las 3 h 40 – 4 h 20; su precio no ha cambiado.
+
 ## Validación de los tres hitos (13-10-2026)
 
 Sin cambiar ninguna cifra. Colonias casuales con seis rocas y los tres hitos comprados (semillas 12 y 13, a las 6, 12 y 24 horas).

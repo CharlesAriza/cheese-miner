@@ -192,6 +192,8 @@
     // Hitos: números sanos, y el título solo para un ratón que exista.
     for (const k of Object.keys(s.quota)) s.quota[k] = pos(s.quota[k]);
     s.quota.full = Math.min(3, nat(s.quota.full));
+    // Un objetivo que ya no abre nada (su hito se aparcó) deja de pedirse.
+    if (s.quota.done >= CM.milestones.goals()) s.quota.need = 0;
     for (const k of Object.keys(s.msOpen)) s.msOpen[k] = s.msOpen[k] ? 1 : 0;
     for (const k of Object.keys(s.board.v)) s.board.v[k] = pos(s.board.v[k]);
     s.board.at = pos(s.board.at);
