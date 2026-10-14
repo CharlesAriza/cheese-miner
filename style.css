@@ -10647,3 +10647,45 @@ img.pix.pxi {
 .fchip em {
   margin-top: 4px;
 }
+
+/* ======================= V4.12: aviso de roca legible ======================= */
+/* El aviso de la ficha de roca (hay que picar, o algo la frena) a 2x, con contorno de tinta:
+   se ve y se entiende que esa roca pide que la toques. Al aparecer da tres saltitos y se queda
+   quieto. */
+.rchip.warn .rdot,
+.rchip.need .rdot {
+  top: 3px;
+  right: 3px;
+  width: 18px;
+  height: 16px;
+  background-size: 18px 16px;
+  image-rendering: pixelated;
+  animation: rdotin 0.5s steps(1) 3;
+}
+.rchip.warn .rdot {
+  background-image: var(--px-alert);
+}
+.rchip.need .rdot {
+  background-image: var(--px-alertr);
+}
+@keyframes rdotin {
+  0%,
+  50% {
+    transform: translateY(-2px);
+  }
+  51%,
+  100% {
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rchip.warn .rdot,
+  .rchip.need .rdot {
+    animation: none;
+  }
+}
+/* Con aviso, el icono de la roca se aparta a la izquierda: roca y aviso, lado a lado. */
+.rchip.warn > .pix,
+.rchip.need > .pix {
+  transform: translateX(-8px);
+}
