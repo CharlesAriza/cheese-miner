@@ -8382,3 +8382,289 @@ div.mc-row {
   border-radius: 0;
   box-shadow: inset 1px 1px 0 #ffffff80;
 }
+
+/* ---------- V4.4: avisos que llaman un momento y se calman ----------
+   Las novedades y el objetivo laten tres veces al aparecer y después se quedan quietos
+   (el marco o la chapa siguen ahí). Nada late para siempre ni rebota sin fin. */
+.tile.goal,
+.tools button.goal,
+.tile.isnew,
+.dup.hito {
+  animation-iteration-count: 3;
+}
+.tile.goal {
+  outline: 2px solid #ffe55c99;
+  outline-offset: 1px;
+}
+.tile.help em {
+  animation-iteration-count: 4;
+}
+/* Barra de abajo: chapas con texto en vez de puntos rojos (NEW!, UP!, PICK, +N). */
+.tools .dot {
+  top: -7px;
+  right: -3px;
+  width: auto;
+  height: auto;
+  padding: 2px 3px;
+  font-family: var(--pixel);
+  font-size: 5px;
+  font-style: normal;
+  line-height: 1;
+  color: var(--ink);
+  background: #ffe55c;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  box-shadow: 0 2px 0 var(--ink);
+  animation: none;
+}
+.tools .dot.on {
+  display: block;
+  animation: navchip 0.36s steps(1) 2;
+}
+.tools .dot.new {
+  background: #5fcf6a;
+}
+@keyframes navchip {
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+/* ---------- V4.4: el objetivo se toca (clases obj-go, qhl) ---------- */
+#objective {
+  position: relative;
+  cursor: pointer;
+}
+#objective .obj-row {
+  padding-right: 14px;
+}
+.obj-go {
+  position: absolute;
+  right: 8px;
+  top: 7px;
+  width: 7px;
+  image-rendering: pixelated;
+  filter: brightness(0.25);
+}
+#objective:active {
+  transform: translateY(1px);
+}
+/* El control al que lleva el objetivo: tres destellos de borde, a pasos. */
+.panel .qhl {
+  outline: 3px solid #ffe55c;
+  outline-offset: 2px;
+  animation: qhl 0.4s steps(1) infinite;
+}
+@keyframes qhl {
+  50% {
+    outline-color: transparent;
+  }
+}
+
+/* ---------- V4.4: BOOSTS limpio (clases bo-) ----------
+   Protagonista, el icono de la estación. Debajo, dos gemas: puesta (azul) o engaste vacío. Cada
+   gema es media casilla a toda altura para el dedo. Sin marcos extra, divisores ni «+». */
+.bo-cell,
+.bo-cell.has,
+.bo-cell.n2,
+.bo-cell.slow {
+  background: var(--bg);
+  border: 2px solid var(--ink);
+  box-shadow: none;
+}
+.bo-cell .bo-face .pix {
+  width: 22px;
+  opacity: 1;
+}
+.bo-cell.empty .bo-face .pix {
+  opacity: 0.35;
+}
+.bo-cell .bo-slot + .bo-slot {
+  border-left: 0;
+}
+.panel button.bo-slot {
+  padding-bottom: 6px;
+}
+.bo-cell .bo-slot .pix.bo-gem,
+.bo-shop .bo-slot .pix.bo-gem {
+  width: 16px;
+  height: 16px;
+  opacity: 1;
+  image-rendering: pixelated;
+}
+.panel button.bo-slot:active .bo-gem {
+  transform: translateY(1px);
+}
+.bo-cell u {
+  font-size: 5px;
+}
+.bo-gemi {
+  width: 8px;
+  vertical-align: -1px;
+  image-rendering: pixelated;
+}
+.bo-shop,
+.bo-shop.has,
+.bo-shop.n2,
+.bo-shop.slow {
+  background: var(--bg);
+  border: 2px solid var(--ink);
+  box-shadow: none;
+}
+
+/* ---------- V4.4: MAIN, refuerzos discretos ----------
+   Ni fondo azul ni chapas flotantes: una o dos gemas pequeñas dentro de la casilla, en el borde
+   izquierdo, sin tapar icono, nombre, nivel, barra ni AUTO/UP!/NEW!. */
+.tile[data-boost='1'],
+.tile[data-boost='2'] {
+  background-image: none;
+  box-shadow: 0 3px 0 var(--ink);
+}
+.tile.sel[data-boost='1'],
+.tile.sel[data-boost='2'] {
+  box-shadow: 0 6px 0 var(--ink);
+}
+.tile[data-boost='1']::before,
+.tile[data-boost='2']::before {
+  content: '';
+  top: 3px;
+  left: 2px;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  background: var(--px-gem) center top / 8px 8px repeat-y;
+  background-color: transparent;
+  border: 0;
+  border-radius: 0;
+  box-sizing: content-box;
+}
+.tile[data-boost='2']::before {
+  height: 17px;
+  background-size: 8px 9px;
+}
+.tile.sel[data-boost]::before {
+  top: 3px;
+}
+@media (max-width: 345px) {
+  .tile[data-boost='2']::before {
+    width: 8px;
+    height: 17px;
+    padding: 0;
+    background-size: 8px 9px;
+    background-repeat: repeat-y;
+  }
+}
+/* Panel de la estación: las mismas gemas, sin texto. */
+.dboost[data-n='1'],
+.dboost[data-n='2'] {
+  padding: 2px 3px;
+  background: var(--bg);
+  border: 1px solid var(--ink);
+}
+.dboost[data-n='1']::before,
+.dboost[data-n='2']::before {
+  margin-right: 0;
+  width: 8px;
+  height: 8px;
+  background: var(--px-gem) left center / 8px 8px repeat-x;
+  background-color: transparent;
+}
+.dboost[data-n='2']::before {
+  width: 17px;
+  background-size: 9px 8px;
+}
+
+/* ---------- V4.4: el ratón llega a la cama (clases mch-) ----------
+   Entra andando por la derecha (a saltitos), sube a la cama, se tapa y se duerme: 2 s, a pasos.
+   `--intro` es el tiempo ya transcurrido (negativo), para que un repintado no la reinicie. */
+.mch-room.intro .mch-mouse {
+  animation: mch-walkin 2s steps(1) var(--intro, 0s) both;
+}
+.mch-room.intro .mch-blanket {
+  animation: mch-tuck 2s steps(1) var(--intro, 0s) both;
+}
+.mch-room.intro .mch-zz {
+  animation: mch-zzin 2s steps(1) var(--intro, 0s) both;
+}
+@keyframes mch-walkin {
+  0% {
+    transform: translate(150px, 36px) scaleX(-1);
+  }
+  10% {
+    transform: translate(135px, 34px) scaleX(-1);
+  }
+  20% {
+    transform: translate(120px, 36px) scaleX(-1);
+  }
+  30% {
+    transform: translate(105px, 34px) scaleX(-1);
+  }
+  40% {
+    transform: translate(90px, 36px) scaleX(-1);
+  }
+  50% {
+    transform: translate(70px, 14px) scaleX(-1);
+  }
+  58% {
+    transform: translate(40px, 2px) scaleX(-1);
+  }
+  66% {
+    transform: translate(10px, 4px) scaleX(-1);
+  }
+  76%,
+  100% {
+    transform: scaleX(-1);
+  }
+}
+@keyframes mch-tuck {
+  0%,
+  75% {
+    visibility: hidden;
+  }
+  76%,
+  100% {
+    visibility: visible;
+  }
+}
+@keyframes mch-zzin {
+  0%,
+  90% {
+    visibility: hidden;
+  }
+  91%,
+  100% {
+    visibility: visible;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mch-room.intro .mch-mouse,
+  .mch-room.intro .mch-blanket,
+  .mch-room.intro .mch-zz {
+    animation: none;
+  }
+}
+
+/* ---------- V4.4: la tarjeta de contratar, compacta (clases mhi-) ---------- */
+.mhi-card {
+  padding: 8px 8px 8px 10px;
+}
+.panel button.mhi-go {
+  flex-direction: row;
+  gap: 5px;
+  min-width: 0;
+  padding: 6px 9px;
+  font-family: var(--pixel);
+  font-size: 7px;
+  white-space: nowrap;
+}
+.panel button.mhi-go .pxi {
+  margin: 0 -2px 0 2px;
+}
+.dboost[data-n='1']::before,
+.dboost[data-n='2']::before {
+  display: block;
+}
+.dboost[data-n='1'],
+.dboost[data-n='2'] {
+  line-height: 0;
+}

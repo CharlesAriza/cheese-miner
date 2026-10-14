@@ -641,7 +641,43 @@
   }
 
   // ---------- Cadena de estaciones ----------
+  // V4.4. NEW! es una novedad sin consultar; se marca vista al abrir donde se consulta y no
+  // vuelve por lo mismo (se guarda en la partida). UP! es algo disponible y sigue mientras lo esté.
+  const seen = (k) => !!(state.seen && state.seen[k]);
+  function markSeen(...keys) {
+    if (!state.seen) state.seen = {};
+    for (const k of keys) if (k && !state.seen[k]) {
+      state.seen[k] = true;
+      dirty = true;
+    }
+  }
+  // Lo que cuenta como «ya lo he visto» al abrir cada sitio.
+  const stationNewKeys = (st) => {
+    const out = [];
+    if (st !== 'rock' && st !== 'lab' && !state.built[st] && CM.construction.buildInfo(state, st).canBuild) out.push('build:' + st);
+    return out;
+  };
+  const colonyKeys = () => {
+    const out = [];
+    const next = CM.zones.next(state);
+    if (next && state.coins >= next.unlockCost) out.push('zone:' + next.id);
+    for (const it of CM.tree.investments(state)) out.push('invest:' + it.skill + '.' + it.node.id + ':' + CM.tree.rank(state, it.skill, it.node.id));
+    return out;
+  };
+  const milestoneKeys = () => CM.milestones.waiting(state).map((n) => 'hito:' + n.id);
+  // Las novedades del LAB que existen ahora mismo, cada una con su clave.
+  const labKeys = () => {
+    const out = [];
+    const f = state.lab.found;
+    if (f) out.push('lab:found:' + f.recipeId + ':' + f.strain);
+    const job = state.lab.job;
+    if (CM.cheesery.strainsOpen(state) && !state.recipes.some((r) => (r.strains || []).length) && !(job && job.strain)) out.push('lab:strains');
+    if (!state.built.lab && CM.construction.buildInfo(state, 'lab').canBuild) out.push('lab:build');
+    if (!state.built.lab && state.totals.recipes === 1) out.push('lab:first');
+    return out;
+  };
   function select(st, quiet) {
+    markSeen(...stationNewKeys(st));
     ui.station = st;
     scene.select(st);
     if (!quiet) scene.focus(st);
@@ -714,8 +750,10 @@
       const tile = tiles[st];
       const skill = SKILL[st];
       for (const cls of ['locked', 'build', 'ready', 'working', 'waiting', 'blocked']) set(tile, cls, info.state === cls);
-      const hito = st === 'cheesery' && info.state !== 'locked' && info.state !== 'build' && CM.milestones.waiting(state).length > 0;
-      set(tile, 'isnew', info.state === 'build' || hito);
+      const hito = st === 'cheesery' && info.state !== 'locked' && info.state !== 'build' && CM.milestones.waiting(state).some((n) => !seen('hito:' + n.id));
+      const canBuild = info.state === 'build' && CM.construction.buildInfo(state, st).canBuild;
+      const fresh = (canBuild && !seen('build:' + st)) || hito;
+      set(tile, 'isnew', fresh);
       set(tile, 'sel', ui.station === st);
       set(tile, 'goal', goalAt === st && ui.station !== st);
       set(tile.querySelector('.mini > i'), 'width', Math.round(info.progress * 100) + '%');
@@ -729,7 +767,7 @@
       const zr = state.zones[ui.zone];
       const dig = st === 'rock' && state.built.drill && !zr.veinRevealed && !zr.drillJob && state.inv.raw[baseOfZone()] < 1;
       set(tile, 'help', dig);
-      set(tile.querySelector('em'), 'text', info.state === 'locked' ? 'LOCK' : info.state === 'build' || hito ? 'NEW!' : dig ? 'DIG!' : ups ? 'UP! ' + ups : auto ? 'AUTO' : '');
+      set(tile.querySelector('em'), 'text', info.state === 'locked' ? 'LOCK' : fresh ? 'NEW!' : canBuild ? 'UP!' : dig ? 'DIG!' : ups ? 'UP! ' + ups : auto ? 'AUTO' : '');
       // Aviso sobre el edificio solo cuando está parado por algo.
       const reason = info.state === 'blocked' || (auto && info.state === 'waiting') ? BUBBLE[info.reason] : '';
       if (st !== 'rock') bubble(st, reason || '', 'bad');
@@ -740,7 +778,9 @@
     const labJob = state.lab.job;
     const strainsFresh = CM.cheesery.strainsOpen(state) && !state.recipes.some((r) => (r.strains || []).length) && !(labJob && labJob.strain);
     const labUps = state.built.lab ? CM.tree.affordable(state, 'lab') : 0;
-    const labNew = !!state.lab.found || strainsFresh || (!state.built.lab && (CM.construction.buildInfo(state, 'lab').canBuild || (!ui.labSeen && state.totals.recipes === 1)));
+    // NEW! solo hasta abrir el LAB; lo que siga pendiente (una cepa por decidir, construirlo) pasa a UP!.
+    const labPending = !!state.lab.found || strainsFresh || (!state.built.lab && CM.construction.buildInfo(state, 'lab').canBuild);
+    const labNew = labKeys().some((k) => !seen(k));
     const noLab = state.totals.recipes < 1;
     if (lab.hidden !== noLab) lab.hidden = noLab;
     set(lab, 'sel', ui.panel === 'lab');
@@ -748,7 +788,7 @@
     set(lab, 'isnew', labNew);
     set(lab.querySelector('.mini > i'), 'width', Math.round(progress(labJob) * 100) + '%');
     set(lab.querySelector('u'), 'text', researcher ? 'LV ' + CM.mice.level(researcher) : state.built.lab ? 'BY HAND' : Math.min(state.totals.recipes, B.buildings.lab.requires.min) + '/' + B.buildings.lab.requires.min);
-    set(lab.querySelector('em'), 'text', labNew ? 'NEW!' : labUps ? 'UP! ' + labUps : researcher && CM.cheesery.labDir(state) ? 'AUTO' : '');
+    set(lab.querySelector('em'), 'text', labNew ? 'NEW!' : labPending ? 'UP!' : labUps ? 'UP! ' + labUps : researcher && CM.cheesery.labDir(state) ? 'AUTO' : '');
     const def = q.zoneDef(ui.zone);
     bubble('rock', def.name.toUpperCase() + ' · DEPTH ' + state.zones[ui.zone].depth, 'name');
     set($('nav-colony'), 'goal', goalAt === 'colony');
@@ -902,7 +942,8 @@
     set($('dock-status'), 'cls', m.tone);
     // Refuerzos del puesto que se mira, con lo que dan («+50% SPEED», «x2.25 BASE»).
     const nb = m.tree ? CM.boosts.at(state, skill, ui.zone) : 0;
-    set(dk.boost, 'text', nb ? CM.boosts.label(skill, nb) : '');
+    // V4.4: solo las gemas (una por refuerzo); el multiplicador se consulta en BOOSTS.
+    set(dk.boost, 'text', '');
     if (dk.boost.dataset.n !== String(nb || '')) dk.boost.dataset.n = String(nb || '');
     set(els.main.querySelector('b'), 'text', m.label);
     set(els.main.querySelector('small'), 'text', m.sub);
@@ -1166,6 +1207,8 @@
     if (name === 'cheese' && !state.built.cheesery) return select('cheesery');
     // Sin recetas no hay libro que enseñar: la primera se descubre en el laboratorio.
     if (name === 'cheese' && !state.recipes.length) name = 'lab';
+    if (name === 'lab') markSeen(...labKeys());
+    if (name === 'mice') markSeen('build:house');
     if (name === 'lab') {
       ui.labDirOpen = false;
       ui.labDirCat = null;
@@ -1204,6 +1247,8 @@
     renderPanel();
   }
   function openTree(skill) {
+    if (skill === 'cheesemaking') markSeen(...milestoneKeys());
+    if (skill === 'colony') markSeen(...colonyKeys());
     ui.tree = skill;
     openPanel('tree');
     scene.focus(skill === 'colony' ? 'storage' : skill === 'lab' ? 'lab' : B.skills[skill].station);
@@ -1238,10 +1283,18 @@
     }
     landCards();
     jumpRock();
+    questHighlight();
     const rep = $('dev-report');
     if (rep) rep.textContent = CM.dev.report(state);
   }
   $('nav-colony').addEventListener('click', () => openTree('colony'));
+  // La barra del objetivo se toca: una flecha pixel art dice que lleva a algún sitio.
+  $('objective').addEventListener('click', () => {
+    if (ghostClick()) return;
+    sfx.click();
+    questGo();
+  });
+  $('obj-text').insertAdjacentHTML('afterend', '<img class="pix obj-go" alt="" src="' + I.url('arrow') + '">');
   $('nav-mice').addEventListener('click', () => openPanel('mice'));
   // Tocar un contador de recurso abre la despensa.
   for (const id of ['res-raw', 'res-base', 'res-lots']) $(id).addEventListener('click', () => openPanel('stock'));
@@ -1390,6 +1443,79 @@
         renderPanel();
       }, 240);
     }, ms || 6000);
+  }
+  // V4.4. Objetivos como acceso: tocar la barra lleva a donde se avanza en el objetivo actual,
+  // resalta el control que toca y no compra ni ejecuta nada. Ver la tabla en la entrega.
+  const QUEST_STATION = { vein: 'rock', depth3: 'rock', drill: 'drill', raw: 'drill', refinery: 'refinery', base: 'refinery', cheesery: 'cheesery', shop: 'shop', sale: 'shop' };
+  function questGo() {
+    const goal = CM.sim.objective(state);
+    const id = goal.id;
+    if (QUEST_STATION[id]) {
+      if (ui.panel) closePanel();
+      return select(QUEST_STATION[id]);
+    }
+    if (id === 'recipe') return openPanel('cheese');
+    if (id === 'recipes8') return openPanel(state.built.lab ? 'lab' : 'cheese');
+    if (id === 'house' || id === 'mouse' || id === 'allAuto') return openPanel('mice');
+    if (id === 'promote') {
+      openPanel('mice');
+      if (state.mice.some((m) => CM.mice.promoteInfo(state, m).levelOk && m.rank < B.mice.ranks.length - 1)) {
+        ui.miceTab = 'promos';
+        ui.promo = CM.mice.promotePicks(state, 'afford');
+        ui.promoDone = null;
+      }
+      return renderPanel();
+    }
+    if (/^zone\d$/.test(id)) {
+      // La siguiente roca se abre en COLONY: se lleva allí y se resalta su botón (sin pagarlo).
+      const next = CM.zones.next(state);
+      openTree('colony');
+      if (next) ui.questHl = '[data-act="zone:' + next.id + '"]';
+      return renderPanel();
+    }
+    if (id === 'milestone') {
+      const wait = CM.milestones.waiting(state)[0];
+      openTree('cheesemaking');
+      if (wait) ui.questHl = '[data-act="node:cheesemaking:' + wait.id + '"]';
+      return renderPanel();
+    }
+    if (id === 'quota') {
+      openTree('cheesemaking');
+      ui.questHl = '.ms-goal';
+      return renderPanel();
+    }
+    if (id === 'node') {
+      // «Compra una mejora»: el árbol de la estación que se mira, o el de la mejora más barata.
+      const sw = CM.tree.sweep(state, true).next;
+      return openTree(SKILL[ui.station] && B.trees[SKILL[ui.station]] ? SKILL[ui.station] : sw ? sw.skill : 'mining');
+    }
+    if (id === 'level5' || id === 'level25') {
+      // Sube trabajando: se elige la estación de la habilidad más avanzada (su barra de XP).
+      const best = Object.keys(SKILL).filter((st) => st !== 'lab' && (st === 'rock' || state.built[st])).sort((a, b) => q.level(state, SKILL[b]) - q.level(state, SKILL[a]))[0];
+      if (ui.panel) closePanel();
+      return select(best || 'rock');
+    }
+  }
+  // Tras pintar: llevar a la vista y resaltar el control que pide el objetivo.
+  // El panel se repinta solo (cambian las monedas): el resaltado se vuelve a poner durante 1,6 s
+  // sobre el control nuevo, sin volver a desplazar la lista.
+  function questHighlight() {
+    const q2 = ui.questHl;
+    if (!q2) return;
+    if (typeof q2 === 'string') ui.questHl = { sel: q2, until: performance.now() + 1600, scrolled: false };
+    const h = ui.questHl;
+    if (performance.now() > h.until) {
+      $('sheet-body').querySelectorAll('.qhl').forEach((e) => e.classList.remove('qhl'));
+      ui.questHl = null;
+      return;
+    }
+    const el = $('sheet-body').querySelector(h.sel);
+    if (!el) return;
+    if (!h.scrolled) {
+      el.scrollIntoView({ block: 'center' });
+      h.scrolled = true;
+    }
+    if (!el.classList.contains('qhl')) el.classList.add('qhl');
   }
   // Llevar una roca (o los puestos de toda la colonia) arriba de la lista, bajo la barra de mover.
   function jumpRock() {
@@ -1578,9 +1704,20 @@
     // se toca nada (nunca se quita de otro puesto) y se dice por qué.
     boslot: (skill, zone, i) => {
       const key = skill + ':' + zone;
-      if (Number(i) < CM.boosts.at(state, skill, zone)) return CM.boosts.remove(state, key);
+      const j = Number(i);
+      const n = CM.boosts.at(state, skill, zone);
+      if (!ui.boSlot) ui.boSlot = {};
+      const occ = n >= 2 ? [true, true] : n <= 0 ? [false, false] : (ui.boSlot[key] || 0) === 1 ? [false, true] : [true, false];
+      if (occ[j]) {
+        // Quitar ESTE: si queda uno, se queda en el otro hueco.
+        const r = CM.boosts.remove(state, key);
+        if (r.ok) ui.boSlot[key] = 1 - j;
+        return r;
+      }
       if (CM.boosts.free(state) <= 0) return CM.fail('no-boost');
-      return CM.boosts.place(state, key);
+      const r = CM.boosts.place(state, key);
+      if (r.ok && n === 0) ui.boSlot[key] = j;
+      return r;
     },
     boostclear: () => {
       while (state.boosts.length) CM.boosts.remove(state, state.boosts[state.boosts.length - 1]);
@@ -1626,6 +1763,7 @@
     care: (id, kind, what, to) => {
       const r = CM.mice.careStart(state, id, kind, what, to);
       if (r.ok) ui.retrain = null;
+      if (r.ok) ui.bedIntro = { id, at: performance.now() }; // HOUSE enseña cómo llega a la cama
       return r;
     },
     retrain: (id, skill) => void (ui.retrain = ui.retrain === id + ':' + skill ? null : id + ':' + skill),
@@ -2402,11 +2540,19 @@
     });
   }
   // Aviso en COLONY cuando hay algo que comprar ahí.
+  function navChip(id, text) {
+    const d = $(id).querySelector('.dot');
+    set(d, 'text', text);
+    set(d, 'on', !!text);
+    set(d, 'new', text === 'NEW!');
+  }
   function updateDots() {
     const next = CM.zones.next(state);
     const invest = CM.tree.investments(state);
     const colony = (next && state.coins >= next.unlockCost) || invest.length > 0;
-    $('nav-colony').querySelector('.dot').classList.toggle('on', !!colony);
+    // V4.4: chapas con texto en vez de puntos rojos. NEW! hasta abrirlo; luego UP! mientras siga.
+    const ckeys = colonyKeys();
+    navChip('nav-colony', ckeys.some((k) => !seen(k)) ? 'NEW!' : colony ? 'UP!' : '');
     set($('nav-colony'), 'invest', invest.length > 0);
     // Una inversión que ya se puede pagar se anuncia una vez por rango.
     for (const it of invest) {
@@ -2423,13 +2569,17 @@
       set($('nav-mice'), 'vacant', staffed < posts.length);
     }
     // MICE avisa si hay casa por construir, candidatos por elegir, un puesto libre y monedas para reclutar, o un ascenso que ya se puede pagar.
-    const mice = CM.construction.buildInfo(state, 'house').canBuild || state.candidates.length > 0 || (state.built.house && !!CM.mice.freePost(state) && state.coins >= CM.mice.recruitCost(state)) || state.mice.some((m) => m.offer || CM.mice.promoteInfo(state, m).can);
-    $('nav-mice').querySelector('.dot').classList.toggle('on', !!mice);
+    // MICE: la casa por construir (novedad), candidatos pagados esperando (PICK) o un ascenso
+    // que ya se puede pagar (UP!). Las vacantes las dice el contador 24/26.
+    const house = !state.built.house && CM.construction.buildInfo(state, 'house').canBuild;
+    navChip('nav-mice', house ? (seen('build:house') ? 'UP!' : 'NEW!') : state.candidates.length ? 'PICK' : state.mice.some((m) => CM.mice.promoteInfo(state, m).can) ? 'UP!' : '');
     set($('nav-mice'), 'goal', GOAL_AT[CM.sim.objective(state).id] === 'mice');
     // BOOSTS aparece con el primer refuerzo; el punto solo avisa de los que están sin colocar.
     const owned = CM.boosts.owned(state);
     if ($('nav-boosts').hidden === owned > 0) $('nav-boosts').hidden = !(owned > 0);
-    $('nav-boosts').querySelector('.dot').classList.toggle('on', CM.boosts.free(state) > 0);
+    // BOOSTS: cuántos refuerzos quedan por colocar.
+    const freeB = CM.boosts.free(state);
+    navChip('nav-boosts', freeB > 0 ? '+' + freeB : '');
     updateBuyAll();
   }
 

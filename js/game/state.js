@@ -102,6 +102,7 @@
       candidatesFor: '', // puesto vacío desde el que se reclutó: el elegido va ahí
       album: {}, // 'fur:3', 'hat:1', 'trait:fast'... piezas vistas en ratones reclutados; no se pierden
       settings: { managersBuy: true },
+      seen: {}, // V4.3: novedades ya vistas por el jugador (las etiquetas NEW! no vuelven por lo mismo)
       jobs: { shop: null },
       // Investigación de recetas: va aparte de la producción, en paralelo.
       // `dir` es la dirección que marca el jugador: '' (ninguna), 'value', 'fast',

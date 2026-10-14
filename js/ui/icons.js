@@ -62,6 +62,9 @@
     swap: ['.A.....A.', 'AAAAAAAAA', '.A.....A.'],
     boost: ['..B..', '.BBB.', 'BB.BB', 'B...B'],
     plus: ['.A.', 'AAA', '.A.'],
+    // V4.4. SPRITE: los huecos de refuerzo: engaste vacío y gema puesta.
+    socket: ['.DDDD.', 'D....D', 'D....D', 'D....D', 'D....D', '.DDDD.'],
+    gem: ['.BBBB.', 'BLLBBB', 'BLBBBB', 'BBBBBD', 'BBBBDD', '.DDDD.'],
     treat: ['.WWWWWW.', 'WWWRRWWW', 'WRRRRRRW', 'WRRRRRRW', 'WWWRRWWW', '.WWWWWW.'],
     // V4.2. SPRITE: cabeza de ratón para contratar (HIRE).
     mouse: ['EE....EE.', 'EPE..EPE.', '.GGGGGG..', 'GGKGGKGG.', 'GGGGGGGGN', '.GGWWGG..', '..GGGG...'],
@@ -78,6 +81,8 @@
     swap: { A: '#ffffff' },
     boost: { B: '#5ad1ff' },
     plus: { A: '#8fe0ff' },
+    socket: { D: '#4a5878' },
+    gem: { B: '#5ad1ff', L: '#d8f6ff', D: '#2f8fc0' },
     treat: { W: '#f4f1e4', R: '#e2462f' },
     mouse: { E: '#cfc6cc', P: '#ff9ab5', G: '#f1eaec', K: '#1b1622', N: '#ff7a9c', W: '#ffffff' },
     news: { P: '#c9a46a', L: '#f6ecd2', D: '#8b7a5a' },
@@ -117,4 +122,5 @@
   };
   // Las chapas que dibuja el CSS (::before) usan el mismo sprite de refuerzo.
   document.documentElement.style.setProperty('--px-boost', 'url(' + icon('boost') + ')');
+  document.documentElement.style.setProperty('--px-gem', 'url(' + icon('gem') + ')');
 })();

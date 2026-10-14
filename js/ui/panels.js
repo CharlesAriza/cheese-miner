@@ -560,19 +560,15 @@
   // Chapa de un puesto reforzado: uno o dos galones, igual que en la barra de etapas.
   // Lo que dan n refuerzos en una casilla, sin la unidad (va en la cabecera de la columna).
   const boGain = (skill, n) => (n ? '<u>' + CM.boosts.label(skill, n).split(' ')[0] + '</u>' : '');
-  // V4.3. Los huecos de un puesto: uno por refuerzo que admite. Lleno (refuerzo azul): tocarlo lo
-  // quita y vuelve a los libres. Vacío con «+»: tocarlo pone uno de los libres. Sin libres, el
-  // hueco vacío sale apagado y tocarlo solo lo dice: nunca se quita de otra casilla. Cada hueco
-  // es media casilla a toda altura, para el dedo. Clases `bo-`.
-  function boSlots(s, skill, zone) {
-    const n = CM.boosts.at(s, skill, zone);
-    const free = CM.boosts.free(s);
-    let h = '<span class="bo-slots">';
-    for (let i = 0; i < B.boosts.perPost; i++) {
-      const on = i < n;
-      h += btn('boslot:' + skill + ':' + zone + ':' + i, '<i>' + (on ? I.px('boost') : free ? I.px('plus') : '') + '</i>', { cls: 'bo-slot' + (on ? ' on' : free ? '' : ' none') });
-    }
-    return h + '</span>';
+  // V4.4. Los dos huecos de un puesto, cada uno con su estado: gema puesta o engaste vacío.
+  // Tocar uno lleno quita ESE refuerzo; tocar uno vacío pone uno de los libres en ESE hueco. Si no
+  // queda ninguno, no se toca nada (nunca se quita de otro puesto). Con un solo refuerzo, el
+  // hueco que ocupa es el que tocaste (`ui.boSlot`), para que volver a tocarlo haga lo esperado.
+  const boOcc = (ui, key, n) => (n >= 2 ? [true, true] : n <= 0 ? [false, false] : ((ui.boSlot && ui.boSlot[key]) || 0) === 1 ? [false, true] : [true, false]);
+  function boSlots(s, ui, skill, zone) {
+    const key = skill + ':' + zone;
+    const occ = boOcc(ui, key, CM.boosts.at(s, skill, zone));
+    return '<span class="bo-slots">' + occ.map((on, i) => btn('boslot:' + skill + ':' + zone + ':' + i, I.img(on ? 'gem' : 'socket', '', 'bo-gem'), { cls: 'bo-slot' + (on ? ' on' : '') })).join('') + '</span>';
   }
   function boostsPanel(s, ui) {
     const BO = CM.boosts;
@@ -584,7 +580,7 @@
     if (nx && nx.kind === 'rock') h += '<div class="bo-next"><b>NEXT BOOST</b><span>when you open ' + (owned ? 'your next rock' : 'your third rock') + '</span></div>';
     else if (nx) h += '<div class="bo-next"><b>NEXT BOOST</b><span>' + CM.fmt(nx.cur) + ' / ' + CM.fmt(nx.need) + ' cheese cooked</span><div class="bar"><i style="width:' + Math.round((nx.cur / nx.need) * 100) + '%"></i></div><small>' + (nx.etaMs ? 'About ' + span(nx.etaMs) + ' at your pace. ' : '') + 'It counts while you are away too.</small></div>';
     if (!owned) return h + '<p class="hint">You have no boosts yet.</p>';
-    h += '<p class="hint">Each post has two slots. Tap an empty slot ' + I.px('plus') + ' to add a boost, tap a filled one ' + I.px('boost') + ' to take it back. Moving one costs nothing.</p>';
+    h += '<p class="hint">Tap an empty slot ' + I.img('socket', '', 'bo-gemi') + ' to put a boost in it; tap a boost ' + I.img('gem', '', 'bo-gemi') + ' to take it back.</p>';
     h += '<div class="bo-grid"><span></span>' + BOOST_COLS.map((c) => '<small>' + c[1] + '<i>' + (c[0] === 'refining' ? 'BASE' : 'SPEED') + '</i></small>').join('');
     let more = false;
     for (const def of q.openZones(s)) {
@@ -596,7 +592,7 @@
         const n = BO.at(s, c[0], def.id);
         const staffed = !!CM.mice.at(s, c[0], def.id);
         const tag = slow === c[0] ? '<em>SLOW?</em>' : also && c[0] === 'refining' ? '<em>+BASE?</em>' : '';
-        h += '<div class="bo-cell' + (n ? ' has n' + n : '') + (staffed ? '' : ' empty') + (tag ? ' slow' : '') + '"><span class="bo-face">' + I.img(c[2], def.base) + boGain(c[0], n) + '</span>' + boSlots(s, c[0], def.id) + tag + '</div>';
+        h += '<div class="bo-cell' + (n ? ' has n' + n : '') + (staffed ? '' : ' empty') + (tag ? ' slow' : '') + '"><span class="bo-face">' + I.img(c[2], def.base) + boGain(c[0], n) + '</span>' + boSlots(s, ui, c[0], def.id) + tag + '</div>';
       }
     }
     h += '</div>';
@@ -604,7 +600,7 @@
     if (s.built.shop) {
       const n = BO.at(s, 'trading', 'all');
       const slow = BO.shopHint(s);
-      h += '<div class="bo-shop' + (n ? ' has n' + n : '') + (slow ? ' slow' : '') + '">' + I.img('coin') + '<span><b>SHOP</b><small>' + (slow ? 'Cheese is piling up here' : 'Sells the cheese of every rock') + '</small>' + (n ? '<u>' + BO.label('trading', n) + '</u>' : '') + '</span>' + boSlots(s, 'trading', 'all') + (slow ? '<em>SLOW?</em>' : '') + '</div>';
+      h += '<div class="bo-shop' + (n ? ' has n' + n : '') + (slow ? ' slow' : '') + '">' + I.img('coin') + '<span><b>SHOP</b><small>' + (slow ? 'Cheese is piling up here' : 'Sells the cheese of every rock') + '</small>' + (n ? '<u>' + BO.label('trading', n) + '</u>' : '') + '</span>' + boSlots(s, ui, 'trading', 'all') + (slow ? '<em>SLOW?</em>' : '') + '</div>';
     }
     h += '<p class="hint">SLOW? marks the stage that may be holding a rock back.' + (more ? ' +BASE? means the rock is short of Base: a boost on its refinery would also bring more.' : '') + ' They are hints, not sums: try it and watch your coins per minute. A post with no mouse gets nothing from a boost.</p>';
     if (s.boosts.length) h += btn('boostclear', 'TAKE ALL BOOSTS BACK', { cls: 'mini' });
@@ -1070,7 +1066,7 @@
     const label = K.postLabel(key);
     let h = btn('unpick', '&lt; CANCEL', { cls: 'mini' }) + '<div class="mc-pickhead"><span><small>ASSIGN A MOUSE TO</small><b>' + label.toUpperCase() + '</b></span></div>';
     h += '<p class="hint">Nobody works here: you do it by hand until a mouse takes it.</p>';
-    h += hireCard(s, 'recruitfor:' + skill + ':' + zone, 'recruitfor:' + skill + ':' + zone, label);
+    h += hireCard(s, 'recruitfor:' + skill + ':' + zone, 'recruitfor:' + skill + ':' + zone);
     if (!s.mice.length) return h;
     h += '<h4 class="mc-h">' + I.img('mouse', '', 'mch-ico') + 'OR MOVE ONE YOU HAVE</h4><p class="hint">Tap a mouse to put it here. The number is what it would do <b>on its own</b> here; neighbours and combos can change it.</p>';
     // Primero los libres, luego los demás; dentro, por lo que harían aquí.
@@ -1086,15 +1082,13 @@
   // · sin candidatos: pagar por CONOCER a tres (aún no se contrata a nadie), precio en el botón;
   // · con tres pagados esperando: seguir eligiendo, sin cobrar otra vez.
   // La contratación de verdad es «HIRE [NOMBRE]», en la pantalla de los tres.
-  function hireCard(s, payAct, waitAct, forLabel) {
-    const K = CM.mice;
-    if (s.candidates.length) {
-      return '<div class="mhi-card waiting">' + I.img('mouse', '', 'mhi-ico') + '<div><b>3 CANDIDATES WAITING</b><small>Already paid' + (s.candidatesFor ? ' · for ' + K.postLabel(s.candidatesFor) : '') + '. Choose who to hire.</small></div>' + btn(waitAct, '<b>CHOOSE</b>', { cls: 'mhi-go' }) + '</div>';
-    }
-    const cost = K.recruitCost(s);
+  function hireCard(s, payAct, waitAct) {
+    // V4.4: una sola tarjeta y un solo botón. Lo que es (FIND NEW MICE), lo que pasa después
+    // (eliges 1 de 3) y el precio en el botón. Con tres pagados, la misma zona dice CONTINUE.
+    if (s.candidates.length) return '<div class="mhi-card waiting"><div><b>3 MICE WAITING</b><small>Already paid' + (s.candidatesFor ? ', for ' + CM.mice.postLabel(s.candidatesFor) : '') + '</small></div>' + btn(waitAct, 'CONTINUE', { cls: 'mhi-go' }) + '</div>';
+    const cost = CM.mice.recruitCost(s);
     const short = s.coins < cost;
-    return '<div class="mhi-card">' + I.img('mouse', '', 'mhi-ico') + '<div><b>MEET 3 CANDIDATES</b><small>' + (short ? 'You need ' + CM.fmt(cost - s.coins) + ' more coins.' : forLabel ? 'You pay once, then choose who to hire for ' + forLabel + '.' : 'You pay once, then choose who to hire.') + '</small></div>' +
-      btn(payAct, '<small>MEET 3</small><b>' + I.px('coin') + CM.fmt(cost) + '</b>', { cls: 'mhi-go pay' + (short ? ' short' : ''), off: short, cost }) + '</div>';
+    return '<div class="mhi-card"><div><b>FIND NEW MICE</b><small>Choose 1 of 3 candidates</small></div>' + btn(payAct, 'MEET 3 · ' + I.px('coin') + CM.fmt(cost), { cls: 'mhi-go pay' + (short ? ' short' : ''), off: short, cost }) + '</div>';
   }
   // V4.3. Tratar una manía: botiquín pixel art, TREAT y el coste en su línea. Estados claros:
   // se puede, falta dinero, la cama la ocupa otro, y este mismo en tratamiento. Clases `mct-`.
@@ -1209,7 +1203,12 @@
     const m = c && CM.mice.byId(s, c.id);
     const last = !m && ui.careLast && CM.mice.byId(s, ui.careLast.id);
     const who = m || last;
-    let h = '<div class="mch-room' + (m ? ' busy' : last ? ' done' : '') + '"><i class="mch-window"></i><div class="mch-bed"><img class="pix mch-frame" alt="" src="' + I.url('bed') + '">' + (who ? '<img class="pix mch-mouse" alt="" src="' + CM.mouseUrl(who) + '"><i class="mch-blanket"></i>' : '') + '</div>' + (m ? '<b class="mch-zz">Z<small>z</small></b>' : '') + '</div>';
+    // V4.4: recién enviado a la cama, el ratón llega andando, se mete y se duerme (unos 2 s). La
+    // animación sigue donde iba aunque el panel se repinte (retraso negativo = lo ya transcurrido)
+    // y no se repite al volver a entrar.
+    const since = m && ui.bedIntro && ui.bedIntro.id === m.id ? performance.now() - ui.bedIntro.at : Infinity;
+    const intro = since < 2100 ? ' intro" style="--intro:-' + Math.round(since) + 'ms' : '';
+    let h = '<div class="mch-room' + (m ? ' busy' : last ? ' done' : '') + intro + '"><i class="mch-window"></i><div class="mch-bed"><img class="pix mch-frame" alt="" src="' + I.url('bed') + '">' + (who ? '<img class="pix mch-mouse" alt="" src="' + CM.mouseUrl(who) + '"><i class="mch-blanket"></i>' : '') + '</div>' + (m ? '<b class="mch-zz">Z<small>z</small></b>' : '') + '</div>';
     if (m) {
       const what = c.kind === 'quirk' ? 'Treating <b class="tbad">' + T[c.what].name + '</b>' : 'Retraining ' + B.skills[c.what].name + ' to <b class="tok">' + T[c.to].name + '</b>';
       const pct = Math.round((1 - c.remaining / c.total) * 100);
@@ -1247,7 +1246,7 @@
     // V4.1: un toque con el precio a la vista paga y enseña a los tres. Cubrir una vacante
     // concreta se hace desde el puesto (COLONY); esto es buscar en general.
     h += '<h4 class="mc-h">' + I.img('mouse', '', 'mch-ico') + 'HIRE</h4>';
-    h += hireCard(s, 'recruit', 'recruitview', '') + '<p class="hint">' + (free.length ? plural(free.length, 'post') + ' empty: tap one in COLONY to hire for it. From here the new mouse takes the first free post.' : 'Every post is taken: a new mouse waits in the house until you swap it in.') + ' Each recruit costs ' + Math.round((M.recruitGrowth - 1) * 100) + '% more than the last.</p>';
+    h += hireCard(s, 'recruit', 'recruitview');
     // Diario: lo que han ido desarrollando.
     if (s.news.length) {
       h += '<h4 class="mc-h">' + I.img('news', '', 'mch-ico') + 'COLONY NEWS</h4><ul class="mc-news">';
@@ -1339,7 +1338,7 @@
       row('Playtest tools', 'Dev menu: marks the session as assisted', btn('open:dev', 'OPEN', { cls: 'buy' })) +
       row('Reset save', 'Start over from zero', btn('reset', 'RESET', { cls: 'danger' })) +
       // Qué versión del prototipo se está probando (para no confundirla con una copia en caché).
-      '<p class="hint"><b>Prototype V4.3</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
+      '<p class="hint"><b>Prototype V4.4</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
     );
   }
 
