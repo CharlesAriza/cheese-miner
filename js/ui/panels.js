@@ -568,7 +568,7 @@
   function boSlots(s, ui, skill, zone) {
     const key = skill + ':' + zone;
     const occ = boOcc(ui, key, CM.boosts.at(s, skill, zone));
-    return '<span class="bo-slots">' + occ.map((on, i) => btn('boslot:' + skill + ':' + zone + ':' + i, I.img(on ? 'gem' : 'socket', '', 'bo-gem'), { cls: 'bo-slot' + (on ? ' on' : '') })).join('') + '</span>';
+    return '<span class="bo-slots">' + occ.map((on, i) => btn('boslot:' + skill + ':' + zone + ':' + i, I.img(on ? 'gem' : 'socket', '', 'bo-gem'), { cls: 'bo-slot' + (on ? ' on' : '') + (ui.boPop === key + ':' + i ? ' pop' : '') })).join('') + '</span>';
   }
   function boostsPanel(s, ui) {
     const BO = CM.boosts;
@@ -582,27 +582,23 @@
     if (!owned) return h + '<p class="hint">You have no boosts yet.</p>';
     h += '<p class="hint">Tap an empty slot ' + I.img('socket', '', 'bo-gemi') + ' to put a boost in it; tap a boost ' + I.img('gem', '', 'bo-gemi') + ' to take it back.</p>';
     h += '<div class="bo-grid"><span></span>' + BOOST_COLS.map((c) => '<small>' + c[1] + '<i>' + (c[0] === 'refining' ? 'BASE' : 'SPEED') + '</i></small>').join('');
-    let more = false;
+    // V4.5: sin SLOW? ni +BASE? en la cuadrícula (ensuciaban más de lo que ayudaban). Su lógica
+    // (CM.boosts.hint, alsoRefine, shopHint) sigue en el código para una presentación futura.
     for (const def of q.openZones(s)) {
-      const slow = BO.hint(s, def.id);
-      const also = BO.alsoRefine(s, def.id);
-      more = more || also;
       h += '<b>' + I.img('raw', def.base) + esc(B.bases[def.base].name) + '</b>';
       for (const c of BOOST_COLS) {
         const n = BO.at(s, c[0], def.id);
         const staffed = !!CM.mice.at(s, c[0], def.id);
-        const tag = slow === c[0] ? '<em>SLOW?</em>' : also && c[0] === 'refining' ? '<em>+BASE?</em>' : '';
-        h += '<div class="bo-cell' + (n ? ' has n' + n : '') + (staffed ? '' : ' empty') + (tag ? ' slow' : '') + '"><span class="bo-face">' + I.img(c[2], def.base) + boGain(c[0], n) + '</span>' + boSlots(s, ui, c[0], def.id) + tag + '</div>';
+        h += '<div class="bo-cell' + (n ? ' has n' + n : '') + (staffed ? '' : ' empty') + '"><span class="bo-face">' + I.img(c[2], def.base) + boGain(c[0], n) + '</span>' + boSlots(s, ui, c[0], def.id) + '</div>';
       }
     }
     h += '</div>';
     // La tienda: una sola, para todas las rocas.
     if (s.built.shop) {
       const n = BO.at(s, 'trading', 'all');
-      const slow = BO.shopHint(s);
-      h += '<div class="bo-shop' + (n ? ' has n' + n : '') + (slow ? ' slow' : '') + '">' + I.img('coin') + '<span><b>SHOP</b><small>' + (slow ? 'Cheese is piling up here' : 'Sells the cheese of every rock') + '</small>' + (n ? '<u>' + BO.label('trading', n) + '</u>' : '') + '</span>' + boSlots(s, ui, 'trading', 'all') + (slow ? '<em>SLOW?</em>' : '') + '</div>';
+      h += '<div class="bo-shop' + (n ? ' has n' + n : '') + '">' + I.img('coin') + '<span><b>SHOP</b><small>Sells the cheese of every rock</small>' + (n ? '<u>' + BO.label('trading', n) + '</u>' : '') + '</span>' + boSlots(s, ui, 'trading', 'all') + '</div>';
     }
-    h += '<p class="hint">SLOW? marks the stage that may be holding a rock back.' + (more ? ' +BASE? means the rock is short of Base: a boost on its refinery would also bring more.' : '') + ' They are hints, not sums: try it and watch your coins per minute. A post with no mouse gets nothing from a boost.</p>';
+    h += '<p class="hint">A post with no mouse gets nothing from a boost.</p>';
     if (s.boosts.length) h += btn('boostclear', 'TAKE ALL BOOSTS BACK', { cls: 'mini' });
     return h;
   }
@@ -1088,7 +1084,7 @@
     if (s.candidates.length) return '<div class="mhi-card waiting"><div><b>3 MICE WAITING</b><small>Already paid' + (s.candidatesFor ? ', for ' + CM.mice.postLabel(s.candidatesFor) : '') + '</small></div>' + btn(waitAct, 'CONTINUE', { cls: 'mhi-go' }) + '</div>';
     const cost = CM.mice.recruitCost(s);
     const short = s.coins < cost;
-    return '<div class="mhi-card"><div><b>FIND NEW MICE</b><small>Choose 1 of 3 candidates</small></div>' + btn(payAct, 'MEET 3 · ' + I.px('coin') + CM.fmt(cost), { cls: 'mhi-go pay' + (short ? ' short' : ''), off: short, cost }) + '</div>';
+    return '<div class="mhi-card"><div><b>FIND NEW MICE</b><small>Meet 3 candidates. Choose one to hire.</small></div>' + btn(payAct, I.img('coin', '', 'mhi-coin') + CM.fmt(cost), { cls: 'mhi-go pay' + (short ? ' short' : ''), off: short, cost }) + '</div>';
   }
   // V4.3. Tratar una manía: botiquín pixel art, TREAT y el coste en su línea. Estados claros:
   // se puede, falta dinero, la cama la ocupa otro, y este mismo en tratamiento. Clases `mct-`.
@@ -1207,7 +1203,9 @@
     // animación sigue donde iba aunque el panel se repinte (retraso negativo = lo ya transcurrido)
     // y no se repite al volver a entrar.
     const since = m && ui.bedIntro && ui.bedIntro.id === m.id ? performance.now() - ui.bedIntro.at : Infinity;
-    const intro = since < 2100 ? ' intro" style="--intro:-' + Math.round(since) + 'ms' : '';
+    // Al acabar, se levanta y se queda de pie junto a la cama (la misma técnica, al revés).
+    const woke = !m && ui.careLast && ui.careLast.at ? performance.now() - ui.careLast.at : Infinity;
+    const intro = since < 2100 ? ' intro" style="--intro:-' + Math.round(since) + 'ms' : woke < 1700 ? ' outro" style="--intro:-' + Math.round(woke) + 'ms' : '';
     let h = '<div class="mch-room' + (m ? ' busy' : last ? ' done' : '') + intro + '"><i class="mch-window"></i><div class="mch-bed"><img class="pix mch-frame" alt="" src="' + I.url('bed') + '">' + (who ? '<img class="pix mch-mouse" alt="" src="' + CM.mouseUrl(who) + '"><i class="mch-blanket"></i>' : '') + '</div>' + (m ? '<b class="mch-zz">Z<small>z</small></b>' : '') + '</div>';
     if (m) {
       const what = c.kind === 'quirk' ? 'Treating <b class="tbad">' + T[c.what].name + '</b>' : 'Retraining ' + B.skills[c.what].name + ' to <b class="tok">' + T[c.to].name + '</b>';
@@ -1338,7 +1336,7 @@
       row('Playtest tools', 'Dev menu: marks the session as assisted', btn('open:dev', 'OPEN', { cls: 'buy' })) +
       row('Reset save', 'Start over from zero', btn('reset', 'RESET', { cls: 'danger' })) +
       // Qué versión del prototipo se está probando (para no confundirla con una copia en caché).
-      '<p class="hint"><b>Prototype V4.4</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
+      '<p class="hint"><b>Prototype V4.5</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
     );
   }
 

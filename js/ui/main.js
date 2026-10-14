@@ -426,7 +426,7 @@
       case 'careDone': {
         const mouse = CM.mice.byId(state, ev.id);
         if (!mouse) break;
-        ui.careLast = ev; // la cama de HOUSE enseña cómo acabó
+        ui.careLast = Object.assign({ at: performance.now() }, ev); // la cama de HOUSE enseña cómo acabó
         play('goal');
         banner(mouse.name.toUpperCase() + (ev.kind === 'quirk' ? ' IS OVER ' + B.mice.traits[ev.what].name.toUpperCase() : ': ' + B.mice.traits[ev.to].name.toUpperCase()) + '!');
         toast(ev.kind === 'quirk' ? mouse.name + ' no longer has ' + B.mice.traits[ev.what].name + '. The Mouse House bed is free' : mouse.name + ' retrained to ' + B.mice.traits[ev.to].name + '. The Mouse House bed is free', true);
@@ -942,8 +942,8 @@
     set($('dock-status'), 'cls', m.tone);
     // Refuerzos del puesto que se mira, con lo que dan («+50% SPEED», «x2.25 BASE»).
     const nb = m.tree ? CM.boosts.at(state, skill, ui.zone) : 0;
-    // V4.4: solo las gemas (una por refuerzo); el multiplicador se consulta en BOOSTS.
-    set(dk.boost, 'text', '');
+    // V4.5: en el botón grande, el efecto real («x2.25 SPEED»); en las tarjetas pequeñas, la cantidad.
+    set(dk.boost, 'text', nb ? CM.boosts.label(skill, nb) : '');
     if (dk.boost.dataset.n !== String(nb || '')) dk.boost.dataset.n = String(nb || '');
     set(els.main.querySelector('b'), 'text', m.label);
     set(els.main.querySelector('small'), 'text', m.sub);
@@ -1209,6 +1209,7 @@
     if (name === 'cheese' && !state.recipes.length) name = 'lab';
     if (name === 'lab') markSeen(...labKeys());
     if (name === 'mice') markSeen('build:house');
+    if (name === 'boosts') markSeen('boosts:' + CM.boosts.owned(state));
     if (name === 'lab') {
       ui.labDirOpen = false;
       ui.labDirCat = null;
@@ -1708,6 +1709,9 @@
       const n = CM.boosts.at(state, skill, zone);
       if (!ui.boSlot) ui.boSlot = {};
       const occ = n >= 2 ? [true, true] : n <= 0 ? [false, false] : (ui.boSlot[key] || 0) === 1 ? [false, true] : [true, false];
+      ui.boPop = key + ':' + j; // la ficha tocada responde con un salto (también si no se puede)
+      clearTimeout(ui.boPopT);
+      ui.boPopT = setTimeout(() => (ui.boPop = ''), 500);
       if (occ[j]) {
         // Quitar ESTE: si queda uno, se queda en el otro hueco.
         const r = CM.boosts.remove(state, key);
@@ -2540,11 +2544,14 @@
     });
   }
   // Aviso en COLONY cuando hay algo que comprar ahí.
-  function navChip(id, text) {
+  // V4.5: una novedad sin ver enciende el contorno de la pestaña (entra y sale) hasta que entras;
+  // lo pendiente (UP!, PICK, +N) es una chapa pequeña mientras dure.
+  function navChip(id, text, fresh) {
     const d = $(id).querySelector('.dot');
     set(d, 'text', text);
     set(d, 'on', !!text);
-    set(d, 'new', text === 'NEW!');
+    set(d, 'new', false);
+    set($(id), 'fresh', !!fresh);
   }
   function updateDots() {
     const next = CM.zones.next(state);
@@ -2552,7 +2559,7 @@
     const colony = (next && state.coins >= next.unlockCost) || invest.length > 0;
     // V4.4: chapas con texto en vez de puntos rojos. NEW! hasta abrirlo; luego UP! mientras siga.
     const ckeys = colonyKeys();
-    navChip('nav-colony', ckeys.some((k) => !seen(k)) ? 'NEW!' : colony ? 'UP!' : '');
+    navChip('nav-colony', colony ? 'UP!' : '', ckeys.some((k) => !seen(k)));
     set($('nav-colony'), 'invest', invest.length > 0);
     // Una inversión que ya se puede pagar se anuncia una vez por rango.
     for (const it of invest) {
@@ -2572,14 +2579,14 @@
     // MICE: la casa por construir (novedad), candidatos pagados esperando (PICK) o un ascenso
     // que ya se puede pagar (UP!). Las vacantes las dice el contador 24/26.
     const house = !state.built.house && CM.construction.buildInfo(state, 'house').canBuild;
-    navChip('nav-mice', house ? (seen('build:house') ? 'UP!' : 'NEW!') : state.candidates.length ? 'PICK' : state.mice.some((m) => CM.mice.promoteInfo(state, m).can) ? 'UP!' : '');
+    navChip('nav-mice', house ? 'UP!' : state.candidates.length ? 'PICK' : state.mice.some((m) => CM.mice.promoteInfo(state, m).can) ? 'UP!' : '', house && !seen('build:house'));
     set($('nav-mice'), 'goal', GOAL_AT[CM.sim.objective(state).id] === 'mice');
     // BOOSTS aparece con el primer refuerzo; el punto solo avisa de los que están sin colocar.
     const owned = CM.boosts.owned(state);
     if ($('nav-boosts').hidden === owned > 0) $('nav-boosts').hidden = !(owned > 0);
     // BOOSTS: cuántos refuerzos quedan por colocar.
     const freeB = CM.boosts.free(state);
-    navChip('nav-boosts', freeB > 0 ? '+' + freeB : '');
+    navChip('nav-boosts', freeB > 0 ? '+' + freeB : '', owned > 0 && !seen('boosts:' + owned));
     updateBuyAll();
   }
 

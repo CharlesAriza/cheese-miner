@@ -63,8 +63,10 @@
     boost: ['..B..', '.BBB.', 'BB.BB', 'B...B'],
     plus: ['.A.', 'AAA', '.A.'],
     // V4.4. SPRITE: los huecos de refuerzo: engaste vacío y gema puesta.
-    socket: ['.DDDD.', 'D....D', 'D....D', 'D....D', 'D....D', '.DDDD.'],
-    gem: ['.BBBB.', 'BLLBBB', 'BLBBBB', 'BBBBBD', 'BBBBDD', '.DDDD.'],
+    // V4.5. SPRITE: ficha de refuerzo puesta (placa azul con galón blanco) y su hueco vacío
+    // (marco apagado con el galón en sombra): la misma forma, encendida o apagada.
+    socket: ['.DDDDDD.', 'D......D', 'D..EE..D', 'D.E..E.D', 'DE....ED', 'D......D', 'D......D', '.DDDDDD.'],
+    gem: ['.BBBBBB.', 'BLLLLLLB', 'BLLWWLLB', 'BLWLLWLB', 'BWLLLLWB', 'BLLLLLLB', 'BLLLLLLD', '.BDDDDD.'],
     treat: ['.WWWWWW.', 'WWWRRWWW', 'WRRRRRRW', 'WRRRRRRW', 'WWWRRWWW', '.WWWWWW.'],
     // V4.2. SPRITE: cabeza de ratón para contratar (HIRE).
     mouse: ['EE....EE.', 'EPE..EPE.', '.GGGGGG..', 'GGKGGKGG.', 'GGGGGGGGN', '.GGWWGG..', '..GGGG...'],
@@ -81,8 +83,8 @@
     swap: { A: '#ffffff' },
     boost: { B: '#5ad1ff' },
     plus: { A: '#8fe0ff' },
-    socket: { D: '#4a5878' },
-    gem: { B: '#5ad1ff', L: '#d8f6ff', D: '#2f8fc0' },
+    socket: { D: '#4a5878', E: '#3a4560' },
+    gem: { B: '#2f8fc0', L: '#5ad1ff', W: '#ffffff', D: '#1d5f86' },
     treat: { W: '#f4f1e4', R: '#e2462f' },
     mouse: { E: '#cfc6cc', P: '#ff9ab5', G: '#f1eaec', K: '#1b1622', N: '#ff7a9c', W: '#ffffff' },
     news: { P: '#c9a46a', L: '#f6ecd2', D: '#8b7a5a' },

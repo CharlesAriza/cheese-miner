@@ -8668,3 +8668,211 @@ div.mc-row {
 .dboost[data-n='2'] {
   line-height: 0;
 }
+
+/* ---------- V4.5: BOOSTS como la cuadrícula original, mejor acabada (clases bo-) ----------
+   El icono de la estación, grande y centrado. Abajo, dos fichas: azul con galón si hay refuerzo,
+   hueco apagado si no. La casilla con refuerzos lleva marco azul (doble con dos). Cada ficha
+   es media casilla a toda altura para el dedo; tocarla responde con un salto. */
+.bo-cell {
+  height: 68px;
+}
+.bo-cell.has {
+  background: #17303d;
+  box-shadow: inset 0 0 0 2px #5ad1ff;
+}
+.bo-cell.n2 {
+  background: #1d4558;
+  box-shadow: inset 0 0 0 2px #5ad1ff, inset 0 0 0 3px var(--ink), inset 0 0 0 4px #5ad1ff;
+}
+.bo-face {
+  top: 7px;
+}
+.bo-cell .bo-face .pix {
+  width: 24px;
+}
+.bo-cell u {
+  font-size: 5px;
+  color: #bfe8fd;
+}
+.panel button.bo-slot {
+  padding-bottom: 7px;
+}
+.bo-cell .bo-slot .pix.bo-gem,
+.bo-shop .bo-slot .pix.bo-gem {
+  width: 20px;
+  height: 20px;
+}
+.bo-slot.pop .bo-gem {
+  animation: bo-pop 0.3s steps(1);
+}
+@keyframes bo-pop {
+  0% {
+    transform: translateY(-3px);
+  }
+  40% {
+    transform: translateY(1px);
+  }
+  70% {
+    transform: none;
+  }
+}
+.bo-shop.has {
+  box-shadow: inset 0 0 0 2px #5ad1ff;
+}
+.bo-shop.n2 {
+  box-shadow: inset 0 0 0 2px #5ad1ff, inset 0 0 0 3px var(--ink), inset 0 0 0 4px #5ad1ff;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bo-slot.pop .bo-gem {
+    animation: none;
+  }
+}
+/* HIRE: el botón es la moneda y el precio. */
+.panel button.mhi-go.pay {
+  font-size: 9px;
+  gap: 6px;
+}
+.mhi-coin {
+  width: 14px;
+  image-rendering: pixelated;
+}
+
+/* ---------- V4.5: refuerzos en MAIN, un mismo sistema a dos tamaños ----------
+   Tarjeta pequeña: la ficha de refuerzo y «×1»/«×2» (cuántos hay), en una columna dentro del
+   borde izquierdo: no tapa icono, nombre, nivel ni barra, ni compite con AUTO/UP!/NEW!
+   (esquina derecha). */
+.tile[data-boost='1']::before,
+.tile[data-boost='2']::before {
+  content: '\00D7' attr(data-boost);
+  top: 4px;
+  left: 1px;
+  width: 12px;
+  height: auto;
+  padding: 11px 0 0;
+  font-family: var(--pixel);
+  font-size: 5px;
+  line-height: 1;
+  text-align: center;
+  color: #8fe0ff;
+  background: var(--px-gem) center top / 10px 10px no-repeat;
+  background-color: transparent;
+  border: 0;
+  box-shadow: none;
+  letter-spacing: 0;
+}
+.tile.sel[data-boost]::before {
+  top: 4px;
+}
+@media (max-width: 345px) {
+  .tile[data-boost='2']::before {
+    width: 12px;
+    height: auto;
+    padding: 11px 0 0;
+    background-size: 10px 10px;
+    background-repeat: no-repeat;
+  }
+}
+/* Botón grande: cartela con el efecto real, sobre el borde de arriba, con aire y contorno. */
+.dboost[data-n='1'],
+.dboost[data-n='2'] {
+  top: -9px;
+  left: 12px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 7px 3px 5px;
+  font-family: var(--pixel);
+  font-size: 6px;
+  line-height: 1;
+  color: var(--ink);
+  background: #5ad1ff;
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  box-shadow: 0 2px 0 var(--ink);
+  pointer-events: none;
+}
+.dboost[data-n='1']::before,
+.dboost[data-n='2']::before {
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin: 0;
+  background: var(--px-gem) center / 8px 8px no-repeat;
+}
+.dboost[data-n='2']::before {
+  width: 8px;
+}
+
+/* V4.5: pestaña con una novedad sin ver: el contorno se enciende y se apaga, a pasos. */
+.tools button.fresh {
+  animation: tabglow 1.4s steps(1) infinite;
+}
+@keyframes tabglow {
+  0%,
+  55% {
+    box-shadow: 0 0 0 3px #ffe55c, 0 3px 0 var(--ink);
+  }
+  56%,
+  100% {
+    box-shadow: 0 0 0 3px #ffe55c40, 0 3px 0 var(--ink);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tools button.fresh {
+    animation: none;
+    box-shadow: 0 0 0 3px #ffe55c, 0 3px 0 var(--ink);
+  }
+}
+
+/* V4.5: al acabar el tratamiento, el ratón sale de la cama y se queda de pie a su lado. */
+.mch-room.done .mch-mouse {
+  transform: translate(118px, 36px);
+}
+.mch-room.done .mch-blanket {
+  visibility: hidden;
+}
+.mch-room.outro .mch-mouse {
+  animation: mch-wakeup 1.6s steps(1) var(--intro, 0s) both;
+}
+.mch-room.outro .mch-blanket {
+  animation: mch-untuck 1.6s steps(1) var(--intro, 0s) both;
+}
+@keyframes mch-wakeup {
+  0%,
+  25% {
+    transform: scaleX(-1);
+  }
+  35% {
+    transform: translate(30px, -8px);
+  }
+  50% {
+    transform: translate(70px, 10px);
+  }
+  62% {
+    transform: translate(95px, 36px);
+  }
+  75% {
+    transform: translate(105px, 34px);
+  }
+  88%,
+  100% {
+    transform: translate(118px, 36px);
+  }
+}
+@keyframes mch-untuck {
+  0%,
+  30% {
+    visibility: visible;
+  }
+  31%,
+  100% {
+    visibility: hidden;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mch-room.outro .mch-mouse,
+  .mch-room.outro .mch-blanket {
+    animation: none;
+  }
+}
