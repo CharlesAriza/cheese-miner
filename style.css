@@ -10711,3 +10711,65 @@ img.pix.pxi {
   top: 2px;
   right: 2px;
 }
+
+/* ======================= V4.14: aviso de roca como chapa ======================= */
+/* Como las chapas UP!/NEW! de las estaciones: una pastilla amarilla con borde y sombra de
+   tinta, con el triángulo dentro, que asoma por la esquina de arriba a la derecha de la ficha.
+   La tira de rocas tiene scroll lateral y recortaba lo que se sale: ahora deja 9 px arriba y
+   4 px a la derecha para la chapa, y sube lo mismo dentro del margen del panel, así que las
+   fichas quedan a la misma altura y nada más se mueve. La roca sigue centrada. */
+.rockstrip {
+  box-sizing: content-box;
+  padding: 9px 4px 0 0;
+  margin-top: -7px;
+}
+.rchip.warn .rdot,
+.rchip.need .rdot {
+  top: -9px;
+  right: -4px;
+  z-index: 1;
+  width: 21px;
+  height: 18px;
+  background: #ffe55c var(--px-alert) center / 13px 12px no-repeat;
+  border: 1px solid var(--ink);
+  border-radius: 3px;
+  box-shadow: 0 2px 0 var(--ink);
+  image-rendering: pixelated;
+  animation: rdotpop 0.36s steps(3) both;
+}
+.rchip.need .rdot {
+  background-color: #ff8fa0;
+  background-image: var(--px-alertr);
+}
+/* Al aparecer, la chapa salta un poco y se asienta (una vez). */
+@keyframes rdotpop {
+  0% {
+    transform: translateY(4px) scale(0.6);
+  }
+  66% {
+    transform: translateY(-2px) scale(1.1);
+  }
+  100% {
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rchip.warn .rdot,
+  .rchip.need .rdot {
+    animation: none;
+  }
+}
+/* Ajuste: chapa de 16 × 16 y 2 px de saliente lateral. A 320 px no pisa la roca y la tira solo
+   pierde 2 px de ancho (los nombres siguen cabiendo). */
+.rockstrip {
+  padding-right: 2px;
+}
+.rchip.warn .rdot,
+.rchip.need .rdot {
+  right: -2px;
+  width: 16px;
+  height: 16px;
+}
+.rchip b {
+  letter-spacing: -0.45px;
+}
