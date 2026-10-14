@@ -870,7 +870,7 @@
       '<button data-act="' + act('card:' + m.id) + '" data-post="' + key + '" data-mouse="' + m.id + '" class="mc-post' + (wide ? ' wide' : '') + (due ? ' mc-due' : '') + (s.care && s.care.id === m.id ? ' inbed' : '') + selCls + '">' + portrait(m) +
       (s.care && s.care.id === m.id ? '<img class="pix mcx-bed" alt="in bed" title="In the Mouse House bed: ' + clock(s.care.remaining) + ' left" src="' + I.url('bed') + '">' : '') +
       '<span><small>' + JOB_SHORT[skill].toUpperCase() + hearts(m.aff[skill]) + '</small><b>' + esc(m.name) + '</b><em>' + rankLv(m) + '</em></span>' +
-      '<i class="mc-out">' + mult(K.here(s, m)) + '</i>' + (due ? '<i class="mc-dot"></i>' : '') + '</button>'
+      '<i class="mc-out">' + mult(K.here(s, m)) + '</i>' + (due ? I.img('rankup', '', 'mc-up') : '') + '</button>'
     );
   }
   // Fila de un ratón en una lista: quién es, dónde está, qué le gusta, sus rasgos y un dato a la derecha.
@@ -931,7 +931,7 @@
       h += '<div class="mc-rock' + (open ? ' open' : '') + '" data-rock="' + z.id + '"><button data-act="' + (sel ? 'noop' : 'rocktoggle:' + z.id) + '" class="mc-rockhead">' + I.img('raw', z.base, 'big') + '<span><b>' + z.name.toUpperCase() + '</b><small>Depth ' + s.zones[z.id].depth + (combos.length ? ' · ' + plural(combos.length, 'combo') : '') + '</small></span>';
       // Plegada: las caras de quien trabaja ahí, para reconocerlos sin abrir.
       if (!open) h += '<i class="mc-crew">' + crew.map((m) => (m ? portrait(m, 'mini') : '<i class="mc-face mini hole mcx-vac">+</i>')).join('') + '</i>';
-      h += (due ? '<i class="mc-dot"></i>' : '') + '<em>' + (open ? 'HIDE' : 'SHOW') + '</em></button>';
+      h += (due ? I.img('rankup', '', 'mc-up') : '') + '<em>' + (open ? 'HIDE' : 'SHOW') + '</em></button>';
       if (open) {
         h += '<div class="mc-posts">' + cols.map((k) => postCard(s, k, z.id, false, sel)).join('') + '</div>';
         // Combinaciones: una línea con sus nombres; el detalle, al tocarla.
@@ -1091,7 +1091,7 @@
   function treatBtn(s, m, id) {
     const c = s.care;
     if (c && c.id === m.id && c.what === id) return '<span class="mct-btn on">' + I.img('bed', '', 'mct-ico') + '<b>IN BED</b><small>' + clock(c.remaining) + ' left</small></span>';
-    if (c) return '<span class="mct-btn busy">' + I.img('bed', '', 'mct-ico') + '<b>BED BUSY</b><small>' + clock(c.remaining) + '</small></span>';
+    if (c) return '<span class="mct-btn busy">' + I.img('bed', '', 'mct-ico') + '<b>' + (c.kind === 'quirk' ? 'BED BUSY' : 'HOUSE BUSY') + '</b><small>' + clock(c.remaining) + '</small></span>';
     const cost = CM.mice.careCost(s, 'quirk');
     const short = s.coins < cost;
     return btn('care:' + m.id + ':quirk:' + id, I.img('treat', '', 'mct-ico') + '<b>TREAT</b><small>' + I.px('coin') + CM.fmt(cost) + '</small>', { cls: 'mct-btn' + (short ? ' short' : ''), off: short, cost });
@@ -1146,7 +1146,8 @@
     tb += '</ul><p class="hint">' + (m.picks >= M.traitSlots ? 'It has developed all its traits.' : 'It develops a new trait on its own at LV ' + (m.picks + 1) * M.traitEvery + (m.post ? ', shaped by the jobs it has done.' : '. It only levels up on a post.')) + (quirksOf(m).length ? ' A quirk can be treated in the Mouse House bed: ' + Math.round(M.care.ms / 60000) + ' minutes, and the mouse keeps working.' : '') + '</p>';
     h += cardSection(ui, 'traits', 'TRAITS', all.length, tb, true);
 
-    // Especialidades: lo que ha aprendido trabajando.
+    // Especialidades: lo que ha aprendido trabajando. V4.6: la información a la izquierda y RETRAIN
+    // aparte, que abre la TRAINING ROOM con este ratón y esta especialidad ya elegidos.
     const worked = K.JOBS.filter((k) => m.spec[k] || (m.jobs[k] || 0) > 0);
     let sb = '';
     for (const k of worked) {
@@ -1155,21 +1156,11 @@
       const n = m.jobs[k] || 0;
       const next = M.jobGrades[id ? grade : 0];
       const from = id && grade ? M.jobGrades[grade - 1] : 0;
-      const pips = id ? '<i class="mc-grade">' + [1, 2, 3].map((g) => '<i class="' + (g <= grade ? 'on' : '') + '"></i>').join('') + '</i>' : '';
-      const openRetrain = ui.retrain === m.id + ':' + k;
-      const retraining = busy && s.care.id === m.id && s.care.kind === 'spec' && s.care.what === k;
-      sb += '<div class="mc-spec' + (k === skill ? ' here' : '') + '"><div class="mc-spechead"><b>' + B.skills[k].name + hearts(m.aff[k]) + '</b>' + (id ? traitChip(id, grade) + pips : '<small>no speciality yet</small>') + (id && s.built.house ? (retraining ? '<span class="mct-btn on">' + I.img('bed', '', 'mct-ico') + '<b>IN BED</b><small>' + clock(s.care.remaining) + ' left</small></span>' : btn('retrain:' + m.id + ':' + k, openRetrain ? '<b>CLOSE</b>' : I.img('teaching', '', 'mct-ico') + '<b>RETRAIN</b>', { cls: 'mct-btn retrain' })) : '') + '</div>';
-      if (id) sb += '<small>' + traitDesc(id, grade) + '</small>';
-      if (next) sb += '<div class="bar"><i style="width:' + Math.round(Math.min(1, (n - from) / (next - from)) * 100) + '%"></i></div><small>' + whole(n) + '/' + CM.fmt(next) + ' jobs to ' + (id ? 'grade ' + ROMAN[grade + 1] : 'a speciality') + '</small>';
-      else if (id) sb += '<small>Top grade.</small>';
-      // Reentrenar: se elige la especialidad nueva; conserva el grado.
-      if (id && openRetrain && !retraining) {
-        const cost = K.careCost(s, 'spec');
-        sb += '<div class="retrain"><small>Choose its new ' + B.skills[k].name + ' speciality. It keeps its grade, takes ' + Math.round(M.care.ms / 60000) + ' minutes in the Mouse House bed and the mouse keeps working.' + (busy ? ' The bed is busy now.' : '') + '</small>';
-        for (const t of K.jobTraits(k)) if (t !== id) sb += btn('care:' + m.id + ':spec:' + k + ':' + t, '<span>' + traitChip(t, grade) + '<small>' + traitDesc(t, Math.max(1, grade)) + '</small></span>' + coin(cost), { cls: 'opt', off: busy || s.coins < cost, cost });
-        sb += '</div>';
-      }
-      sb += '</div>';
+      const pips = id ? '<i class="mcs-pips">' + [1, 2, 3].map((g) => '<i class="' + (g <= grade ? 'on' : '') + '"></i>').join('') + '</i>' : '';
+      sb += '<div class="mcs-spec' + (k === skill ? ' here' : '') + '"><div class="mcs-main"><div class="mcs-head"><b>' + B.skills[k].name + hearts(m.aff[k]) + '</b>' + pips + '</div>' +
+        (id ? '<div class="mcs-name">' + traitChip(id, grade) + '</div><small>' + traitDesc(id, grade) + '</small>' : '<small>No speciality yet.</small>') +
+        (next ? '<div class="bar"><i style="width:' + Math.round(Math.min(1, (n - from) / (next - from)) * 100) + '%"></i></div><small>' + whole(n) + '/' + CM.fmt(next) + ' jobs to ' + (id ? 'grade ' + ROMAN[grade + 1] : 'a speciality') + '</small>' : id ? '<small>Top grade.</small>' : '') +
+        '</div>' + (id && s.built.house ? '<div class="mcs-act">' + retrainBtn(s, m, '', k) + '</div>' : '') + '</div>';
     }
     if (!worked.length) sb = '<p class="hint">It has not worked yet. After ' + M.jobGrades[0] + ' jobs in a trade it gets a speciality of that trade on its own.</p>';
     h += cardSection(ui, 'specs', 'SPECIALITIES', worked.filter((k) => m.spec[k]).length, sb, false);
@@ -1196,8 +1187,8 @@
   // que se trata, por qué, cuánto le falta y cómo acabó el último. Clases `mch-`.
   function bedScene(s, ui) {
     const c = s.care;
-    const m = c && CM.mice.byId(s, c.id);
-    const last = !m && ui.careLast && CM.mice.byId(s, ui.careLast.id);
+    const m = c && c.kind === 'quirk' && CM.mice.byId(s, c.id);
+    const last = !m && ui.careLast && ui.careLast.kind === 'quirk' && CM.mice.byId(s, ui.careLast.id);
     const who = m || last;
     // V4.4: recién enviado a la cama, el ratón llega andando, se mete y se duerme (unos 2 s). La
     // animación sigue donde iba aunque el panel se repinte (retraso negativo = lo ya transcurrido)
@@ -1206,7 +1197,8 @@
     // Al acabar, se levanta y se queda de pie junto a la cama (la misma técnica, al revés).
     const woke = !m && ui.careLast && ui.careLast.at ? performance.now() - ui.careLast.at : Infinity;
     const intro = since < 2100 ? ' intro" style="--intro:-' + Math.round(since) + 'ms' : woke < 1700 ? ' outro" style="--intro:-' + Math.round(woke) + 'ms' : '';
-    let h = '<div class="mch-room' + (m ? ' busy' : last ? ' done' : '') + intro + '"><i class="mch-window"></i><div class="mch-bed"><img class="pix mch-frame" alt="" src="' + I.url('bed') + '">' + (who ? '<img class="pix mch-mouse" alt="" src="' + CM.mouseUrl(who) + '"><i class="mch-blanket"></i>' : '') + '</div>' + (m ? '<b class="mch-zz">Z<small>z</small></b>' : '') + '</div>';
+    const sleepy = m && (CM.mice.parts(m).marks || '').split(',').indexOf('zzz') >= 0;
+    let h = '<div class="mch-room' + (m ? ' busy' : last ? ' done' : '') + (sleepy ? ' sleepy' : '') + intro + '"><i class="mch-window"></i><div class="mch-bed"><img class="pix mch-frame" alt="" src="' + I.url('bed') + '">' + (who ? '<img class="pix mch-mouse" alt="" src="' + CM.mouseUrl(who, null, true) + '"><i class="mch-blanket"></i>' : '') + '</div>' + (m ? '<b class="mch-zz">Z<small>z</small></b>' : '') + '</div>';
     if (m) {
       const what = c.kind === 'quirk' ? 'Treating <b class="tbad">' + T[c.what].name + '</b>' : 'Retraining ' + B.skills[c.what].name + ' to <b class="tok">' + T[c.to].name + '</b>';
       const pct = Math.round((1 - c.remaining / c.total) * 100);
@@ -1214,8 +1206,78 @@
     } else if (last) {
       const ev = ui.careLast;
       h += '<div class="mch-info"><b>' + esc(last.name) + ' is out of bed</b><small>' + (ev.kind === 'quirk' ? 'No more <b>' + T[ev.what].name + '</b>' : 'Now a <b class="tok">' + T[ev.to].name + '</b>') + '. The bed is free.</small></div>';
-    } else h += '<div class="mch-info"><b>The bed is free</b><small>Treat a quirk or retrain a speciality from a mouse\'s card.</small></div>';
+    } else h += '<div class="mch-info"><b>The bed is free</b><small>' + houseBusy(s, 'bed') + '</small></div>';
     return h;
+  }
+  // La casa cuida de un ratón a la vez (regla de siempre): si está en la otra sala, se dice.
+  function houseBusy(s, room) {
+    const c = s.care;
+    const m = c && CM.mice.byId(s, c.id);
+    if (!m) return room === 'bed' ? 'Pick a mouse with a quirk below.' : 'Pick a mouse below to retrain one of its specialities.';
+    return 'The house looks after one mouse at a time: ' + esc(m.name) + ' is in the ' + (c.kind === 'quirk' ? 'BED' : 'TRAINING ROOM') + ' for ' + clock(c.remaining) + '.';
+  }
+  // V4.6. TRAINING ROOM: la misma estructura que la cama (escena, estado, lista con su acción) para
+  // RETRAIN tal como existe: se elige la especialidad nueva, conserva el grado, mismo coste y tiempo.
+  function trainScene(s, ui) {
+    const c = s.care;
+    const m = c && c.kind === 'spec' && CM.mice.byId(s, c.id);
+    const last = !m && ui.careLast && ui.careLast.kind === 'spec' && CM.mice.byId(s, ui.careLast.id);
+    const who = m || last;
+    const since = m && ui.bedIntro && ui.bedIntro.id === m.id ? performance.now() - ui.bedIntro.at : Infinity;
+    const woke = !m && ui.careLast && ui.careLast.at ? performance.now() - ui.careLast.at : Infinity;
+    const intro = since < 2100 ? ' intro" style="--intro:-' + Math.round(since) + 'ms' : woke < 1700 ? ' outro" style="--intro:-' + Math.round(woke) + 'ms' : '';
+    let h = '<div class="mch-room train' + (m ? ' busy' : last ? ' done' : '') + intro + '"><img class="pix mtr-board" alt="" src="' + I.url('board') + '">' +
+      '<div class="mtr-desk"><img class="pix mtr-table" alt="" src="' + I.url('desk') + '"><img class="pix mtr-book a" alt="" src="' + I.url('book') + '"><img class="pix mtr-book b" alt="" src="' + I.url('book2') + '"></div>' +
+      (who ? '<img class="pix mtr-mouse" alt="" src="' + CM.mouseUrl(who, null, true) + '">' : '') + (m ? '<i class="mtr-spark"></i>' : '') + '</div>';
+    if (m) {
+      const pct = Math.round((1 - c.remaining / c.total) * 100);
+      h += '<div class="mch-info"><b>' + esc(m.name) + '</b><small>Retraining ' + B.skills[c.what].name + ': ' + traitChip(m.spec[c.what], CM.mice.gradeOf(m, c.what)) + ' ' + I.px('arrow') + ' ' + traitChip(c.to, CM.mice.gradeOf(m, c.what)) + '</small><div class="mch-bar"><i style="width:' + pct + '%"></i></div><small>' + clock(c.remaining) + ' left · it keeps working at ' + (m.post ? K_label(m.post) : 'the house') + '</small></div>';
+    } else if (last) {
+      const ev = ui.careLast;
+      h += '<div class="mch-info"><b>' + esc(last.name) + ' finished training</b><small>Now ' + traitChip(ev.to, CM.mice.gradeOf(last, ev.what)) + '. The desk is free.</small></div>';
+    } else h += '<div class="mch-info"><b>The desk is free</b><small>' + houseBusy(s, 'training') + '</small></div>';
+    return h;
+  }
+  // Lista de la TRAINING ROOM: el ratón, sus especialidades y RETRAIN. Elegido uno, debajo se
+  // escoge cuál cambiar (si tiene varias) y la nueva, con su coste: un toque empieza.
+  function trainList(s, ui) {
+    const K = CM.mice;
+    const sel = ui.trainSel || null;
+    const specsOf = (m) => K.JOBS.filter((k) => m.spec[k]);
+    const best = (m) => Math.max(0, ...specsOf(m).map((k) => K.gradeOf(m, k)));
+    let list = s.mice.filter((m) => specsOf(m).length);
+    if (!list.length) return '<p class="hint">No mouse has a speciality yet. After ' + M.jobGrades[0] + ' jobs in a trade a mouse gets one on its own.</p>';
+    list.sort((a, b) => (sel && b.id === sel.id) - (sel && a.id === sel.id) || best(b) - best(a) || K.level(b) - K.level(a));
+    const shown = ui.trainAll ? list : list.slice(0, 5);
+    const cost = K.careCost(s, 'spec');
+    let h = '';
+    for (const m of shown) {
+      const open = sel && sel.id === m.id;
+      const sub = specsOf(m).map((k) => traitChip(m.spec[k], K.gradeOf(m, k))).join(' ');
+      h += '<div data-train="' + m.id + '">' + mouseLine(s, m, 'card:' + m.id, retrainBtn(s, m, open ? 'CLOSE' : ''), { sub, likes: false, traits: 0, div: true, cls: open ? 'mtr-open' : '' }) + '</div>';
+      if (!open) continue;
+      const jobs = specsOf(m);
+      const job = sel.job && m.spec[sel.job] ? sel.job : jobs.length === 1 ? jobs[0] : '';
+      h += '<div class="mtr-pick">';
+      if (!job) {
+        h += '<small>Which speciality?</small><div class="mtr-jobs">' + jobs.map((k) => btn('trainjob:' + m.id + ':' + k, '<b>' + B.skills[k].name + '</b>' + traitChip(m.spec[k], K.gradeOf(m, k)), { cls: 'mtr-job' })).join('') + '</div>';
+      } else {
+        const grade = K.gradeOf(m, job);
+        const busy = !!s.care;
+        h += '<small>' + (jobs.length > 1 ? btn('trainjob:' + m.id + ':', '&lt;', { cls: 'mtr-back' }) : '') + 'New <b>' + B.skills[job].name + '</b> speciality for ' + esc(m.name) + '. It keeps grade ' + ROMAN[Math.max(1, grade)] + ', takes ' + Math.round(M.care.ms / 60000) + ' minutes and the mouse keeps working.' + (busy ? ' <span class="tbad">' + houseBusy(s, 'training') + '</span>' : '') + '</small>';
+        for (const t2 of K.jobTraits(job)) if (t2 !== m.spec[job]) h += btn('care:' + m.id + ':spec:' + job + ':' + t2, '<span>' + traitChip(t2, Math.max(1, grade)) + '<small>' + traitDesc(t2, Math.max(1, grade)) + '</small></span><em>' + I.px('coin') + CM.fmt(cost) + '</em>', { cls: 'mtr-opt', off: busy || s.coins < cost, cost });
+      }
+      h += '</div>';
+    }
+    if (list.length > 5) h += btn('trainall', ui.trainAll ? 'Show fewer' : 'See all ' + list.length + ' mice with a speciality', { cls: 'mini' });
+    return h;
+  }
+  // El botón RETRAIN, igual en la ficha y en la sala: el libro, la acción y el coste (o el estado).
+  function retrainBtn(s, m, label, job) {
+    const c = s.care;
+    if (c && c.id === m.id && c.kind === 'spec' && (!job || c.what === job)) return '<span class="mct-btn on">' + I.img('teaching', '', 'mct-ico') + '<b>TRAINING</b><small>' + clock(c.remaining) + ' left</small></span>';
+    const act = job !== undefined ? 'trainroom:' + m.id + ':' + job : 'trainsel:' + m.id;
+    return btn(act, I.img('teaching', '', 'mct-ico') + '<b>' + (label || 'RETRAIN') + '</b><small>' + (label === 'CLOSE' ? '' : c ? 'house busy' : I.px('coin') + CM.fmt(CM.mice.careCost(s, 'spec'))) + '</small>', { cls: 'mct-btn retrain' });
   }
   const K_label = (post) => CM.mice.postLabel(post);
   // ---- HOUSE: la cama, reclutar, el diario y el álbum ----
@@ -1227,17 +1289,22 @@
     const tc = K.careCost(s, 'quirk');
     const rc = K.careCost(s, 'spec');
     const mins = Math.round(M.care.ms / 60000);
-    h += '<h4 class="mc-h">' + I.img('bed', '', 'mch-ico') + 'THE BED</h4>' + bedScene(s, ui);
-    if (s.care && K.byId(s, s.care.id)) h += '<p class="hint">Next: treating a quirk ' + CM.fmt(tc) + ' coins, retraining a speciality ' + CM.fmt(rc) + '.</p>';
-    else {
-      h += '<p class="hint">One mouse at a time, ' + mins + ' minutes, and it keeps working at its post. Treat a quirk: <b>' + CM.fmt(tc) + '</b> coins · Retrain a speciality: <b>' + CM.fmt(rc) + '</b> coins.</p>';
+    // V4.6. Habitaciones: THE BED y TRAINING ROOM, con la misma estructura (escena, estado,
+    // lista de ratones con su acción). La casa sigue cuidando de un ratón a la vez.
+    const room = ui.houseRoom === 'training' ? 'training' : 'bed';
+    const inUse = (r) => s.care && (r === 'bed' ? s.care.kind === 'quirk' : s.care.kind === 'spec');
+    h += '<div class="mch-rooms">' + btn('houseroom:bed', I.img('bed', '', 'mch-ico') + 'THE BED' + (inUse('bed') ? '<i class="mch-inuse"></i>' : ''), { cls: room === 'bed' ? 'on' : '' }) + btn('houseroom:training', I.img('teaching', '', 'mch-ico') + 'TRAINING' + (inUse('training') ? '<i class="mch-inuse"></i>' : ''), { cls: room === 'training' ? 'on' : '' }) + '</div>';
+    if (room === 'bed') {
+      h += bedScene(s, ui) + '<p class="hint">' + mins + ' minutes and it keeps working at its post. Treat a quirk: <b>' + CM.fmt(tc) + '</b> coins.</p>';
       const sick = s.mice.filter((m) => quirksOf(m).length).sort((a, b) => K.level(b) - K.level(a));
-      for (const m of sick.slice(0, 4)) {
+      for (const m of sick.slice(0, ui.bedAll ? sick.length : 5)) {
         const id = quirksOf(m)[0];
         h += mouseLine(s, m, 'card:' + m.id, treatBtn(s, m, id), { sub: '<span class="tbad">' + T[id].name + '</span>: ' + lower(T[id].desc), likes: false, traits: 0, div: true });
       }
-      if (sick.length > 4) h += btn('rosterfilter:quirk', 'See all ' + sick.length + ' mice with a quirk', { cls: 'mini' });
-      if (s.mice.some((m) => Object.keys(m.spec).length)) h += '<p class="hint">To retrain a speciality, open the mouse and look in SPECIALITIES.</p>';
+      if (sick.length > 5) h += btn('bedall', ui.bedAll ? 'Show fewer' : 'See all ' + sick.length + ' mice with a quirk', { cls: 'mini' });
+    } else {
+      h += trainScene(s, ui) + '<p class="hint">' + mins + ' minutes and it keeps working at its post. Retrain a speciality: <b>' + CM.fmt(rc) + '</b> coins. It keeps its grade.</p>';
+      h += trainList(s, ui);
     }
     // Reclutar.
     const cost = K.recruitCost(s);
@@ -1323,7 +1390,7 @@
     }
     const view = ui.miceView === 'roster' || ui.miceView === 'house' ? ui.miceView : 'rocks';
     const todo = s.mice.filter((m) => canPromote(s, m)).length;
-    let h = '<div class="tabs mc-tabs">' + btn('miceview:rocks', 'COLONY', { cls: view === 'rocks' ? 'on' : '' }) + btn('miceview:roster', 'ROSTER ' + s.mice.length + (todo ? '<i class="mc-dot"></i>' : ''), { cls: view === 'roster' ? 'on' : '' }) + btn('miceview:house', 'HOUSE', { cls: view === 'house' ? 'on' : '' }) + '</div>';
+    let h = '<div class="tabs mc-tabs">' + btn('miceview:rocks', 'COLONY', { cls: view === 'rocks' ? 'on' : '' }) + btn('miceview:roster', 'ROSTER ' + s.mice.length + (todo ? I.img('rankup', '', 'mc-uptab') : ''), { cls: view === 'roster' ? 'on' : '' }) + btn('miceview:house', 'HOUSE', { cls: view === 'house' ? 'on' : '' }) + '</div>';
     return h + (view === 'roster' ? rosterView(s, ui) : view === 'house' ? houseView(s, ui) : colonyView(s, ui));
   }
 
@@ -1336,7 +1403,7 @@
       row('Playtest tools', 'Dev menu: marks the session as assisted', btn('open:dev', 'OPEN', { cls: 'buy' })) +
       row('Reset save', 'Start over from zero', btn('reset', 'RESET', { cls: 'danger' })) +
       // Qué versión del prototipo se está probando (para no confundirla con una copia en caché).
-      '<p class="hint"><b>Prototype V4.5</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
+      '<p class="hint"><b>Prototype V4.6</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
     );
   }
 

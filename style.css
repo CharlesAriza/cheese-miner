@@ -8876,3 +8876,496 @@ div.mc-row {
     animation: none;
   }
 }
+
+/* ======================= V4.6: MAIN, avisos y BOOSTS ======================= */
+/* Botón grande: cartela con el efecto real, solo texto. Aire dentro, separada de los bordes y
+   apoyada sobre el borde de arriba sin tapar el nombre de la acción. */
+.dboost[data-n='1'],
+.dboost[data-n='2'] {
+  top: -11px;
+  left: 14px;
+  padding: 4px 8px 3px;
+  font-size: 7px;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 0 var(--ink), inset 0 1px 0 #d8f6ff;
+}
+.dboost[data-n='1']::before,
+.dboost[data-n='2']::before {
+  display: none;
+}
+.dboost[data-n='2'] {
+  background: #8fe0ff;
+}
+
+/* Pipeline: el refuerzo es un brillo azul DENTRO del borde (el borde amarillo es la selección y
+   el contorno exterior, el objetivo: no se pisan). Uno, un marco azul y un tinte suave; dos, un
+   marco doble y un tinte que respira despacio, a pasos. Sin fichas ni números encima. */
+.tile[data-boost='1']::before,
+.tile[data-boost='2']::before {
+  display: none;
+}
+.tile[data-boost='1'] {
+  background-image: linear-gradient(0deg, #5ad1ff33, #5ad1ff00 60%);
+  box-shadow: inset 0 0 0 2px #5ad1ff, 0 3px 0 var(--ink);
+}
+.tile[data-boost='2'] {
+  background-image: linear-gradient(0deg, #5ad1ff55, #5ad1ff10 75%);
+  box-shadow: inset 0 0 0 2px #5ad1ff, inset 0 0 0 3px var(--ink), inset 0 0 0 4px #9fe6ff, 0 3px 0 var(--ink);
+  animation: tilebreath 3.2s steps(1) infinite;
+}
+.tile.sel[data-boost='1'] {
+  box-shadow: inset 0 0 0 2px #5ad1ff, 0 6px 0 var(--ink);
+}
+.tile.sel[data-boost='2'] {
+  box-shadow: inset 0 0 0 2px #5ad1ff, inset 0 0 0 3px var(--ink), inset 0 0 0 4px #9fe6ff, 0 6px 0 var(--ink);
+}
+@keyframes tilebreath {
+  0%,
+  70% {
+    background-image: linear-gradient(0deg, #5ad1ff55, #5ad1ff10 75%);
+  }
+  71%,
+  85% {
+    background-image: linear-gradient(0deg, #5ad1ff80, #5ad1ff20 80%);
+  }
+}
+/* Con el latido de NEW! o el objetivo, el brillo queda quieto (no se mezclan dos animaciones). */
+.tile.isnew[data-boost],
+.tile.goal[data-boost] {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tile[data-boost='2'] {
+    animation: none;
+  }
+}
+
+/* Pestañas de abajo: un solo aviso, el contorno. Fijo si hay algo pendiente; entra y sale si
+   es una novedad sin ver. Las chapas de texto ya no se usan. */
+.tools .dot {
+  display: none !important;
+}
+.tools button.pend {
+  box-shadow: 0 0 0 3px #ffe55c, 0 3px 0 var(--ink);
+}
+
+/* Hito alcanzado: franja dorada con su nombre, un momento, sin ventanas. */
+#banner.milestone {
+  padding: 14px 6px;
+  font-size: 13px;
+  color: #3a2a14;
+  background: linear-gradient(180deg, #ffe55c, #ffb31f);
+  border-color: #fff;
+  text-shadow: 1px 1px #fff3b0;
+}
+#banner.milestone.show {
+  animation-duration: 3s;
+}
+/* El botón de mejoras solo late mientras el hito sea nuevo (tres veces) y luego queda quieto. */
+.dup.hito {
+  animation-iteration-count: 3;
+}
+
+/* Rocas: sin el punto verde de «todo en marcha» (era lo normal). Solo avisa si la línea espera
+   un toque (amarillo) o está parada (rojo), con un «!» pixel art. */
+.rdot {
+  display: none;
+  top: 2px;
+  right: 2px;
+  width: 9px;
+  height: 9px;
+  background: var(--px-alert) center / 9px 9px no-repeat;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.rchip.warn .rdot {
+  display: block;
+  background: var(--px-alert) center / 9px 9px no-repeat;
+}
+.rchip.need .rdot {
+  display: block;
+  background: var(--px-alertr) center / 9px 9px no-repeat;
+}
+
+/* Ascenso disponible: flecha pixel art (en la tarjeta, en la cabecera de la roca y en ROSTER). */
+.mc-up {
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  width: 9px;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+.mc-rockhead .mc-up {
+  position: static;
+  margin-left: auto;
+  margin-right: 6px;
+}
+.mc-uptab {
+  width: 9px;
+  margin-left: 6px;
+  vertical-align: 0;
+  image-rendering: pixelated;
+}
+
+/* BOOSTS: fichas algo mayores (11 px de sprite a 2x) y casillas un poco más altas. */
+.bo-cell {
+  height: 78px;
+}
+.bo-cell .bo-slot .pix.bo-gem,
+.bo-shop .bo-slot .pix.bo-gem {
+  width: 26px;
+  height: 26px;
+}
+.panel button.bo-slot {
+  padding-bottom: 6px;
+}
+.panel .bo-shop button.bo-slot {
+  width: 48px;
+  height: 48px;
+}
+
+/* ======================= V4.6: HOUSE, dos habitaciones del mismo sistema ======================= */
+/* Selector de habitación: dos pestañas iguales; un punto azul marca la que está en uso. */
+.mch-rooms {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.panel .mch-rooms button {
+  position: relative;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 7px;
+  color: var(--muted);
+  background: var(--bg);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  box-shadow: 0 3px 0 var(--ink);
+}
+.panel .mch-rooms button.on {
+  color: #ffe55c;
+  background: var(--panel-2);
+  border-color: #ffe55c;
+}
+.mch-rooms .mch-ico {
+  margin: 0;
+}
+.mch-inuse {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  background: #5ad1ff;
+  box-shadow: 0 0 0 1px var(--ink);
+}
+
+/* Las Z de la cama: un poco más lentas y más altas si el ratón es dormilón. */
+.mch-room.sleepy .mch-zz {
+  animation-duration: 2.6s;
+  font-size: 14px;
+}
+
+/* TRAINING ROOM: la misma caja y la misma escala que la cama (cada píxel del sprite, 10 px). */
+.mch-room.train {
+  background:
+    linear-gradient(#5a4632 0 0) bottom / 100% 20px no-repeat,
+    repeating-linear-gradient(0deg, #3a3048 0 10px, #342b42 10px 20px);
+}
+.mtr-board {
+  position: absolute;
+  top: 10px;
+  right: 22px;
+  width: 100px;
+  image-rendering: pixelated;
+}
+.mtr-desk {
+  position: absolute;
+  left: 18px;
+  bottom: 6px;
+  z-index: 1;
+  width: 140px;
+  height: 70px;
+}
+.mtr-table {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 140px;
+  image-rendering: pixelated;
+}
+.mtr-book {
+  position: absolute;
+  left: 37px;
+  bottom: 60px;
+  width: 66px;
+  image-rendering: pixelated;
+}
+.mtr-book.b {
+  visibility: hidden;
+}
+/* Practicando: pasa las páginas y asiente, a pasos. */
+.mch-room.train.busy .mtr-book.a {
+  animation: mtr-pagea 1.6s steps(1) infinite;
+}
+.mch-room.train.busy .mtr-book.b {
+  animation: mtr-pageb 1.6s steps(1) infinite;
+}
+@keyframes mtr-pagea {
+  50% {
+    visibility: hidden;
+  }
+}
+@keyframes mtr-pageb {
+  50% {
+    visibility: visible;
+  }
+}
+/* El ratón, de pie a la derecha de la mesa, mirando al libro. */
+.mtr-mouse {
+  position: absolute;
+  left: 150px;
+  bottom: 18px;
+  z-index: 2;
+  width: 62px;
+  transform: scaleX(-1);
+  image-rendering: pixelated;
+}
+.mch-room.train.busy .mtr-mouse {
+  animation: mtr-nod 1.6s steps(1) infinite;
+}
+@keyframes mtr-nod {
+  50% {
+    transform: scaleX(-1) translateY(2px);
+  }
+}
+/* Una chispa de idea sobre la cabeza, de vez en cuando. */
+.mtr-spark {
+  position: absolute;
+  left: 172px;
+  top: 8px;
+  z-index: 3;
+  width: 4px;
+  height: 4px;
+  animation: mtr-spark 3.2s steps(1) infinite;
+}
+@keyframes mtr-spark {
+  0%,
+  80% {
+    box-shadow: none;
+  }
+  81%,
+  90% {
+    box-shadow: 0 -6px 0 #ffe55c, -6px 0 0 #ffe55c, 6px 0 0 #ffe55c, 0 6px 0 #ffe55c;
+  }
+}
+/* Llega andando (la misma técnica que la cama) y, al acabar, se aparta de la mesa. */
+.mch-room.train.intro .mtr-mouse {
+  animation: mtr-walkin 2s steps(1) var(--intro, 0s) both;
+}
+@keyframes mtr-walkin {
+  0% {
+    transform: translate(130px, 0) scaleX(-1);
+  }
+  15% {
+    transform: translate(110px, -2px) scaleX(-1);
+  }
+  30% {
+    transform: translate(90px, 0) scaleX(-1);
+  }
+  45% {
+    transform: translate(70px, -2px) scaleX(-1);
+  }
+  60% {
+    transform: translate(45px, 0) scaleX(-1);
+  }
+  75% {
+    transform: translate(20px, -2px) scaleX(-1);
+  }
+  90%,
+  100% {
+    transform: scaleX(-1);
+  }
+}
+.mch-room.train.done .mtr-mouse {
+  transform: translate(70px, 0);
+}
+.mch-room.train.outro .mtr-mouse {
+  animation: mtr-done 1.6s steps(1) var(--intro, 0s) both;
+}
+@keyframes mtr-done {
+  0%,
+  30% {
+    transform: scaleX(-1) translateY(-6px);
+  }
+  40% {
+    transform: scaleX(-1);
+  }
+  55% {
+    transform: translate(25px, -2px);
+  }
+  70% {
+    transform: translate(50px, 0);
+  }
+  85%,
+  100% {
+    transform: translate(70px, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mch-room.train .mtr-mouse,
+  .mch-room.train .mtr-book,
+  .mtr-spark {
+    animation: none !important;
+  }
+}
+
+/* Lista de la sala: el ratón abierto y, debajo, qué cambiar y por qué (con el coste). */
+.mc-row.mtr-open {
+  box-shadow: inset 0 0 0 2px #5aa9ff;
+}
+.mtr-pick {
+  margin: -2px 0 8px;
+  padding: 8px;
+  background: #1a2233;
+  border: 2px solid #5aa9ff;
+  border-top: 0;
+}
+.mtr-pick > small {
+  display: block;
+  margin: 0 0 6px;
+  font-family: var(--text);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.mtr-jobs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.panel button.mtr-job {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 7px 8px;
+  font-family: var(--text);
+  color: #fff;
+  background: var(--bg);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  box-shadow: 0 3px 0 var(--ink);
+}
+.panel button.mtr-back {
+  margin-right: 6px;
+  padding: 2px 6px;
+  font-size: 8px;
+  background: var(--panel-2);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+}
+.panel button.mtr-opt {
+  width: 100%;
+  margin: 0 0 5px;
+  padding: 7px 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  font-family: var(--text);
+  color: #fff;
+  background: var(--bg);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  box-shadow: 0 3px 0 var(--ink);
+}
+.mtr-opt > span {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.mtr-opt > span small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.mtr-opt em {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffe55c;
+}
+
+/* ---------- Ficha: SPECIALITIES, información a la izquierda y RETRAIN aparte (clases mcs-) ---------- */
+.mcs-spec {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 4px;
+  border-top: 1px solid #3b3350;
+}
+.mcs-spec:first-child {
+  border-top: 0;
+}
+.mcs-spec.here {
+  background: #ffffff08;
+}
+.mcs-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.mcs-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--text);
+}
+.mcs-head b {
+  font-size: 13px;
+}
+.mcs-pips {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: auto;
+}
+.mcs-pips i {
+  width: 8px;
+  height: 8px;
+  background: #221c2e;
+  border: 2px solid #5aa9ff;
+}
+.mcs-pips i.on {
+  background: #5aa9ff;
+  box-shadow: inset 1px 1px 0 #bfe8fd;
+}
+.mcs-main small {
+  font-family: var(--text);
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+.mcs-main .bar {
+  height: 6px;
+}
+.mcs-act {
+  flex: none;
+  align-self: center;
+}
+.mc-rockhead .pix.mc-up {
+  width: 9px;
+  height: auto;
+}

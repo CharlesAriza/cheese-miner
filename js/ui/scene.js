@@ -106,12 +106,13 @@
   };
   const spriteCache = {};
   // `p` son las piezas (CM.mice.parts): pelaje, gorro, color, accesorio y mochila.
-  function mouseSprite(p, rank, job) {
+  // `noZ`: sin la Z de dormilón (la escena la dibuja aparte, derecha aunque el ratón se voltee).
+  function mouseSprite(p, rank, job, noZ) {
     const r = Math.min(3, rank || 0);
-    const marks = p.marks ? p.marks.split(',') : [];
+    const marks = (p.marks ? p.marks.split(',') : []).filter((k) => !(noZ && k === 'zzz'));
     const has = (k) => marks.indexOf(k) >= 0;
     const uni = r >= 2 && p.hat !== 5 ? UNIFORMS[job] : null;
-    const key = [p.fur, p.hat, p.hatColor, p.acc, p.pack, r, p.marks || '', uni ? job : ''].join(':');
+    const key = [p.fur, p.hat, p.hatColor, p.acc, p.pack, r, marks.join(','), uni ? job : ''].join(':');
     if (spriteCache[key]) return spriteCache[key];
     const fur = FURS[p.fur];
     const hat = uni ? uni.rows : HATS[p.hat];
@@ -198,18 +199,28 @@
   }
   // El siguiente ratón que se dibuje lleva aura dorada si es legendario.
   let auraNext = false;
+  // Y lleva una Z de dormilón (se pinta aparte, sin voltear).
+  let zzzNext = false;
+  const isSleepy = (m) => {
+    const p = CM.mice.parts(m);
+    return !!p.marks && p.marks.split(',').indexOf('zzz') >= 0;
+  };
+  // En la escena, el sprite va sin la Z; si el ratón es dormilón, drawMouseSprite la pinta encima
+  // sin voltearla (V4.6: antes se reflejaba con el ratón al mirar a la izquierda).
   const rankSprite = (m) => {
     auraNext = CM.mice.isLegend(m);
-    return mouseSprite(CM.mice.parts(m), m.rank, m.post ? m.post.split(':')[0] : '');
+    zzzNext = isSleepy(m);
+    return mouseSprite(CM.mice.parts(m), m.rank, m.post ? m.post.split(':')[0] : '', true);
   };
   // Retrato de un ratón (o de un candidato) para los paneles.
   const portraits = {};
-  const urlOf = (p, rank, job) => {
-    const c = mouseSprite(p, rank, job);
-    const key = [p.fur, p.hat, p.hatColor, p.acc, p.pack, rank, p.marks || '', rank >= 2 ? job || '' : ''].join(':');
+  const urlOf = (p, rank, job, noZ) => {
+    const c = mouseSprite(p, rank, job, noZ);
+    const key = [p.fur, p.hat, p.hatColor, p.acc, p.pack, rank, p.marks || '', rank >= 2 ? job || '' : '', noZ ? 'noz' : ''].join(':');
     return portraits[key] || (portraits[key] = c.toDataURL());
   };
-  CM.mouseUrl = (m, job) => urlOf(CM.mice.parts(m), Math.min(3, m.rank || 0), job !== undefined ? job : m.post ? m.post.split(':')[0] : '');
+  // `noZ`: retrato sin su Z (la cama de HOUSE pone las suyas).
+  CM.mouseUrl = (m, job, noZ) => urlOf(CM.mice.parts(m), Math.min(3, m.rank || 0), job !== undefined && job !== null ? job : m.post ? m.post.split(':')[0] : '', !!noZ);
   // Muestra de una pieza del álbum sobre un ratón neutro ('fur:3', 'hat:1', 'acc:2').
   CM.partUrl = (key) => {
     const [kind, i] = key.split(':');
@@ -355,7 +366,8 @@
     // edificio siguiente y vuelve. Nunca hay dos acarreando por la misma ruta.
     function carry(role, m, from, to, color) {
       if (!m || walkers.some((w) => w.role === role)) return;
-      walkers.push({ role, legend: CM.mice.isLegend(m), img: rankSprite(m), x: from, home: from, to, carry: color, bob: 0 });
+      walkers.push({ role, legend: CM.mice.isLegend(m), img: rankSprite(m), zzz: isSleepy(m), x: from, home: from, to, carry: color, bob: 0 });
+      zzzNext = false;
     }
     // Un cliente se va de la tienda con su queso.
     function customerLeaves() {
@@ -1062,6 +1074,17 @@
         drawPick(pickAngle, gold);
       }
       ctx.restore();
+      // La Z del dormilón, siempre derecha, encima de la cabeza (que está a un lado u otro).
+      if (zzzNext) {
+        zzzNext = false;
+        const zx = Math.round(x) + (faceLeft ? MOUSE_W - 20 : 16);
+        const zy = Math.round(y) + 1 + (((performance.now() / 700) | 0) % 2);
+        ctx.fillStyle = '#bfe8fd';
+        ctx.fillRect(zx, zy, 4, 1);
+        ctx.fillRect(zx + 2, zy + 1, 1, 1);
+        ctx.fillRect(zx + 1, zy + 2, 1, 1);
+        ctx.fillRect(zx, zy + 3, 4, 1);
+      }
     }
 
     // Ratones en su puesto: los que tienes asignados a la línea que se está mirando.
@@ -1107,6 +1130,7 @@
         }
         const y = groundY - MOUSE_H + 2 - Math.abs(Math.sin(now / 60 + w.bob)) * 2;
         auraNext = w.legend;
+        zzzNext = !!w.zzz;
         drawMouseSprite(w.img, w.x, y, dir < 0, null);
         if (w.carry) {
           R(w.x + 5, y - 5, 8, 6, '#2b1d12');

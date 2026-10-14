@@ -65,8 +65,20 @@
     // V4.4. SPRITE: los huecos de refuerzo: engaste vacío y gema puesta.
     // V4.5. SPRITE: ficha de refuerzo puesta (placa azul con galón blanco) y su hueco vacío
     // (marco apagado con el galón en sombra): la misma forma, encendida o apagada.
-    socket: ['.DDDDDD.', 'D......D', 'D..EE..D', 'D.E..E.D', 'DE....ED', 'D......D', 'D......D', '.DDDDDD.'],
-    gem: ['.BBBBBB.', 'BLLLLLLB', 'BLLWWLLB', 'BLWLLWLB', 'BWLLLLWB', 'BLLLLLLB', 'BLLLLLLD', '.BDDDDD.'],
+    // V4.6: un poco más grandes (11 px de lado, a 2x en BOOSTS).
+    socket: ['.DDDDDDDDD.', 'DFFFFFFFFFD', 'DFFFFFFFFFD', 'DFFFFEFFFFD', 'DFFFEEEFFFD', 'DFFEEFEEFFD', 'DFEEFFFEEFD', 'DFFFFFFFFFD', 'DFFFFFFFFFD', 'DFFFFFFFFFD', '.DDDDDDDDD.'],
+    gem: ['.BBBBBBBBB.', 'BHHHHHHHHLB', 'BHLLLLLLLLB', 'BLLLLWLLLLB', 'BLLLWWWLLLB', 'BLLWWLWWLLB', 'BLWWLLLWWLB', 'BLLLLLLLLLB', 'BLLLLLLLLLD', 'BLLLLLLLLDD', '.DDDDDDDDD.'],
+    // V4.6. SPRITE: la TRAINING ROOM, a la misma escala que la cama: mesa de trabajo, libro
+    // abierto (dos páginas para pasarlas) y pizarra con un esquema.
+    desk: ['WWWWWWWWWWWW', 'wwwwwwwwwwww', '.L........L.', '.L........L.', '.L........L.'],
+    book: ['PPPPBPPPP', 'PLLPBPLLP', 'PPPPBPPPP', 'PLLPBPLLP', 'BBBBBBBBB'],
+    book2: ['PPPPBPPP.', 'PLLPBPPPP', 'PPPPBPLLP', 'PLLPBPPPP', 'BBBBBBBBB'],
+    board: ['FFFFFFFF', 'FGWGGGGF', 'FGGWWGWF', 'FGGGGWGF', 'FFFFFFFF'],
+    // V4.6. SPRITE: aviso de una roca que necesita algo (amarillo) o está parada (rojo), y la
+    // flecha de ascenso disponible.
+    alert: ['...Y...', '..YKY..', '..YKY..', '.YYKYY.', '.YYYYY.', 'YYYKYYY', 'YYYYYYY'],
+    alertr: ['...Y...', '..YKY..', '..YKY..', '.YYKYY.', '.YYYYY.', 'YYYKYYY', 'YYYYYYY'],
+    rankup: ['...L...', '..LGL..', '.LGGGL.', 'GGGGGGG', '..GGG..', '..GGG..', '..GGG..'],
     treat: ['.WWWWWW.', 'WWWRRWWW', 'WRRRRRRW', 'WRRRRRRW', 'WWWRRWWW', '.WWWWWW.'],
     // V4.2. SPRITE: cabeza de ratón para contratar (HIRE).
     mouse: ['EE....EE.', 'EPE..EPE.', '.GGGGGG..', 'GGKGGKGG.', 'GGGGGGGGN', '.GGWWGG..', '..GGGG...'],
@@ -83,8 +95,15 @@
     swap: { A: '#ffffff' },
     boost: { B: '#5ad1ff' },
     plus: { A: '#8fe0ff' },
-    socket: { D: '#4a5878', E: '#3a4560' },
-    gem: { B: '#2f8fc0', L: '#5ad1ff', W: '#ffffff', D: '#1d5f86' },
+    socket: { D: '#4a5878', E: '#3a4560', F: '#221c2e' },
+    gem: { B: '#2f8fc0', L: '#5ad1ff', H: '#9fe6ff', W: '#ffffff', D: '#1d5f86' },
+    desk: { W: '#b07a44', w: '#8b5a2b', L: '#6b4220' },
+    book: { P: '#f6ecd2', L: '#8b7a5a', B: '#5f3590' },
+    book2: { P: '#f6ecd2', L: '#8b7a5a', B: '#5f3590' },
+    board: { F: '#8b5a2b', G: '#2f5c3a', W: '#e8f0e8' },
+    alert: { Y: '#ffd43a', K: '#1b1622' },
+    alertr: { Y: '#ff5a7a', K: '#1b1622' },
+    rankup: { G: '#5fcf6a', L: '#c8ffd0' },
     treat: { W: '#f4f1e4', R: '#e2462f' },
     mouse: { E: '#cfc6cc', P: '#ff9ab5', G: '#f1eaec', K: '#1b1622', N: '#ff7a9c', W: '#ffffff' },
     news: { P: '#c9a46a', L: '#f6ecd2', D: '#8b7a5a' },
@@ -125,4 +144,7 @@
   // Las chapas que dibuja el CSS (::before) usan el mismo sprite de refuerzo.
   document.documentElement.style.setProperty('--px-boost', 'url(' + icon('boost') + ')');
   document.documentElement.style.setProperty('--px-gem', 'url(' + icon('gem') + ')');
+  document.documentElement.style.setProperty('--px-alert', 'url(' + icon('alert') + ')');
+  document.documentElement.style.setProperty('--px-alertr', 'url(' + icon('alertr') + ')');
+  document.documentElement.style.setProperty('--px-rankup', 'url(' + icon('rankup') + ')');
 })();

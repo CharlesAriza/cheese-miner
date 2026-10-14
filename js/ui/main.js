@@ -90,6 +90,7 @@
     els.banner.textContent = text;
     // La Grand Wheel tiene su propia franja, dorada, para no confundirse con las demás noticias.
     els.banner.classList.toggle('wheel', kind === 'wheel');
+    els.banner.classList.toggle('milestone', kind === 'milestone');
     retrigger(els.banner, 'show');
   }
   // Los avisos hacen cola: cada uno se lee entero antes de dar paso al siguiente, en vez de
@@ -429,7 +430,7 @@
         ui.careLast = Object.assign({ at: performance.now() }, ev); // la cama de HOUSE enseña cómo acabó
         play('goal');
         banner(mouse.name.toUpperCase() + (ev.kind === 'quirk' ? ' IS OVER ' + B.mice.traits[ev.what].name.toUpperCase() : ': ' + B.mice.traits[ev.to].name.toUpperCase()) + '!');
-        toast(ev.kind === 'quirk' ? mouse.name + ' no longer has ' + B.mice.traits[ev.what].name + '. The Mouse House bed is free' : mouse.name + ' retrained to ' + B.mice.traits[ev.to].name + '. The Mouse House bed is free', true);
+        toast(ev.kind === 'quirk' ? mouse.name + ' no longer has ' + B.mice.traits[ev.what].name + '. The Mouse House bed is free' : mouse.name + ' retrained to ' + B.mice.traits[ev.to].name + '. The training room is free', true);
         dirty = true;
         break;
       }
@@ -463,8 +464,9 @@
       case 'milestoneOpen': {
         const node = CM.tree.node('cheesemaking', ev.id);
         play('goal');
-        banner('NEW MILESTONE: ' + node.name.toUpperCase());
-        toast(node.name + ' is waiting in CHEESE > UPGRADES', true);
+        scene.celebrate();
+        banner('MILESTONE REACHED: ' + node.name.toUpperCase(), 'milestone');
+        toast(node.name + ' is ready to buy in CHEESE > UPGRADES', true);
         dirty = true;
         break;
       }
@@ -759,7 +761,10 @@
       set(tile.querySelector('.mini > i'), 'width', Math.round(info.progress * 100) + '%');
       // Refuerzos de esta etapa en la roca que se mira: marco azul y una chapa con uno o dos galones.
       const nb = String((info.state !== 'locked' && info.state !== 'build' && CM.boosts.at(state, skill, ui.zone)) || '');
-      if (tile.dataset.boost !== nb) tile.dataset.boost = nb;
+      if (tile.dataset.boost !== nb) {
+        if (Number(nb || 0) > Number(tile.dataset.boost || 0) && tile.animate) tile.animate([{ boxShadow: 'inset 0 0 0 5px #d8f6ff, 0 3px 0 #0c0910' }, { boxShadow: 'inset 0 0 0 3px #9fe6ff, 0 3px 0 #0c0910' }, { boxShadow: 'inset 0 0 0 2px #5ad1ff, 0 3px 0 #0c0910' }], { duration: 450, easing: 'steps(3, end)' });
+        tile.dataset.boost = nb;
+      }
       set(tile.querySelector('u'), 'text', 'LV ' + q.level(state, skill));
       const auto = q.auto(state, skill, ui.zone);
       const ups = info.state !== 'locked' && info.state !== 'build' ? CM.tree.affordable(state, skill) : 0;
@@ -943,7 +948,7 @@
     // Refuerzos del puesto que se mira, con lo que dan («+50% SPEED», «x2.25 BASE»).
     const nb = m.tree ? CM.boosts.at(state, skill, ui.zone) : 0;
     // V4.5: en el botón grande, el efecto real («x2.25 SPEED»); en las tarjetas pequeñas, la cantidad.
-    set(dk.boost, 'text', nb ? CM.boosts.label(skill, nb) : '');
+    set(dk.boost, 'text', nb ? CM.boosts.label(skill, nb).replace(/^x/, '\u00d7') : '');
     if (dk.boost.dataset.n !== String(nb || '')) dk.boost.dataset.n = String(nb || '');
     set(els.main.querySelector('b'), 'text', m.label);
     set(els.main.querySelector('small'), 'text', m.sub);
@@ -969,8 +974,10 @@
     costOf(dk.quick, pick && !pick.can ? pick.cost : 0);
     const ups = m.tree ? CM.tree.affordable(state, skill) : 0;
     // Un hito esperando se anuncia aquí: se compra dentro, leyéndolo.
-    const hito = m.tree && skill === 'cheesemaking' && CM.milestones.waiting(state).length > 0;
-    set(dk.treeNum, 'text', !m.tree ? 'LOCKED' : hito ? 'MILESTONE!' : ups ? ups + ' READY' : 'TREE');
+    // V4.6: «NEW MILESTONE» solo mientras no lo has visto (se ve al abrir el árbol); luego es una
+    // mejora más, que compra el jugador, y cuenta en READY si se puede pagar.
+    const hito = m.tree && skill === 'cheesemaking' && CM.milestones.waiting(state).some((n) => !seen('hito:' + n.id));
+    set(dk.treeNum, 'text', !m.tree ? 'LOCKED' : hito ? 'NEW MILESTONE' : ups ? ups + ' READY' : 'TREE');
     set(dk.tree, 'has', ups > 0 || hito);
     set(dk.tree, 'hito', hito);
     set(dk.tree, 'off', !m.tree);
@@ -1665,7 +1672,6 @@
       ui.card = id;
       ui.pick = null;
       ui.cardSec = {};
-      ui.retrain = null;
       $('sheet-body').scrollTop = 0;
     },
     back: () => void (ui.card = null),
@@ -1766,11 +1772,32 @@
     },
     care: (id, kind, what, to) => {
       const r = CM.mice.careStart(state, id, kind, what, to);
-      if (r.ok) ui.retrain = null;
-      if (r.ok) ui.bedIntro = { id, at: performance.now() }; // HOUSE enseña cómo llega a la cama
+      if (r.ok) {
+        ui.bedIntro = { id, at: performance.now() }; // la sala enseña cómo llega el ratón
+        if (kind === 'spec') {
+          ui.trainSel = null;
+          ui.houseRoom = 'training';
+          $('sheet-body').scrollTop = 0;
+        }
+      }
       return r;
     },
-    retrain: (id, skill) => void (ui.retrain = ui.retrain === id + ':' + skill ? null : id + ':' + skill),
+    // V4.6. Habitaciones de HOUSE y RETRAIN.
+    houseroom: (r) => void ((ui.houseRoom = r), (ui.trainSel = null)),
+    bedall: () => void (ui.bedAll = !ui.bedAll),
+    trainall: () => void (ui.trainAll = !ui.trainAll),
+    trainsel: (id) => void (ui.trainSel = ui.trainSel && ui.trainSel.id === id ? null : { id, job: '' }),
+    trainjob: (id, job) => void (ui.trainSel = { id, job: job || '' }),
+    // Desde la ficha: HOUSE, TRAINING ROOM, con el ratón y la especialidad ya elegidos.
+    trainroom: (id, job) => {
+      ui.card = null;
+      ui.pick = null;
+      ui.miceTab = '';
+      ui.miceView = 'house';
+      ui.houseRoom = 'training';
+      ui.trainSel = { id, job: job || '' };
+      ui.questHl = '[data-train="' + id + '"]';
+    },
     album: () => void ((ui.miceTab = ui.miceTab === 'album' ? '' : 'album'), ($('sheet-body').scrollTop = 0)),
     dismiss: (id) => void confirmDismiss(id),
     managers: () => void (state.settings.managersBuy = !state.settings.managersBuy),
@@ -2254,7 +2281,7 @@
     if (legends > 3) lines.push('<b class="tleg">' + I.px('star') + ' ...and ' + (legends - 3) + ' more legendary traits.</b> Find them in MICE: ROSTER, show Legendary');
     if (sum.careDone) {
       const pat = CM.mice.byId(state, sum.careDone.id);
-      if (pat) lines.push('Mouse House bed: ' + P.esc(pat.name) + (sum.careDone.kind === 'quirk' ? ' is over <b class="tok">' + TR[sum.careDone.what].name + '</b>' : ' retrained to <b class="tok">' + TR[sum.careDone.to].name + '</b>') + '. The bed is free');
+      if (pat) lines.push((sum.careDone.kind === 'quirk' ? 'Mouse House bed: ' : 'Training room: ') + P.esc(pat.name) + (sum.careDone.kind === 'quirk' ? ' is over <b class="tok">' + TR[sum.careDone.what].name + '</b>' : ' retrained to <b class="tok">' + TR[sum.careDone.to].name + '</b>') + '. The house is free');
     }
     const grew = news.filter((n) => (n.grew || []).some((t) => TR[t] && !isLegend(t)));
     for (const n of grew.slice(0, 4)) lines.push(P.esc(n.name) + ' developed ' + n.grew.filter((t) => TR[t] && !isLegend(t)).map((t) => '<b class="tok">' + TR[t].name + '</b>').join(', '));
@@ -2546,11 +2573,12 @@
   // Aviso en COLONY cuando hay algo que comprar ahí.
   // V4.5: una novedad sin ver enciende el contorno de la pestaña (entra y sale) hasta que entras;
   // lo pendiente (UP!, PICK, +N) es una chapa pequeña mientras dure.
-  function navChip(id, text, fresh) {
+  // V4.6: un solo aviso por pestaña, su contorno amarillo (sin chapas UP!/+N encima, que decían
+  // lo mismo dos veces). Fijo si hay algo pendiente; si además es una novedad sin ver, entra y sale.
+  function navChip(id, pending, fresh) {
     const d = $(id).querySelector('.dot');
-    set(d, 'text', text);
-    set(d, 'on', !!text);
-    set(d, 'new', false);
+    set(d, 'on', false);
+    set($(id), 'pend', !!pending || !!fresh);
     set($(id), 'fresh', !!fresh);
   }
   function updateDots() {
