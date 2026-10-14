@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <title>Cheese Miner V4 Layout</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" />
+    <style>
+      /* V4 (propuesta para aprobar): MAIN refinado sobre la V3 y MICE con equipos y contratación en el puesto.
+         La escena y los sprites son los del juego; lo de alrededor es la maqueta. */
+      :root {
+        --ink: #0c0910;
+        --bg: #1b1622;
+        --panel: #2a2338;
+        --panel-2: #3b3350;
+        --line: #47405c;
+        --muted: #b9b1d0;
+        --gold: #ffcf2e;
+        --yellow: #ffe55c;
+        --green: #5fcf6a;
+        --amber: #ffb35c;
+        --rare: #4a8fe8;
+        --pixel: 'Press Start 2P', ui-monospace, Menlo, monospace;
+        --text: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        color-scheme: dark;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body { background: var(--bg); color: #fff; font-family: var(--pixel); overflow: hidden; -webkit-user-select: none; user-select: none; }
+      .pix { image-rendering: pixelated; }
+      button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; padding: 0; }
+      #app { position: relative; display: flex; flex-direction: column; height: 100%; max-width: 480px; margin: 0 auto; background: var(--panel); }
+      .t { font-family: var(--text); font-weight: 700; }
+
+      /* HUD: monedas y tienda (la de todas las rocas). Sin etiquetas: el icono lo dice. */
+      .hud { display: flex; gap: 6px; padding: calc(6px + env(safe-area-inset-top, 0px)) 8px 6px; }
+      .hc { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; padding: 5px 7px; background: var(--bg); border-radius: 7px; }
+      .hc img { width: 20px; flex: none; }
+      .hc > div { min-width: 0; flex: 1; }
+      .hc b { display: block; font-weight: normal; font-size: 10px; white-space: nowrap; }
+      .hc small { display: block; margin-top: 3px; font-family: var(--text); font-size: 10px; font-weight: 700; color: #8df09a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .meter { height: 3px; margin-top: 3px; background: var(--ink); border-radius: 2px; overflow: hidden; }
+      .meter i { display: block; height: 100%; background: var(--green); }
+      .goal { margin: 0 8px 6px; padding: 5px 8px 6px; font-family: var(--text); font-size: 11px; font-weight: 700; color: #3a2a14; background: #f3e3b6; border-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .goal i { display: block; height: 3px; margin-top: 4px; background: #d9c38a; border-radius: 2px; overflow: hidden; }
+      .goal i i { margin: 0; height: 100%; background: #f5ab12; }
+
+      /* Escena real. */
+      .scene { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+      .scene canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+      .flow { position: absolute; left: 6px; right: 6px; bottom: 6px; display: flex; align-items: center; gap: 2px; }
+      .flow > div { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; padding: 3px 5px; background: #0c0910d9; border-radius: 6px; }
+      .flow img { width: 15px; flex: none; }
+      .flow span { min-width: 0; }
+      .flow b { display: block; font-weight: normal; font-size: 8px; }
+      .flow em { display: block; margin-top: 2px; font-style: normal; font-family: var(--text); font-size: 9px; font-weight: 700; color: #8df09a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .flow em.warn { color: var(--amber); }
+      .flow > i { width: 0; height: 0; flex: none; border: 5px solid transparent; border-right: 0; border-left: 6px solid #ffe55c; }
+
+      /* Etapas: icono, nombre, nivel y una barra; el color de la barra es el estado. Un punto dorado = mejoras listas. */
+      .stages { display: flex; gap: 4px; padding: 8px 8px 0; }
+      .sg { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 5px 1px 5px; background: var(--bg); border-radius: 7px; }
+      .sg img { width: 20px; height: 18px; object-fit: contain; }
+      .sg b { font-weight: normal; font-size: 6px; }
+      .sg u { text-decoration: none; font-size: 5px; color: var(--muted); }
+      .sg .bar { width: 78%; height: 4px; margin-top: 2px; background: var(--ink); border-radius: 2px; overflow: hidden; }
+      .sg .bar i { display: block; height: 100%; background: var(--green); }
+      .sg.search .bar i { background: var(--amber); }
+      .sg.lab { background: #1f2a2f; }
+      .sg.idle b, .sg.idle u { color: #7d7592; }
+      .sg.on { background: var(--panel-2); box-shadow: inset 0 0 0 2px var(--gold); transform: translateY(-2px); }
+      .sg .dot { position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; background: var(--gold); border-radius: 50%; }
+
+      /* Rocas y panel de la etapa elegida. */
+      .rocks { display: flex; gap: 4px; padding: 6px 8px 0; overflow-x: auto; scrollbar-width: none; }
+      .rk { flex: none; display: flex; align-items: center; gap: 4px; padding: 5px 7px; font-family: var(--text); font-size: 11px; font-weight: 700; color: var(--muted); background: var(--bg); border-radius: 6px; }
+      .rk img { width: 13px; }
+      .rk.on { color: #fff; box-shadow: inset 0 0 0 2px var(--gold); }
+      .rk.warn::after { content: ''; width: 6px; height: 6px; margin-left: 2px; background: var(--amber); border-radius: 50%; }
+      .dock { padding: 8px; }
+      .dh { display: flex; align-items: center; gap: 8px; }
+      .dh b { font-weight: normal; font-size: 9px; color: var(--yellow); white-space: nowrap; }
+      .dh .xp { flex: 1; height: 4px; background: var(--ink); border-radius: 2px; overflow: hidden; }
+      .dh .xp i { display: block; height: 100%; background: #4a8fe8; }
+      .st { margin: 5px 0 7px; font-family: var(--text); font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .st em { font-style: normal; color: var(--amber); }
+      .acts { display: flex; gap: 6px; }
+      .main { position: relative; flex: 1.35; min-height: 62px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; overflow: hidden; border-radius: 9px; box-shadow: inset 0 3px 0 #ffffff40, inset 0 -4px 0 #00000040; }
+      .main .fill { position: absolute; inset: 0 auto 0 0; background: #ffffff40; }
+      .main b { position: relative; font-weight: normal; font-size: 13px; text-shadow: 2px 2px var(--ink); }
+      .main small { position: relative; font-family: var(--text); font-size: 11px; font-weight: 700; text-shadow: 1px 1px var(--ink); }
+      .main.mine { background: #ff9a1f; }
+      .main.cheese { background: #d9a514; }
+      .who { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 4px 6px; text-align: left; background: var(--bg); border-radius: 8px; }
+      .who img { width: 30px; flex: none; }
+      .who span { min-width: 0; }
+      .who b { display: block; font-family: var(--text); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .who small { display: block; margin-top: 2px; font-family: var(--text); font-size: 10px; font-weight: 600; color: var(--muted); }
+      .ups { display: flex; gap: 6px; margin-top: 7px; }
+      .ups button { flex: 1; min-width: 0; min-height: 44px; padding: 5px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: var(--bg); border-radius: 7px; }
+      .ups b { font-family: var(--text); font-size: 11px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+      .ups small { font-family: var(--text); font-size: 10px; font-weight: 700; color: var(--muted); }
+      .ups .can { background: #2f5c3a; }
+      .ups .can small { color: #c9f5cf; }
+      .nav { display: flex; gap: 5px; padding: 6px 8px calc(8px + env(safe-area-inset-bottom, 0px)); }
+      .nav button { flex: 1; min-height: 38px; font-size: 7px; background: var(--bg); border-radius: 7px; }
+      .nav small { display: block; margin-top: 3px; font-family: var(--text); font-size: 9px; font-weight: 700; color: var(--amber); }
+
+      /* MICE. */
+      .mice { flex: 1; min-height: 0; overflow-y: auto; padding: 0 8px 8px; }
+      .mtop { display: flex; align-items: center; gap: 8px; padding: 2px 0 8px; }
+      .mtop h2 { margin: 0; font-weight: normal; font-size: 11px; color: var(--yellow); }
+      .mtop .cnt { font-family: var(--text); font-size: 12px; font-weight: 700; color: var(--muted); }
+      .mtop .cnt.full { color: #8df09a; }
+      .mtop .cnt.gap { color: var(--amber); }
+      .hire { margin-left: auto; padding: 9px 12px; font-size: 8px; color: var(--ink); background: var(--yellow); border-radius: 7px; box-shadow: 0 3px 0 var(--ink); }
+      .hire.calm { color: #fff; background: var(--panel-2); }
+      .hire.pulse { animation: soft 2.4s ease-in-out infinite; }
+      @keyframes soft { 50% { box-shadow: 0 3px 0 var(--ink), 0 0 0 4px #ffe55c33; } }
+      @media (prefers-reduced-motion: reduce) { .hire.pulse { animation: none; } }
+      .tools { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 10px; }
+      .tools button { min-height: 40px; padding: 4px 2px; font-size: 6px; background: var(--bg); border-radius: 7px; }
+      .tools small { display: block; margin-top: 4px; font-family: var(--text); font-size: 10px; font-weight: 700; color: var(--muted); }
+      .tools .up small { color: #8df09a; }
+      .team { margin-bottom: 8px; padding: 7px; background: var(--bg); border-radius: 9px; }
+      .team h4 { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; font-weight: normal; font-size: 7px; }
+      .team h4 img { width: 13px; }
+      .team h4 span { margin-left: auto; font-family: var(--text); font-size: 11px; color: var(--muted); }
+      .posts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+      .posts.two { grid-template-columns: repeat(2, 1fr); }
+      .post { position: relative; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px 5px; background: var(--panel); border-radius: 7px; }
+      .post img.m { width: 34px; }
+      .post img.j { position: absolute; top: 4px; left: 4px; width: 11px; }
+      .post b { max-width: 100%; font-family: var(--text); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .post small { font-family: var(--text); font-size: 9px; font-weight: 700; color: var(--muted); }
+      .post .up { position: absolute; top: 3px; right: 3px; width: 7px; height: 7px; background: #8df09a; border-radius: 50%; }
+      .post.empty { justify-content: center; min-height: 70px; color: var(--amber); background: transparent; box-shadow: inset 0 0 0 2px #ffb35c88; border-radius: 7px; }
+      .post.empty b { color: var(--amber); font-family: var(--pixel); font-weight: normal; font-size: 7px; }
+      .post.empty i { font-style: normal; font-size: 16px; }
+      .post.sel { box-shadow: inset 0 0 0 2px var(--yellow); }
+
+      /* Hoja de un puesto: contratar ahí o mover a alguien que ya tienes. */
+      .shade { position: absolute; inset: 0; background: #0c0910b3; }
+      .sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 82%; overflow-y: auto; padding: 12px 10px calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--panel); border-top: 3px solid var(--gold); border-radius: 12px 12px 0 0; }
+      .sheet h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; font-weight: normal; font-size: 10px; color: var(--yellow); }
+      .sheet h3 img { width: 18px; }
+      .sheet h3 span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .sheet h3 button { margin-left: auto; flex: none; padding: 6px 8px; font-size: 7px; background: var(--bg); border-radius: 6px; }
+      .sheet .sub { margin: 0 0 10px; font-family: var(--text); font-size: 12px; font-weight: 600; color: var(--muted); }
+      .sec { margin: 10px 0 6px; font-size: 7px; color: var(--muted); }
+      .price { display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--bg); border-radius: 9px; }
+      .price img { width: 22px; }
+      .price b { font-weight: normal; font-size: 13px; }
+      .price span { font-family: var(--text); font-size: 12px; font-weight: 600; color: var(--muted); }
+      .price button { margin-left: auto; flex: none; white-space: nowrap; padding: 11px 10px; font-size: 8px; color: var(--ink); background: var(--yellow); border-radius: 7px; box-shadow: 0 3px 0 var(--ink); }
+      .price button.sure { color: #fff; background: #e0661f; }
+      .move { display: flex; align-items: center; gap: 8px; margin-top: 5px; padding: 6px 8px; background: var(--bg); border-radius: 8px; }
+      .move img { width: 30px; }
+      .move span { flex: 1; min-width: 0; }
+      .move b { display: block; font-family: var(--text); font-size: 12px; }
+      .move small { display: block; margin-top: 2px; font-family: var(--text); font-size: 10px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .move button { padding: 8px 9px; font-size: 7px; background: var(--panel-2); border-radius: 6px; }
+      .cands { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+      .cand { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 4px 8px; text-align: center; background: var(--bg); border-radius: 9px; box-shadow: inset 0 0 0 2px var(--fr); }
+      .cand img { width: 46px; }
+      .cand b { max-width: 100%; font-family: var(--text); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .cand .rar { font-size: 6px; color: var(--fr); }
+      .cand .rate { font-family: var(--text); font-size: 11px; font-weight: 700; color: #8df09a; }
+      .cand ul { width: 100%; margin: 3px 0 0; padding: 0; list-style: none; font-family: var(--text); font-size: 10px; font-weight: 600; color: var(--muted); }
+      .cand li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .cand li.h { color: #ff8fa8; }
+      .cand.pick { background: #2f2944; box-shadow: inset 0 0 0 3px var(--yellow); }
+      .confirm { width: 100%; margin-top: 10px; padding: 13px; font-size: 9px; color: var(--ink); background: var(--yellow); border-radius: 8px; box-shadow: 0 3px 0 var(--ink); }
+      .note { margin: 8px 0 0; font-family: var(--text); font-size: 11px; font-weight: 600; color: var(--muted); }
+
+      .v4pick { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(60px + env(safe-area-inset-bottom, 0px)); z-index: 9; display: flex; gap: 3px; padding: 3px; background: #000d; border-radius: 6px; }
+      .v4pick button { padding: 6px 6px; font-size: 6px; background: var(--panel-2); border-radius: 4px; }
+      .v4pick button.on { background: var(--yellow); color: var(--ink); }
+      .v4pick.hide { display: none; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div class="v4pick" id="pick"></div>
+    <script src="../js/game/config/balance.js"></script>
+    <script src="../js/game/config/traits.js"></script>
+    <script src="../js/playtest/telemetry.js"></script>
+    <script src="../js/game/state.js"></script>
+    <script src="../js/game/systems/skills.js"></script>
+    <script src="../js/game/systems/mice.js"></script>
+    <script src="../js/game/systems/production.js"></script>
+    <script src="../js/game/systems/cheesery.js"></script>
+    <script src="../js/game/simulation.js"></script>
+    <script src="../js/storage.js"></script>
+    <script src="../js/ui/icons.js"></script>
+    <script src="../js/ui/scene.js"></script>
+    <script src="../js/ui/panels.js"></script>
+    <script>
+      (async function () {
+        const B = CM.BALANCE, q = CM.q, K = CM.mice, I = CM.icons, M = B.mice;
+        const qs = new URLSearchParams(location.search);
+        let S = qs.get('s') || 'main';
+        if (qs.get('clean')) document.getElementById('pick').classList.add('hide');
+        const STATES = [['main', 'MAIN'], ['stuck', 'VEIN'], ['vacant', 'MICE'], ['post', 'POST'], ['pay', 'PAY'], ['cands', 'PICK'], ['full', 'FULL']];
+        const text = await fetch('mid.json').then((r) => r.text());
+        const fmt = CM.fmt;
+        const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+        const JOBS = ['mining', 'drilling', 'refining', 'cheesemaking'];
+        const STAGES = [['rock', 'MINE', 'mining', 'pick'], ['drill', 'DRILL', 'drilling', 'raw'], ['refinery', 'REFINE', 'refining', 'base'], ['cheesery', 'CHEESE', 'cheesemaking', 'lot'], ['shop', 'SELL', 'trading', 'coin'], ['lab', 'LAB', '', 'flask']];
+        const RAR = [['COMMON', '#8b8496'], ['RARE', '#4a8fe8'], ['LEGENDARY', '#ffcf2e']];
+        let s, ZONE, scene;
+
+        // Cada estado parte de la misma colonia media de verdad.
+        function setup(state) {
+          s = CM.storage.parse(text, Date.now());
+          ZONE = state === 'stuck' ? 'emmental' : 'blue';
+          if (state !== 'full') {
+            for (const m of s.mice) if (m.post === 'drilling:gouda' || m.post === 'refining:brie') { m.post = ''; m.rest = true; }
+          }
+          // Con todo cubierto, tres mineros ya tienen nivel para ascender: así se ve el acceso a PROMOTE.
+          if (state === 'full') for (const m of s.mice.filter((x) => x.rank === 1).slice(0, 3)) while (K.level(m) < 26) m.xp = m.xp * 1.4 + 100;
+          for (let i = 0; i < 14; i++) { CM.sim.advance(s, 5000, 100); CM.telemetry.sample(s); stuck(); }
+        }
+        const stuck = () => { if (S !== 'stuck') return; const z = s.zones.emmental; z.veinRevealed = false; z.veinRemaining = 0; z.drillJob = null; z.discover = Math.min(z.discover, q.veinHits(s, 'emmental') * 0.35); s.inv.raw.emmental = 0; };
+        const icon = (k, base) => I.url(k, base || q.zoneDef(ZONE).base);
+        const rates = () => CM.telemetry.rates(s);
+        const cap = () => { const w = K.work(s, 'trading', 'all'); return (q.sellCount(s) / (q.sellDuration(s) / 1000 / (w ? w.speed : 1))) * 60; };
+        const posts = () => K.posts(s);
+        const empties = () => posts().filter((p) => !K.at(s, p.skill, p.zone));
+        const hearts = (a) => (a ? (a === 2 ? '♥♥' : '♥') : '');
+
+        const hud = () => { const r = rates(); return '<div class="hud"><div class="hc"><img class="pix" src="' + I.url('coin') + '" alt="" /><div><b>' + fmt(s.coins) + '</b><small>+' + fmt(Math.round(r.coins)) + '/min</small></div></div><div class="hc"><img class="pix" src="' + I.url('lot', 'cheddar') + '" alt="" /><div><b>' + fmt(q.lotsTotal(s)) + '</b><small>sells ' + fmt(Math.round(r.sold)) + '/min</small><div class="meter"><i style="width:' + Math.min(100, Math.round(((r.sold - r.whole) / cap()) * 100)) + '%"></i></div></div></div></div>'; };
+        const nav = () => { const e = empties().length; return '<div class="nav"><button>COLONY</button><button>MICE' + (e ? '<small>' + e + ' empty</small>' : '') + '</button><button>BOOSTS</button><button>MENU</button></div>'; };
+
+        // ---------- MAIN ----------
+        function mainView(stuckMode) {
+          const r = rates();
+          const def = q.zoneDef(ZONE);
+          const lane = r.lanes[ZONE];
+          const z = s.zones[ZONE];
+          const search = z.discover / q.veinHits(s, ZONE);
+          const flow = '<div class="flow"><div><img class="pix" src="' + icon('raw') + '" alt="" /><span><b>' + fmt(s.inv.raw[def.base]) + '</b><em' + (stuckMode ? ' class="warn">finding a vein' : '>all refined') + '</em></span></div><i></i><div><img class="pix" src="' + icon('base') + '" alt="" /><span><b>' + fmt(s.inv.base[def.base]) + '</b><em>all cooked</em></span></div><i></i><div><img class="pix" src="' + icon('lot') + '" alt="" /><span><b>+' + fmt(Math.round(lane.lots)) + '</b><em>/min to shop</em></span></div></div>';
+          const sel = stuckMode ? 'rock' : 'cheesery';
+          const stages = '<div class="stages">' + STAGES.map(([st, name, skill, ic]) => {
+            const lv = skill ? q.level(s, skill) : null;
+            const ups = skill ? CM.tree.affordable(s, skill, true) : 0;
+            const searching = st === 'rock' && stuckMode;
+            const idle = stuckMode && (st === 'drill' || st === 'refinery');
+            const fill = searching ? Math.round(search * 100) : idle ? 0 : st === 'lab' ? 55 : [70, 40, 60, 85, 30][STAGES.findIndex((x) => x[0] === st)];
+            return '<button class="sg' + (st === sel ? ' on' : '') + (searching ? ' search' : '') + (idle ? ' idle' : '') + (st === 'lab' ? ' lab' : '') + '"><img class="pix" src="' + (ic === 'flask' ? I.url('flask') : ic === 'pick' ? I.url('pick') : ic === 'coin' ? I.url('coin') : icon(ic)) + '" alt="" /><b>' + name + '</b><u>' + (lv ? 'LV ' + lv : 'LAB') + '</u><i class="bar"><i style="width:' + fill + '%"></i></i>' + (ups ? '<i class="dot"></i>' : '') + '</button>';
+          }).join('') + '</div>';
+          const rocks = '<div class="rocks">' + q.openZones(s).map((d) => '<button class="rk' + (d.id === ZONE ? ' on' : '') + (stuckMode && d.id === 'emmental' && d.id !== ZONE ? ' warn' : '') + '"><img class="pix" src="' + I.url('raw', d.base) + '" alt="" />' + B.bases[d.base].name + '</button>').join('') + '</div>';
+          let dock;
+          if (stuckMode) {
+            const miner = K.at(s, 'mining', ZONE);
+            const p = q.xpProgress(s, 'mining');
+            dock = '<div class="dh"><b>MINING · LV ' + p.level + '</b><i class="xp"><i style="width:' + Math.round((p.cur / p.need) * 100) + '%"></i></i></div><p class="st">' + def.name + ' · <em>searching for the next vein</em></p><div class="acts"><button class="main mine"><i class="fill" style="width:' + Math.round(search * 100) + '%"></i><b>MINE</b><small>' + Math.round(search * 100) + '% found · tap to dig</small></button><button class="who"><img class="pix" src="' + CM.mouseUrl(miner) + '" alt="" /><span><b>' + esc(miner.name) + '</b><small>digging</small></span></button></div>';
+            dock += ups('mining');
+          } else {
+            const cook = K.at(s, 'cheesemaking', ZONE);
+            const p = q.xpProgress(s, 'cheesemaking');
+            const rec = CM.cheesery.laneRecipe(s, ZONE);
+            dock = '<div class="dh"><b>CHEESEMAKING · LV ' + p.level + '</b><i class="xp"><i style="width:' + Math.round((p.cur / p.need) * 100) + '%"></i></i></div><p class="st">Making ' + esc(rec ? rec.name : 'cheese') + '</p><div class="acts"><button class="main cheese"><i class="fill" style="width:62%"></i><b>SPEED UP</b><small>hold to boost</small></button><button class="who"><img class="pix" src="' + CM.mouseUrl(cook) + '" alt="" /><span><b>' + esc(cook.name) + '</b><small>LV ' + K.level(cook) + ' ' + M.ranks[cook.rank].name + '</small></span></button></div>';
+            dock += ups('cheesemaking');
+          }
+          return hud() + '<div class="goal">GOAL: New milestone in CHEESE upgrades: Grand Wheel<i><i style="width:0%"></i></i></div><div class="scene" id="sc"><canvas id="cv"></canvas>' + flow + '</div>' + stages + rocks + '<div class="dock">' + dock + '</div>' + nav();
+        }
+        function ups(skill) {
+          let pick = null;
+          for (const node of B.trees[skill]) { const info = CM.tree.info(s, skill, node.id); if (!node.unlock && !node.key && !info.locked && !info.maxed && (!pick || info.cost < pick.cost)) pick = { name: node.name, cost: info.cost, can: info.canBuy }; }
+          const n = CM.tree.affordable(s, skill, true);
+          const sw = CM.tree.sweep(s, true);
+          return '<div class="ups"><button class="' + (pick && pick.can ? 'can' : '') + '"><b>' + (pick ? esc(pick.name) : 'ALL MAXED') + '</b><small>' + (pick ? fmt(pick.cost) : '') + '</small></button><button><b>UPGRADES</b><small>' + (n ? n + ' ready' : 'tree') + '</small></button><button class="' + (sw.bought ? 'can' : '') + '"><b>BUY ALL</b><small>' + (sw.bought ? sw.bought + ' · ' + fmt(sw.cost) : 'next ' + fmt(sw.next ? sw.next.cost : 0)) + '</small></button></div>';
+        }
+
+        // ---------- MICE ----------
+        const job = (k) => ({ mining: 'pick', drilling: 'raw', refining: 'base', cheesemaking: 'lot', trading: 'coin', research: 'flask' })[k];
+        function postTile(skill, zone, sel) {
+          const m = K.at(s, skill, zone);
+          const base = zone === 'all' ? 'cheddar' : q.zoneDef(zone).base;
+          const ji = job(skill) === 'pick' || job(skill) === 'coin' || job(skill) === 'flask' ? I.url(job(skill)) : I.url(job(skill), base);
+          if (!m) return '<button class="post empty' + (sel ? ' sel' : '') + '"><i>+</i><b>HIRE</b><small>' + B.skills[skill].name + '</small></button>';
+          const pr = K.promoteInfo(s, m);
+          return '<button class="post"><img class="pix j" src="' + ji + '" alt="" /><img class="pix m" src="' + CM.mouseUrl(m) + '" alt="" /><b>' + esc(m.name) + '</b><small>LV ' + K.level(m) + '</small>' + (pr.can ? '<i class="up"></i>' : '') + '</button>';
+        }
+        function miceView(mode) {
+          const e = empties();
+          const total = posts().length;
+          const promo = s.mice.filter((m) => K.promoteInfo(s, m).can).length;
+          let h = hud() + '<div class="mice"><div class="mtop"><h2>CREW</h2><span class="cnt ' + (e.length ? 'gap' : 'full') + '">' + (total - e.length) + '/' + total + (e.length ? ' · ' + e.length + ' empty' : ' · all staffed') + '</span><button class="hire ' + (e.length ? 'pulse' : 'calm') + '">' + (e.length ? 'HIRE' : 'FIND BETTER') + '</button></div>';
+          h += '<div class="tools"><button class="' + (promo ? 'up' : '') + '">PROMOTE<small>' + (promo ? promo + ' ready' : 'none') + '</small></button><button>BEST FIT<small>auto place</small></button><button>ROSTER<small>' + s.mice.length + ' mice</small></button><button>HOUSE<small>bed · album</small></button></div>';
+          h += '<div class="team"><h4><img class="pix" src="' + I.url('coin') + '" alt="" />WHOLE COLONY<span>shop and lab</span></h4><div class="posts two">' + postTile('trading', 'all') + postTile('research', 'all') + '</div></div>';
+          for (const d of q.openZones(s)) {
+            const n = JOBS.filter((j) => K.at(s, j, d.id)).length;
+            h += '<div class="team"><h4><img class="pix" src="' + I.url('raw', d.base) + '" alt="" />' + d.name.toUpperCase() + '<span>' + n + '/4</span></h4><div class="posts">' + JOBS.map((j) => postTile(j, d.id, mode !== 'vacant' && mode !== 'full' && j === 'drilling' && d.id === 'gouda')).join('') + '</div></div>';
+          }
+          h += '</div>' + nav();
+          if (mode === 'post' || mode === 'pay') h += '<div class="shade"></div>' + postSheet(mode === 'pay');
+          if (mode === 'cands') h += '<div class="shade"></div>' + candSheet();
+          return h;
+        }
+        const POST = ['drilling', 'gouda'];
+        function postSheet(pay) {
+          const cost = K.recruitCost(s);
+          // Ratones que ya tienes y que rendirían aquí: los de más rendimiento por sí solos en este puesto.
+          const all = s.mice.filter((m) => m.post !== POST[0] + ':' + POST[1]).map((m) => ({ m, v: K.solo(m, POST[0], s, POST[1]) })).sort((a, b) => b.v - a.v);
+          const best = all.filter((x) => !x.m.post).slice(0, 2).concat(all.filter((x) => x.m.post).slice(0, 2));
+          const from = (m) => (m.post ? 'leaves ' + K.postLabel(m.post) + ' empty' : 'free');
+          return '<div class="sheet"><h3><img class="pix" src="' + I.url('raw', 'gouda') + '" alt="" /><span>GOUDA DRILL</span><button>CLOSE</button></h3><p class="sub">This post has no mouse: the Gouda drill is stopped.</p><div class="sec">HIRE A NEW MOUSE</div><div class="price"><img class="pix" src="' + I.url('coin') + '" alt="" /><div><b>' + fmt(cost) + '</b><span><br />' + (pay ? 'tap again to pay' : 'to meet three candidates') + '</span></div><button' + (pay ? ' class="sure"' : '') + '>' + (pay ? 'PAY ' + fmt(cost) : 'MEET THEM') + '</button></div><div class="sec">OR MOVE ONE YOU HAVE</div>' + best.map((x) => '<div class="move"><img class="pix" src="' + CM.mouseUrl(x.m) + '" alt="" /><span><b>' + esc(x.m.name) + ' ' + hearts(x.m.aff.drilling) + '</b><small>' + CM.mouseRate(s, x.m, POST[0], POST[1]) + ' here · ' + esc(from(x.m)) + '</small></span><button>MOVE</button></div>').join('') + '</div>';
+        }
+        let cands = null;
+        function candSheet() {
+          if (!cands) {
+            const c0 = s.coins;
+            s.coins = 1e40;
+            s.candidates = [];
+            K.offer(s);
+            s.coins = c0;
+            cands = s.candidates.map((c, i) => K.normalize(Object.assign({ id: 'c' + i, xp: 0, rank: 0, post: '', rest: false, aff: {}, traits: [] }, JSON.parse(JSON.stringify(c)))));
+          }
+          const card = (m, i) => {
+            const rar = RAR[m.rarity || 0];
+            const tr = (m.traits || []).slice(0, 2).map((id) => '<li' + (M.traits[id] && M.traits[id].kind === 'quirk' ? ' style="color:#ff8fa0"' : '') + '>' + esc(M.traits[id] ? M.traits[id].name : id) + '</li>').join('');
+            return '<button class="cand' + (i === 1 ? ' pick' : '') + '" style="--fr:' + rar[1] + '"><img class="pix" src="' + CM.mouseUrl(m, 'drilling') + '" alt="" /><b>' + esc(m.name) + '</b><span class="rar">' + rar[0] + '</span><span class="rate">' + CM.mouseRate(s, m, POST[0], POST[1]).replace(' every ', '/') + '</span><ul>' + (m.aff.drilling ? '<li class="h">' + hearts(m.aff.drilling) + ' drilling</li>' : '<li>no affinity</li>') + tr + '</ul></button>';
+          };
+          return '<div class="sheet"><h3><img class="pix" src="' + I.url('raw', 'gouda') + '" alt="" /><span>GOUDA DRILL</span><button>CLOSE</button></h3><p class="sub">You paid ' + fmt(K.recruitCost(s)) + ' to meet them. Pick one: it starts on this drill right away. The others leave.</p><div class="cands">' + cands.map(card).join('') + '</div><button class="confirm">HIRE ' + esc(cands[1].name.toUpperCase()) + ' FOR THE DRILL</button><p class="note">Their rate is what each one would make here on its own, at level 1.</p></div>';
+        }
+
+        function render() {
+          setup(S);
+          cands = null;
+          const app = document.getElementById('app');
+          app.innerHTML = S === 'main' ? mainView(false) : S === 'stuck' ? mainView(true) : miceView(S);
+          const cv = document.getElementById('cv');
+          scene = cv ? CM.createScene(cv) : null;
+          if (scene) { scene.resize(); scene.focus(S === 'stuck' ? 'rock' : 'cheesery'); }
+          document.getElementById('pick').innerHTML = STATES.map(([k, n]) => '<button data-s="' + k + '" class="' + (k === S ? 'on' : '') + '">' + n + '</button>').join('');
+        }
+        document.getElementById('pick').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { S = b.dataset.s; render(); } });
+        render();
+        let last = performance.now();
+        function frame(t) {
+          const dt = Math.min(250, t - last);
+          last = t;
+          CM.sim.advance(s, dt, 100);
+          stuck();
+          CM.events.length = 0;
+          if (scene) scene.draw(s, Date.now(), dt / 1000, ZONE);
+          requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+      })();
+    </script>
+  </body>
+</html>
