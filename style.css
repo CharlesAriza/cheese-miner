@@ -6880,25 +6880,43 @@ div.mc-row {
   font-family: var(--pixel);
   font-weight: normal;
   font-size: 8px;
-  color: var(--good);
+  color: var(--muted);
 }
 .mcx-occ span {
   font-size: 12px;
   font-weight: 700;
-  color: var(--good);
+  color: var(--muted);
 }
 .mcx-occ.gap b,
 .mcx-occ.gap span {
-  color: #ffb35c;
+  color: var(--vac);
 }
 .panel button.mcx-undo {
   margin-left: auto;
-  padding: 6px 8px;
+}
+/* Botón pequeño en pixel art: sin esquinas redondas, borde de tinta, sombra dura y al pulsar baja. */
+.panel .mcx-pixbtn,
+.mcx-fx .mcx-pixbtn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 8px 6px;
+  font-family: var(--pixel);
   font-size: 7px;
   color: #fff;
-  background: var(--panel-2);
+  background: #4a3f66;
   border: 2px solid var(--ink);
-  border-radius: 6px;
+  border-radius: 0;
+  box-shadow: inset 0 2px 0 #ffffff33, inset 0 -2px 0 #0c091066, 0 3px 0 var(--ink);
+}
+.mcx-pixbtn:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 2px 0 #ffffff33, 0 1px 0 var(--ink);
+}
+.mcx-pixbtn img {
+  width: 14px;
+  height: 12px;
 }
 .mcx-tip {
   margin: -2px 2px 8px;
@@ -6909,19 +6927,19 @@ div.mc-row {
 
 /* Un puesto vacío late despacio (borde y signo +) hasta que alguien lo ocupa. */
 .panel button.mc-post.empty.mcx-vac {
-  border-color: #ffb35c99;
-  animation: mcx-vac 2.6s ease-in-out infinite;
+  border-color: var(--vac-soft);
+  animation: mcx-vac 2.6s steps(4) infinite;
 }
 .mc-post.mcx-vac .mc-face.hole {
-  color: #ffb35c;
-  border-color: #ffb35c;
+  color: var(--vac);
+  border-color: var(--vac);
   font-size: 16px;
 }
 .mc-post.mcx-vac b {
   font-family: var(--pixel);
   font-weight: normal;
   font-size: 7px;
-  color: #ffb35c;
+  color: var(--vac);
 }
 .mc-post.mcx-vac em {
   margin-top: 2px;
@@ -6929,14 +6947,14 @@ div.mc-row {
   color: #f3e3b6;
 }
 .mc-face.mini.hole.mcx-vac {
-  color: #ffb35c;
-  border-color: #ffb35c;
-  animation: mcx-vac 2.6s ease-in-out infinite;
+  color: var(--vac);
+  border-color: var(--vac);
+  animation: mcx-vac 2.6s steps(4) infinite;
 }
 @keyframes mcx-vac {
   50% {
-    border-color: var(--gold);
-    box-shadow: 0 0 0 3px #ffcf2e2e;
+    border-color: var(--vac);
+    box-shadow: 0 0 0 3px var(--vac-glow);
   }
 }
 
@@ -7109,30 +7127,39 @@ div.mc-row {
   position: absolute;
   left: 8px;
   right: 8px;
-  bottom: calc(100% + 6px);
+  bottom: calc(100% + 8px);
   z-index: 2;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 7px 8px;
   font-family: var(--text);
-  background: #1b1622f2;
-  border: 2px solid var(--gold);
-  border-radius: 9px;
+  background: var(--bg);
+  border: 3px solid var(--gold);
+  box-shadow: 0 0 0 3px var(--ink), 0 6px 0 3px #0c091099;
   pointer-events: none;
 }
 .mcx-fx[hidden] {
   display: none;
 }
 .mcx-fx.in {
-  animation: mcx-fx 0.2s ease-out;
+  animation: mcx-fx 0.24s steps(3);
+}
+.mcx-fx.out {
+  animation: mcx-fxout 0.24s steps(3) forwards;
+}
+@keyframes mcx-fxout {
+  to {
+    transform: translateY(-12px);
+    opacity: 0;
+  }
 }
 .mcx-fx button {
   pointer-events: auto;
 }
 @keyframes mcx-fx {
   from {
-    transform: translateY(6px);
+    transform: translateY(-12px);
     opacity: 0;
   }
 }
@@ -7160,7 +7187,7 @@ div.mc-row {
   font-size: 11px;
   font-weight: 700;
   background: var(--panel-2);
-  border-radius: 4px;
+  box-shadow: inset 0 -2px 0 var(--ink);
 }
 .mcx-fx .up {
   color: var(--good);
@@ -7254,4 +7281,439 @@ div.mc-row {
   outline: 3px solid var(--gold);
   outline-offset: -3px;
   background: #4a3f2a;
+}
+
+/* ---------- V4.1: vacantes en verde (prueba). Para volver al ámbar: #ffb35c en --vac. ---------- */
+:root {
+  --vac: #6fdc7c;
+  --vac-soft: #6fdc7c88;
+  --vac-glow: #6fdc7c33;
+}
+
+/* ---------- V4.1: ascensos uno a uno (clases pv-) ---------- */
+.pv-card {
+  position: relative;
+  text-align: center;
+}
+.pv-count {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-family: var(--pixel);
+  font-size: 7px;
+}
+.pv-card h2 {
+  margin: 4px 0 8px;
+}
+.pv-card.r2 h2 {
+  color: #ff7a6a;
+}
+.pv-card.r3 h2 {
+  font-size: 16px;
+  color: var(--gold);
+  text-shadow: 3px 3px 0 #5f3590;
+}
+.pv-stage {
+  position: relative;
+  width: 120px;
+  height: 96px;
+  margin: 0 auto 6px;
+  background: #1b1622;
+  border: 3px solid var(--ink);
+  box-shadow: inset 0 0 0 2px #3b3350;
+  overflow: hidden;
+}
+.pv-stage img {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  width: 84px;
+  margin-left: -42px;
+  image-rendering: pixelated;
+}
+/* Antes: parpadea a saltos y se va. Después: aparece con un destello y un rebote en tres pasos. */
+.pv-before {
+  animation: pv-out 0.9s steps(1) forwards;
+}
+.pv-after {
+  opacity: 0;
+  animation: pv-in 0.9s steps(1) forwards;
+}
+@keyframes pv-out {
+  0%,
+  35% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 0;
+  }
+  45% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  55% {
+    opacity: 1;
+  }
+  60%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes pv-in {
+  0%,
+  59% {
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+    filter: brightness(4);
+    transform: scale(1.25);
+  }
+  70% {
+    filter: none;
+    transform: scale(0.9);
+  }
+  82% {
+    transform: scale(1.08);
+  }
+  92%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* Destello: cuatro píxeles grandes que saltan hacia fuera. */
+.pv-spark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  opacity: 0;
+  animation: pv-spark 0.9s steps(1) forwards;
+}
+@keyframes pv-spark {
+  0%,
+  59% {
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+    box-shadow: -14px -14px 0 #fff, 14px -14px 0 #fff, -14px 14px 0 #fff, 14px 14px 0 #fff;
+  }
+  72% {
+    box-shadow: -26px -26px 0 #ffe55c, 26px -26px 0 #ffe55c, -26px 26px 0 #ffe55c, 26px 26px 0 #ffe55c;
+  }
+  84% {
+    box-shadow: -38px -38px 0 #ffb35c, 38px -38px 0 #ffb35c, -38px 38px 0 #ffb35c, 38px 38px 0 #ffb35c;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+/* Master y Manager: más largo y con rayos de fondo que giran a saltos. */
+.pv-card.special .pv-before,
+.pv-card.special .pv-after,
+.pv-card.special .pv-spark {
+  animation-duration: 1.5s;
+}
+.pv-rays {
+  position: absolute;
+  inset: -40px;
+  opacity: 0;
+  background: repeating-conic-gradient(from 0deg, #ffcf2e33 0deg 15deg, transparent 15deg 30deg);
+  animation: pv-rays 1.5s steps(1) forwards, pv-spin 2.4s steps(6) 1.5s infinite;
+}
+.pv-card.r3 .pv-rays {
+  background: repeating-conic-gradient(from 0deg, #ffcf2e55 0deg 12deg, #9a5fd033 12deg 24deg);
+}
+@keyframes pv-rays {
+  0%,
+  59% {
+    opacity: 0;
+  }
+  60%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes pv-spin {
+  to {
+    transform: rotate(60deg);
+  }
+}
+.pv-card.fast .pv-before,
+.pv-card.fast .pv-after,
+.pv-card.fast .pv-spark,
+.pv-card.fast .pv-rays {
+  animation-duration: 0.5s;
+}
+.pv-card.special.fast .pv-before,
+.pv-card.special.fast .pv-after,
+.pv-card.special.fast .pv-spark {
+  animation-duration: 0.9s;
+}
+.pv-who {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 6px;
+  font-family: var(--text);
+}
+.pv-who b {
+  font-size: 14px;
+}
+.pv-who span {
+  font-family: var(--pixel);
+  font-size: 7px;
+  color: var(--muted);
+}
+.pv-who u {
+  text-decoration: none;
+  color: #ffe55c;
+}
+.pv-gains {
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+  font-family: var(--text);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.pv-gains li + li {
+  margin-top: 4px;
+}
+.pv-unlock {
+  display: inline-block;
+  padding: 3px 6px;
+  font-family: var(--pixel);
+  font-size: 8px;
+  font-weight: normal;
+  color: var(--ink);
+  background: var(--gold);
+  box-shadow: 0 2px 0 #9c6f12;
+}
+.pv-team {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 0 0 10px;
+}
+.pv-team figure {
+  margin: 0;
+}
+.pv-team img {
+  width: 48px;
+  image-rendering: pixelated;
+}
+.pv-team figcaption {
+  font-family: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+}
+.pv-team small {
+  display: block;
+  font-family: var(--pixel);
+  font-size: 6px;
+  color: #ffe55c;
+}
+.pv-team .r3 small {
+  color: var(--gold);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pv-before {
+    animation: none;
+    opacity: 0;
+  }
+  .pv-after {
+    animation: none;
+    opacity: 1;
+  }
+  .pv-spark,
+  .pv-rays {
+    animation: none;
+  }
+}
+
+/* ---------- V4.1: ascenso disponible arriba de la ficha (clases mc-pt) ---------- */
+.mc-ptop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  padding: 8px;
+  font-family: var(--text);
+  background: #23331f;
+  border: 3px solid var(--good);
+  box-shadow: 0 3px 0 var(--ink);
+}
+.mc-ptop.short {
+  background: var(--bg);
+  border-color: #4a4458;
+}
+.mc-ptop > div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.mc-ptop > div > b {
+  font-family: var(--pixel);
+  font-weight: normal;
+  font-size: 7px;
+  color: var(--good);
+}
+.mc-ptop.short > div > b {
+  color: var(--muted);
+}
+.mc-ptop u {
+  text-decoration: none;
+  color: #ffe55c;
+  font-weight: 700;
+}
+.mc-ptop .pv-unlock {
+  padding: 1px 3px;
+  font-size: 6px;
+}
+.mc-ptarrow {
+  font-style: normal;
+  color: var(--muted);
+}
+.mc-ptop small.mc-ptshort {
+  color: var(--bad);
+}
+.mc-ptop button {
+  flex: none;
+}
+
+/* ---------- V4.1: la cama (clases mch-) ---------- */
+.mc-h .mch-ico {
+  width: 14px;
+  height: 12px;
+  margin-right: 6px;
+  vertical-align: -2px;
+}
+.mcx-bed {
+  position: absolute;
+  left: 1px;
+  bottom: 1px;
+  width: 28px;
+  image-rendering: pixelated;
+}
+.mch-room {
+  position: relative;
+  height: 112px;
+  margin: 0 0 6px;
+  overflow: hidden;
+  /* pared a rayas y suelo de tablas, a bloques */
+  background:
+    linear-gradient(#5a4632 0 0) bottom / 100% 20px no-repeat,
+    repeating-linear-gradient(90deg, #3b3350 0 12px, #342d47 12px 24px);
+  border: 3px solid var(--ink);
+}
+.mch-room::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 20px;
+  height: 3px;
+  background: #2a2016;
+}
+.mch-window {
+  position: absolute;
+  right: 18px;
+  top: 14px;
+  width: 30px;
+  height: 26px;
+  background: linear-gradient(90deg, transparent 13px, #5a4632 13px 17px, transparent 17px), linear-gradient(transparent 11px, #5a4632 11px 15px, transparent 15px), #8fc4ff;
+  border: 3px solid #5a4632;
+}
+.mch-room.busy .mch-window {
+  background: linear-gradient(90deg, transparent 13px, #5a4632 13px 17px, transparent 17px), linear-gradient(transparent 11px, #5a4632 11px 15px, transparent 15px), #2b2f4a;
+}
+/* La cama a escala 10 (cada píxel del sprite, 10 px): las posiciones de abajo van en esa rejilla. */
+.mch-bed {
+  position: absolute;
+  left: 14px;
+  bottom: 6px;
+  width: 140px;
+  height: 90px;
+}
+.mch-frame {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 140px;
+  image-rendering: pixelated;
+}
+/* El ratón, mirando a la almohada y sentado en la cama. */
+.mch-mouse {
+  position: absolute;
+  left: 20px;
+  top: -4px;
+  width: 62px;
+  transform: scaleX(-1);
+  image-rendering: pixelated;
+}
+/* La manta le tapa el cuerpo: queda la cabeza sobre la almohada. */
+.mch-blanket {
+  position: absolute;
+  left: 50px;
+  top: 30px;
+  width: 80px;
+  height: 30px;
+  background: linear-gradient(#ff7aa8 0 8px, #c44a78 8px);
+  border-top: 3px solid #1b1622;
+  border-left: 3px solid #1b1622;
+}
+.mch-zz {
+  position: absolute;
+  left: 26px;
+  top: 6px;
+  font-weight: normal;
+  font-size: 12px;
+  color: #bfe8fd;
+  animation: mch-zz 1.6s steps(2) infinite;
+}
+.mch-zz small {
+  font-size: 8px;
+}
+@keyframes mch-zz {
+  50% {
+    transform: translate(4px, -4px);
+  }
+}
+.mch-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 8px;
+  font-family: var(--text);
+}
+.mch-info b {
+  font-size: 13px;
+}
+.mch-info small {
+  font-size: 12px;
+  color: var(--muted);
+}
+/* Barra por bloques, como las de la cadena. */
+.mch-bar {
+  height: 10px;
+  background: var(--ink);
+  border: 2px solid var(--ink);
+}
+.mch-bar i {
+  display: block;
+  height: 100%;
+  background: repeating-linear-gradient(90deg, var(--good) 0 8px, transparent 8px 10px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mch-zz {
+    animation: none;
+  }
 }

@@ -47,14 +47,27 @@
     dense: ['..HHHH..', '..H..H..', '.DDDDDD.', 'DDLLLLDD', 'DDLDDDDD', 'DDLDDDDD', 'DDDDDDDD', '.DDDDDD.'],
     teaching: ['.BBB.BBB.', 'BWWWBWWWB', 'BWLWBWLWB', 'BWWWBWWWB', 'BWLWBWLWB', 'BWWWBWWWB', 'BBBBBBBBB'],
     pick: ['.SSSSSS..', 'SS....SS.', '....WW.S.', '...WW....', '..WW.....', '.WW......', 'WW.......'],
+    // V4.1. SPRITE: la cama de la Mouse House (cabecero, almohada, manta y patas), deshacer,
+    // el diario de la colonia y el álbum.
+    bed: ['HH..........', 'HHWW........', 'HHWWWBBBBBBB', 'HHBBBBBBBBBB', 'HHLLLLLLLLLL', 'HHFFFFFFFFFF', 'HH........FF'],
+    undo: ['..A....', '.AA....', 'AAAAAA.', '.AA...A', '..A...A', '....AA.'],
+    news: ['.PPPPPP.', 'PLLLLLLP', 'PLDDDDLP', 'PLLLLLLP', 'PLDDDLLP', 'PLLLLLLP', 'PLDDDDLP', '.PPPPPP.'],
+    album: ['BBBBBBBB.', 'BLLLLLLBB', 'BLLSLLLBB', 'BLSSSLLBB', 'BLLSLLLBB', 'BLLLLLLBB', 'BBBBBBBBB'],
+  };
+  const EXTRA = {
+    bed: { H: '#8b5a2b', F: '#6b4220', W: '#f4f1e4', B: '#c44a78', L: '#ff7aa8' },
+    undo: { A: '#ffffff' },
+    news: { P: '#c9a46a', L: '#f6ecd2', D: '#8b7a5a' },
+    album: { B: '#5f3590', L: '#9a5fd0', S: '#ffcf2e' },
   };
 
   const cache = {};
   function icon(kind, base) {
     const key = kind + ':' + (base || '');
     if (!cache[key]) {
-      const pal =
-        kind === 'coin'
+      const pal = EXTRA[kind]
+        ? EXTRA[kind]
+        : kind === 'coin'
           ? { L: '#fff3a0', M: '#ffc21e', D: '#d98a0a' }
           : kind === 'quick'
             ? { Q: '#ffe55c' }

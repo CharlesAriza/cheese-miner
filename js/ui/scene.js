@@ -185,6 +185,14 @@
       // traje y corbata
       px(9, 11, 3, 3, '#2b2f4a');
       px(10, 11, 1, 3, '#ffcf2e');
+      // V4.1. SPRITE: la tablilla del gerente (compra mejoras solo). Lo distingue de un Master a
+      // simple vista, en el retrato y trabajando.
+      px(13, 9, 5, 6, '#1b1622');
+      px(14, 10, 3, 4, '#f4f4f4');
+      px(14, 11, 3, 1, '#9aa3b8');
+      px(14, 13, 2, 1, '#9aa3b8');
+      px(15, 9, 1, 1, '#ffcf2e');
+      px(14, 9, 3, 1, '#ffcf2e');
     }
     return (spriteCache[key] = c);
   }

@@ -400,6 +400,7 @@
       case 'careDone': {
         const mouse = CM.mice.byId(state, ev.id);
         if (!mouse) break;
+        ui.careLast = ev; // la cama de HOUSE enseña cómo acabó
         play('goal');
         banner(mouse.name.toUpperCase() + (ev.kind === 'quirk' ? ' IS OVER ' + B.mice.traits[ev.what].name.toUpperCase() : ': ' + B.mice.traits[ev.to].name.toUpperCase()) + '!');
         toast(ev.kind === 'quirk' ? mouse.name + ' no longer has ' + B.mice.traits[ev.what].name + '. The Mouse House bed is free' : mouse.name + ' retrained to ' + B.mice.traits[ev.to].name + '. The Mouse House bed is free', true);
@@ -482,23 +483,10 @@
         break;
       case 'promoted': {
         dirty = true;
-        // En un ascenso en bloque se celebra una vez, con el resumen.
+        // En un ascenso en bloque se presentan todos juntos, uno a uno, al terminar.
         if (ui.bulkPromo) break;
-        const mouse = CM.mice.byId(state, ev.id);
-        play('goal');
         scene.celebrate();
-        // Master es el ascenso que se ve: el uniforme de su oficio. Se celebra con antes y después.
-        if (ev.rank === 2) {
-          masterCard([mouse]);
-          dirty = true;
-          break;
-        }
-        banner(mouse.name.toUpperCase() + ' IS NOW ' + B.mice.ranks[ev.rank].name.toUpperCase() + '!');
-        if (mouse.post) {
-          const [skill, zone] = mouse.post.split(':');
-          toast(CM.mouseRate(state, Object.assign({}, mouse, { rank: ev.rank - 1 }), skill, zone) + ' > ' + CM.mouseRate(state, mouse, skill, zone) + (B.mice.ranks[ev.rank].manager ? ', and it buys upgrades on its own' : ''), true);
-        }
-        dirty = true;
+        promoShow([{ id: ev.id, from: ev.rank - 1, to: ev.rank }]);
         break;
       }
       case 'mouseLevel': {
@@ -1346,13 +1334,17 @@
       toastTimer = setTimeout(nextToast, 500);
     }
     const el = $('mcx-fx');
-    el.innerHTML = '<div class="mcx-fxmain"><b>' + P2.esc(o.label).toUpperCase() + '</b><div class="mcx-chips">' + chips.join('') + '</div>' + combos + '</div>' + (o.undo ? '' : '<button data-act="undomove" class="mcx-undo">&#8630; UNDO</button>');
+    el.innerHTML = '<div class="mcx-fxmain"><b>' + P2.esc(o.label).toUpperCase() + '</b><div class="mcx-chips">' + chips.join('') + '</div>' + combos + '</div>' + (o.undo ? '' : '<button data-act="undomove" class="mcx-undo mcx-pixbtn">' + I.img('undo') + 'UNDO</button>');
     el.hidden = false;
-    el.classList.remove('in');
+    el.classList.remove('in', 'out');
     void el.offsetWidth;
     el.classList.add('in');
     clearTimeout(fxTimer);
-    fxTimer = setTimeout(() => (el.hidden = true), 6000);
+    // Se va solo, a saltos como entró; uno nuevo lo sustituye al momento.
+    fxTimer = setTimeout(() => {
+      el.classList.add('out');
+      fxTimer = setTimeout(() => (el.hidden = true), 240);
+    }, 6000);
     if (gained.length) play('reveal');
   }
   // Llevar una roca (o los puestos de toda la colonia) arriba de la lista, bajo la barra de mover.
@@ -1563,10 +1555,10 @@
       ui.promoDone = r;
       play('goal');
       scene.celebrate();
-      // Los que se han hecho Master en el bloque: una sola tarjeta para todos.
-      const masters = state.mice.filter((m) => ranks[m.id] < 2 && m.rank >= 2);
-      if (masters.length) masterCard(masters);
-      toast('Promoted ' + r.mice + (r.mice === 1 ? ' mouse' : ' mice') + ' for ' + CM.fmt(r.cost), true);
+      // V4.1: cada ascenso se ve, uno a uno, en una sola ventana (los grandes, al final).
+      const list = state.mice.filter((m) => m.rank > ranks[m.id]).map((m) => ({ id: m.id, from: ranks[m.id], to: m.rank }));
+      list.sort((a, b) => a.to - b.to);
+      promoShow(list);
       return r;
     },
     care: (id, kind, what, to) => {
@@ -1823,29 +1815,84 @@
 
   // Nombre de oficio para los uniformes: «Master Miner», «Master Cheesemaker».
   const TRADE = { mining: 'MINER', drilling: 'DRILLER', refining: 'REFINER', cheesemaking: 'CHEESEMAKER', trading: 'TRADER', research: 'RESEARCHER' };
-  // Ascenso a Master: el antes y el después del ratón, con su uniforme y lo que gana. En un
-  // ascenso en bloque, todos en una sola tarjeta.
-  function masterCard(list) {
-    if (!list.length) return;
-    play('bell');
-    if (list.length === 1) {
-      const m = list[0];
-      const [skill, zone] = m.post ? m.post.split(':') : ['', ''];
-      const before = Object.assign({}, m, { rank: 1 });
-      // Lo que gana, en palabras: cuánto más rápido trabaja desde ahora.
-      const pct = skill && zone ? Math.round((CM.mice.speed(m, skill, state, zone) / CM.mice.speed(before, skill, state, zone) - 1) * 100) : 0;
-      const gain = pct > 0 ? '<p class="mm-gain">Works ' + pct + '% faster</p>' : '';
-      showModal(
-        '<h2>' + P.esc(m.name.toUpperCase()) + ' IS A MASTER</h2><div class="mm-pair"><figure><img class="pix" src="' + CM.mouseUrl(before) + '" alt="" /><figcaption>JOURNEYMAN</figcaption></figure><i class="mm-arrow"></i><figure class="now"><img class="pix" src="' + CM.mouseUrl(m) + '" alt="" /><figcaption>MASTER' + (TRADE[skill] ? ' ' + TRADE[skill] : '') + '</figcaption></figure></div>' + gain + '<p class="hint">Masters wear the uniform of their trade. Look for it at work. It changes if you move the mouse to another job.</p><div class="row"><button class="buy" data-m="ok">GREAT</button></div>',
-        { ok() {} }
-      );
-      return;
+  // ---------- Ascensos: uno a uno, con el antes, la transformación y el después ----------
+  // V4.1. Una sola ventana para todos los ascensos de una vez: cada ratón con su aspecto de
+  // antes, un cambio en pixel art y su aspecto, rango y beneficio nuevos. Master y Manager
+  // tienen presentación especial. Se puede acelerar o saltar. Clases `pv-`.
+  const RANK_NAME = B.mice.ranks.map((r) => r.name.toUpperCase());
+  function promoGains(m, from, to) {
+    const K = CM.mice;
+    const [skill, zone] = m.post ? m.post.split(':') : [];
+    const before = Object.assign({}, m, { rank: from });
+    const out = [];
+    if (skill) {
+      const pct = Math.round((K.speed(m, skill, state, zone) / K.speed(before, skill, state, zone) - 1) * 100);
+      if (pct > 0) out.push('Works <b>' + pct + '% faster</b> at ' + K.postLabel(m.post));
+    } else out.push('Works faster at any job, for good');
+    if (from < 2 && to >= 2) out.push(skill && m.look !== undefined && CM.mice.parts(m).hat !== 5 ? 'Wears the <b>' + TRADE[skill] + '</b> uniform at work' : 'Wears the uniform of its trade at work');
+    if (from < 3 && to >= 3) {
+      out.push('<span class="pv-unlock">AUTO-UPGRADES UNLOCKED</span>');
+      const budget = Math.round(B.mice.managerBudget * 100);
+      out.push(skill && B.trees[skill] ? 'Every 2 seconds it buys the cheapest ' + B.skills[skill].name + ' upgrade it can, if it costs at most ' + budget + '% of your coins. Milestones and investments stay yours.' : skill ? 'In the lab there are no upgrades for it to buy: on another post it buys that job\'s upgrades.' : 'On a post, it buys the cheapest upgrades of that job on its own.');
+      if (!state.settings.managersBuy) out.push('Managers are switched OFF in HOUSE: turn them on there.');
     }
-    const shown = list.slice(0, 6);
-    showModal(
-      '<h2>' + list.length + ' NEW MASTERS</h2><div class="mm-team">' + shown.map((m) => '<figure><img class="pix" src="' + CM.mouseUrl(m) + '" alt="" /><figcaption>' + P.esc(m.name) + '</figcaption></figure>').join('') + '</div>' + (list.length > shown.length ? '<p class="hint">And ' + (list.length - shown.length) + ' more.</p>' : '') + '<p class="hint">Each one now wears the uniform of its trade at work.</p><div class="row"><button class="buy" data-m="ok">GREAT</button></div>',
-      { ok() {} }
+    return out;
+  }
+  const promo = { list: [], i: 0, fast: false, timer: 0 };
+  function promoHtml() {
+    const n = promo.list.length;
+    if (promo.summary) {
+      return '<div class="pv-card"><h2>' + n + ' PROMOTIONS</h2><div class="pv-team">' + promo.list.map((it) => { const m = CM.mice.byId(state, it.id); return m ? '<figure class="r' + it.to + '"><img class="pix" src="' + CM.mouseUrl(m) + '" alt="" /><figcaption>' + P.esc(m.name) + '<small>' + RANK_NAME[it.to] + '</small></figcaption></figure>' : ''; }).join('') + '</div><div class="row"><button class="buy pv-btn" data-m="next">GREAT</button></div></div>';
+    }
+    const it = promo.list[promo.i];
+    const m = CM.mice.byId(state, it.id);
+    if (!m) return '<div class="pv-card"><div class="row"><button class="buy pv-btn" data-m="next">OK</button></div></div>';
+    const special = it.to >= 2 && it.from < it.to && (it.to === 3 || it.from < 2);
+    const before = CM.mouseUrl(Object.assign({}, m, { rank: it.from }));
+    const title = it.to === 3 ? 'MANAGER!' : it.to === 2 ? 'MASTER!' : 'PROMOTED';
+    const last = promo.i >= n - 1;
+    return (
+      '<div class="pv-card r' + it.to + (special ? ' special' : '') + (promo.fast ? ' fast' : '') + '">' + (n > 1 ? '<small class="pv-count">' + (promo.i + 1) + ' / ' + n + '</small>' : '') +
+      '<h2>' + title + '</h2><div class="pv-stage">' + (special ? '<i class="pv-rays"></i>' : '') + '<img class="pix pv-before" src="' + before + '" alt="" /><img class="pix pv-after" src="' + CM.mouseUrl(m) + '" alt="" /><i class="pv-spark"></i></div>' +
+      '<p class="pv-who"><b>' + P.esc(m.name) + '</b><span>' + RANK_NAME[it.from] + ' <i>&gt;</i> <u>' + RANK_NAME[it.to] + '</u></span></p>' +
+      '<ul class="pv-gains">' + promoGains(m, it.from, it.to).map((g) => '<li>' + g + '</li>').join('') + '</ul>' +
+      '<div class="row">' + (!last ? '<button class="close pv-btn" data-m="skip">SKIP ALL</button><button class="close pv-btn" data-m="fast">' + (promo.fast ? 'NORMAL' : 'FASTER') + '</button>' : '') + '<button class="buy pv-btn" data-m="next">' + (last ? 'GREAT' : 'NEXT') + '</button></div></div>'
     );
+  }
+  function promoStep() {
+    clearTimeout(promo.timer);
+    // Si la ventana ya se cerró (o es otra), no se pinta nada encima.
+    if ($('modal').hidden || !$('modal-body').querySelector('.pv-card')) return;
+    $('modal-body').innerHTML = promoHtml();
+    const it = promo.list[promo.i];
+    play(it && it.to >= 2 && !promo.summary ? 'goal' : 'bell');
+    // Más rápido: pasa solo al siguiente cuando ha terminado su animación.
+    if (promo.fast && !promo.summary && promo.i < promo.list.length - 1) promo.timer = setTimeout(() => (promo.i++, promoStep()), it.to >= 2 ? 1300 : 700);
+  }
+  function promoShow(list) {
+    if (!list.length) return;
+    Object.assign(promo, { list, i: 0, fast: false, summary: false });
+    clearTimeout(promo.timer);
+    play(list.some((it) => it.to >= 2) ? 'goal' : 'bell');
+    showModal(promoHtml(), {
+      next() {
+        clearTimeout(promo.timer);
+        if (promo.summary || promo.i >= promo.list.length - 1) return;
+        promo.i += 1;
+        promoStep();
+        return false;
+      },
+      fast() {
+        promo.fast = !promo.fast;
+        promoStep();
+        return false;
+      },
+      skip() {
+        promo.summary = true;
+        promoStep();
+        return false;
+      },
+    });
   }
   // Inversión comprada (por ejemplo, una Night Lamp): qué cambia, con números de antes y después.
   function investCard(skill, id) {
