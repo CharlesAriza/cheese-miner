@@ -10810,3 +10810,26 @@ img.pix.pxi {
 .mcx-ghost.home small {
   color: #ffd0dc;
 }
+
+/* ======================= V4.17: casilla del objetivo ======================= */
+/* El contorno amarillo semitransparente parecía una selección que se quedaba puesta (el amarillo
+   es el color de la casilla elegida). Ahora la casilla a la que lleva el objetivo no cambia de
+   borde: su icono lleva el aura dorada que respira de los ratones legendarios. Solo toca el
+   dibujo, así que no choca con la selección, el brillo azul de los refuerzos ni las chapas. */
+.tile.goal,
+.tile.goal[data-boost] {
+  outline: none;
+  animation: none;
+}
+.tile.goal[data-boost='2'] {
+  animation: tileglow 2.6s ease-in-out infinite;
+}
+.tile.goal > .pix {
+  animation: glow 1.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tile.goal > .pix {
+    animation: none;
+    filter: drop-shadow(0 0 3px var(--gold));
+  }
+}
