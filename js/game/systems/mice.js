@@ -64,7 +64,16 @@
   // Suma de efectos de un ratón en un oficio. Los rasgos de oficio solo cuentan
   // en el suyo; un rasgo con `noQuirks` anula las manías.
   const fxCache = {};
+  // Mientras BEST FIT busca, lo que no depende del puesto (efectos de cada ratón, combinaciones
+  // entre dos ratones) se calcula una vez, y quién está en cada puesto se lleva en un índice.
+  let fit = null;
   function fx(m, skill) {
+    if (fit) {
+      const k = m.id + '|' + skill;
+      let v = fit.fx.get(k);
+      if (!v) fit.fx.set(k, (v = fxNow(m, skill)));
+      return v;
+    }
     const memo = CM.memo;
     if (memo) {
       const k = 'f' + m.id + '|' + skill;
@@ -98,8 +107,16 @@
   const hasTrait = (m, id) => (id === '*legend' ? m.rarity === 2 || traitsOf(m).some((t) => T[t.id].kind === 'legend') : traitsOf(m).some((t) => t.id === id));
 
   // ---------- Combinaciones de vecinos y de roca ----------
-  const mouseAt = (s, skill, zone) => s.mice.find((x) => x.post === postKey(skill, zone)) || null;
-  const linksBetween = (x, y) => (x && y ? M.links.filter((l) => (hasTrait(x, l.a) && hasTrait(y, l.b)) || (hasTrait(x, l.b) && hasTrait(y, l.a))) : []);
+  const mouseAt = (s, skill, zone) => (fit ? fit.at[postKey(skill, zone)] || null : s.mice.find((x) => x.post === postKey(skill, zone)) || null);
+  const linksNow = (x, y) => M.links.filter((l) => (hasTrait(x, l.a) && hasTrait(y, l.b)) || (hasTrait(x, l.b) && hasTrait(y, l.a)));
+  function linksBetween(x, y) {
+    if (!x || !y) return [];
+    if (!fit) return linksNow(x, y);
+    const k = x.id < y.id ? x.id + '|' + y.id : y.id + '|' + x.id;
+    let v = fit.links.get(k);
+    if (!v) fit.links.set(k, (v = linksNow(x, y)));
+    return v;
+  }
   // Vecinos de un puesto: el anterior y el siguiente de su línea. El tendero
   // es vecino del quesero de cada roca.
   function neighbours(s, skill, zone) {
@@ -111,9 +128,14 @@
     return [i > 0 ? mouseAt(s, CHAIN[i - 1], zone) : null, mouseAt(s, CHAIN[i + 1], zone)].concat(skill === 'cheesemaking' || skill === 'refining' ? lab : []);
   }
   function setsOf(s, zone) {
+    const entry = (m, skill) => ({ m, aff: (m.aff && m.aff[skill]) || 0, spec: !!m.spec[skill], fur: parts(m).fur, legend: hasTrait(m, '*legend'), night: trait(m, 'awaySpeed', skill) > 0 });
     const line = CHAIN.slice(0, 4).map((skill) => {
       const m = mouseAt(s, skill, zone);
-      return m && { m, aff: (m.aff && m.aff[skill]) || 0, spec: !!m.spec[skill], fur: parts(m).fur, legend: hasTrait(m, '*legend'), night: trait(m, 'awaySpeed', skill) > 0 };
+      if (!m || !fit) return m && entry(m, skill);
+      const k = m.id + '|' + skill;
+      let v = fit.line.get(k);
+      if (!v) fit.line.set(k, (v = entry(m, skill)));
+      return v;
     });
     return line.every(Boolean) ? M.sets.filter((d) => d.test(line)) : [];
   }
@@ -148,6 +170,127 @@
     return (teamMap[pk] = out);
   }
   const affinity = (m, skill) => M.affinity[(m.aff && m.aff[skill]) || 0] || M.affinity[0];
+
+  // ---------- BEST FIT: estimación de ingresos y búsqueda ----------
+  const FIT_GAIN = 1.01; // un intercambio solo se propone si sube la estimación más de un 1 %
+  const FIT_ROUNDS = 40;
+  let fitCache = {};
+  // Lo que cambia el plan: la plantilla, los refuerzos, las rocas, las mejoras y las recetas.
+  const fitKey = (s) => teamSig(s) + '|' + s.boosts.join() + '|' + s.totals.zonesUnlocked + '|' + s.recipes.length + '|' + Object.keys(s.nodes).reduce((a, k) => a + s.nodes[k], 0);
+  // Lo que saca una roca (quesos por segundo) y a cuánto se venden. `alone`: cada ratón por
+  // separado, sin vecinos ni combinaciones.
+  function fitLine(s, def, alone) {
+    const r = CM.cheesery.laneRecipe(s, def.id);
+    if (!r) return { id: def.id, price: 0, flow: 0 };
+    const c = CM.boosts.capacity(s, def, true, alone);
+    // Lo que ya está en la despensa también se cocina: cuenta como si llegara a lo largo de una hora.
+    const B0 = CM.BALANCE;
+    const perRaw = ((1 + q.mods(s)('refBonus')) * CM.boosts.baseMult(s, def.id)) / B0.refinery.rawPerBase / B0.cheesery.lotBase;
+    const raw = (s.inv.raw[def.base] * perRaw) / 3600;
+    const base = s.inv.base[def.base] / B0.cheesery.lotBase / 3600;
+    return { id: def.id, price: CM.shop.price(s, r), flow: Math.min(c.cheesemaking, Math.min(c.refining, c.supply + raw) + base) };
+  }
+  function fitIncome(s, lines, alone) {
+    const w = mouseAt(s, 'trading', 'all');
+    if (!w) return 0;
+    // La tienda vende un número de quesos por ciclo, empezando por los más caros.
+    let cap = (q.sellCount(s) / (q.sellDuration(s) / 1000)) * speed(w, 'trading', s, 'all', alone) * CM.boosts.mult(s, 'trading', 'all');
+    let coins = 0;
+    for (const l of lines.slice().sort((a, b) => b.price - a.price)) {
+      const n = Math.min(cap, l.flow);
+      coins += n * l.price;
+      cap -= n;
+      if (cap <= 0) break;
+    }
+    return coins * yieldMult(w, 'trading', s, 'all', alone) * (1 + (alone ? doubleChance(w, 'trading') : doubleChance(w, 'trading', s, 'all')));
+  }
+  // Búsqueda: cambia de verdad los puestos de `s.mice` para estimar y los devuelve a su sitio al
+  // terminar. No emite eventos ni toca nada más de la partida.
+  function fitSearch(s) {
+    const memo = CM.memo, wasFrozen = frozen;
+    const start = s.mice.map((m) => m.post);
+    CM.memo = null;
+    frozen = true;
+    fit = { fx: new Map(), links: new Map(), line: new Map(), at: {} };
+    const index = () => { fit.at = {}; s.mice.forEach((m) => { if (m.post) fit.at[m.post] = m; }); };
+    const swap = (i, j) => { const a = s.mice[i].post; s.mice[i].post = s.mice[j].post; s.mice[j].post = a; index(); };
+    const defs = q.openZones(s);
+    const zoneOf = (post) => (post ? post.split(':')[1] : '');
+    // Con todo: equipos, auras y combinaciones tal como quedarían.
+    const whole = () => { teamKey = ''; return fitIncome(s, defs.map((d) => fitLine(s, d))); };
+    const climb = () => {
+      index();
+      teamKey = '';
+      const lines = {};
+      for (const d of defs) lines[d.id] = fitLine(s, d, true);
+      const all = () => defs.map((d) => lines[d.id]);
+      let now = fitIncome(s, all(), true);
+      let real = whole();
+      for (let round = 0; round < FIT_ROUNDS; round++) {
+        // Todos los intercambios que suben la estimación, de mayor a menor. Aquí cada ratón
+        // cuenta por sí solo: BEST FIT no busca combinaciones entre ratones.
+        const found = [];
+        for (let i = 0; i < s.mice.length; i++) {
+          const a = s.mice[i].post;
+          if (a.indexOf('research') === 0) continue;
+          for (let j = i + 1; j < s.mice.length; j++) {
+            const b = s.mice[j].post;
+            if (a === b || b.indexOf('research') === 0) continue;
+            swap(i, j);
+            // Solo cambian las rocas de esos dos puestos (y la tienda, que se recalcula siempre).
+            const touched = {};
+            for (const z of [zoneOf(a), zoneOf(b)]) if (lines[z]) touched[z] = fitLine(s, q.zoneDef(z), true);
+            const e = fitIncome(s, defs.map((d) => touched[d.id] || lines[d.id]), true);
+            if (e > now * FIT_GAIN) found.push({ i, j, e, zones: [zoneOf(a) || 'house', zoneOf(b) || 'house'] });
+            swap(i, j);
+          }
+        }
+        if (!found.length) break;
+        // En la misma vuelta se hacen todos los que no se pisan (rocas distintas). Antes de dar
+        // cada uno por bueno se mira el resultado con todo: si rompe un equipo o una combinación
+        // que valía más que lo que gana, no se hace.
+        found.sort((x, y) => y.e - x.e);
+        const busy = {};
+        let done = 0;
+        for (const f of found) {
+          if (f.zones.some((z) => busy[z])) continue;
+          swap(f.i, f.j);
+          const after = whole();
+          if (after < real) { swap(f.i, f.j); continue; }
+          real = after;
+          f.zones.forEach((z) => (busy[z] = true));
+          done += 1;
+        }
+        if (!done) break;
+        for (const d of defs) lines[d.id] = fitLine(s, d, true);
+        now = fitIncome(s, all(), true);
+      }
+      return { e: whole(), posts: s.mice.map((m) => m.post) };
+    };
+    // Dos puntos de partida: la plantilla actual y la de prioridades. Gana la que más estime
+    // (con todo); a igualdad (menos de un 1 %), la que sale de la actual, que mueve menos ratones.
+    const fromNow = climb();
+    const greedy = CM.mice.bestFitGreedy(s);
+    // También ahí el investigador sigue en el laboratorio.
+    const lab = s.mice.find((m) => m.post.indexOf('research') === 0);
+    if (lab) {
+      const other = s.mice.find((m) => greedy[m.id] === lab.post);
+      if (other && other !== lab) greedy[other.id] = greedy[lab.id] || '';
+      greedy[lab.id] = lab.post;
+    }
+    s.mice.forEach((m) => (m.post = greedy[m.id] || ''));
+    const fromGreedy = climb();
+    const pick = fromGreedy.e > fromNow.e * FIT_GAIN ? fromGreedy : fromNow;
+    s.mice.forEach((m, i) => (m.post = start[i]));
+    // Las combinaciones de equipo se vuelven a calcular con la plantilla de verdad.
+    fit = null;
+    teamKey = '';
+    frozen = wasFrozen;
+    CM.memo = memo;
+    const plan = {};
+    s.mice.forEach((m, i) => { if (pick.posts[i]) plan[m.id] = pick.posts[i]; });
+    return plan;
+  }
 
   // Lo que le dan sus vecinos de línea (auras). Con `s` y `zone`.
   function auraFor(s, skill, zone) {
@@ -365,6 +508,7 @@
     },
     byId: (s, id) => s.mice.find((m) => m.id === id) || null,
     at(s, skill, zone) {
+      if (fit) return fit.at[postKey(skill, zone)] || null;
       const memo = CM.memo;
       if (!memo) return s.mice.find((m) => m.post === postKey(skill, zone)) || null;
       const k = 'a' + skill + '|' + zone;
@@ -610,8 +754,10 @@
       this.scan(s);
       return CM.ok();
     },
-    // Recoloca a toda la plantilla: cada puesto, por prioridad, se lleva al mejor que quede.
-    bestFitPlan(s) {
+    // --- BEST FIT ---
+    // Con puestos sin cubrir (el principio de la partida): cada puesto, por prioridad, se lleva
+    // al mejor que quede. Lo que se hace a mano no se puede estimar, así que manda el orden.
+    bestFitGreedy(s) {
       const pool = s.mice.slice();
       const plan = {};
       for (const p of this.posts(s)) {
@@ -622,20 +768,59 @@
       }
       return plan;
     },
+    // Monedas por segundo que daría la colonia con la plantilla tal como está: lo que cada roca
+    // puede sacar (su etapa más lenta, con equipos, auras y refuerzos) al precio de su queso, y
+    // la tienda vendiendo primero lo más caro hasta donde llegue. No mira las reservas: es una
+    // estimación para comparar plantillas, no una predicción.
+    estimate(s) {
+      return fitIncome(s, q.openZones(s).map((def) => fitLine(s, def)));
+    },
+    // Con todos los puestos cubiertos, BEST FIT busca ingresos de la colonia, no al ratón más
+    // fuerte de cada puesto: parte de la plantilla actual (y de la de prioridades) y va haciendo
+    // los intercambios que más suben la estimación, mientras alguno la suba más de un 1 %. Así
+    // cuenta lo que vale cada roca, qué etapa la frena y a quién deja peor atendido. Juzga a cada
+    // ratón por separado (no busca combinaciones: son cosa del jugador), pero no hace un cambio
+    // que rompa equipos o combinaciones que valían más de lo que gana. Nunca propone una
+    // plantilla que estime peor que la que hay. El investigador se queda donde esté.
+    bestFitPlan(s) {
+      const posts = this.posts(s);
+      const staffed = posts.every((p) => s.mice.some((m) => m.post === p.key));
+      if (!staffed) return this.bestFitGreedy(s);
+      const key = fitKey(s);
+      if (fitCache.s === s && fitCache.key === key) return fitCache.plan;
+      const plan = fitSearch(s);
+      fitCache = { s, key, plan, moves: s.mice.filter((m) => (plan[m.id] || '') !== m.post).length };
+      return plan;
+    },
+    // Lo que BEST FIT ya sabe sin volver a buscar: cuántos movería, o -1 si no lo ha mirado
+    // desde el último cambio. La búsqueda cuesta unas décimas de segundo, así que solo se
+    // hace al tocar el botón, nunca al pintar el panel.
+    bestFitKnown(s) {
+      const posts = this.posts(s);
+      if (!posts.every((p) => s.mice.some((m) => m.post === p.key))) return this.bestFitMoves(s);
+      return fitCache.s === s && fitCache.key === fitKey(s) ? fitCache.moves : -1;
+    },
     // Cuántos ratones cambiarían de sitio con BEST FIT (0: ya están bien).
     bestFitMoves(s) {
       const plan = this.bestFitPlan(s);
       return s.mice.filter((m) => (plan[m.id] || '') !== m.post).length;
     },
+    // Aplica el plan. Devuelve cuántos ratones movió y cuánto cambia la estimación de ingresos.
     bestFit(s) {
       const plan = this.bestFitPlan(s);
+      const moved = s.mice.filter((m) => (plan[m.id] || '') !== m.post).length;
+      const before = moved ? this.estimate(s) : 0;
       for (const m of s.mice) {
         m.post = plan[m.id] || '';
         m.rest = false;
       }
+      teamKey = '';
+      CM.rev += 1;
+      // Recién aplicado, volver a buscar no movería a nadie: el botón ya puede decir DONE.
+      if (fitCache.s === s) fitCache = { s, key: fitKey(s), plan, moves: 0 };
       CM.emit(s, 'assigned', { all: true });
       this.scan(s);
-      return CM.ok();
+      return CM.ok({ moved, gain: before > 0 ? this.estimate(s) / before : 1 });
     },
 
     // --- Despedir ---

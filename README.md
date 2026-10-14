@@ -57,7 +57,7 @@ Los primeros pasos van a fuego lento. Cuando se desbloquea un edificio nuevo de 
 - **Tocar un ratón** (en la lista o sin puesto) abre los puestos a los que puede ir, del mejor al peor para él. Tocar uno lo manda ahí. Desde esa hoja se abre su ficha completa.
 - El número que acompaña a cada ratón es lo que rinde por sí solo; no cuenta vecinos ni combinaciones, que siguen siendo cosa tuya.
 
-Al reclutar eliges uno de tres y va él solo al mejor puesto libre. **BEST FIT** recoloca a toda la plantilla mirando a cada ratón por separado; no tiene en cuenta vecinos ni combinaciones, eso es cosa tuya. Los rasgos nunca se eligen solos. Cada ficha dice qué hace el ratón en valores reales («2 Raw every 2.1s»), qué le falta para ascender y qué ganará; **MANAGE** despliega sus rasgos, casillas, especialidades, rangos, los puestos a los que puede ir y el botón para despedirlo (se pierde todo lo suyo y no se devuelve nada).
+Al reclutar eliges uno de tres y va él solo al mejor puesto libre. **BEST FIT** recoloca a la plantilla buscando lo que más gana la colonia (qué roca vale más, qué etapa la frena, a quién deja peor atendido); juzga a cada ratón por separado y no busca combinaciones, eso es cosa tuya, aunque no rompe una que valga más de lo que gana. Busca al tocarlo y dice cuántos movió. Los rasgos nunca se eligen solos. Cada ficha dice qué hace el ratón en valores reales («2 Raw every 2.1s»), qué le falta para ascender y qué ganará; **MANAGE** despliega sus rasgos, casillas, especialidades, rangos, los puestos a los que puede ir y el botón para despedirlo (se pierde todo lo suyo y no se devuelve nada).
 
 El ratón de Cheesemaking cocina por su cuenta la receta más valiosa que conozcas de su queso; fijar otra a mano es opcional.
 

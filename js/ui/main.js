@@ -1198,7 +1198,12 @@
       ui.cand = -1;
       return CM.mice.choose(state, Number(i));
     },
-    bestfit: () => CM.mice.bestFit(state),
+    // BEST FIT busca al tocarlo (unas décimas de segundo) y dice qué ha hecho.
+    bestfit: () => {
+      const r = CM.mice.bestFit(state);
+      if (r.ok) toast(r.moved ? 'BEST FIT moved ' + r.moved + (r.moved === 1 ? ' mouse' : ' mice') + (r.gain > 1.005 ? ': about +' + Math.round((r.gain - 1) * 100) + '% coins (an estimate)' : '') : 'No better line-up found: your mice stay where they are', true);
+      return r;
+    },
     // Colonia: tocar un puesto enseña candidatos; tocar un ratón, sus puestos posibles.
     pickpost: (skill, zone) => {
       const key = skill + ':' + zone;

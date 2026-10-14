@@ -298,6 +298,71 @@
     valid(s);
   });
 
+  test('mice: with every post staffed, best fit places mice for the colony\'s income', () => {
+    const K = CM.mice;
+    const make = () => {
+      const s = withCheese();
+      s.coins = 1e40;
+      s.built.house = true;
+      eq(CM.zones.unlock(s, 'gouda').ok, true, 'open gouda');
+      s.inv.base.gouda = 100;
+      eq(CM.cheesery.experiment(s, Object.assign({}, COMBO, { base: 'gouda' })).ok, true, 'a gouda recipe');
+      run(s, 60000);
+      truthy(CM.cheesery.knowsRecipeFor(s, 'gouda'), 'gouda recipe known');
+      s.built.lab = true;
+      s.nodes['lab.assistant'] = 1;
+      // Base de sobra en las dos rocas: manda la quesería, y el queso de Gouda vale más.
+      s.inv.base.cheddar = 1e9;
+      s.inv.base.gouda = 1e9;
+      // Una tienda grande: que no sea ella la que frena.
+      s.nodes['trading.counter'] = 300;
+      for (const p of K.posts(s)) staff(s, p.skill, p.zone, { post: p.key, xp: 3000, rank: 2 });
+      return s;
+    };
+    const s = make();
+    // Un quesero muy bueno en la roca barata y uno flojo en la cara.
+    const star = K.at(s, 'cheesemaking', 'cheddar');
+    star.rank = 3;
+    star.xp = 1e6;
+    star.aff = { cheesemaking: 2 };
+    const weak = K.at(s, 'cheesemaking', 'gouda');
+    weak.rank = 0;
+    weak.xp = 0;
+    const lab = K.at(s, 'research', 'all');
+    lab.rank = 3;
+    lab.xp = 1e6;
+    CM.rev += 1;
+    K.resetCache();
+    eq(K.bestFitKnown(s), -1, 'before looking, the button does not know (it never searches while drawing)');
+    const before = s.mice.map((m) => m.post).join();
+    const events = CM.events.length;
+    const moves = K.bestFitMoves(s);
+    truthy(moves > 0, 'it would move someone');
+    eq(s.mice.map((m) => m.post).join(), before, 'looking moves nobody');
+    eq(CM.events.length, events, 'and says nothing');
+    eq(K.bestFitKnown(s), moves, 'now the button knows');
+    const est = K.estimate(s);
+    const live = JSON.parse(JSON.stringify(s));
+    const r = K.bestFit(s);
+    eq(r.moved, moves, 'it moves what it said');
+    eq(star.post, 'cheesemaking:gouda', 'the best cheesemaker goes where cheese is worth more');
+    eq(lab.post, 'research:all', 'the researcher stays where it is');
+    truthy(K.estimate(s) >= est, 'the estimate never goes down');
+    near(r.gain, K.estimate(s) / est, 1e-9, 'and it says by how much');
+    eq(K.bestFitMoves(s), 0, 'after best fit there is nothing left to move');
+    eq(K.bestFitKnown(s), 0, 'and the button says DONE');
+    // De verdad: diez minutos con y sin BEST FIT, desde el mismo momento.
+    const coins = (g) => { const e0 = g.totals.coinsEarned; run(g, 10 * 60000); valid(g); return g.totals.coinsEarned - e0; };
+    const plain = coins(CM.storage.parse(JSON.stringify(live), live.lastSavedAt));
+    const fitted = coins(s);
+    truthy(fitted > plain, 'the colony earns more (' + Math.round((fitted / plain) * 100) + '% of before)');
+    // Lo que el jugador mueve a mano se respeta: BEST FIT solo actúa cuando se toca.
+    eq(K.assign(s, star.id, 'cheesemaking:cheddar').ok, true, 'the player can still move a mouse by hand');
+    eq(star.post, 'cheesemaking:cheddar', 'and it stays there');
+    run(s, 5000);
+    eq(star.post, 'cheesemaking:cheddar', 'nothing moves it back on its own');
+  });
+
   test('mice: a manager buys upgrades for its job, only if allowed', () => {
     const s = withChain();
     const m = staff(s, 'drilling', 'cheddar', { rank: 3 });

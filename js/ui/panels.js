@@ -862,8 +862,9 @@
       for (const m of idle) h += mouseLine(s, m, 'card:' + m.id, btn('pickmouse:' + m.id, 'PLACE', { cls: 'mini' }), { sub: m.rest ? 'Resting in the house' : 'Waiting in the house', div: true });
     }
     if (s.mice.length > 1) {
-      const moves = K.bestFitMoves(s);
-      h += btn('bestfit', '<b>BEST FIT</b><span>' + (moves ? 'Moves ' + plural(moves, 'mouse') + ' to where each works best on its own. Combos between mice are yours to find.' : 'Every mouse is where it works best on its own. Combos between mice are yours to find.') + '</span><em>' + (moves ? 'DO IT' : 'DONE') + '</em>', { cls: 'labrow', off: !moves });
+      // Sin volver a buscar al pintar: -1 si BEST FIT no ha mirado desde el último cambio.
+      const moves = K.bestFitKnown(s);
+      h += btn('bestfit', '<b>BEST FIT</b><span>' + (moves === 0 ? 'Every mouse is where the colony earns the most, as far as BEST FIT can tell. Combos between mice are yours to find.' : moves > 0 ? 'Moves ' + plural(moves, 'mouse') + ' to where the colony earns the most. Combos between mice are yours to find.' : 'Places each mouse where the colony earns the most. Combos between mice are yours to find.') + '</span><em>' + (moves === 0 ? 'DONE' : 'DO IT') + '</em>', { cls: 'labrow', off: moves === 0 });
     }
     return h;
   }

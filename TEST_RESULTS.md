@@ -4,7 +4,7 @@
 
 ## Pruebas automáticas
 
-Ejecutadas abriendo `tests.html` en el navegador. **51 de 51 pasan** (también tras arreglar la caché de efectos de las mejoras; la prueba de BUY ALL comprueba ahora que cada rango nuevo se nota al momento).
+Ejecutadas abriendo `tests.html` en el navegador. **52 de 52 pasan** (también tras arreglar la caché de efectos de las mejoras; la prueba de BUY ALL comprueba ahora que cada rango nuevo se nota al momento).
 
 | Prueba | Resultado |
 | --- | --- |
@@ -151,6 +151,13 @@ En el navegador a 320×640, con una partida guardada por la versión anterior (c
 - Efectos durante 15 s con el intervalo final de 1,2 s, a 360×760 mirando la quesería y la tienda de Cheddar: como mucho 2 números y 5 iconos a la vez (media 1,3 y 2,4). Antes los topes eran 26 y 30.
 
 No comprobado jugando: una partida a mano de varias horas con refuerzos, ni nada en un teléfono real.
+
+### BEST FIT por ingresos (14-10-2026)
+
+- Prueba nueva: con todos los puestos cubiertos, el mejor quesero va a la roca cuyo queso vale más, el investigador no se mueve, mirar no mueve a nadie ni emite nada, el botón no busca al pintar, la estimación nunca baja, diez minutos con BEST FIT ganan más que sin él y lo que el jugador mueve a mano se respeta. La prueba antigua (pocos ratones: orden de prioridades) sigue igual.
+- 15 partidas guardadas (horas 2 a 24, dos casuales y una experta): a 4 horas, ×1,08 a ×2,57 sobre la plantilla del bot casual y ×1,41 a ×2,57 sobre el BEST FIT antiguo en la experta; el antiguo daba ×0,72 a ×1,77. Tras aplicarlo, volver a pulsar no mueve a nadie (15 de 15).
+- Navegador, 360×760, partida de 6 horas: buscar y aplicar tarda 151 ms; pintar el panel, 3 ms; el aviso dice cuántos movió y la ganancia estimada, y el botón pasa a DONE.
+- Ritmo: casual sin cambios; el bot experto abre las rocas 4–6 bastante antes (47 / 70 / 101 min frente a 57 / 95 / 158).
 
 ## Lo que NO está probado
 

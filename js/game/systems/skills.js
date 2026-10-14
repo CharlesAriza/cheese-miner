@@ -332,10 +332,12 @@
     // La etapa más abajo en la cadena con material de sobra esperando delante; si ninguna, la
     // de menor capacidad (mina y taladro se turnan: juntos rinden menos que cada uno). Es una
     // aproximación para orientar, no la respuesta exacta.
-    capacity(s, def) {
+    // `luck`: cuenta también la suerte de cada ratón (hornadas dobles), para estimar ingresos.
+    // `alone`: cada ratón por separado, sin lo que le dan sus vecinos ni las combinaciones.
+    capacity(s, def, luck, alone) {
       const K = CM.mice, C = CM.cheesery;
       const z = def.id;
-      const per = (skill) => { const m = K.at(s, skill, z); return m ? K.speed(m, skill, s, z) * this.mult(s, skill, z) * K.yieldMult(m, skill, s, z) : 0; };
+      const per = (skill) => { const m = K.at(s, skill, z); return m ? K.speed(m, skill, s, z, alone) * this.mult(s, skill, z) * K.yieldMult(m, skill, s, z, alone) * (luck ? 1 + (alone ? K.doubleChance(m, skill) : K.doubleChance(m, skill, s, z)) : 1) : 0; };
       const recipe = C.laneRecipe(s, z);
       const more = this.baseMult(s, z);
       const cheesePerRaw = ((1 + q.mods(s)('refBonus')) * more) / B.refinery.rawPerBase / B.cheesery.lotBase;
