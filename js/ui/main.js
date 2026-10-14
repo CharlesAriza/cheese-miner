@@ -45,7 +45,7 @@
     combo: { base: 'cheddar', ingredient: 'herbs', treatment: 'washed', maturation: 'fresh' },
     lastHtml: '',
     navKeys: {},
-    rockSeen: {},
+    rockSince: {},
     rocksKey: null,
     dockKind: 'mine',
     shown: {},
@@ -1119,16 +1119,15 @@
       const el = rockEls[def.id];
       if (!el) continue;
       set(el, 'on', def.id === ui.zone);
-      // V4.13: el aviso es para OTRA roca que se ha parado por algo nuevo. Antes salía mientras
-      // alguna etapa esperase un toque, así que una roca sin ratones lo llevaba siempre (también
-      // la que se está mirando). Ahora: al mirar una roca, su motivo se da por visto; vuelve a
-      // avisar solo con un motivo distinto, o si la roca vuelve a funcionar y se para otra vez.
+      // V4.15: la chapa (amarilla: la roca espera que hagas algo; roja: está bloqueada) es
+      // permanente, también en la roca que se está mirando, hasta que el problema se resuelve.
+      // Solo aparece si la roca lleva parada al menos 1 s (entre dos toques a mano una etapa
+      // espera unas décimas y la chapa no debe parpadear); se quita en cuanto se resuelve.
       const alarm = why[1] === 'warn' || why[1] === 'bad';
-      const kind = alarm ? why[0].split(':')[0] : '';
-      const seenR = ui.rockSeen[def.id] || (ui.rockSeen[def.id] = {});
-      if (!alarm) ui.rockSeen[def.id] = {};
-      else if (def.id === ui.zone) seenR[kind] = true;
-      const flag = alarm && def.id !== ui.zone && !seenR[kind];
+      const now = performance.now();
+      if (!alarm) delete ui.rockSince[def.id];
+      else if (!ui.rockSince[def.id]) ui.rockSince[def.id] = now;
+      const flag = alarm && now - ui.rockSince[def.id] >= 1000;
       set(el, 'warn', flag && why[1] === 'warn');
       set(el, 'need', flag && why[1] === 'bad');
     }
