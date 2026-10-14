@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <title>Cheese Miner UI Directions</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" />
+    <style>
+      /* Maquetas de la V3 (solo para elegir dirección): la escena es la del juego, viva; lo de alrededor es la propuesta. */
+      :root {
+        --ink: #0c0910;
+        --bg: #1b1622;
+        --panel: #2a2338;
+        --panel-2: #3b3350;
+        --muted: #b9b1d0;
+        --gold: #ffcf2e;
+        --green: #5fcf6a;
+        --warn: #ffb35c;
+        --pixel: 'Press Start 2P', ui-monospace, Menlo, monospace;
+        --text: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        color-scheme: dark;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body { background: var(--bg); color: #fff; font-family: var(--pixel); overflow: hidden; -webkit-user-select: none; user-select: none; }
+      .pix { image-rendering: pixelated; }
+      button { font: inherit; color: inherit; cursor: pointer; }
+      #app { display: flex; flex-direction: column; height: 100%; max-width: 480px; margin: 0 auto; }
+
+      /* Barra de arriba: monedas y tienda, sin etiquetas. Común a las tres. */
+      .top { display: flex; gap: 6px; padding: calc(6px + env(safe-area-inset-top, 0px)) 8px 6px; background: var(--panel); }
+      .chip { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; padding: 5px 7px; background: var(--bg); border: 2px solid var(--ink); border-radius: 6px; }
+      .chip img { width: 20px; flex: none; }
+      .chip b { font-weight: normal; font-size: 10px; white-space: nowrap; }
+      .chip small { display: block; margin-top: 3px; font-family: var(--text); font-size: 10px; font-weight: 700; color: #8df09a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .chip .meter { height: 3px; margin-top: 3px; background: var(--ink); border-radius: 2px; overflow: hidden; }
+      .chip .meter i { display: block; height: 100%; background: var(--green); }
+
+      /* La escena real del juego. */
+      .scene { position: relative; flex: 1; min-height: 0; overflow: hidden; border-block: 2px solid var(--ink); }
+      .scene canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+      .flow { position: absolute; left: 6px; right: 6px; bottom: 6px; display: flex; align-items: center; gap: 2px; }
+      .flow > div { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; padding: 3px 5px; background: #0c0910d9; border: 2px solid var(--ink); border-radius: 6px; }
+      .flow img { width: 15px; }
+      .flow b { display: block; font-weight: normal; font-size: 8px; }
+      .flow em { display: block; margin-top: 2px; font-style: normal; font-family: var(--text); font-size: 9px; font-weight: 700; color: #8df09a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .flow em.idle { color: #ff8fa0; }
+      .flow i { width: 0; height: 0; border: 5px solid transparent; border-right: 0; border-left: 6px solid #ffe55c; }
+
+      /* Ayuda en la mina, dentro del mundo: un bocadillo sobre la roca y la roca que late. */
+      .help { position: absolute; display: flex; align-items: center; gap: 5px; padding: 5px 8px; font-size: 8px; color: var(--ink); background: #ffe55c; border: 2px solid var(--ink); border-radius: 6px; transform: translate(-50%, -100%); animation: bob 0.9s ease-in-out infinite; }
+      .help::after { content: ''; position: absolute; left: 50%; bottom: -8px; margin-left: -6px; border: 6px solid transparent; border-top-color: var(--ink); border-bottom: 0; }
+      .help img { width: 14px; }
+      .ring { position: absolute; width: 78px; height: 60px; border: 3px dashed #ffe55c; border-radius: 50%; transform: translate(-50%, -50%); animation: pulse 1.2s ease-in-out infinite; pointer-events: none; }
+      @keyframes bob { 50% { transform: translate(-50%, calc(-100% - 4px)); } }
+      @keyframes pulse { 50% { opacity: 0.35; transform: translate(-50%, -50%) scale(1.08); } }
+      @media (prefers-reduced-motion: reduce) { .help, .ring { animation: none; } }
+
+      /* Abajo. */
+      .dock { padding: 8px; background: var(--panel); }
+      .row { display: flex; gap: 6px; }
+      .btn { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 44px; padding: 6px; background: var(--panel-2); border: 2px solid var(--ink); border-radius: 7px; box-shadow: 0 3px 0 var(--ink); }
+      .btn small { font-family: var(--text); font-size: 11px; font-weight: 700; color: var(--muted); text-shadow: none; }
+      .big { flex: 1.4; min-height: 64px; font-size: 13px; text-shadow: 2px 2px var(--ink); }
+      .big.dig { background: #ff9a1f; }
+      .big.cook { background: #d9a514; }
+      .ghost { background: transparent; box-shadow: none; border-style: dashed; color: var(--muted); }
+      .ok { color: #8df09a; }
+      .nav { display: flex; gap: 6px; padding: 6px 8px calc(8px + env(safe-area-inset-bottom, 0px)); background: var(--panel); }
+      .nav .btn { flex: 1; min-height: 36px; font-size: 7px; }
+      .badge { position: absolute; top: -7px; right: -4px; min-width: 18px; padding: 2px 4px; font-size: 7px; color: var(--ink); background: #ffe55c; border: 2px solid var(--ink); border-radius: 9px; }
+      .stations { display: flex; gap: 4px; margin-bottom: 8px; }
+      .st { flex: 1; min-height: 40px; padding: 4px 0; display: flex; align-items: center; justify-content: center; background: var(--bg); border: 2px solid var(--ink); border-radius: 6px; }
+      .st img { width: 22px; }
+      .st.on { border-color: var(--gold); background: #5a4f7a; }
+      .st.need { border-color: #ffe55c; }
+      .label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; font-size: 9px; color: #ffe55c; }
+      .label span { font-family: var(--text); font-size: 11px; font-weight: 700; color: var(--muted); }
+
+      /* B: lo que importa ahora. */
+      .now { display: flex; flex-direction: column; gap: 6px; padding: 8px; background: var(--bg); }
+      .task { display: flex; align-items: center; gap: 10px; padding: 9px 10px; text-align: left; background: var(--panel); border: 2px solid var(--ink); border-radius: 8px; box-shadow: 0 3px 0 var(--ink); }
+      .task img { width: 26px; flex: none; }
+      .task b { display: block; font-weight: normal; font-size: 9px; }
+      .task small { display: block; margin-top: 4px; font-family: var(--text); font-size: 12px; font-weight: 600; color: var(--muted); }
+      .task em { margin-left: auto; padding: 8px 10px; font-style: normal; font-size: 8px; color: var(--ink); background: #ffe55c; border: 2px solid var(--ink); border-radius: 6px; flex: none; }
+      .task.urgent { border-color: #ffe55c; }
+
+      /* C: los ratones son la interfaz. */
+      .crew { display: flex; gap: 5px; margin-bottom: 8px; }
+      .face { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 2px 4px; background: var(--bg); border: 2px solid var(--ink); border-radius: 7px; }
+      .face img.m { width: 40px; }
+      .face img.j { position: absolute; top: 4px; left: 4px; width: 12px; }
+      .face span { font-family: var(--text); font-size: 10px; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .face .bar { width: 80%; height: 4px; background: var(--ink); border-radius: 2px; overflow: hidden; }
+      .face .bar i { display: block; height: 100%; background: var(--green); }
+      .face.on { border-color: var(--gold); }
+      .face.stuck { border-color: #ffe55c; }
+      .face.stuck::after { content: '!'; position: absolute; top: -8px; right: -4px; width: 18px; height: 18px; display: grid; place-items: center; font-size: 9px; color: var(--ink); background: #ffe55c; border: 2px solid var(--ink); border-radius: 50%; }
+      .face.empty { border-style: dashed; color: var(--muted); justify-content: center; }
+      .face.empty b { font-weight: normal; font-size: 16px; color: #ffe55c; }
+
+      /* MICE. */
+      .mice { flex: 1; min-height: 0; overflow-y: auto; padding: 8px; background: var(--panel); }
+      .mh { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 10px; font-size: 10px; color: #ffe55c; }
+      .mh span { font-family: var(--text); font-size: 12px; font-weight: 700; color: var(--muted); }
+      .rock { margin-bottom: 8px; padding: 7px; background: var(--bg); border: 2px solid var(--ink); border-radius: 8px; }
+      .rock h4 { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; font-weight: normal; font-size: 8px; }
+      .rock h4 img { width: 14px; }
+      .rock h4 span { margin-left: auto; font-family: var(--text); font-size: 11px; color: var(--muted); }
+      .rock .crew { margin: 0; }
+      .rock .face img.m { width: 34px; }
+      .cta { position: sticky; bottom: 0; display: flex; gap: 6px; padding-top: 8px; background: linear-gradient(transparent, var(--panel) 30%); }
+      .cta .btn { flex: 1; min-height: 52px; font-size: 10px; }
+      .cta .hire { background: #3fa860; }
+      .note { margin: 0 0 10px; padding: 8px 10px; font-family: var(--text); font-size: 12px; font-weight: 600; color: var(--muted); background: var(--bg); border-radius: 6px; }
+      .sec { margin: 12px 0 6px; font-size: 7px; color: var(--muted); }
+      .cands { display: flex; gap: 6px; }
+      .cands .face img.m { width: 44px; }
+
+      /* Selector de maquetas (no forma parte de la propuesta). */
+      .pick { position: fixed; right: 6px; bottom: calc(70px + env(safe-area-inset-bottom, 0px)); z-index: 9; display: flex; gap: 3px; padding: 3px; background: #000c; border-radius: 6px; }
+      .pick button { padding: 5px 6px; font-size: 7px; background: var(--panel-2); border: 1px solid var(--ink); border-radius: 4px; }
+      .pick button.on { background: #ffe55c; color: var(--ink); }
+      .pick.hide { display: none; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div class="pick" id="pick"></div>
+    <script src="../js/game/config/balance.js"></script>
+    <script src="../js/game/config/traits.js"></script>
+    <script src="../js/playtest/telemetry.js"></script>
+    <script src="../js/game/state.js"></script>
+    <script src="../js/game/systems/skills.js"></script>
+    <script src="../js/game/systems/mice.js"></script>
+    <script src="../js/game/systems/production.js"></script>
+    <script src="../js/game/systems/cheesery.js"></script>
+    <script src="../js/game/simulation.js"></script>
+    <script src="../js/storage.js"></script>
+    <script src="../js/ui/icons.js"></script>
+    <script src="../js/ui/scene.js"></script>
+    <script>
+      (async function () {
+        const B = CM.BALANCE, q = CM.q, K = CM.mice, I = CM.icons;
+        const qs = new URLSearchParams(location.search);
+        let P = qs.get('p') || 'A';
+        let V = qs.get('v') || 'main';
+        if (qs.get('clean')) document.getElementById('pick').classList.add('hide');
+        // Una colonia media de verdad, con dos situaciones que la propuesta tiene que resolver:
+        // la mina de Emmental atascada esperando veta y dos puestos sin ratón.
+        const s = CM.storage.parse(await fetch('mid.json').then((r) => r.text()), Date.now());
+        const ZONE = 'emmental';
+        const vac = ['drilling:gouda', 'refining:brie'];
+        for (const m of s.mice) if (vac.indexOf(m.post) >= 0) { m.post = ''; m.rest = true; }
+        const stuck = () => { const z = s.zones[ZONE]; z.veinRevealed = false; z.veinRemaining = 0; z.drillJob = null; z.discover = Math.min(z.discover, q.veinHits(s, ZONE) * 0.35); s.inv.raw[q.zoneDef(ZONE).base] = 0; };
+        stuck();
+        // Tres candidatos de verdad, como los que saldrían al reclutar.
+        const coins0 = s.coins; s.coins = 1e40; s.candidates = []; K.offer(s); s.coins = coins0;
+        const cands = s.candidates.slice(0, 3);
+        const traitName = (m) => { const id = (m.traits || [])[0]; return id && B.mice.traits[id] ? B.mice.traits[id].name : 'common'; };
+        for (let i = 0; i < 14; i++) { CM.sim.advance(s, 5000, 100); CM.telemetry.sample(s); stuck(); }
+        const fmt = CM.fmt;
+        const rates = () => CM.telemetry.rates(s);
+        const JOBS = ['mining', 'drilling', 'refining', 'cheesemaking'];
+        const JOB_ICON = { mining: 'pick', drilling: 'raw', refining: 'base', cheesemaking: 'lot', trading: 'coin' };
+        const def = q.zoneDef(ZONE);
+        const posts = K.posts(s);
+        const staffed = posts.filter((p) => K.at(s, p.skill, p.zone)).length;
+        const empty = posts.length - staffed;
+        const icon = (k, base) => I.url(k, base || def.base);
+        const cap = () => { const w = K.work(s, 'trading', 'all'); return (q.sellCount(s) / (q.sellDuration(s) / 1000 / (w ? w.speed : 1))) * 60; };
+
+        const top = () => { const r = rates(); return '<div class="top"><div class="chip"><img class="pix" src="' + I.url('coin') + '" alt="" /><div><b>' + fmt(s.coins) + '</b><small>+' + fmt(Math.round(r.coins)) + '/min</small></div></div><div class="chip"><img class="pix" src="' + I.url('lot', 'cheddar') + '" alt="" /><div style="flex:1;min-width:0"><b>' + fmt(q.lotsTotal(s)) + '</b><small>sells ' + fmt(Math.round(r.sold)) + '/min</small><div class="meter"><i style="width:' + Math.min(100, Math.round(((r.sold - r.whole) / cap()) * 100)) + '%"></i></div></div></div></div>'; };
+        const flow = () => { const l = rates().lanes[ZONE]; return '<div class="flow"><div><img class="pix" src="' + icon('raw') + '" alt="" /><span><b>' + fmt(s.inv.raw[def.base]) + '</b><em class="idle">finding a vein</em></span></div><i></i><div><img class="pix" src="' + icon('base') + '" alt="" /><span><b>' + fmt(s.inv.base[def.base]) + '</b><em>' + (l.base - l.baseUsed < 0 ? '−' + fmt(Math.round(l.baseUsed - l.base)) + '/min' : 'all cooked') + '</em></span></div><i></i><div><img class="pix" src="' + icon('lot') + '" alt="" /><span><b>+' + fmt(Math.round(l.lots)) + '</b><em>/min to shop</em></span></div></div>'; };
+        const sceneBox = (help) => '<div class="scene" id="sc"><canvas id="cv"></canvas>' + (help ? '<div class="ring" id="ring"></div><div class="help" id="help"><img class="pix" src="' + I.url('pick') + '" alt="" />HELP!</div>' : '') + flow() + '</div>';
+        const face = (m, skill, cls, extra) => m ? '<div class="face ' + (cls || '') + '"><img class="pix j" src="' + icon(JOB_ICON[skill]) + '" alt="" /><img class="pix m" src="' + CM.mouseUrl(m) + '" alt="" /><span>' + m.name + '</span>' + (extra || '<div class="bar"><i style="width:' + (40 + ((m.xp | 0) % 55)) + '%"></i></div>') + '</div>' : '<div class="face empty"><b>+</b><span>HIRE</span></div>';
+        const nav = (badge) => '<div class="nav"><button class="btn">COLONY</button><button class="btn">MICE' + (badge ? '<i class="badge">' + badge + '</i>' : '') + '</button><button class="btn">MENU</button></div>';
+        const sweep = CM.tree.sweep(s, true);
+        const buyAll = sweep.bought ? 'BUY ALL · ' + sweep.bought : 'BUY ALL · next ' + fmt(sweep.next ? sweep.next.cost : 0);
+
+        // ---------- A · LA ESCENA MANDA ----------
+        const A = {
+          main: () => top() + sceneBox(true) + '<div class="dock"><div class="label">EMMENTAL · MINING<span>tap a building to switch</span></div><div class="row"><button class="btn big dig">DIG<small style="color:#3a2a14">each tap is a blow</small></button><button class="btn" style="flex:1"><img class="pix" src="' + I.url('coin') + '" width="18" alt="" /><small>' + buyAll + '</small></button></div></div>' + nav(empty),
+          mice: () => top() + '<div class="scene" style="flex:0 0 26%"><canvas id="cv"></canvas></div><div class="mice"><div class="mh">YOUR CREW<span>' + staffed + '/' + posts.length + ' posts</span></div>' + q.openZones(s).map((d) => '<div class="rock"><h4><img class="pix" src="' + I.url('raw', d.base) + '" alt="" />' + d.name.toUpperCase() + '<span>' + JOBS.filter((j) => K.at(s, j, d.id)).length + '/4</span></h4><div class="crew">' + JOBS.map((j) => face(K.at(s, j, d.id), j, '', ' ')).join('') + '</div></div>').join('') + '<div class="cta"><button class="btn hire">HIRE ' + empty + ' MICE<small style="color:#eafbe9">' + fmt(K.recruitCost(s)) + ' each</small></button></div></div>' + nav(empty),
+        };
+        // ---------- B · LO QUE IMPORTA AHORA ----------
+        const B_ = {
+          main: () => top() + sceneBox(false) + '<div class="now"><button class="task urgent"><img class="pix" src="' + I.url('pick') + '" alt="" /><span><b>EMMENTAL IS STUCK</b><small>The miners need a hand to find the next vein</small></span><em>DIG</em></button><button class="task"><img class="pix" src="' + CM.mouseUrl(s.mice[0]) + '" alt="" /><span><b>' + empty + ' EMPTY POSTS</b><small>Gouda drill and Brie refinery have no mouse</small></span><em>HIRE</em></button></div><div class="dock"><div class="stations">' + ['pick', 'raw', 'base', 'lot', 'coin'].map((k, i) => '<div class="st' + (i === 0 ? ' on' : '') + '"><img class="pix" src="' + icon(k) + '" alt="" /></div>').join('') + '</div><div class="row"><button class="btn big dig">DIG</button><button class="btn" style="flex:1"><small>' + buyAll + '</small></button></div></div>' + nav(0),
+          mice: () => top() + '<div class="mice"><div class="mh">MICE<span>' + staffed + '/' + posts.length + ' posts</span></div><div class="sec">NEEDS YOU</div><button class="task urgent" style="width:100%"><img class="pix" src="' + I.url('raw', 'gouda') + '" alt="" /><span><b>' + empty + ' EMPTY POSTS</b><small>Pick one of three candidates for each</small></span><em>HIRE</em></button><div class="sec">THE CREW</div>' + q.openZones(s).map((d) => '<div class="rock"><h4><img class="pix" src="' + I.url('raw', d.base) + '" alt="" />' + d.name.toUpperCase() + '</h4><div class="crew">' + JOBS.map((j) => face(K.at(s, j, d.id), j, '', ' ')).join('') + '</div></div>').join('') + '<div class="sec">MORE</div><p class="note">House · Album · Diary · Bed (folded until you need them)</p></div>' + nav(0),
+        };
+        // ---------- C · LOS RATONES SON LA INTERFAZ ----------
+        const crewOf = (z) => JOBS.map((j) => [j, K.at(s, j, z)]);
+        const C = {
+          main: () => top() + sceneBox(false) + '<div class="dock"><div class="label">EMMENTAL ROCK<span>tap a mouse to work its station</span></div><div class="crew">' + crewOf(ZONE).map(([j, m], i) => face(m, j, (i === 0 ? 'on stuck' : ''), i === 0 ? '<span style="color:#ffe55c">needs help</span>' : '')).join('') + face(K.at(s, 'trading', 'all'), 'trading') + '</div><div class="row"><button class="btn big dig">HELP DIG</button><button class="btn" style="flex:1"><small>' + buyAll + '</small></button></div></div>' + nav(empty),
+          mice: () => top() + '<div class="mice"><div class="mh">' + staffed + '/' + posts.length + ' POSTS<span>' + empty + ' empty</span></div><p class="note">Tap an empty post to choose who fills it.</p>' + q.openZones(s).map((d) => '<div class="rock"><h4><img class="pix" src="' + I.url('raw', d.base) + '" alt="" />' + d.name.toUpperCase() + '</h4><div class="crew">' + JOBS.map((j) => face(K.at(s, j, d.id), j, '', ' ')).join('') + '</div>' + (d.id === 'gouda' ? '<div class="sec">CANDIDATES FOR THE DRILL · ' + fmt(K.recruitCost(s)) + '</div><div class="cands">' + cands.map((m) => face(m, 'drilling', '', '<span class="ok">' + traitName(m) + '</span>')).join('') + '</div>' : '') + '</div>').join('') + '</div>' + nav(empty),
+        };
+        const SETS = { A, B: B_, C };
+
+        let scene = null;
+        function render() {
+          document.getElementById('app').innerHTML = SETS[P][V]();
+          const cv = document.getElementById('cv');
+          scene = cv ? CM.createScene(cv) : null;
+          if (scene) { scene.resize(); scene.focus('rock'); }
+          document.getElementById('pick').innerHTML = ['A', 'B', 'C'].map((x) => '<button data-p="' + x + '" class="' + (x === P ? 'on' : '') + '">' + x + '</button>').join('') + ['main', 'mice'].map((x) => '<button data-v="' + x + '" class="' + (x === V ? 'on' : '') + '">' + x.toUpperCase() + '</button>').join('');
+        }
+        document.getElementById('pick').addEventListener('click', (e) => {
+          const b = e.target.closest('button');
+          if (!b) return;
+          if (b.dataset.p) P = b.dataset.p;
+          if (b.dataset.v) V = b.dataset.v;
+          render();
+        });
+        render();
+        let last = performance.now();
+        function frame(t) {
+          const dt = Math.min(250, t - last);
+          last = t;
+          CM.sim.advance(s, dt, 100);
+          stuck();
+          CM.events.length = 0;
+          if (scene) {
+            scene.draw(s, Date.now(), dt / 1000, ZONE);
+            const a = scene.anchor('rock');
+            const sc = document.getElementById('sc');
+            const help = document.getElementById('help'), ring = document.getElementById('ring');
+            if (sc && help) { const w = sc.clientWidth, h = sc.clientHeight; help.style.left = (a[0] * w + 30) + 'px'; help.style.top = (a[1] * h - 6) + 'px'; ring.style.left = (a[0] * w + 30) + 'px'; ring.style.top = (a[1] * h + 26) + 'px'; }
+          }
+          requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+      })();
+    </script>
+  </body>
+</html>
