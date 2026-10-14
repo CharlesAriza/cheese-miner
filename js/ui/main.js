@@ -1051,7 +1051,7 @@
   // para ninguna, cuál es la siguiente.
   function updateBuyAll() {
     const plan = (ui.plan = CM.tree.sweep(state, true));
-    set(dk.allNum, 'text', plan.bought ? plan.bought + ' · ' + CM.fmt(plan.cost) : plan.next ? 'NEXT ' + CM.fmt(plan.next.cost) : 'ALL MAXED');
+    set(dk.allNum, 'text', plan.bought ? plan.bought + ' for ' + CM.fmt(plan.cost) : plan.next ? 'NEXT ' + CM.fmt(plan.next.cost) : 'ALL MAXED');
     set(dk.all, 'ready', plan.bought > 0);
     set(dk.all, 'off', !plan.bought);
     costOf(dk.all, plan.bought || !plan.next ? 0 : plan.next.cost);

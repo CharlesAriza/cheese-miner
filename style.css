@@ -10636,3 +10636,14 @@ img.pix.pxi {
   border-color: #ffe55c;
   color: #fff3b0;
 }
+/* V4.11: más aire entre el nombre del recurso, la cantidad y su estado. */
+.fchip {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+.fchip small.fname {
+  margin-bottom: 4px;
+}
+.fchip em {
+  margin-top: 4px;
+}

@@ -1108,13 +1108,6 @@
     const short = s.coins < cost;
     return '<div class="mhi-card"><div><b>FIND NEW MICE</b><small>Meet 3 candidates. Choose one to hire.</small></div>' + btn(payAct, I.img('coin', '', 'mhi-coin') + CM.fmt(cost), { cls: 'mhi-go pay' + (short ? ' short' : ''), off: short, cost }) + '</div>';
   }
-  // V4.10. Fila fija de MICE: HIRE (con su precio, o seguir eligiendo si ya hay tres pagados).
-  function hireBar(s) {
-    if (s.candidates.length) return '<div class="mc-hirebar">' + btn('recruitview', '<b>HIRE</b><small>3 mice waiting · CONTINUE</small>', { cls: 'mc-hire waiting' }) + '</div>';
-    const cost = CM.mice.recruitCost(s);
-    const short = s.coins < cost;
-    return '<div class="mc-hirebar">' + btn('recruit', '<b>HIRE</b><small>Meet 3, pick 1 · ' + I.px('coin') + CM.fmt(cost) + '</small>', { cls: 'mc-hire' + (short ? ' short' : ''), off: short, cost }) + '</div>';
-  }
   // V4.3. Tratar una manía: botiquín pixel art, TREAT y el coste en su línea. Estados claros:
   // se puede, falta dinero, la cama la ocupa otro, y este mismo en tratamiento. Clases `mct-`.
   function treatBtn(s, m, id) {
@@ -1359,8 +1352,6 @@
     const cost = K.recruitCost(s);
     // V4.1: un toque con el precio a la vista paga y enseña a los tres. Cubrir una vacante
     // concreta se hace desde el puesto (COLONY); esto es buscar en general.
-    h += '<h4 class="mc-h">' + 'HIRE</h4>';
-    h += hireCard(s, 'recruit', 'recruitview');
     // Diario: lo que han ido desarrollando.
     if (s.news.length) {
       h += '<h4 class="mc-h">' + 'COLONY NEWS</h4><ul class="mc-news">';
@@ -1438,9 +1429,9 @@
     const view = ui.miceView === 'roster' || ui.miceView === 'house' ? ui.miceView : 'rocks';
     const todo = s.mice.filter((m) => canPromote(s, m)).length;
     let h = '<div class="tabs mc-tabs">' + btn('miceview:rocks', 'COLONY', { cls: view === 'rocks' ? 'on' : '' }) + btn('miceview:roster', 'ROSTER ' + s.mice.length, { cls: (view === 'roster' ? 'on' : '') + (todo ? ' mc-promo' : '') }) + btn('miceview:house', 'HOUSE', { cls: view === 'house' ? 'on' : '' }) + '</div>';
-    // V4.10: HIRE siempre a mano en COLONY y ROSTER (en HOUSE ya tiene su sección). Contratar
-    // desde aquí no elige puesto: el nuevo llega sin asignar y el jugador lo coloca.
-    if (view !== 'house') h += hireBar(s);
+    // V4.11: la tarjeta de contratar de siempre (FIND NEW MICE), ahora en COLONY y ROSTER en vez
+    // de en HOUSE. Contratar desde aquí no elige puesto: el nuevo llega sin asignar.
+    if (view !== 'house') h += hireCard(s, 'recruit', 'recruitview');
     if (!s.mice.length && view === 'rocks') h += '<p class="hint mc-first">Hire your first mouse, then tap a post to put it to work. A mouse on a post does that stage for you, even while you are away.</p>';
     return h + (view === 'roster' ? rosterView(s, ui) : view === 'house' ? houseView(s, ui) : colonyView(s, ui));
   }
@@ -1454,7 +1445,7 @@
       row('Playtest tools', 'Dev menu: marks the session as assisted', btn('open:dev', 'OPEN', { cls: 'buy' })) +
       row('Reset save', 'Start over from zero', btn('reset', 'RESET', { cls: 'danger' })) +
       // Qué versión del prototipo se está probando (para no confundirla con una copia en caché).
-      '<p class="hint"><b>Prototype V4.10</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
+      '<p class="hint"><b>Prototype V4.11</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
     );
   }
 
