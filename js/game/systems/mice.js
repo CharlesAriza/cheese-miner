@@ -673,7 +673,15 @@
     // Una sola cama. Trata una manía o reentrena una especialidad mientras el ratón sigue
     // en su puesto: lo que cuesta es la inversión y la espera, no parar la producción.
     careCost: (s, kind) => Math.round((kind === 'spec' ? M.care.retrainCost : M.care.treatCost) * Math.pow(M.care.growth, kind === 'spec' ? s.totals.retrains : s.totals.treatments)),
-    // `what`: la manía que se trata o el oficio que se reentrena; `to`: la especialidad nueva.
+    // `what`: la manía que se trata o el oficio que se reentrena.
+    // V4.8, RETRAIN aleatorio (aprobado): el jugador elige QUÉ especialidad sustituye, no cuál
+    // recibe. La nueva sale al azar, con la misma probabilidad, entre las otras cuatro del oficio
+    // (nunca la misma). Se sortea AL EMPEZAR con el generador de la partida y se guarda en
+    // `s.care.to`: recargar, cerrar o calcular offline no cambia el resultado ni permite repetir
+    // el sorteo. La interfaz no lo enseña hasta que termina. El grado no cambia: sale del
+    // contador de trabajos del oficio (`m.jobs`), que no se toca. Coste, duración y la única
+    // plaza de la casa, iguales que antes. `to` ya no se usa (queda por compatibilidad).
+    retrainOptions: (m, job) => (m.spec[job] ? jobTraits(job).filter((k) => k !== m.spec[job]) : []),
     careStart(s, id, kind, what, to) {
       const m = this.byId(s, id);
       if (!m || !s.built.house) return CM.fail('invalid');
@@ -681,7 +689,7 @@
       if (kind === 'quirk') {
         if (!T[what] || T[what].kind !== 'quirk' || m.traits.concat(m.learned).indexOf(what) < 0) return CM.fail('invalid');
       } else if (kind === 'spec') {
-        if (!m.spec[what] || jobTraits(what).indexOf(to) < 0 || m.spec[what] === to) return CM.fail('invalid');
+        if (!m.spec[what] || this.retrainOptions(m, what).length < 1) return CM.fail('invalid');
       } else return CM.fail('invalid');
       const cost = this.careCost(s, kind);
       if (s.coins < cost) return CM.fail('no-coins');
@@ -689,7 +697,13 @@
       s.totals.coinsSpent += cost;
       if (kind === 'spec') s.totals.retrains += 1;
       else s.totals.treatments += 1;
-      s.care = { id: m.id, kind, what, to: to || '', remaining: M.care.ms, total: M.care.ms };
+      let pick = '';
+      if (kind === 'spec') {
+        const opts = this.retrainOptions(m, what);
+        pick = opts[Math.min(opts.length - 1, Math.floor(CM.rand(s) * opts.length))];
+      }
+      // `from`: la especialidad que se sustituye, para enseñar el antes y el después al acabar.
+      s.care = { id: m.id, kind, what, to: pick, from: kind === 'spec' ? m.spec[what] : '', remaining: M.care.ms, total: M.care.ms };
       CM.emit(s, 'purchase', { what: 'care', cost });
       CM.emit(s, 'careStart', { id: m.id, kind, what });
       return CM.ok();
@@ -705,9 +719,9 @@
       if (c.kind === 'quirk') {
         m.traits = m.traits.filter((t) => t !== c.what);
         m.learned = m.learned.filter((t) => t !== c.what);
-      } else m.spec[c.what] = c.to;
+      } else if (m.spec[c.what] && T[c.to] && T[c.to].job === c.what) m.spec[c.what] = c.to;
       teamKey = '';
-      CM.emit(s, 'careDone', { id: m.id, kind: c.kind, what: c.what, to: c.to });
+      CM.emit(s, 'careDone', { id: m.id, kind: c.kind, what: c.what, to: c.to, from: c.from || '' });
       this.note(s, m);
     },
     hasTrait,

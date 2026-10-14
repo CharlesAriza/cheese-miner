@@ -768,8 +768,9 @@
     const c = s.care;
     const m = c && CM.mice.byId(s, c.id);
     if (!m) return '';
-    const what = c.kind === 'quirk' ? 'Treating ' + T[c.what].name : 'Retraining to ' + T[c.to].name;
-    return '<div class="carebox">' + face(m, 'face mini') + '<div><small>MOUSE HOUSE BED · ' + clock(c.remaining) + ' left</small><b>' + esc(m.name) + ' · ' + what + '</b><div class="bar"><i style="width:' + Math.round((1 - c.remaining / c.total) * 100) + '%"></i></div><small>It keeps working meanwhile. One mouse at a time.</small></div></div>';
+    // V4.8: el resultado de un reentreno no se enseña hasta que acaba.
+    const what = c.kind === 'quirk' ? 'Treating ' + T[c.what].name : 'Retraining ' + T[c.from || m.spec[c.what]].name + ' (random result)';
+    return '<div class="carebox">' + face(m, 'face mini') + '<div><small>' + (c.kind === 'quirk' ? 'MOUSE HOUSE BED · ' : 'TRAINING ROOM · ') + clock(c.remaining) + ' left</small><b>' + esc(m.name) + ' · ' + what + '</b><div class="bar"><i style="width:' + Math.round((1 - c.remaining / c.total) * 100) + '%"></i></div><small>It keeps working meanwhile. One mouse at a time.</small></div></div>';
   }
   // Qué le falta a un ratón para ascender: siempre lo dice.
   function promoteBlock(s, m) {
@@ -807,6 +808,17 @@
   const portrait = (m, size) => '<i class="mc-face r' + (m.rarity || 0) + (size ? ' ' + size : '') + (m.id === GM ? ' gm' : '') + '"><img class="pix' + (CM.mice.isLegend(m) ? ' glow' : '') + '" alt="" src="' + CM.mouseUrl(m) + '">' + (m.id === GM ? '<u class="gm-star">' + I.px('star') + '</u>' : '') + '</i>';
   const rankLv = (m) => 'LV ' + CM.mice.level(m) + ' · ' + M.ranks[m.rank].name;
   const canPromote = (s, m) => CM.mice.promoteInfo(s, m).can;
+  // V4.8: «listo para ascender» se dice UNA vez por ratón: contorno verde y flecha en su tarjeta o
+  // fila. La entrada (el contorno se enciende y la flecha sube 4 px) dura 0,4 s y no se repite al
+  // repintar el panel: el retraso negativo la deja donde iba desde que se vio por primera vez.
+  // Una vez por ratón y rango; pasado el medio segundo el texto ya no cambia y no fuerza repintados.
+  const upAt = {};
+  const upDelay = (m) => {
+    const k = m.id + ':' + m.rank;
+    const t = (performance.now() - (upAt[k] || (upAt[k] = performance.now()))) / 1000;
+    return ' style="--upd:-' + (t > 0.5 ? '1' : t.toFixed(2)) + 's"';
+  };
+  const upArrow = (cls) => I.img('rankup', '', cls || 'mc-up');
   const quirksOf = (m) => m.traits.concat(m.learned).filter((id) => T[id] && T[id].kind === 'quirk');
   const legendsOf = (m) => CM.mice.traitsOf(m).filter((t) => T[t.id].kind === 'legend');
   const lower = (t) => t.charAt(0).toLowerCase() + t.slice(1);
@@ -867,10 +879,10 @@
     const due = canPromote(s, m);
     // V4: tocar abre la ficha; mantener pulsado lo levanta para arrastrarlo a otro puesto.
     return (
-      '<button data-act="' + act('card:' + m.id) + '" data-post="' + key + '" data-mouse="' + m.id + '" class="mc-post' + (wide ? ' wide' : '') + (due ? ' mc-due' : '') + (s.care && s.care.id === m.id ? ' inbed' : '') + selCls + '">' + portrait(m) +
-      (s.care && s.care.id === m.id ? '<img class="pix mcx-bed" alt="in bed" title="In the Mouse House bed: ' + clock(s.care.remaining) + ' left" src="' + I.url('bed') + '">' : '') +
+      '<button data-act="' + act('card:' + m.id) + '" data-post="' + key + '" data-mouse="' + m.id + '" class="mc-post' + (wide ? ' wide' : '') + (due ? ' mc-due' : '') + (s.care && s.care.id === m.id ? ' inbed' : '') + selCls + '"' + (due ? upDelay(m) : '') + '>' + portrait(m) +
+      (s.care && s.care.id === m.id ? (s.care.kind === 'spec' ? '<img class="pix mcx-bed" alt="training" title="In the training room: ' + clock(s.care.remaining) + ' left" src="' + I.url('teaching') + '">' : '<img class="pix mcx-bed" alt="in bed" title="In the Mouse House bed: ' + clock(s.care.remaining) + ' left" src="' + I.url('bed') + '">') : '') +
       '<span><small>' + JOB_SHORT[skill].toUpperCase() + hearts(m.aff[skill]) + '</small><b>' + esc(m.name) + '</b><em>' + rankLv(m) + '</em></span>' +
-      '<i class="mc-out">' + mult(K.here(s, m)) + '</i>' + (due ? I.img('rankup', '', 'mc-up') : '') + '</button>'
+      '<i class="mc-out">' + mult(K.here(s, m)) + '</i>' + (due ? upArrow() : '') + '</button>'
     );
   }
   // Fila de un ratón en una lista: quién es, dónde está, qué le gusta, sus rasgos y un dato a la derecha.
@@ -914,7 +926,7 @@
     h += '<div class="mcx-occ' + (empty.length ? ' gap' : '') + '"><b>' + (total - empty.length) + '/' + total + ' POSTS</b><span>' + (empty.length ? empty.length + ' EMPTY' : 'ALL STAFFED') + '</span>' + (ui.lastMove && !ui.fxOn ? btn('undomove', I.img('undo') + 'UNDO', { cls: 'mcx-undo mcx-pixbtn' }) : '') + '</div>';
     if (s.candidates.length) h += btn('recruitview', '<b>' + I.img('mouse', '', 'mch-ico') + '3 CANDIDATES WAITING</b><span>Already paid' + (s.candidatesFor ? ', for ' + K.postLabel(s.candidatesFor) : '') + '. They wait until you choose.</span><em>CHOOSE</em>', { cls: 'labrow ready mcx-waiting' });
     if (!ui.dragTold && s.mice.length > 1) h += '<p class="mcx-tip">Tap a mouse for its card. Hold it to drag it to another post; drop it on a mouse to swap them.</p>';
-    if (s.care && K.byId(s, s.care.id)) notes += btn('miceview:house', 'Bed: <b>' + esc(K.byId(s, s.care.id).name) + '</b> ' + clock(s.care.remaining), { cls: 'mc-note bed' });
+    if (s.care && K.byId(s, s.care.id)) notes += btn('miceview:house', (s.care.kind === 'spec' ? 'Training: <b>' : 'Bed: <b>') + esc(K.byId(s, s.care.id).name) + '</b> ' + clock(s.care.remaining), { cls: 'mc-note bed' });
     if (notes) h += '<div class="mc-notes">' + notes + '</div>';
     // Puestos de toda la colonia: la tienda y el laboratorio.
     const globals = [];
@@ -927,11 +939,12 @@
       const cols = K.CHAIN.slice(0, 4).filter((k) => k === 'mining' || s.built[B.skills[k].station]);
       const combos = rockCombos(s, z.id);
       const crew = cols.map((k) => K.at(s, k, z.id));
-      const due = crew.some((m) => m && canPromote(s, m));
       h += '<div class="mc-rock' + (open ? ' open' : '') + '" data-rock="' + z.id + '"><button data-act="' + (sel ? 'noop' : 'rocktoggle:' + z.id) + '" class="mc-rockhead">' + I.img('raw', z.base, 'big') + '<span><b>' + z.name.toUpperCase() + '</b><small>Depth ' + s.zones[z.id].depth + (combos.length ? ' · ' + plural(combos.length, 'combo') : '') + '</small></span>';
       // Plegada: las caras de quien trabaja ahí, para reconocerlos sin abrir.
-      if (!open) h += '<i class="mc-crew">' + crew.map((m) => (m ? portrait(m, 'mini') : '<i class="mc-face mini hole mcx-vac">+</i>')).join('') + '</i>';
-      h += (due ? I.img('rankup', '', 'mc-up') : '') + '<em>' + (open ? 'HIDE' : 'SHOW') + '</em></button>';
+      // V4.8: sin flecha en la cabecera (repetía lo que dicen las tarjetas); plegada, la cara de
+      // quien puede ascender lleva el mismo contorno verde.
+      if (!open) h += '<i class="mc-crew">' + crew.map((m) => (m ? portrait(m, 'mini' + (canPromote(s, m) ? ' mc-dueface' : '')) : '<i class="mc-face mini hole mcx-vac">+</i>')).join('') + '</i>';
+      h += '<em>' + (open ? 'HIDE' : 'SHOW') + '</em></button>';
       if (open) {
         h += '<div class="mc-posts">' + cols.map((k) => postCard(s, k, z.id, false, sel)).join('') + '</div>';
         // Combinaciones: una línea con sus nombres; el detalle, al tocarla.
@@ -986,11 +999,14 @@
       // Con varios rangos acumulados se elige hasta dónde; cada rango cobra su precio.
       // Varios rangos a la vez: cada opción dice hasta dónde llega y cuántos pasos paga (se compran
       // uno a uno, con todo lo que da cada rango).
-      if (steps.length > 1) h += '<span class="pm-steps">' + steps.map((st, i) => btn('promoto:' + m.id + ':' + st.rank, 'UP TO ' + st.name.toUpperCase() + '<small>' + (i + 1) + (i ? ' ranks · ' : ' rank · ') + CM.fmt(st.total) + '</small>', { cls: 'chip' + (to === st.rank ? ' on' : '') })).join('') + '</span>';
+      if (steps.length > 1) h += '<span class="pm-steps">' + steps.map((st, i) => btn('promoto:' + m.id + ':' + st.rank, st.name.toUpperCase() + '<small>+' + (i + 1) + (i ? ' ranks · ' : ' rank · ') + CM.fmt(st.total) + '</small>', { cls: 'chip' + (to === st.rank ? ' on' : '') })).join('') + '</span>';
       h += '</div>';
     }
     const short = plan.cost > s.coins;
-    h += '<div class="pm-foot"><div><b>' + (plan.steps ? plural(plan.mice, 'mouse', 'mice') + ' · ' + plural(plan.steps, 'rank') : 'Nothing selected') + '</b><small class="' + (short ? 'pm-short' : '') + '">' + coin(plan.cost) + ' of your ' + CM.fmt(s.coins) + (short ? ' · ' + CM.fmt(plan.cost - s.coins) + ' short' : '') + '</small></div>' +
+    // V4.8: barra fija en dos renglones de alto fijo. Arriba, ratones y rangos (son cosas distintas:
+    // un ratón puede subir varios). Abajo, el coste junto a lo que tienes, en una sola línea.
+    h += '<div class="pm-foot"><div class="pm-sum"><b>' + (plan.steps ? plural(plan.mice, 'mouse', 'mice') + ' · ' + plural(plan.steps, 'rank') : 'Nothing selected') + '</b>' +
+      '<span class="pm-cost' + (short ? ' pm-short' : '') + '">' + I.img('coin') + '<b>' + CM.fmt(plan.cost) + '</b><i>of ' + CM.fmt(s.coins) + (short ? ' · ' + CM.fmt(plan.cost - s.coins) + ' short' : '') + '</i></span></div>' +
       btn('promogo', plan.steps ? 'PROMOTE ' + plan.mice : 'PROMOTE', { cls: 'buy' + (plan.steps && !short ? ' ready' : ''), off: !plan.steps || short }) + '</div>';
     return h;
   }
@@ -1026,8 +1042,8 @@
     if (!list.length) return h + '<p class="hint">No mouse matches.</p>';
     for (const m of list) {
       const due = canPromote(s, m);
-      const right = (m.post ? '<i class="mc-out">' + mult(K.here(s, m)) + '</i>' : '<i class="mc-out none">FREE</i>') + (due ? '<small class="mc-todo">PROMOTE</small>' : s.care && s.care.id === m.id ? '<small class="mc-todo bed">IN BED</small>' : '');
-      h += mouseLine(s, m, 'card:' + m.id, right, { cls: due ? 'mc-due' : '', skill: likes || undefined });
+      const right = (m.post ? '<i class="mc-out">' + mult(K.here(s, m)) + '</i>' : '<i class="mc-out none">FREE</i>') + (due ? upArrow('mc-uprow') : s.care && s.care.id === m.id ? '<small class="mc-todo bed">' + (s.care.kind === 'spec' ? 'TRAINING' : 'IN BED') + '</small>' : '');
+      h += mouseLine(s, m, 'card:' + m.id, right, { cls: due ? 'mc-due' : '', skill: likes || undefined }).replace('class="mc-row', (due ? upDelay(m).trim() + ' ' : '') + 'class="mc-row');
     }
     return h;
   }
@@ -1205,13 +1221,13 @@
     const sleepy = m && (CM.mice.parts(m).marks || '').split(',').indexOf('zzz') >= 0;
     let h = '<div class="mch-room' + (m ? ' busy' : last ? ' done' : '') + (sleepy ? ' sleepy' : '') + intro + '"><i class="mch-window"></i><div class="mch-bed"><img class="pix mch-frame" alt="" src="' + I.url('bed') + '">' + (who ? '<img class="pix mch-mouse" alt="" src="' + CM.mouseUrl(who, null, true) + '"><i class="mch-blanket"></i>' : '') + '</div>' + (m ? '<b class="mch-zz">Z<small>z</small></b>' : '') + '</div>';
     if (m) {
-      const what = c.kind === 'quirk' ? 'Treating <b class="tbad">' + T[c.what].name + '</b>' : 'Retraining ' + B.skills[c.what].name + ' to <b class="tok">' + T[c.to].name + '</b>';
+      const what = 'Treating <b class="tbad">' + T[c.what].name + '</b>';
       const pct = Math.round((1 - c.remaining / c.total) * 100);
       h += '<div class="mch-info"><b>' + esc(m.name) + '</b><small>' + what + '</small><div class="mch-bar"><i style="width:' + pct + '%"></i></div><small>' + clock(c.remaining) + ' left · it keeps working at ' + (m.post ? K_label(m.post) : 'the house') + '</small></div>';
     } else if (last) {
       const ev = ui.careLast;
       h += '<div class="mch-info"><b>' + esc(last.name) + ' is out of bed</b><small>' + (ev.kind === 'quirk' ? 'No more <b>' + T[ev.what].name + '</b>' : 'Now a <b class="tok">' + T[ev.to].name + '</b>') + '. The bed is free.</small></div>';
-    } else h += '<div class="mch-info"><b>The bed is free</b><small>' + houseBusy(s, 'bed') + '</small></div>';
+    } else h += '<div class="mch-info"><b>' + (s.care ? 'The bed waits: the house is busy' : 'The bed is free') + '</b><small>' + houseBusy(s, 'bed') + '</small></div>';
     return h;
   }
   // La casa cuida de un ratón a la vez (regla de siempre): si está en la otra sala, se dice.
@@ -1221,8 +1237,8 @@
     if (!m) return room === 'bed' ? 'Pick a mouse with a quirk below.' : 'Pick a mouse below to retrain one of its specialities.';
     return 'The house looks after one mouse at a time: ' + esc(m.name) + ' is in the ' + (c.kind === 'quirk' ? 'BED' : 'TRAINING ROOM') + ' for ' + clock(c.remaining) + '.';
   }
-  // V4.6. TRAINING ROOM: la misma estructura que la cama (escena, estado, lista con su acción) para
-  // RETRAIN tal como existe: se elige la especialidad nueva, conserva el grado, mismo coste y tiempo.
+  // V4.6. TRAINING ROOM: la misma estructura que la cama (escena, estado, lista con su acción).
+  // V4.8: RETRAIN aleatorio; el resultado se ve al acabar, nunca antes.
   function trainScene(s, ui) {
     const c = s.care;
     const m = c && c.kind === 'spec' && CM.mice.byId(s, c.id);
@@ -1236,11 +1252,13 @@
       (who ? '<img class="pix mtr-mouse" alt="" src="' + CM.mouseUrl(who, null, true) + '">' : '') + (m ? '<i class="mtr-spark"></i>' : '') + '</div>';
     if (m) {
       const pct = Math.round((1 - c.remaining / c.total) * 100);
-      h += '<div class="mch-info"><b>' + esc(m.name) + '</b><small>Retraining ' + B.skills[c.what].name + ': ' + traitChip(m.spec[c.what], CM.mice.gradeOf(m, c.what)) + ' ' + I.px('arrow') + ' ' + traitChip(c.to, CM.mice.gradeOf(m, c.what)) + '</small><div class="mch-bar"><i style="width:' + pct + '%"></i></div><small>' + clock(c.remaining) + ' left · it keeps working at ' + (m.post ? K_label(m.post) : 'the house') + '</small></div>';
+      // V4.8: el resultado ya está sorteado, pero no se enseña hasta el final: «?» con el grado.
+      const g = Math.max(1, CM.mice.gradeOf(m, c.what));
+      h += '<div class="mch-info"><b>' + esc(m.name) + ' is retraining</b><small>' + traitChip(c.from || m.spec[c.what], g) + ' ' + I.px('arrow') + ' <span class="stat tjob mtr-q">? ' + ROMAN[g] + '</span> · random, keeps grade ' + ROMAN[g] + '</small><div class="mch-bar"><i style="width:' + pct + '%"></i></div><small>' + clock(c.remaining) + ' left · it keeps working at ' + (m.post ? K_label(m.post) : 'the house') + '</small></div>';
     } else if (last) {
       const ev = ui.careLast;
-      h += '<div class="mch-info"><b>' + esc(last.name) + ' finished training</b><small>Now ' + traitChip(ev.to, CM.mice.gradeOf(last, ev.what)) + '. The desk is free.</small></div>';
-    } else h += '<div class="mch-info"><b>The desk is free</b><small>' + houseBusy(s, 'training') + '</small></div>';
+      h += '<div class="mch-info"><b>' + esc(last.name) + ' finished training</b><small>' + (ev.from && T[ev.from] ? '<s>' + T[ev.from].name + '</s> ' + I.px('arrow') + ' ' : 'Now ') + traitChip(ev.to, CM.mice.gradeOf(last, ev.what)) + '. The desk is free.</small></div>';
+    } else h += '<div class="mch-info"><b>' + (s.care ? 'The desk waits: the house is busy' : 'The desk is free') + '</b><small>' + houseBusy(s, 'training') + '</small></div>';
     return h;
   }
   // Lista de la TRAINING ROOM: el ratón, sus especialidades y RETRAIN. Elegido uno, debajo se
@@ -1269,8 +1287,16 @@
       } else {
         const grade = K.gradeOf(m, job);
         const busy = !!s.care;
-        h += '<small>' + (jobs.length > 1 ? btn('trainjob:' + m.id + ':', '&lt;', { cls: 'mtr-back' }) : '') + 'New <b>' + B.skills[job].name + '</b> speciality for ' + esc(m.name) + '. It keeps grade ' + ROMAN[Math.max(1, grade)] + ', takes ' + Math.round(M.care.ms / 60000) + ' minutes and the mouse keeps working.' + (busy ? ' <span class="tbad">' + houseBusy(s, 'training') + '</span>' : '') + '</small>';
-        for (const t2 of K.jobTraits(job)) if (t2 !== m.spec[job]) h += btn('care:' + m.id + ':spec:' + job + ':' + t2, '<span>' + traitChip(t2, Math.max(1, grade)) + '<small>' + traitDesc(t2, Math.max(1, grade)) + '</small></span><em>' + I.px('coin') + CM.fmt(cost) + '</em>', { cls: 'mtr-opt', off: busy || s.coins < cost, cost });
+        // V4.8, RETRAIN aleatorio: se elige qué especialidad se sustituye, no cuál llega. Las otras
+        // cuatro se enseñan como posibles resultados (texto, no botones) y hay un solo botón.
+        const g = Math.max(1, grade);
+        const mins = Math.round(M.care.ms / 60000);
+        h += '<small>' + (jobs.length > 1 ? btn('trainjob:' + m.id + ':', '&lt;', { cls: 'mtr-back' }) : '') + 'Replace ' + esc(m.name) + "'s <b>" + B.skills[job].name + '</b> speciality.</small>';
+        h += '<div class="mtr-sum"><div><small>REPLACES</small>' + traitChip(m.spec[job], g) + '</div><div><small>GETS</small><span class="stat tjob mtr-q">? ' + ROMAN[g] + '</span></div></div>';
+        h += '<ul class="mtr-facts"><li><b>Random</b> among the other 4 ' + B.skills[job].name + ' specialities, each as likely. Never the same one.</li><li>Keeps <b>grade ' + ROMAN[g] + '</b>: the grade comes from its ' + B.skills[job].name + ' jobs, which stay.</li><li><b>' + mins + ' minutes</b>; it keeps working meanwhile. The result shows when it ends.</li></ul>';
+        h += '<div class="mtr-maybe"><small>COULD BECOME</small>' + K.retrainOptions(m, job).map((t2) => '<span title="' + esc(T[t2].desc) + '">' + T[t2].name + '</span>').join('') + '</div>';
+        if (busy) h += '<small class="tbad">' + houseBusy(s, 'training') + '</small>';
+        h += btn('care:' + m.id + ':spec:' + job, '<b>RETRAIN ' + esc(m.name).toUpperCase() + '</b><em>' + I.px('coin') + CM.fmt(cost) + ' · ' + mins + ' min</em>', { cls: 'buy wide mtr-go', off: busy || s.coins < cost, cost });
       }
       h += '</div>';
     }
@@ -1407,7 +1433,7 @@
       row('Playtest tools', 'Dev menu: marks the session as assisted', btn('open:dev', 'OPEN', { cls: 'buy' })) +
       row('Reset save', 'Start over from zero', btn('reset', 'RESET', { cls: 'danger' })) +
       // Qué versión del prototipo se está probando (para no confundirla con una copia en caché).
-      '<p class="hint"><b>Prototype V4.7</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
+      '<p class="hint"><b>Prototype V4.8</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
     );
   }
 
@@ -1426,6 +1452,9 @@
 
   CM.panels = {
     esc,
+    traitChip,
+    traitDesc,
+    ROMAN,
     secs,
     coin,
     btn,

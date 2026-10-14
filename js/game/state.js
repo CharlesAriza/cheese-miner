@@ -107,7 +107,7 @@
       // Investigación de recetas: va aparte de la producción, en paralelo.
       // `dir` es la dirección que marca el jugador: '' (ninguna), 'value', 'fast',
       // 'base:<id>', 'ingredient:<id>', 'treatment:<id>' o 'maturation:<id>'.
-      care: null, // la cama de la Mouse House: { id, kind, what, to, remaining, total }
+      care: null, // la plaza de la Mouse House: { id, kind, what, to, from, remaining, total } (V4.8: `to` se sortea al empezar)
       // Hitos. `quota`: objetivo de producción en curso (need = 0: ninguno) y el ritmo
       // sostenido que lo fija. `board`: ventas recientes por ingrediente, tratamiento y
       // maduración. `master`: el ratón con el título de Grand Master.

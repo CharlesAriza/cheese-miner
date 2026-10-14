@@ -428,9 +428,15 @@
         const mouse = CM.mice.byId(state, ev.id);
         if (!mouse) break;
         ui.careLast = Object.assign({ at: performance.now() }, ev); // la cama de HOUSE enseña cómo acabó
+        // V4.8: el reentreno acaba con su revelación (el resultado se sorteó al empezar).
+        if (ev.kind === 'spec') {
+          if (!catching) retrainReveal(ev);
+          dirty = true;
+          break;
+        }
         play('goal');
-        banner(mouse.name.toUpperCase() + (ev.kind === 'quirk' ? ' IS OVER ' + B.mice.traits[ev.what].name.toUpperCase() : ': ' + B.mice.traits[ev.to].name.toUpperCase()) + '!');
-        toast(ev.kind === 'quirk' ? mouse.name + ' no longer has ' + B.mice.traits[ev.what].name + '. The Mouse House bed is free' : mouse.name + ' retrained to ' + B.mice.traits[ev.to].name + '. The training room is free', true);
+        banner(mouse.name.toUpperCase() + ' IS OVER ' + B.mice.traits[ev.what].name.toUpperCase() + '!');
+        toast(mouse.name + ' no longer has ' + B.mice.traits[ev.what].name + '. The Mouse House bed is free', true);
         dirty = true;
         break;
       }
@@ -805,7 +811,6 @@
     set(lab.querySelector('em'), 'text', labNew ? 'NEW!' : labPending ? 'UP!' : labUps ? 'UP! ' + labUps : researcher && CM.cheesery.labDir(state) ? 'AUTO' : '');
     const def = q.zoneDef(ui.zone);
     bubble('rock', def.name.toUpperCase() + ' · DEPTH ' + state.zones[ui.zone].depth, 'name');
-    set($('nav-colony'), 'goal', goalAt === 'colony');
   }
 
   // ---------- Dock: la estación seleccionada ----------
@@ -957,9 +962,15 @@
     // Refuerzos del puesto que se mira, con lo que dan («+50% SPEED», «x2.25 BASE»).
     const nb = m.tree ? CM.boosts.at(state, skill, ui.zone) : 0;
     // V4.5: en el botón grande, el efecto real («x2.25 SPEED»); en las tarjetas pequeñas, la cantidad.
-    set(dk.boost, 'text', nb ? CM.boosts.label(skill, nb).replace(/^x/, '\u00d7') : '');
+    // V4.8: en dos renglones («×2.25» / «SPEED») para caber en su columna del botón.
+    const blbl = nb ? CM.boosts.label(skill, nb).replace(/^x/, '\u00d7') : '';
+    if (dk.boost.dataset.t !== blbl) {
+      dk.boost.dataset.t = blbl;
+      const sp = blbl.indexOf(' ');
+      dk.boost.innerHTML = blbl ? '<span>' + blbl.slice(0, sp) + '</span><span>' + blbl.slice(sp + 1) + '</span>' : '';
+    }
     if (dk.boost.dataset.n !== String(nb || '')) dk.boost.dataset.n = String(nb || '');
-    set(els.main, 'boosted', nb > 0); // deja sitio a la cartela: el contenido baja un poco
+    set(els.main, 'boosted', nb > 0); // la cartela ocupa su columna a la izquierda
     set(els.main.querySelector('b'), 'text', m.label);
     set(els.main.querySelector('small'), 'text', m.sub);
     set(els.main.querySelector('.fill'), 'width', Math.round(m.fill * 100) + '%');
@@ -2291,7 +2302,7 @@
     if (legends > 3) lines.push('<b class="tleg">' + I.px('star') + ' ...and ' + (legends - 3) + ' more legendary traits.</b> Find them in MICE: ROSTER, show Legendary');
     if (sum.careDone) {
       const pat = CM.mice.byId(state, sum.careDone.id);
-      if (pat) lines.push((sum.careDone.kind === 'quirk' ? 'Mouse House bed: ' : 'Training room: ') + P.esc(pat.name) + (sum.careDone.kind === 'quirk' ? ' is over <b class="tok">' + TR[sum.careDone.what].name + '</b>' : ' retrained to <b class="tok">' + TR[sum.careDone.to].name + '</b>') + '. The house is free');
+      if (pat) lines.push((sum.careDone.kind === 'quirk' ? 'Mouse House bed: ' + P.esc(pat.name) + ' is over <b class="tok">' + TR[sum.careDone.what].name + '</b>' : 'Training room: ' + P.esc(pat.name) + ' finished retraining. Close this to see the result') + '. The house is free');
     }
     const grew = news.filter((n) => (n.grew || []).some((t) => TR[t] && !isLegend(t)));
     for (const n of grew.slice(0, 4)) lines.push(P.esc(n.name) + ' developed ' + n.grew.filter((t) => TR[t] && !isLegend(t)).map((t) => '<b class="tok">' + TR[t].name + '</b>').join(', '));
@@ -2307,9 +2318,14 @@
         (lines.length ? '<ul class="list plain">' + lines.map((l) => '<li>' + l + '</li>').join('') + '</ul>' : '<p class="hint">Your mice had nothing they could do. Check what is stopped.</p>') + '<div class="row"><button class="buy" data-m="ok">NICE</button></div>',
       {
         // Un legendario descubierto con el juego cerrado se celebra al cerrar el resumen.
+        // V4.8: un reentreno acabado con el juego cerrado se revela después (tras el legendario, si lo hay).
         ok() {
           const m = jewel && CM.mice.byId(state, jewel.id);
-          if (m) legendMoment(m, jewel.trait);
+          const rt = sum.careDone && sum.careDone.kind === 'spec' ? { id: sum.careDone.id, what: sum.careDone.what, to: sum.careDone.to, from: sum.careDone.from || '' } : null;
+          if (m) {
+            legendMoment(m, jewel.trait);
+            if (rt) legendEl.after = () => retrainReveal(rt);
+          } else if (rt) retrainReveal(rt);
         },
       }
     );
@@ -2383,7 +2399,12 @@
       legendEl.className = 'legendfx';
       $('modal').parentNode.appendChild(legendEl);
       legendEl.addEventListener('click', () => {
-        if (performance.now() - legendEl.shownAt > 1200) legendEl.hidden = true;
+        if (performance.now() - legendEl.shownAt > 1200) {
+          legendEl.hidden = true;
+          const next = legendEl.after;
+          legendEl.after = null;
+          if (next) next();
+        }
       });
     }
     legendEl.innerHTML =
@@ -2393,6 +2414,49 @@
     retrigger(legendEl, 'go');
     play('legend');
     scene.celebrate();
+    dirty = true;
+  }
+
+  // V4.8. Revelación de un reentreno: un momento pequeño, no una celebración legendaria. El ratón
+  // estudia, la carta de «?» se da la vuelta (pasos, 1,2 s) y aparece la especialidad nueva con el
+  // grado que conserva; debajo, la anterior tachada y qué cambia. Clases `mrt-`.
+  let rtEl = null;
+  function retrainReveal(ev) {
+    const m = CM.mice.byId(state, ev.id);
+    const def = B.mice.traits[ev.to];
+    if (!m || !def) return;
+    const K = CM.mice;
+    const g = Math.max(1, K.gradeOf(m, ev.what));
+    const from = ev.from && B.mice.traits[ev.from] ? ev.from : '';
+    let change = '';
+    const [skill, zone] = m.post ? m.post.split(':') : [];
+    if (from && skill === ev.what) {
+      // Lo que rinde en su puesto por sí solo, antes y después (sin vecinos ni combinaciones).
+      const was = Object.assign({}, m, { spec: Object.assign({}, m.spec, { [ev.what]: from }) });
+      const a = K.solo(was, skill, state, zone);
+      const b = K.solo(m, skill, state, zone);
+      const pct = a > 0 ? Math.round((b / a - 1) * 1000) / 10 : 0;
+      change = '<p class="mrt-delta ' + (pct > 0.05 ? 'tok' : pct < -0.05 ? 'tbad' : '') + '">At ' + K.postLabel(m.post) + ', on its own, while you play: <b>' + (pct > 0.05 ? '+' + pct + '%' : pct < -0.05 ? pct + '%' : 'same output') + '</b></p>';
+    } else change = '<p class="mrt-delta">It works as ' + B.skills[ev.what].name + ' elsewhere: the change shows when it does that job.</p>';
+    if (!rtEl) {
+      rtEl = document.createElement('div');
+      rtEl.className = 'mrtfx';
+      $('modal').parentNode.appendChild(rtEl);
+      rtEl.addEventListener('click', () => {
+        if (performance.now() - rtEl.shownAt > 1300) rtEl.hidden = true;
+      });
+    }
+    rtEl.innerHTML =
+      '<div class="mrt-card"><div class="mrt-top">' + I.img('teaching', '', 'mrt-ico') + ' RETRAINED</div>' +
+      '<img class="pix mrt-mouse" alt="" src="' + CM.mouseUrl(m) + '"><div class="mrt-who">' + P.esc(m.name) + ' · ' + B.skills[ev.what].name + '</div>' +
+      '<div class="mrt-flip"><i class="mrt-back">?</i><b class="mrt-new">' + def.name.toUpperCase() + ' ' + P.ROMAN[g] + '</b></div>' +
+      '<p class="mrt-grade">Grade ' + P.ROMAN[g] + ' kept</p>' +
+      (from ? '<p class="mrt-was"><s>' + B.mice.traits[from].name + ' ' + P.ROMAN[g] + '</s>: ' + P.traitDesc(from, g) + '</p>' : '') +
+      '<p class="mrt-now">' + P.traitDesc(ev.to, g) + '</p>' + change + '<small>tap to continue</small></div>';
+    rtEl.shownAt = performance.now();
+    rtEl.hidden = false;
+    retrigger(rtEl, 'go');
+    play('goal');
     dirty = true;
   }
 
@@ -2585,11 +2649,18 @@
   // lo pendiente (UP!, PICK, +N) es una chapa pequeña mientras dure.
   // V4.6: un solo aviso por pestaña, su contorno amarillo (sin chapas UP!/+N encima, que decían
   // lo mismo dos veces). Fijo si hay algo pendiente; si además es una novedad sin ver, entra y sale.
-  function navChip(id, pending, fresh) {
-    const d = $(id).querySelector('.dot');
-    set(d, 'on', false);
-    set($(id), 'pend', !!pending || !!fresh);
-    set($(id), 'fresh', !!fresh);
+  // V4.8: UN solo sistema de avisos para la barra de abajo (COLONY, MICE, BOOSTS). Cada pestaña
+  // está en uno de tres estados, en `data-alert`, y el CSS los pinta igual en todas:
+  //  - 'new': novedad sin ver. Contorno amarillo que late dos veces al aparecer y se queda fijo
+  //    hasta abrir la pestaña (entonces se marca vista).
+  //  - 'pend': hay una acción disponible (o el objetivo pide ir ahí). El mismo contorno, quieto,
+  //    mientras dure.
+  //  - '': nada.
+  // La pestaña abierta lleva además `sel`, que es otra cosa y se pinta distinto.
+  function navAlert(id, pending, fresh) {
+    const b = $(id);
+    const st = fresh ? 'new' : pending ? 'pend' : '';
+    if (b.dataset.alert !== st) b.dataset.alert = st;
   }
   function updateDots() {
     const next = CM.zones.next(state);
@@ -2597,8 +2668,8 @@
     const colony = (next && state.coins >= next.unlockCost) || invest.length > 0;
     // V4.4: chapas con texto en vez de puntos rojos. NEW! hasta abrirlo; luego UP! mientras siga.
     const ckeys = colonyKeys();
-    navChip('nav-colony', colony ? 'UP!' : '', ckeys.some((k) => !seen(k)));
-    set($('nav-colony'), 'invest', invest.length > 0);
+    const goalAt = GOAL_AT[CM.sim.objective(state).id];
+    navAlert('nav-colony', colony || goalAt === 'colony', ckeys.some((k) => !seen(k)));
     // Una inversión que ya se puede pagar se anuncia una vez por rango.
     for (const it of invest) {
       const k = it.skill + '.' + it.node.id + ':' + CM.tree.rank(state, it.skill, it.node.id);
@@ -2617,14 +2688,14 @@
     // MICE: la casa por construir (novedad), candidatos pagados esperando (PICK) o un ascenso
     // que ya se puede pagar (UP!). Las vacantes las dice el contador 24/26.
     const house = !state.built.house && CM.construction.buildInfo(state, 'house').canBuild;
-    navChip('nav-mice', house ? 'UP!' : state.candidates.length ? 'PICK' : state.mice.some((m) => CM.mice.promoteInfo(state, m).can) ? 'UP!' : '', house && !seen('build:house'));
-    set($('nav-mice'), 'goal', GOAL_AT[CM.sim.objective(state).id] === 'mice');
+    navAlert('nav-mice', house || state.candidates.length > 0 || goalAt === 'mice' || state.mice.some((m) => CM.mice.promoteInfo(state, m).can), house && !seen('build:house'));
     // BOOSTS aparece con el primer refuerzo; el punto solo avisa de los que están sin colocar.
     const owned = CM.boosts.owned(state);
     if ($('nav-boosts').hidden === owned > 0) $('nav-boosts').hidden = !(owned > 0);
     // BOOSTS: cuántos refuerzos quedan por colocar.
     const freeB = CM.boosts.free(state);
-    navChip('nav-boosts', freeB > 0 ? '+' + freeB : '', owned > 0 && !seen('boosts:' + owned));
+    navAlert('nav-boosts', freeB > 0, owned > 0 && !seen('boosts:' + owned));
+    for (const [id, name] of [['nav-colony', 'colony'], ['nav-mice', 'mice'], ['nav-boosts', 'boosts']]) set($(id), 'sel', name === 'colony' ? ui.panel === 'tree' && ui.tree === 'colony' : ui.panel === name);
     updateBuyAll();
   }
 

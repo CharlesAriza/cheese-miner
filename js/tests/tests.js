@@ -991,13 +991,14 @@
     eq(s.care, null, 'the bed is free again');
     truthy(m.traits.indexOf('dreamer') < 0 && K.speed(m, 'drilling') > slow, 'offline too: the quirk is gone and the mouse is faster');
     eq(other.traits.indexOf('glutton') >= 0, true, 'nobody else is treated on their own');
-    // Reentrenar una especialidad: se elige, conserva el grado
-    eq(K.careStart(s, m.id, 'spec', 'drilling', 'bitexpert').reason, 'invalid', 'retraining needs a different speciality');
-    eq(K.careStart(s, m.id, 'spec', 'refining', 'purifier').reason, 'invalid', 'and a speciality to retrain');
+    // Reentrenar una especialidad (V4.8: al azar entre las otras cuatro), conserva el grado
+    eq(K.careStart(s, m.id, 'spec', 'refining').reason, 'invalid', 'it needs a speciality to retrain');
     const grade = K.gradeOf(m, 'drilling');
-    eq(K.careStart(s, m.id, 'spec', 'drilling', 'deepbore').ok, true, 'retrain to Deep Bore');
+    eq(K.careStart(s, m.id, 'spec', 'drilling').ok, true, 'retrain Bit Expert');
+    const drawn = s.care.to;
+    truthy(drawn !== 'bitexpert' && B.mice.traits[drawn].job === 'drilling', 'the result is drawn at the start: another drilling speciality');
     run(s, M.care.ms + 1000);
-    eq(m.spec.drilling + '/' + K.gradeOf(m, 'drilling'), 'deepbore/' + grade, 'the new speciality, at the grade it had');
+    eq(m.spec.drilling + '/' + K.gradeOf(m, 'drilling'), drawn + '/' + grade, 'the drawn speciality, at the grade it had');
     // Despedir al que está en la cama la deja libre
     K.careStart(s, other.id, 'quirk', 'glutton');
     K.dismiss(s, other.id);
@@ -1911,6 +1912,106 @@
       eq(ranks, '1,2', 'one promotion per rank, in order: no rank skipped');
       s.mice.splice(s.mice.indexOf(m), 1);
     }
+    valid(s);
+  });
+
+  // V4.8: RETRAIN aleatorio. Se sortea al empezar, se guarda en la partida y se aplica una vez.
+  test('retrain V4.8: random among the other four, grade kept, drawn once, survives reloads and offline', () => {
+    const K = CM.mice;
+    const M = B.mice;
+    const opts = ['deepbore', 'oilhands', 'corekeeper', 'nightdriller'];
+    // Grados I, II y III: el grado sale del contador de trabajos, que no se toca.
+    for (const g of [1, 2, 3]) {
+      const s = withChain();
+      s.built.house = true;
+      s.coins = 1e12;
+      const m = staff(s, 'drilling', 'cheddar', { spec: { drilling: 'bitexpert', mining: 'pickmaster' }, jobs: { drilling: M.jobGrades[g - 1], mining: M.jobGrades[0] } });
+      const lv = K.level(m);
+      const traits = m.traits.join(',') + '|' + m.learned.join(',');
+      const aff = JSON.stringify(m.aff);
+      const jobs = m.jobs.drilling;
+      eq(K.gradeOf(m, 'drilling'), g, 'grade ' + g + ' before');
+      const c0 = s.coins;
+      const cost = K.careCost(s, 'spec');
+      eq(K.careStart(s, m.id, 'spec', 'drilling').ok, true, 'start, grade ' + g);
+      eq(s.coins, c0 - cost, 'charged once');
+      eq(K.careStart(s, m.id, 'spec', 'drilling').reason, 'bed-busy', 'no second process');
+      eq(s.coins, c0 - cost, 'and no second charge');
+      const to = s.care.to;
+      eq(s.care.from, 'bitexpert', 'it remembers what it replaces');
+      truthy(opts.indexOf(to) >= 0, 'one of the other four: ' + to);
+      run(s, M.care.ms + 1000);
+      eq(m.spec.drilling, to, 'applied');
+      eq(K.gradeOf(m, 'drilling'), g, 'grade kept');
+      truthy(m.jobs.drilling >= jobs, 'job counter kept (it only grows while it works): ' + jobs + ' > ' + m.jobs.drilling);
+      eq(m.spec.mining, 'pickmaster', 'other specialities untouched');
+      eq(K.level(m) >= lv && m.traits.join(',') + '|' + m.learned.join(',') === traits && JSON.stringify(m.aff) === aff && m.rarity === 0, true, 'level, traits, affinities and rarity untouched');
+      eq(s.totals.retrains, 1, 'counted once');
+      valid(s);
+    }
+    // Las cuatro alternativas salen, con probabilidad parecida, y nunca la misma.
+    const seen = {};
+    const s = withChain();
+    s.built.house = true;
+    const m = staff(s, 'drilling', 'cheddar', { spec: { drilling: 'bitexpert' }, jobs: { drilling: M.jobGrades[0] } });
+    for (let i = 0; i < 400; i++) {
+      s.coins = 1e12;
+      s.totals.retrains = 0; // el coste crece ×3 por reentreno; aquí solo se mide el sorteo
+      m.spec.drilling = 'bitexpert';
+      K.careStart(s, m.id, 'spec', 'drilling');
+      seen[s.care.to] = (seen[s.care.to] || 0) + 1;
+      s.care = null;
+    }
+    eq(Object.keys(seen).sort().join(','), opts.slice().sort().join(','), 'all four alternatives come up, never Bit Expert');
+    truthy(Object.values(seen).every((n) => n > 60 && n < 140), 'about one in four each: ' + JSON.stringify(seen));
+    // Guardar y cargar a medias: el mismo resultado, sin volver a sortear ni cobrar.
+    s.coins = 1e12;
+    s.care = null;
+    m.spec.drilling = 'bitexpert';
+    K.careStart(s, m.id, 'spec', 'drilling');
+    const drawn = s.care.to;
+    const coins = s.coins;
+    run(s, M.care.ms / 3);
+    let back = CM.storage.parse(JSON.stringify(s), Date.now());
+    eq(back.care.to + '/' + back.care.from + '/' + back.care.kind, drawn + '/bitexpert/spec', 'a reload keeps the drawn result');
+    back = CM.storage.parse(JSON.stringify(back), Date.now());
+    eq(back.care.to, drawn, 'and so does a second one');
+    truthy(back.coins >= coins - 1, 'reloading charges nothing');
+    // Acabar con el juego cerrado: se aplica una vez y el resumen lo sabe.
+    back.lastSavedAt = 0;
+    const bm = K.byId(back, m.id);
+    const sum = CM.sim.applyOffline(back, M.care.ms);
+    eq(back.care, null, 'offline: the room is free');
+    eq(bm.spec.drilling, drawn, 'offline: the drawn speciality');
+    truthy(sum.careDone && sum.careDone.kind === 'spec' && sum.careDone.to === drawn && sum.careDone.from === 'bitexpert', 'the return summary has the before and after');
+    eq(back.totals.retrains, s.totals.retrains, 'counted once');
+    valid(back);
+  });
+
+  test('retrain V4.8: the house has one place, and combos follow the new speciality', () => {
+    const K = CM.mice;
+    const M = B.mice;
+    const s = withChain();
+    s.built.house = true;
+    s.coins = 1e12;
+    const a = staff(s, 'drilling', 'cheddar', { traits: ['nocturnal', 'dreamer'], spec: { drilling: 'bitexpert' }, jobs: { drilling: M.jobGrades[0] } });
+    const b = staff(s, 'refining', 'cheddar', { traits: ['strong', 'glutton'], spec: { refining: 'quickpress' }, jobs: { refining: M.jobGrades[0] } });
+    eq(K.careStart(s, b.id, 'quirk', 'glutton').ok, true, 'a treatment takes the place');
+    eq(K.careStart(s, a.id, 'spec', 'drilling').reason, 'bed-busy', 'so a retrain waits');
+    s.care = null;
+    eq(K.careStart(s, a.id, 'spec', 'drilling').ok, true, 'a retrain takes the place');
+    eq(K.careStart(s, b.id, 'quirk', 'glutton').reason, 'bed-busy', 'so a treatment waits');
+    // Graveyard Shift pide Nocturnal + Night Driller: aparece cuando llega la especialidad.
+    truthy(!K.combosOf(a).some((c) => c.id === 'graveyard'), 'no combo before');
+    s.care.to = 'nightdriller'; // el sorteo, fijado para la prueba
+    const away0 = (CM.away = true, K.speed(a, 'drilling', s, 'cheddar'));
+    CM.away = false;
+    run(s, M.care.ms + 1000);
+    truthy(K.combosOf(a).some((c) => c.id === 'graveyard'), 'the combo forms with the new speciality');
+    CM.away = true;
+    truthy(K.speed(a, 'drilling', s, 'cheddar') > away0, 'and the away speed goes up with it');
+    CM.away = false;
+    truthy(CM.mice.bestFitKnown === undefined || typeof CM.mice.bestFitKnown === 'function', 'BEST FIT still callable');
     valid(s);
   });
 

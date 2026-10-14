@@ -80,7 +80,10 @@
     alertr: ['...Y...', '..YKY..', '..YKY..', '.YYKYY.', '.YYYYY.', 'YYYKYYY', 'YYYYYYY'],
     // V4.7. SPRITE: flecha de «toca aquí» para la barra del objetivo (marrón, sobre papel).
     go: ['AA...', '.AA..', '..AA.', '.AA..', 'AA...'],
-    rankup: ['...L...', '..LGL..', '.LGGGL.', 'GGGGGGG', '..GGG..', '..GGG..', '..GGG..'],
+    // V4.8. SPRITE: flecha de ascenso con contorno oscuro (se lee igual sobre verde, gris o azul).
+    rankup: ['....K....', '...KLK...', '..KLGLK..', '.KLGGGLK.', 'KGGGGGGGK', 'KKKGGGKKK', '..KGGGK..', '..KGGGK..', '..KKKKK..'],
+    // V4.8. SPRITE: marca de elegido en las casillas de BULK PROMOTE.
+    tick: ['.....WW', '....WW.', 'W..WW..', 'WWWW...', '.WW....'],
     treat: ['.WWWWWW.', 'WWWRRWWW', 'WRRRRRRW', 'WRRRRRRW', 'WWWRRWWW', '.WWWWWW.'],
     // V4.2. SPRITE: cabeza de ratón para contratar (HIRE).
     mouse: ['EE....EE.', 'EPE..EPE.', '.GGGGGG..', 'GGKGGKGG.', 'GGGGGGGGN', '.GGWWGG..', '..GGGG...'],
@@ -105,7 +108,8 @@
     board: { F: '#8b5a2b', G: '#2f5c3a', W: '#e8f0e8' },
     alert: { Y: '#ffd43a', K: '#1b1622' },
     alertr: { Y: '#ff5a7a', K: '#1b1622' },
-    rankup: { G: '#5fcf6a', L: '#c8ffd0' },
+    rankup: { G: '#46ef6c', L: '#c8ffd0', K: '#10301a' },
+    tick: { W: '#ffffff' },
     go: { A: '#7a4a14' },
     treat: { W: '#f4f1e4', R: '#e2462f' },
     mouse: { E: '#cfc6cc', P: '#ff9ab5', G: '#f1eaec', K: '#1b1622', N: '#ff7a9c', W: '#ffffff' },
@@ -150,4 +154,5 @@
   document.documentElement.style.setProperty('--px-alert', 'url(' + icon('alert') + ')');
   document.documentElement.style.setProperty('--px-alertr', 'url(' + icon('alertr') + ')');
   document.documentElement.style.setProperty('--px-rankup', 'url(' + icon('rankup') + ')');
+  document.documentElement.style.setProperty('--px-tick', 'url(' + icon('tick') + ')');
 })();

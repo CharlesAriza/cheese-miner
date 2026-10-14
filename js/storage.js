@@ -189,7 +189,7 @@
     // La cama: un ratón que existe, y un tratamiento que sigue teniendo sentido.
     const c = s.care;
     const patient = isObj(c) ? s.mice.find((m) => m.id === c.id) : null;
-    s.care = patient && c.total > 0 && Number.isFinite(c.remaining) && ((c.kind === 'quirk' && TR[c.what] && TR[c.what].kind === 'quirk' && patient.traits.concat(patient.learned).indexOf(c.what) >= 0) || (c.kind === 'spec' && patient.spec[c.what] && TR[c.to] && TR[c.to].job === c.what)) ? { id: c.id, kind: c.kind, what: c.what, to: c.kind === 'spec' ? c.to : '', remaining: Math.max(0, Math.min(c.remaining, c.total)), total: c.total } : null;
+    s.care = patient && c.total > 0 && Number.isFinite(c.remaining) && ((c.kind === 'quirk' && TR[c.what] && TR[c.what].kind === 'quirk' && patient.traits.concat(patient.learned).indexOf(c.what) >= 0) || (c.kind === 'spec' && patient.spec[c.what] && TR[c.to] && TR[c.to].job === c.what)) ? { id: c.id, kind: c.kind, what: c.what, to: c.kind === 'spec' ? c.to : '', from: c.kind === 'spec' && TR[c.from] && TR[c.from].job === c.what ? c.from : '', remaining: Math.max(0, Math.min(c.remaining, c.total)), total: c.total } : null;
 
     // Hitos: números sanos, y el título solo para un ratón que exista.
     for (const k of Object.keys(s.quota)) s.quota[k] = pos(s.quota[k]);

@@ -1,4 +1,6 @@
-# RETRAIN — auditoría y recomendación (V4.6, sin cambiar la mecánica)
+# RETRAIN — auditoría y recomendación (V4.6)
+
+> **Decisión (V4.8, 14-10-2026): aprobada la opción b e implementada.** Aleatorio entre las otras cuatro, mismo grado, mismo coste, misma duración y la misma plaza única. El resultado se sortea al empezar y se guarda en la partida (`s.care.to`); se revela al acabar.
 
 Escrito el 14-10-2026. Código: `js/game/systems/mice.js` (`gradeOf`, `grow`, `careStart`, `careTick`, `careCost`) y `js/game/config/traits.js` (`M.jobGrades`, `M.care`, las especialidades).
 
