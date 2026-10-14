@@ -298,6 +298,90 @@
     valid(s);
   });
 
+  // V4: intercambiar arrastrando, deshacer exactamente y medir lo que cambia.
+  test('mice V4: swaps keep one mouse per post, undo restores both and snapshots measure the colony', () => {
+    const s = withCheese();
+    s.built.house = true;
+    const a = staff(s, 'drilling');
+    const b = staff(s, 'refining');
+    const c = staff(s, 'cheesemaking');
+    const posts0 = s.mice.map((m) => m.id + '=' + m.post).join(',');
+    const before = [a, b].map((m) => ({ id: m.id, post: m.post, rest: m.rest }));
+    const snap0 = CM.mice.snapshot(s);
+    truthy(Number.isFinite(snap0.income) && snap0.flow.cheddar >= 0, 'a snapshot gives income and per-rock flow');
+    eq(CM.mice.assign(s, a.id, b.post).ok, true, 'drop a mouse on another');
+    eq(a.post, 'refining:cheddar', 'the dragged one took the post');
+    eq(b.post, 'drilling:cheddar', 'the other one took its place (a real swap)');
+    const taken = {};
+    for (const m of s.mice) if (m.post) {
+      truthy(!taken[m.post], 'no post has two mice: ' + m.post);
+      taken[m.post] = true;
+    }
+    eq(s.mice.length, 3, 'nobody vanished or was duplicated');
+    eq(CM.mice.restore(s, before).ok, true, 'undo');
+    eq(s.mice.map((m) => m.id + '=' + m.post).join(','), posts0, 'undo puts both back exactly');
+    // Mover a un puesto vacío y deshacer: el puesto de origen vuelve a estar cubierto.
+    const before2 = [{ id: c.id, post: c.post, rest: c.rest }];
+    eq(CM.mice.assign(s, c.id, 'mining:cheddar').ok, true, 'move to an empty post');
+    eq(c.post, 'mining:cheddar', 'moved');
+    eq(s.mice.filter((m) => m.post === 'cheesemaking:cheddar').length, 0, 'its old post is empty');
+    // Si otro ocupa el puesto de origen entretanto, deshacer no pisa a nadie.
+    const d = staff(s, 'cheesemaking');
+    eq(CM.mice.restore(s, before2).ok, false, 'undo refuses when the old post was taken meanwhile');
+    eq(c.post, 'mining:cheddar', 'and moves nobody');
+    eq(d.post, 'cheesemaking:cheddar', 'the newcomer stays');
+    // Los números del aviso son los de la colonia de verdad: sin quesero, la roca no saca nada.
+    d.post = '';
+    CM.rev += 1;
+    eq(CM.mice.snapshot(s).flow.cheddar, 0, 'no cheesemaker, no cheese from the rock');
+    valid(s);
+  });
+
+  test('mice V4: hiring from an empty post pays once and the chosen mouse takes that post', () => {
+    const s = withCheese();
+    s.built.house = true;
+    staff(s, 'drilling');
+    s.coins = 1e9;
+    const cost = CM.mice.recruitCost(s);
+    eq(CM.mice.offer(s, 'refining:cheddar').ok, true, 'meet three for the refinery');
+    eq(s.coins, 1e9 - cost, 'charged once');
+    eq(s.candidatesFor, 'refining:cheddar', 'remembers the post');
+    eq(CM.mice.offer(s, 'refining:cheddar').ok, true, 'asking again with candidates waiting');
+    eq(s.coins, 1e9 - cost, 'is not charged twice');
+    // Guardar y cargar con los candidatos a medias: siguen ahí, pagados y para el mismo puesto.
+    const back = CM.storage.parse(JSON.stringify(s), Date.now());
+    eq(back.candidates.length, 3, 'candidates survive a reload');
+    eq(back.candidatesFor, 'refining:cheddar', 'and so does the post');
+    const r = CM.mice.choose(back, 2);
+    eq(r.ok, true, 'choose');
+    eq(CM.mice.byId(back, r.id).post, 'refining:cheddar', 'the new mouse works where the hiring started');
+    eq(back.candidatesFor, '', 'nothing pending');
+    // Si el puesto se ocupa mientras se elige, no se quita a nadie.
+    eq(CM.mice.offer(back, 'cheesemaking:cheddar').ok, true, 'meet three for the cheesery');
+    const sitter = staff(back, 'cheesemaking');
+    const r2 = CM.mice.choose(back, 0);
+    const hired = CM.mice.byId(back, r2.id);
+    eq(sitter.post, 'cheesemaking:cheddar', 'the mouse already there keeps its post');
+    truthy(hired.post !== 'cheesemaking:cheddar', 'the new one goes elsewhere or waits');
+    truthy(CM.events.some((e) => e.type === 'recruited' && e.taken), 'and the player is told');
+    // Sin vacantes también se puede reclutar: el nuevo espera en la casa.
+    const r3 = (() => {
+      for (const p of CM.mice.posts(back)) if (!CM.mice.at(back, p.skill, p.zone)) staff(back, p.skill, p.zone);
+      CM.mice.offer(back);
+      return CM.mice.choose(back, 1);
+    })();
+    eq(CM.mice.byId(back, r3.id).post, '', 'with every post staffed the recruit waits in the house');
+    // Si se pone en un puesto, el que estaba ahí descansa: no ocupa solo la próxima vacante.
+    const out = CM.mice.at(back, 'drilling', 'cheddar');
+    eq(CM.mice.assign(back, r3.id, 'drilling:cheddar').ok, true, 'the recruit takes a post');
+    eq(out.post, '', 'the mouse that was there goes to the house');
+    eq(out.rest, true, 'and rests there');
+    CM.mice.assign(back, r3.id, '');
+    run(back, 5000);
+    eq(out.post, '', 'a free post does not pull it back on its own');
+    valid(back);
+  });
+
   test('mice: with every post staffed, best fit places mice for the colony\'s income', () => {
     const K = CM.mice;
     const make = () => {

@@ -613,7 +613,8 @@
     recruited: (s) => Math.max(s.totals.miceRecruited, s.mice.length),
     recruitCost: (s) => Math.round(M.recruitCost * Math.pow(M.recruitGrowth, CM.mice.recruited(s))),
     // Paga y presenta tres candidatos. Se guardan en la partida: recargar no los cambia.
-    offer(s) {
+    // `forKey`: el puesto vacío desde el que se recluta; el elegido irá ahí.
+    offer(s, forKey) {
       if (!s.built.house) return CM.fail('no-house');
       if (s.candidates.length) return CM.ok();
       const cost = this.recruitCost(s);
@@ -623,6 +624,7 @@
       const taken = s.mice.map((m) => m.name);
       s.candidates = [];
       for (let i = 0; i < M.candidates; i++) s.candidates.push(candidate(s, taken));
+      s.candidatesFor = forKey && this.posts(s).some((p) => p.key === forKey) ? forKey : '';
       CM.emit(s, 'purchase', { what: 'recruit', cost });
       CM.emit(s, 'candidates');
       return CM.ok();
@@ -635,8 +637,17 @@
       this.note(s, m);
       s.candidates = [];
       s.totals.miceRecruited += 1;
-      this.autoPlace(s, m);
-      CM.emit(s, 'recruited', { id: m.id });
+      // Reclutado para un puesto: va a ese puesto. Si mientras tanto se ocupó, no se quita a
+      // nadie: va al primer puesto libre o espera en la casa, y el aviso lo cuenta.
+      const want = s.candidatesFor || '';
+      s.candidatesFor = '';
+      const open = want && this.posts(s).some((p) => p.key === want) && !s.mice.some((x) => x.post === want);
+      if (open) {
+        m.post = want;
+        teamKey = '';
+        CM.rev += 1;
+      } else this.autoPlace(s, m);
+      CM.emit(s, 'recruited', { id: m.id, wanted: want, taken: !!want && !open });
       return CM.ok({ id: m.id });
     },
 
@@ -747,10 +758,51 @@
       if (!m) return CM.fail('invalid');
       if (key && !this.posts(s).some((p) => p.key === key)) return CM.fail('invalid');
       const other = key ? s.mice.find((x) => x.post === key && x !== m) : null;
-      if (other) other.post = m.post;
+      if (other) {
+        other.post = m.post;
+        // Desplazado por uno que venía de la casa: descansa hasta que el jugador lo coloque,
+        // para que ningún puesto se cubra solo sin que el jugador lo decida.
+        if (!m.post) other.rest = true;
+      }
       m.post = key || '';
       m.rest = !key;
       CM.emit(s, 'assigned', { id: m.id });
+      this.scan(s);
+      return CM.ok();
+    },
+    // Lo que la colonia estima que gana (monedas por segundo, el mismo modelo que BEST FIT), lo
+    // que saca cada roca (quesos por segundo) y las combinaciones de equipo activas. Sirve para
+    // contar qué cambia al mover ratones; con seis rocas cuesta menos de un milisegundo.
+    snapshot(s) {
+      teamKey = '';
+      const lines = q.openZones(s).map((d) => fitLine(s, d));
+      const flow = {};
+      for (const l of lines) flow[l.id] = l.flow;
+      const combos = {};
+      for (const p of this.posts(s)) {
+        const t = team(s, p.skill, p.zone);
+        const zone = p.zone === 'all' ? '' : p.zone;
+        for (const l of t.links) combos['link:' + l.id + '@' + zone] = { name: l.name, zone };
+        for (const d of t.sets) combos['set:' + d.id + '@' + zone] = { name: d.name, zone };
+      }
+      return { income: fitIncome(s, lines), flow, combos };
+    },
+    // Deshacer: devuelve cada ratón de la lista a su puesto de antes. Solo si esos puestos están
+    // libres o los ocupan ratones de la misma lista; si no, no toca nada.
+    restore(s, list) {
+      const ids = list.map((x) => x.id);
+      const keys = this.posts(s).map((p) => p.key);
+      for (const x of list) {
+        if (!this.byId(s, x.id)) return CM.fail('invalid');
+        if (x.post && (keys.indexOf(x.post) < 0 || s.mice.some((m) => m.post === x.post && ids.indexOf(m.id) < 0))) return CM.fail('invalid');
+      }
+      for (const x of list) {
+        const m = this.byId(s, x.id);
+        m.post = x.post;
+        m.rest = x.rest;
+      }
+      teamKey = '';
+      CM.emit(s, 'assigned', { undo: true });
       this.scan(s);
       return CM.ok();
     },

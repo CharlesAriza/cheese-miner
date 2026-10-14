@@ -14,6 +14,8 @@
   const scene = CM.createScene($('scene'));
   const STATIONS = ['rock', 'drill', 'refinery', 'cheesery', 'shop'];
   const SKILL = { rock: 'mining', drill: 'drilling', refinery: 'refining', cheesery: 'cheesemaking', shop: 'trading' };
+  // Arrastre de ratones en COLONY (V4). Mientras dura, el panel no se repinta.
+  const mdrag = { active: false, src: null, timer: 0, x: 0, y: 0, x0: 0, y0: 0, ghost: null, over: null, raf: 0, endAt: 0, touch: false };
   const ui = {
     investSeen: {}, // inversiones ya anunciadas (por rango)
     openedAt: 0, // cuándo se abrió el último panel o ventana (para ignorar el clic fantasma)
@@ -96,6 +98,13 @@
   let toastBusy = false;
   const toastQueue = [];
   function nextToast() {
+    // Mientras se ve el aviso de un movimiento de ratones (mismo sitio), los demás esperan.
+    if (toastQueue.length && !$('mcx-fx').hidden) {
+      els.toast.classList.remove('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(nextToast, 500);
+      return;
+    }
     const t = toastQueue.shift();
     if (!t) {
       toastBusy = false;
@@ -363,7 +372,9 @@
         else play('build');
         scene.celebrate();
         banner(mouse.name.toUpperCase() + ' JOINED!');
-        toast(mouse.post ? mouse.name + ' went to ' + CM.mice.postLabel(mouse.post) + ' and works there on its own' : mouse.name + ' is resting: every post has a mouse', true);
+        if (ev.taken) toast(CM.mice.postLabel(ev.wanted) + ' was filled while you chose: ' + (mouse.post ? mouse.name + ' went to ' + CM.mice.postLabel(mouse.post) : mouse.name + ' waits in the house') + '. Nobody was replaced', true);
+        else toast(mouse.post ? mouse.name + ' went to ' + CM.mice.postLabel(mouse.post) + ' and works there on its own' : mouse.name + ' is resting: every post has a mouse', true);
+        if (mouse.post) ui.landed = [mouse.post];
         dirty = true;
         break;
       }
@@ -1149,7 +1160,10 @@
       if (state.lab.found) ui.labTab = 'strains';
       scene.focus(state.built.lab ? 'lab' : 'cheesery');
     }
-    if (ui.panel !== name) ui.openedAt = performance.now();
+    if (ui.panel !== name) {
+      ui.openedAt = performance.now();
+      $('mcx-fx').hidden = true;
+    }
     ui.panel = name;
     ui.lastHtml = '';
     $('sheet-title').textContent = P.title(name, ui, state);
@@ -1180,11 +1194,13 @@
   }
   function closePanel() {
     ui.panel = null;
+    ui.lastMove = null;
+    $('mcx-fx').hidden = true;
     $('sheet').hidden = true;
   }
   // Solo toca el DOM si el contenido cambió, para no perder taps a medio pulsar.
   function renderPanel() {
-    if (!ui.panel) return;
+    if (!ui.panel || mdrag.src) return;
     const html = P.render(ui.panel, state, ui);
     if (html !== ui.lastHtml) {
       ui.lastHtml = html;
@@ -1196,6 +1212,7 @@
       });
       updateAfford();
     }
+    landCards();
     const rep = $('dev-report');
     if (rep) rep.textContent = CM.dev.report(state);
   }
@@ -1245,6 +1262,109 @@
     if (b && b !== els.main) sfx.click();
   });
 
+  // ---------- MICE V4: mover ratones con consecuencias a la vista ----------
+  // Todo movimiento (arrastrar, tocar en un selector) pasa por aquí: se mide la colonia antes
+  // y después con el mismo modelo que BEST FIT, se cuenta en un aviso que no bloquea y se
+  // guarda lo necesario para deshacerlo exactamente.
+  const K_ = () => CM.mice;
+  const pct = (a, b) => (a > 0 ? (b / a - 1) * 100 : b > 0 ? Infinity : 0);
+  function moveMouse(id, key) {
+    const K = K_();
+    const mover = K.byId(state, id);
+    if (!mover) return CM.fail('invalid');
+    const other = key ? state.mice.find((x) => x.post === key && x !== mover) : null;
+    const before = [mover, other].filter(Boolean).map((m) => ({ id: m.id, post: m.post, rest: m.rest }));
+    const snap0 = K.snapshot(state);
+    const from = mover.post;
+    const r = K.assign(state, id, key);
+    if (!r.ok) return r;
+    const snap1 = K.snapshot(state);
+    ui.lastMove = { before, label: other && from ? mover.name + ' ↔ ' + other.name : mover.name + ' → ' + (key ? K.postLabel(key) : 'house') + (other ? ' · ' + other.name + ' to house' : '') };
+    play('click');
+    moveFeedback(snap0, snap1, { mover, other, from, key, label: ui.lastMove.label });
+    ui.landed = [key, from].filter(Boolean);
+    dirty = true;
+    return r;
+  }
+  function undoMove() {
+    const m = ui.lastMove;
+    if (!m) return CM.fail('invalid');
+    const snap0 = K_().snapshot(state);
+    const r = K_().restore(state, m.before);
+    if (!r.ok) {
+      ui.lastMove = null;
+      toast('Cannot undo: the colony changed since that move');
+      return CM.ok();
+    }
+    const snap1 = K_().snapshot(state);
+    ui.lastMove = null;
+    play('click');
+    moveFeedback(snap0, snap1, { label: 'UNDONE: ' + m.label, undo: true });
+    ui.landed = m.before.map((x) => x.post).filter(Boolean);
+    dirty = true;
+    return r;
+  }
+  // El aviso: quién se ha movido, cómo cambian los ingresos estimados y la producción de las
+  // rocas tocadas, y qué combinaciones aparecen o se pierden. Sustituye al anterior, no tapa los
+  // puestos (va encima del panel) y se va solo.
+  let fxTimer = 0;
+  function moveFeedback(a, b, o) {
+    const P2 = CM.panels;
+    const fmtPct = (v) => (v === Infinity ? 'STARTS' : Math.abs(v) < 0.05 ? '±0%' : (v > 0 ? '+' : '−') + (Math.abs(v) >= 10 ? Math.round(Math.abs(v)) : Math.abs(v).toFixed(1)) + '%');
+    const tone = (v) => (v === Infinity || v >= 0.05 ? 'up' : v <= -0.05 ? 'down' : 'flat');
+    const chips = [];
+    const inc = pct(a.income, b.income);
+    if (a.income > 0 || b.income > 0) chips.push('<i class="' + tone(inc) + '">EST. INCOME ' + fmtPct(inc) + '</i>');
+    // Las rocas que han cambiado de verdad (y las de los puestos tocados, aunque no cambien).
+    const touched = {};
+    for (const k of [o.key, o.from]) if (k && k.split(':')[1] !== 'all') touched[k.split(':')[1]] = true;
+    for (const z of Object.keys(b.flow)) if (Math.abs(pct(a.flow[z], b.flow[z])) >= 0.05) touched[z] = true;
+    for (const z of Object.keys(touched)) {
+      const v = pct(a.flow[z] || 0, b.flow[z] || 0);
+      const name = B.bases[q.zoneDef(z).base].name.toUpperCase();
+      // Una línea parada solo tiene el goteo de la despensa: pasar de eso a producir es arrancar.
+      const fa = a.flow[z] || 0, fb = b.flow[z] || 0;
+      const word = fa <= fb * 0.02 && fb > 0 ? 'RUNNING' : fb <= fa * 0.02 && fa > 0 ? 'STOPPED' : '';
+      chips.push('<i class="' + (word === 'RUNNING' ? 'up' : word ? 'down' : tone(v)) + '">' + name + ' ' + (word || fmtPct(v)) + '</i>');
+    }
+    // Una combinación con la tienda o el laboratorio se ve desde los dos puestos: se nombra una vez.
+    const names = (x, y) => Object.keys(x).filter((k) => !y[k]).map((k) => x[k].name).filter((n, i, all) => all.indexOf(n) === i);
+    const gained = names(b.combos, a.combos);
+    const lost = names(a.combos, b.combos);
+    let combos = '';
+    if (gained.length) combos += '<span class="up">NEW COMBO: ' + gained.map(P2.esc).join(', ') + '</span>';
+    if (lost.length) combos += '<span class="down">LOST: ' + lost.map(P2.esc).join(', ') + '</span>';
+    // Si había un aviso normal a la vista, vuelve a la cola y sale después.
+    if (toastBusy && els.toast.classList.contains('show')) {
+      toastQueue.unshift({ text: els.toast.textContent, good: els.toast.classList.contains('good') });
+      els.toast.classList.remove('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(nextToast, 500);
+    }
+    const el = $('mcx-fx');
+    el.innerHTML = '<div class="mcx-fxmain"><b>' + P2.esc(o.label).toUpperCase() + '</b><div class="mcx-chips">' + chips.join('') + '</div>' + combos + '</div>' + (o.undo ? '' : '<button data-act="undomove" class="mcx-undo">&#8630; UNDO</button>');
+    el.hidden = false;
+    el.classList.remove('in');
+    void el.offsetWidth;
+    el.classList.add('in');
+    clearTimeout(fxTimer);
+    fxTimer = setTimeout(() => (el.hidden = true), 6000);
+    if (gained.length) play('reveal');
+  }
+  // Tras pintar, los puestos que acaban de cambiar dan un pequeño salto.
+  function landCards() {
+    if (!ui.landed || !ui.landed.length) return;
+    for (const k of ui.landed) {
+      const c = $('sheet-body').querySelector('[data-post="' + k + '"]');
+      if (c) {
+        c.classList.remove('mcx-land');
+        void c.offsetWidth;
+        c.classList.add('mcx-land');
+      }
+    }
+    ui.landed = null;
+  }
+
   const ACTS = {
     close: closePanel,
     noop: () => {},
@@ -1256,9 +1376,15 @@
       return CM.zones.unlock(state, id);
     },
     build: (id) => CM.construction.build(state, id),
-    recruit: () => CM.mice.offer(state),
+    recruit: () => {
+      ui.payArm = null;
+      ui.cand = -1;
+      return CM.mice.offer(state);
+    },
     choose: (i) => {
       ui.cand = -1;
+      // De vuelta a COLONY, para ver al nuevo llegar a su puesto.
+      ui.pick = null;
       return CM.mice.choose(state, Number(i));
     },
     // PROTOTIPO: cargar una colonia de prueba (temprana, media o avanzada).
@@ -1285,6 +1411,9 @@
     // Colonia: tocar un puesto enseña candidatos; tocar un ratón, sus puestos posibles.
     pickpost: (skill, zone) => {
       const key = skill + ':' + zone;
+      ui.postOpt = null;
+      ui.payArm = null;
+      $('sheet-body').scrollTop = 0;
       ui.pick = ui.pick && ui.pick.type === 'post' && ui.pick.key === key ? null : { type: 'post', key };
     },
     pickmouse: (id) => {
@@ -1332,18 +1461,22 @@
     emptypost: () => CM.fail('empty-post'),
     // Asignar o intercambiar: un toque. Se cuenta qué ha pasado con los dos.
     post: (id, skill, zone) => {
-      const key = skill ? skill + ':' + zone : '';
-      const mover = CM.mice.byId(state, id);
-      const other = key ? state.mice.find((x) => x.post === key && x !== mover) : null;
-      const from = mover ? mover.post : '';
-      const r = CM.mice.assign(state, id, key);
+      const r = moveMouse(id, skill ? skill + ':' + zone : '');
       if (r.ok) {
         ui.pick = null;
         ui.card = null;
-        play('click');
-        toast(!key ? mover.name + ' is resting in the house' : mover.name + ' now works at ' + CM.mice.postLabel(key) + (other ? '. ' + other.name + (from ? ' took ' + CM.mice.postLabel(from) : ' is waiting in the house') : ''), true);
       }
       return r;
+    },
+    undomove: undoMove,
+    // Puesto vacío: mover uno que ya tienes o conocer a tres nuevos (pagando con dos toques).
+    postopt: (v) => void ((ui.postOpt = v), (ui.payArm = null)),
+    // La clave de un puesto lleva dos puntos («refining:gouda»): llega partida en dos.
+    payarm: (a, b) => void (ui.payArm = { key: b ? a + ':' + b : a, at: performance.now() }),
+    recruitfor: (skill, zone) => {
+      ui.payArm = null;
+      ui.cand = -1;
+      return CM.mice.offer(state, skill + ':' + zone);
     },
     promote: (id) => CM.mice.promote(state, id),
     // Refuerzos: tocar un puesto pone uno libre; si no cabe o no queda ninguno, quita uno de ahí.
@@ -1463,6 +1596,8 @@
   function onAct(e) {
     const el = e.target.closest('[data-act]');
     if (!el || ghostClick()) return;
+    // El clic que llega al soltar un arrastre no abre la ficha.
+    if (performance.now() - mdrag.endAt < 450 && $('sheet-body').contains(el)) return;
     const parts = el.dataset.act.split(':');
     const fn = ACTS[parts[0]];
     if (!fn) return;
@@ -1472,6 +1607,137 @@
     dirty = true;
   }
   $('sheet').addEventListener('click', onAct);
+
+  // ---------- MICE V4: arrastrar ratones entre puestos ----------
+  // Tocar abre la ficha. Mantener quieto el dedo un momento levanta al ratón; entonces se
+  // arrastra a otro puesto (vacío: se traslada; ocupado: se intercambian) y al soltar fuera se
+  // cancela. Si el dedo se mueve antes de levantarlo, es un scroll normal y no pasa nada.
+  const LIFT_MS = 380;
+  const SLOP = 9;
+  const body = $('sheet-body');
+  function dragStart(x, y, target, touch) {
+    if (ui.panel !== 'mice' || mdrag.active) return;
+    const card = target.closest && target.closest('.mc-post[data-mouse], .mc-row[data-mouse]');
+    if (!card || !body.contains(card)) return;
+    dragReset();
+    Object.assign(mdrag, { src: card, x, y, x0: x, y0: y, touch });
+    mdrag.timer = setTimeout(dragLift, LIFT_MS);
+  }
+  function dragLift() {
+    const card = mdrag.src;
+    if (!card || !document.body.contains(card)) return dragReset();
+    mdrag.active = true;
+    const m = CM.mice.byId(state, card.dataset.mouse);
+    const g = document.createElement('div');
+    g.className = 'mcx-ghost';
+    g.innerHTML = card.querySelector('.mc-face').outerHTML + '<b>' + P.esc(m ? m.name : '') + '</b><small></small>';
+    document.body.appendChild(g);
+    mdrag.ghost = g;
+    mdrag.over = undefined; // así el primer pintado ya pone la etiqueta
+    card.classList.add('mcx-src');
+    body.classList.add('mcx-dragging');
+    try {
+      if (navigator.vibrate) navigator.vibrate(12);
+    } catch (e) {}
+    sfx.click();
+    ui.dragTold = true;
+    dragPaint();
+    mdrag.raf = requestAnimationFrame(dragTick);
+  }
+  // Qué hay bajo el dedo: un puesto distinto del de origen, o nada (cancelar).
+  function dragTarget() {
+    const el = document.elementFromPoint(mdrag.x, mdrag.y);
+    const card = el && el.closest && el.closest('.mc-post[data-post]');
+    return card && card !== mdrag.src && body.contains(card) ? card : null;
+  }
+  function dragPaint() {
+    const g = mdrag.ghost;
+    if (!g) return;
+    g.style.transform = 'translate(' + Math.round(mdrag.x - 28) + 'px,' + Math.round(mdrag.y - 46) + 'px)';
+    const over = dragTarget();
+    if (over !== mdrag.over) {
+      if (mdrag.over) mdrag.over.classList.remove('mcx-over');
+      if (over) over.classList.add('mcx-over');
+      mdrag.over = over;
+      const other = over && over.dataset.mouse ? CM.mice.byId(state, over.dataset.mouse) : null;
+      const fromHouse = !mdrag.src.dataset.post;
+      g.querySelector('small').textContent = !over ? 'drop on a post' : other ? (fromHouse ? 'replace ' + other.name : 'swap with ' + other.name) : 'move here';
+      g.classList.toggle('ok', !!over);
+    }
+  }
+  // Cerca de los bordes de la lista, se desplaza sola.
+  function dragTick() {
+    if (!mdrag.active) return;
+    const r = body.getBoundingClientRect();
+    const edge = 44;
+    const v = mdrag.y < r.top + edge ? -Math.ceil((r.top + edge - mdrag.y) / 4) : mdrag.y > r.bottom - edge ? Math.ceil((mdrag.y - (r.bottom - edge)) / 4) : 0;
+    if (v) {
+      body.scrollTop += v;
+      dragPaint();
+    }
+    mdrag.raf = requestAnimationFrame(dragTick);
+  }
+  function dragMove(x, y) {
+    if (!mdrag.src) return;
+    mdrag.x = x;
+    mdrag.y = y;
+    if (!mdrag.active) {
+      if (Math.abs(x - mdrag.x0) > SLOP || Math.abs(y - mdrag.y0) > SLOP) dragReset();
+      return;
+    }
+    dragPaint();
+  }
+  function dragEnd(cancel) {
+    if (!mdrag.active) return dragReset();
+    const over = cancel ? null : dragTarget();
+    const id = mdrag.src.dataset.mouse;
+    mdrag.endAt = performance.now();
+    dragReset();
+    if (over) {
+      report(moveMouse(id, over.dataset.post));
+      drainEvents();
+    }
+    ui.lastHtml = '';
+    renderPanel();
+  }
+  function dragReset() {
+    clearTimeout(mdrag.timer);
+    cancelAnimationFrame(mdrag.raf);
+    if (mdrag.ghost) mdrag.ghost.remove();
+    if (mdrag.over) mdrag.over.classList.remove('mcx-over');
+    if (mdrag.src) mdrag.src.classList.remove('mcx-src');
+    body.classList.remove('mcx-dragging');
+    Object.assign(mdrag, { active: false, src: null, timer: 0, ghost: null, over: null, raf: 0 });
+  }
+  // Dedo: eventos táctiles, para poder frenar el scroll solo cuando hay un ratón levantado.
+  body.addEventListener('touchstart', (e) => (e.touches.length === 1 ? dragStart(e.touches[0].clientX, e.touches[0].clientY, e.target, true) : dragReset()), { passive: true });
+  body.addEventListener(
+    'touchmove',
+    (e) => {
+      if (!mdrag.src) return;
+      if (mdrag.active) e.preventDefault();
+      dragMove(e.touches[0].clientX, e.touches[0].clientY);
+    },
+    { passive: false }
+  );
+  body.addEventListener('touchend', () => dragEnd(false));
+  body.addEventListener('touchcancel', () => dragEnd(true));
+  // Ratón (escritorio): lo mismo con el botón izquierdo.
+  body.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button === 0) dragStart(e.clientX, e.clientY, e.target, false);
+  });
+  window.addEventListener('pointermove', (e) => {
+    if (e.pointerType === 'mouse' && mdrag.src && !mdrag.touch) dragMove(e.clientX, e.clientY);
+  });
+  window.addEventListener('pointerup', (e) => {
+    if (e.pointerType === 'mouse' && mdrag.src && !mdrag.touch) dragEnd(false);
+  });
+  // Mantener pulsado no abre el menú del sistema ni selecciona texto sobre un puesto.
+  body.addEventListener('contextmenu', (e) => {
+    if (e.target.closest('.mc-post')) e.preventDefault();
+  });
+  // Si se cierra el panel con un ratón levantado, se cancela sin mover a nadie.
+  document.addEventListener('visibilitychange', () => mdrag.src && dragEnd(true));
   $('sheet').addEventListener('click', (e) => {
     if (e.target === $('sheet') && !ghostClick()) closePanel();
   });

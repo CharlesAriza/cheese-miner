@@ -795,10 +795,11 @@
     const K = CM.mice;
     const key = K.postKey(skill, zone);
     const m = K.at(s, skill, zone);
-    if (!m) return '<button data-act="pickpost:' + key + '" class="mc-post empty' + (wide ? ' wide' : '') + '"><i class="mc-face hole">+</i><span><small>' + JOB_SHORT[skill].toUpperCase() + '</small><b>Empty post</b><em>tap to assign</em></span></button>';
+    if (!m) return '<button data-act="pickpost:' + key + '" data-post="' + key + '" class="mc-post empty mcx-vac' + (wide ? ' wide' : '') + '"><i class="mc-face hole">+</i><span><small>' + JOB_SHORT[skill].toUpperCase() + '</small><b>EMPTY POST</b><em>TAP TO ASSIGN</em></span></button>';
     const due = canPromote(s, m);
+    // V4: tocar abre la ficha; mantener pulsado lo levanta para arrastrarlo a otro puesto.
     return (
-      '<button data-act="pickpost:' + key + '" class="mc-post' + (wide ? ' wide' : '') + (due ? ' mc-due' : '') + '">' + portrait(m) +
+      '<button data-act="card:' + m.id + '" data-post="' + key + '" data-mouse="' + m.id + '" class="mc-post' + (wide ? ' wide' : '') + (due ? ' mc-due' : '') + '">' + portrait(m) +
       '<span><small>' + JOB_SHORT[skill].toUpperCase() + hearts(m.aff[skill]) + '</small><b>' + esc(m.name) + '</b><em>' + rankLv(m) + '</em></span>' +
       '<i class="mc-out">' + mult(K.here(s, m)) + '</i>' + (due ? '<i class="mc-dot"></i>' : '') + '</button>'
     );
@@ -818,6 +819,9 @@
   }
 
   // ---- COLONY: los puestos por roca ----
+  // V4 (experimento): sin el botón BEST FIT; las decisiones de plantilla son del jugador. El
+  // algoritmo, su acción y sus pruebas siguen intactos: poner true lo devuelve a COLONY.
+  const SHOW_BEST_FIT = false;
   function colonyView(s, ui) {
     const K = CM.mice;
     const zones = q.openZones(s);
@@ -829,10 +833,10 @@
     let notes = '';
     if (promos.length) notes += btn('promos', '<b>' + promos.length + '</b> can be promoted', { cls: 'mc-note up' });
     if (idle.length) notes += btn('rosterfilter:free', '<b>' + idle.length + '</b> with no post', { cls: 'mc-note' });
-    // Puestos: cuántos libres (y a reclutar), o la confirmación de que están todos cubiertos.
+    // Ocupación: una línea fija arriba. Lo importante es el propio puesto vacío, que late.
     const total = K.posts(s).length;
-    if (empty.length && !idle.length) notes += btn('miceview:house', '<b>' + empty.length + '</b> empty ' + (empty.length === 1 ? 'post' : 'posts') + ' · RECRUIT', { cls: 'mc-note' });
-    else if (!empty.length) notes += '<span class="mc-note mc-full">All <b>' + total + '</b> posts staffed</span>';
+    h += '<div class="mcx-occ' + (empty.length ? ' gap' : '') + '"><b>' + (total - empty.length) + '/' + total + ' POSTS</b><span>' + (empty.length ? empty.length + ' EMPTY' : 'ALL STAFFED') + '</span>' + (ui.lastMove ? btn('undomove', '&#8630; UNDO', { cls: 'mcx-undo' }) : '') + '</div>';
+    if (!ui.dragTold && s.mice.length > 1) h += '<p class="mcx-tip">Tap a mouse for its card. Hold it to drag it to another post; drop it on a mouse to swap them.</p>';
     if (s.care && K.byId(s, s.care.id)) notes += btn('miceview:house', 'Bed: <b>' + esc(K.byId(s, s.care.id).name) + '</b> ' + clock(s.care.remaining), { cls: 'mc-note bed' });
     if (notes) h += '<div class="mc-notes">' + notes + '</div>';
     // Puestos de toda la colonia: la tienda y el laboratorio.
@@ -841,14 +845,15 @@
     if (K.posts(s).some((p) => p.skill === 'research')) globals.push(postCard(s, 'research', 'all'));
     if (globals.length) h += '<div class="mc-rock open"><div class="mc-rockhead static">' + I.img('coin', '', 'big') + '<span><b>WHOLE COLONY</b><small>They work for every rock</small></span></div><div class="mc-posts">' + globals.join('') + '</div></div>';
     for (const z of zones) {
-      const open = ui.rockOpen && ui.rockOpen[z.id] !== undefined ? ui.rockOpen[z.id] : zones.length <= 2 || z.id === ui.zone;
+      // V4: todas abiertas de salida, para poder arrastrar entre rocas; se pueden plegar.
+      const open = ui.rockOpen && ui.rockOpen[z.id] !== undefined ? ui.rockOpen[z.id] : true;
       const cols = K.CHAIN.slice(0, 4).filter((k) => k === 'mining' || s.built[B.skills[k].station]);
       const combos = rockCombos(s, z.id);
       const crew = cols.map((k) => K.at(s, k, z.id));
       const due = crew.some((m) => m && canPromote(s, m));
       h += '<div class="mc-rock' + (open ? ' open' : '') + '"><button data-act="rocktoggle:' + z.id + '" class="mc-rockhead">' + I.img('raw', z.base, 'big') + '<span><b>' + z.name.toUpperCase() + '</b><small>Depth ' + s.zones[z.id].depth + (combos.length ? ' · ' + plural(combos.length, 'combo') : '') + '</small></span>';
       // Plegada: las caras de quien trabaja ahí, para reconocerlos sin abrir.
-      if (!open) h += '<i class="mc-crew">' + crew.map((m) => (m ? portrait(m, 'mini') : '<i class="mc-face mini hole">+</i>')).join('') + '</i>';
+      if (!open) h += '<i class="mc-crew">' + crew.map((m) => (m ? portrait(m, 'mini') : '<i class="mc-face mini hole mcx-vac">+</i>')).join('') + '</i>';
       h += (due ? '<i class="mc-dot"></i>' : '') + '<em>' + (open ? 'HIDE' : 'SHOW') + '</em></button>';
       if (open) {
         h += '<div class="mc-posts">' + cols.map((k) => postCard(s, k, z.id)).join('') + '</div>';
@@ -863,9 +868,10 @@
     }
     if (idle.length) {
       h += '<h4 class="mc-h">NO POST · ' + idle.length + '</h4>';
-      for (const m of idle) h += mouseLine(s, m, 'card:' + m.id, btn('pickmouse:' + m.id, 'PLACE', { cls: 'mini' }), { sub: m.rest ? 'Resting in the house' : 'Waiting in the house', div: true });
+      // También se arrastran: soltarlo sobre un puesto lo pone ahí (quien estuviera, a la casa).
+      for (const m of idle) h += mouseLine(s, m, 'card:' + m.id, btn('pickmouse:' + m.id, 'PLACE', { cls: 'mini' }), { sub: m.rest ? 'Resting in the house' : 'Waiting in the house', div: true }).replace('class="mc-row', 'data-mouse="' + m.id + '" class="mc-row');
     }
-    if (s.mice.length > 1) {
+    if (SHOW_BEST_FIT && s.mice.length > 1) {
       // Sin volver a buscar al pintar: -1 si BEST FIT no ha mirado desde el último cambio.
       const moves = K.bestFitKnown(s);
       h += btn('bestfit', '<b>BEST FIT</b><span>' + (moves === 0 ? 'Every mouse is where the colony earns the most, as far as BEST FIT can tell. Combos between mice are yours to find.' : moves > 0 ? 'Moves ' + plural(moves, 'mouse') + ' to where the colony earns the most. Combos between mice are yours to find.' : 'Places each mouse where the colony earns the most. Combos between mice are yours to find.') + '</span><em>' + (moves === 0 ? 'DONE' : 'DO IT') + '</em>', { cls: 'labrow', off: moves === 0 });
@@ -954,7 +960,7 @@
     let h = btn('unpick', '&lt; BACK', { cls: 'mini' }) + '<div class="mc-pickhead"><span><small>WHO WORKS AT</small><b>' + K.postLabel(key).toUpperCase() + '</b></span></div>';
     if (now) {
       h += '<div class="mc-now">' + mouseLine(s, now, 'card:' + now.id, '<i class="mc-out">' + mult(base) + '</i><small class="mc-todo plain">alone</small>', { sub: 'Here now · ' + mouseRate(s, now, skill, zone), skill, traits: 3, likes: false }).replace('<span class="mc-tags">', '<span class="mc-tags">' + (now.aff[skill] ? '<i class="mc-like a' + now.aff[skill] + '">' + JOB_SHORT[skill] + hearts(now.aff[skill]) + '</i>' : '')) + btn('post:' + now.id + ':', 'SEND ' + esc(now.name).toUpperCase() + ' TO REST', { cls: 'mini' }) + '</div>';
-    } else h += '<p class="hint">Nobody works here: you do it by hand.</p>';
+    } else return emptyPicker(s, ui, key);
     const others = s.mice.filter((m) => m !== now).sort((a, b) => K.solo(b, skill, s, zone) - K.solo(a, skill, s, zone));
     if (!others.length) return h + '<p class="hint">You have no other mouse. Recruit one in HOUSE.</p>';
     h += '<p class="hint">Tap a mouse to put it here' + (now ? ': it swaps places with ' + esc(now.name) : '') + '. The number is what each would do <b>on its own</b> at this post; neighbours and combos can change it.</p>';
@@ -963,6 +969,35 @@
       const d = now ? v - base : 0;
       const delta = now ? '<small class="mc-delta ' + (d > 0.005 ? 'tok' : d < -0.005 ? 'tbad' : '') + '">' + (d >= 0 ? '+' : '-') + (Math.round(Math.abs(d) * 10) / 10).toFixed(1) + '</small>' : '';
       h += mouseLine(s, m, 'post:' + m.id + ':' + key, '<i class="mc-out">' + mult(v) + '</i>' + delta, { sub: m.post ? 'Now at ' + K.postLabel(m.post) + (now ? ' · swaps' : '') : 'Free', skill, likes: false, traits: 3, cls: 'pickable' }).replace('<span class="mc-tags">', '<span class="mc-tags">' + (m.aff[skill] ? '<i class="mc-like a' + m.aff[skill] + '">' + JOB_SHORT[skill] + hearts(m.aff[skill]) + '</i>' : ''));
+    }
+    return h;
+  }
+  // Puesto vacío: dos caminos. Mover a un ratón que ya tienes, o pagar una vez por conocer a
+  // tres nuevos; el elegido empieza en este puesto. El precio se ve antes de pagar y se pagan
+  // con dos toques, sin ventanas.
+  function emptyPicker(s, ui, key) {
+    const K = CM.mice;
+    const [skill, zone] = key.split(':');
+    const cost = K.recruitCost(s);
+    const opt = ui.postOpt === 'meet' || !s.mice.length ? 'meet' : 'move';
+    let h = btn('unpick', '&lt; BACK', { cls: 'mini' }) + '<div class="mc-pickhead"><span><small>EMPTY POST</small><b>' + K.postLabel(key).toUpperCase() + '</b></span></div>';
+    h += '<p class="hint">Nobody works here: you do it by hand until a mouse takes it.</p>';
+    h += '<div class="mcx-opts">' + btn('postopt:move', '<b>MOVE A MOUSE</b><small>one you have</small>', { cls: opt === 'move' ? 'on' : '', off: !s.mice.length }) + btn('postopt:meet', '<b>MEET 3 NEW MICE</b><small>' + coin(cost) + '</small>', { cls: opt === 'meet' ? 'on' : '' }) + '</div>';
+    if (opt === 'meet') {
+      const armed = ui.payArm && ui.payArm.key === key && performance.now() - ui.payArm.at < 6000;
+      const short = s.coins < cost;
+      h += '<div class="mcx-meet">' + I.img('coin', '', 'big') + '<div><b>' + CM.fmt(cost) + '</b><small>' + (short ? 'You have ' + CM.fmt(s.coins) + ': ' + CM.fmt(cost - s.coins) + ' short' : armed ? 'Tap again to pay. Nothing is charged until then.' : 'Paid once to meet three candidates. You hire one and it starts here.') + '</small></div>' +
+        btn(armed ? 'recruitfor:' + skill + ':' + zone : 'payarm:' + key, armed ? 'PAY ' + CM.fmt(cost) : 'MEET THEM', { cls: 'buy' + (armed ? ' mcx-sure' : ''), off: short }) + '</div>';
+      h += '<p class="hint">Each recruit costs ' + Math.round((M.recruitGrowth - 1) * 100) + '% more than the last. Dismissing a mouse does not make it cheaper.</p>';
+      return h;
+    }
+    // Primero los libres, luego los demás; dentro, por lo que harían aquí.
+    const list = s.mice.map((m) => ({ m, v: K.solo(m, skill, s, zone) }));
+    list.sort((a, b) => (a.m.post ? 1 : 0) - (b.m.post ? 1 : 0) || b.v - a.v);
+    h += '<p class="hint">The number is what each would do <b>on its own</b> here; neighbours and combos can change it.</p>';
+    for (const { m, v } of list) {
+      const sub = m.post ? '<span class="mcx-leaves">Leaves ' + K.postLabel(m.post) + ' empty</span>' : m.rest ? 'Free · resting in the house' : 'Free · waiting in the house';
+      h += mouseLine(s, m, 'post:' + m.id + ':' + key, '<i class="mc-out">' + mult(v) + '</i>', { sub, skill, likes: false, traits: 2, cls: 'pickable' }).replace('<span class="mc-tags">', '<span class="mc-tags">' + (m.aff[skill] ? '<i class="mc-like a' + m.aff[skill] + '">' + JOB_SHORT[skill] + hearts(m.aff[skill]) + '</i>' : ''));
     }
     return h;
   }
@@ -1086,7 +1121,10 @@
     }
     // Reclutar.
     const cost = K.recruitCost(s);
-    h += '<h4 class="mc-h">RECRUIT</h4>' + btn('recruit', '<b>MEET THREE NEW MICE</b><span>' + (free.length ? plural(free.length, 'post') + ' with no mouse. ' : 'Every post is taken: look for a better mouse. ') + 'You hire one of the three. Each recruit costs ' + Math.round((M.recruitGrowth - 1) * 100) + '% more than the last.</span><em>' + coin(cost) + '</em>', { off: s.coins < cost, cls: 'labrow ready', cost });
+    // V4: cubrir una vacante se hace desde el puesto (COLONY); esto es buscar en general.
+    const armed = ui.payArm && ui.payArm.key === 'house' && performance.now() - ui.payArm.at < 6000;
+    h += '<h4 class="mc-h">RECRUIT</h4><div class="mcx-meet">' + I.img('coin', '', 'big') + '<div><b>' + CM.fmt(cost) + '</b><small>' + (armed ? 'Tap again to pay.' : free.length ? plural(free.length, 'post') + ' empty: tap one in COLONY to hire for it. From here the new mouse takes the first free post.' : 'Every post is taken: look for a better mouse. It waits in the house until you swap it in.') + '</small></div>' +
+      btn(armed ? 'recruit' : 'payarm:house', armed ? 'PAY ' + CM.fmt(cost) : free.length ? 'MEET 3' : 'LOOK', { cls: 'buy' + (armed ? ' mcx-sure' : ''), off: s.coins < cost }) + '</div><p class="hint">You hire one of the three. Each recruit costs ' + Math.round((M.recruitGrowth - 1) * 100) + '% more than the last.</p>';
     // Diario: lo que han ido desarrollando.
     if (s.news.length) {
       h += '<h4 class="mc-h">COLONY NEWS</h4><ul class="mc-news">';
@@ -1107,8 +1145,10 @@
     const at = ui.cand >= 0 && ui.cand < cands.length ? ui.cand : best;
     const c = cands[at];
     const free = K.posts(s).filter((p) => !K.at(s, p.skill, p.zone));
-    const dest = free[0];
+    const want = s.candidatesFor ? free.find((p) => p.key === s.candidatesFor) : null;
+    const dest = want || free[0];
     let h = '<div class="mc-pickhead"><span><small>ALREADY PAID</small><b>CHOOSE ONE OF THREE</b></span></div>';
+    if (s.candidatesFor) h += '<div class="mcx-for' + (want ? '' : ' gone') + '"><small>HIRING FOR</small><b>' + K.postLabel(s.candidatesFor).toUpperCase() + '</b>' + (want ? '' : '<span>Filled meanwhile: the new mouse ' + (free.length ? 'goes to ' + K.postLabel(free[0].key) : 'waits in the house') + '</span>') + '</div>';
     h += '<div class="mc-cands">' + cands.map((x, i) => '<button data-act="cand:' + i + '" class="r' + (x.rarity || 0) + (i === at ? ' on' : '') + '">' + portrait(x) + '<b>' + esc(x.name) + '</b><small class="mc-rar r' + (x.rarity || 0) + '">' + RARITY[x.rarity || 0].name + '</small></button>').join('') + '</div>';
     h += '<div class="mc-hero r' + (c.rarity || 0) + '">' + portrait(c, 'huge') + '<div><b class="mc-name">' + esc(c.name) + '</b><small class="mc-rar r' + (c.rarity || 0) + '">' + RARITY[c.rarity || 0].name + (c.rarity ? ' · ' + Math.round(RARITY[c.rarity].bonus * 100) + '% faster at any job' : '') + '</small><span class="mc-lv">LV 1</span></div></div>';
     h += '<div class="mc-affs">' + K.JOBS.map((k) => '<i class="a' + (c.aff[k] || 0) + '">' + JOB_SHORT[k] + hearts(c.aff[k]) + '</i>').join('') + '</div>';
@@ -1173,7 +1213,7 @@
       row('Sound', 'Effects are ' + (CM.sfx.isMuted() ? 'muted' : 'on'), btn('sound', CM.sfx.isMuted() ? 'TURN ON' : 'MUTE', { cls: 'buy' })) +
       row('Export save', 'Save + metrics as JSON', btn('export', 'EXPORT', { cls: 'buy' })) +
       row('Import save', 'Paste an exported JSON', btn('import', 'IMPORT', { cls: 'buy' })) +
-      row('Test colony', 'Prototype: replace this game with a saved one', btn('protoload:early', 'EARLY', { cls: 'buy' }) + btn('protoload:mid', 'MID', { cls: 'buy' }) + btn('protoload:late', 'LATE', { cls: 'buy' })) +
+      row('Test colony', 'Prototype: replace this game with a saved one', btn('protoload:early', 'EARLY', { cls: 'buy' }) + btn('protoload:three', '3 ROCKS', { cls: 'buy' }) + btn('protoload:mid', 'MID', { cls: 'buy' }) + btn('protoload:late', 'LATE', { cls: 'buy' })) +
       row('Playtest tools', 'Dev menu: marks the session as assisted', btn('open:dev', 'OPEN', { cls: 'buy' })) +
       row('Reset save', 'Start over from zero', btn('reset', 'RESET', { cls: 'danger' })) +
       '<p class="hint">Played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'

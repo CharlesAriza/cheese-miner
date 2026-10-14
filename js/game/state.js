@@ -99,6 +99,7 @@
       built: { drill: false, refinery: false, cheesery: false, shop: false, house: false, lab: false },
       mice: [], // ver CM.mice.normalize: nombre, rasgos, afinidades, aspecto, nivel, rango, puesto...
       candidates: [], // candidatos pendientes de elegir tras pagar el reclutamiento
+      candidatesFor: '', // puesto vacío desde el que se reclutó: el elegido va ahí
       album: {}, // 'fur:3', 'hat:1', 'trait:fast'... piezas vistas en ratones reclutados; no se pierden
       settings: { managersBuy: true },
       jobs: { shop: null },

@@ -157,6 +157,8 @@
     s.candidates = (Array.isArray(s.candidates) ? s.candidates : [])
       .filter((c) => isObj(c) && typeof c.name === 'string' && Array.isArray(c.traits) && c.traits.every((t) => B.mice.traits[t]))
       .slice(0, B.mice.candidates);
+    // El puesto para el que se recluta: solo si sigue habiendo candidatos y el puesto existe.
+    s.candidatesFor = s.candidates.length && typeof s.candidatesFor === 'string' && posts.indexOf(s.candidatesFor) >= 0 ? s.candidatesFor : '';
     s.candidates.forEach((c) => {
       c.rarity = Math.min(nat(c.rarity), B.mice.rarities.length - 1);
       const aff = {};
