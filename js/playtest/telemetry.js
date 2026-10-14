@@ -7,7 +7,10 @@
   function snapshot(s) {
     const lanes = {};
     for (const id of Object.keys(s.zones)) lanes[id] = Object.assign({}, s.zones[id].stats);
-    return { t: s.clock, coins: s.totals.coinsEarned, sold: s.totals.lotsSold, whole: s.totals.wholesaleLots || 0, lanes };
+    const byBase = {};
+    const bb = s.totals.byBase || {};
+    for (const k of Object.keys(bb)) byBase[k] = { c: bb[k].c, w: bb[k].w, n: bb[k].n, wn: bb[k].wn };
+    return { t: s.clock, coins: s.totals.coinsEarned, wcoins: s.totals.wholesaleCoins || 0, sold: s.totals.lotsSold, whole: s.totals.wholesaleLots || 0, lanes, byBase };
   }
 
   CM.telemetry = {
@@ -46,13 +49,19 @@
       samples.push(snapshot(s));
       while (samples.length > 40) samples.shift();
     },
-    // Ritmos por minuto en los últimos ~60 s: monedas, y lo producido y gastado en cada línea.
-    rates(s) {
+    // Ritmos por minuto en los últimos ~60 s (o la ventana pedida, hasta ~3 min): monedas, y lo
+    // producido y gastado en cada línea. `span` dice cuántos minutos se han medido de verdad.
+    rates(s, windowMs) {
       const now = snapshot(s);
-      const from = samples.find((x) => s.clock - x.t <= 60000) || now;
+      const from = samples.find((x) => s.clock - x.t <= (windowMs || 60000)) || now;
       const span = Math.max(1, now.t - from.t) / 60000;
       const per = (a, b) => (span > 0.05 ? (a - b) / span : 0);
-      const out = { coins: per(now.coins, from.coins), sold: per(now.sold, from.sold || now.sold), whole: per(now.whole, from.whole || 0), lanes: {} };
+      const out = { span: span, coins: per(now.coins, from.coins), wcoins: per(now.wcoins, from.wcoins || 0), sold: per(now.sold, from.sold || now.sold), whole: per(now.whole, from.whole || 0), lanes: {}, bases: {} };
+      for (const k of Object.keys(now.byBase)) {
+        const a = now.byBase[k];
+        const b = (from.byBase && from.byBase[k]) || a;
+        out.bases[k] = { c: per(a.c, b.c), w: per(a.w, b.w), n: per(a.n, b.n), wn: per(a.wn, b.wn) };
+      }
       for (const id of Object.keys(now.lanes)) {
         const a = now.lanes[id];
         const b = from.lanes[id] || a;

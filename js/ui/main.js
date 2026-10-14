@@ -99,7 +99,9 @@
   const toastQueue = [];
   function nextToast() {
     // Mientras se ve el aviso de un movimiento de ratones (mismo sitio), los demás esperan.
-    if (toastQueue.length && !$('mcx-fx').hidden) {
+    // También esperan los avisos de éxito mientras hay una ventana abierta (se ponían encima
+    // de su título); un «no se puede» responde a un toque y sale siempre.
+    if (toastQueue.length && (!$('mcx-fx').hidden || (!$('modal').hidden && toastQueue[0].good))) {
       els.toast.classList.remove('show');
       clearTimeout(toastTimer);
       toastTimer = setTimeout(nextToast, 500);
@@ -1211,7 +1213,9 @@
   $('nav-mice').addEventListener('click', () => openPanel('mice'));
   // Tocar un contador de recurso abre la despensa.
   for (const id of ['res-raw', 'res-base', 'res-lots']) $(id).addEventListener('click', () => openPanel('stock'));
-  $('res-shop').addEventListener('click', () => select('shop'));
+  // V4.1: tocar la tienda o las monedas explica la economía; la estación SELL sigue a un toque.
+  $('res-shop').addEventListener('click', () => openPanel('shopinfo'));
+  $('res-coins').addEventListener('click', () => openPanel('coins'));
   $('nav-menu').addEventListener('click', () => openPanel('options'));
   $('nav-boosts').addEventListener('click', () => openPanel('boosts'));
   const muteLabel = () => {};
@@ -1500,6 +1504,11 @@
       return r;
     },
     undomove: undoMove,
+    stockall: () => void (ui.stockAll = !ui.stockAll),
+    gosell: () => {
+      closePanel();
+      select('shop');
+    },
     // Puesto vacío: mover uno que ya tienes o conocer a tres nuevos (pagando con dos toques).
     postopt: () => void (ui.postOpt = ui.postOpt === 'hide' ? null : 'hide'),
     recruitfor: (skill, zone) => {
@@ -1520,6 +1529,10 @@
       if (B2.at(state, skill, zone) > 0) return B2.remove(state, key);
       return B2.place(state, key);
     },
+    // V4.1: elegir un puesto, y poner o quitar con botones separados (misma mecánica).
+    bosel: (skill, zone) => void (ui.boSel = ui.boSel === skill + ':' + zone ? '' : skill + ':' + zone),
+    boadd: () => (ui.boSel ? CM.boosts.place(state, ui.boSel) : CM.fail('invalid')),
+    borem: () => (ui.boSel ? CM.boosts.remove(state, ui.boSel) : CM.fail('invalid')),
     boostclear: () => {
       while (state.boosts.length) CM.boosts.remove(state, state.boosts[state.boosts.length - 1]);
     },

@@ -7717,3 +7717,250 @@ div.mc-row {
     animation: none;
   }
 }
+
+/* ---------- V4.1: COINS, SHOP y despensa compacta (clases ec-) ---------- */
+#res-coins {
+  cursor: pointer;
+}
+.ec-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+}
+.ec-top > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ec-top small {
+  font-size: 7px;
+  color: var(--muted);
+}
+.ec-top b {
+  font-weight: normal;
+  font-size: 16px;
+  color: #ffe55c;
+}
+.ec-full {
+  padding: 4px 6px;
+  font-style: normal;
+  font-size: 8px;
+  color: var(--ink);
+  background: #ffb35c;
+  box-shadow: 0 2px 0 var(--ink);
+}
+.ec-meter {
+  height: 10px;
+  background: var(--ink);
+  border: 2px solid var(--ink);
+}
+.ec-meter i {
+  display: block;
+  height: 100%;
+  background: repeating-linear-gradient(90deg, #ffcf2e 0 8px, transparent 8px 10px);
+}
+.ec-sub,
+.ec-when {
+  margin: 5px 0 8px;
+  font-family: var(--text);
+  font-size: 11px;
+  color: var(--muted);
+}
+.ec-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+.ec-stats span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  background: var(--bg);
+  border: 2px solid var(--ink);
+}
+.ec-stats small {
+  font-size: 6px;
+  color: var(--muted);
+}
+.ec-stats b {
+  font-family: var(--text);
+  font-size: 12px;
+}
+.ec-stats b.warn,
+.ec-row u {
+  text-decoration: none;
+  color: #ffb35c;
+}
+.ec-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  padding: 6px;
+  font-family: var(--text);
+  background: var(--bg);
+  border: 2px solid var(--ink);
+}
+.ec-row.top {
+  border-color: var(--gold);
+}
+.ec-row > div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ec-row b {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 13px;
+}
+.ec-row b span {
+  font-size: 12px;
+  color: #ffe55c;
+  white-space: nowrap;
+}
+.ec-row small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.ec-bar {
+  display: flex;
+  height: 8px;
+  background: var(--ink);
+}
+.ec-bar i {
+  display: block;
+  height: 100%;
+  background: #ffcf2e;
+}
+.ec-bar i.w,
+.ec-key.w i {
+  background: #a79fc0;
+}
+.ec-key {
+  white-space: nowrap;
+}
+.ec-key i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin: 0 3px 0 6px;
+  background: #ffcf2e;
+}
+.ec-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.ec-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr 1fr;
+  gap: 4px 6px;
+  align-items: center;
+  margin: 0 0 8px;
+  font-family: var(--text);
+}
+.ec-grid small {
+  font-family: var(--pixel);
+  font-size: 6px;
+  color: var(--muted);
+  text-align: right;
+}
+.ec-grid b {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.ec-grid b img {
+  width: 14px;
+}
+.ec-grid span {
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}
+
+/* ---------- V4.1: BOOSTS con + y − separados (clases bo-) ---------- */
+.panel button.bo-on {
+  outline: 3px solid #fff;
+  outline-offset: -3px;
+}
+.bo-ctl {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px;
+  background: var(--bg);
+  border: 3px solid var(--gold);
+  box-shadow: 0 -3px 0 var(--ink);
+}
+.bo-ctlname {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bo-ctlname b {
+  font-weight: normal;
+  font-size: 8px;
+  color: #ffe55c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bo-ctlname small {
+  font-family: var(--text);
+  font-size: 11px;
+}
+.panel button.bo-pm {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  font-size: 16px;
+  color: #fff;
+  background: #4a3f66;
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  box-shadow: inset 0 2px 0 #ffffff33, 0 3px 0 var(--ink);
+}
+.panel button.bo-pm.add {
+  background: #2f6fd0;
+}
+.panel button.bo-pm.off {
+  color: #6b6480;
+  background: #2a2338;
+  box-shadow: none;
+}
+.bo-why {
+  margin: 4px 0 0;
+  font-family: var(--text);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ---------- V4.1: las chapas UP!/NEW! y el anillo de pop no se recortan ----------
+   `.controls` tiene scroll propio y recortaba lo que asoma por arriba de las casillas: la chapa
+   (−7 px), la casilla elegida (−3 px) y el anillo de 3 px. Se le da ese margen dentro del
+   contenedor; es un alto fijo, no cambia mientras se juega. */
+.controls {
+  padding-top: 1px;
+}
+.controls > .chain {
+  padding-top: 10px;
+  padding-left: 3px;
+  padding-right: 3px;
+}

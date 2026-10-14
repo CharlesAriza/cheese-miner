@@ -561,8 +561,10 @@
   const boChip = (n) => (n ? '<i class="bo-chip">' + '&#9650;'.repeat(n) + '</i>' : '');
   // Lo que dan n refuerzos en una casilla, sin la unidad (va en la cabecera de la columna).
   const boGain = (skill, n) => (n ? '<u>' + CM.boosts.label(skill, n).split(' ')[0] + '</u>' : '');
-  function boostsPanel(s) {
+  function boostsPanel(s, ui) {
     const BO = CM.boosts;
+    // V4.1: tocar un puesto solo lo elige; poner y quitar van en botones separados, abajo.
+    const sel = ui.boSel || '';
     const owned = BO.owned(s);
     const free = BO.free(s);
     let h = '<div class="bo-head"><div><b>' + free + '</b><small>FREE</small></div><div><b>' + s.boosts.length + '</b><small>PLACED</small></div><p>A boost gives one post <b>' + BO.label('mining', 1).toLowerCase() + '</b>, whoever works there. On a refinery it gives <b>' + BO.label('refining', 1).split(' ')[0] + ' Base</b> from the same Raw instead. Up to ' + B.boosts.perPost + ' per post.</p></div>';
@@ -571,7 +573,7 @@
     if (nx && nx.kind === 'rock') h += '<div class="bo-next"><b>NEXT BOOST</b><span>when you open ' + (owned ? 'your next rock' : 'your third rock') + '</span></div>';
     else if (nx) h += '<div class="bo-next"><b>NEXT BOOST</b><span>' + CM.fmt(nx.cur) + ' / ' + CM.fmt(nx.need) + ' cheese cooked</span><div class="bar"><i style="width:' + Math.round((nx.cur / nx.need) * 100) + '%"></i></div><small>' + (nx.etaMs ? 'About ' + span(nx.etaMs) + ' at your pace. ' : '') + 'It counts while you are away too.</small></div>';
     if (!owned) return h + '<p class="hint">You have no boosts yet.</p>';
-    h += '<p class="hint">' + (free ? 'Tap a post to put a boost there.' : 'All placed. Tap a boosted post to take one back, then tap where you want it.') + ' Moving them costs nothing.</p>';
+    h += '<p class="hint">Tap a post to choose it, then use <b>+</b> and <b>&minus;</b> below. Moving a boost costs nothing: take it from one post and add it to another.</p>';
     h += '<div class="bo-grid"><span></span>' + BOOST_COLS.map((c) => '<small>' + c[1] + '<i>' + (c[0] === 'refining' ? 'BASE' : 'SPEED') + '</i></small>').join('');
     let more = false;
     for (const def of q.openZones(s)) {
@@ -583,7 +585,7 @@
         const n = BO.at(s, c[0], def.id);
         const staffed = !!CM.mice.at(s, c[0], def.id);
         const tag = slow === c[0] ? '<em>SLOW?</em>' : also && c[0] === 'refining' ? '<em>+BASE?</em>' : '';
-        h += '<button data-act="boost:' + c[0] + ':' + def.id + '" class="bo-cell' + (n ? ' has n' + n : '') + (staffed ? '' : ' empty') + (tag ? ' slow' : '') + '">' + boChip(n) + I.img(c[2], def.base) + boGain(c[0], n) + tag + '</button>';
+        h += '<button data-act="bosel:' + c[0] + ':' + def.id + '" class="bo-cell' + (n ? ' has n' + n : '') + (staffed ? '' : ' empty') + (tag ? ' slow' : '') + (sel === c[0] + ':' + def.id ? ' bo-on' : '') + '">' + boChip(n) + I.img(c[2], def.base) + boGain(c[0], n) + tag + '</button>';
       }
     }
     h += '</div>';
@@ -591,19 +593,33 @@
     if (s.built.shop) {
       const n = BO.at(s, 'trading', 'all');
       const slow = BO.shopHint(s);
-      h += '<button data-act="boost:trading:all" class="bo-shop' + (n ? ' has n' + n : '') + (slow ? ' slow' : '') + '">' + boChip(n) + I.img('coin') + '<span><b>SHOP</b><small>' + (slow ? 'Cheese is piling up here' : 'Sells the cheese of every rock') + '</small></span>' + (n ? '<u>' + BO.label('trading', n) + '</u>' : '') + (slow ? '<em>SLOW?</em>' : '') + '</button>';
+      h += '<button data-act="bosel:trading:all" class="bo-shop' + (n ? ' has n' + n : '') + (slow ? ' slow' : '') + (sel === 'trading:all' ? ' bo-on' : '') + '">' + boChip(n) + I.img('coin') + '<span><b>SHOP</b><small>' + (slow ? 'Cheese is piling up here' : 'Sells the cheese of every rock') + '</small></span>' + (n ? '<u>' + BO.label('trading', n) + '</u>' : '') + (slow ? '<em>SLOW?</em>' : '') + '</button>';
     }
     h += '<p class="hint">SLOW? marks the stage that may be holding a rock back.' + (more ? ' +BASE? means the rock is short of Base: a boost on its refinery would also bring more.' : '') + ' They are hints, not sums: try it and watch your coins per minute. A post with no mouse gets nothing from a boost.</p>';
     if (s.boosts.length) h += btn('boostclear', 'TAKE ALL BOOSTS BACK', { cls: 'mini' });
+    // La barra del puesto elegido: cuántos tiene, cuántos quedan libres y dos botones claros.
+    if (!sel) return h + '<div class="bo-ctl"><span class="bo-ctlname"><b>NO POST CHOSEN</b><small>' + free + ' free · tap a post above</small></span></div>';
+    const [skill, zone] = sel.split(':');
+    const n = BO.at(s, skill, zone);
+    const canAdd = free > 0 && n < B.boosts.perPost;
+    const why = n >= B.boosts.perPost ? 'full: ' + B.boosts.perPost + ' per post' : !free ? 'no free boost: take one from another post' : 'adds one';
+    h += '<div class="bo-ctl"><span class="bo-ctlname"><b>' + CM.mice.postLabel(sel).toUpperCase() + '</b><small>' + n + '/' + B.boosts.perPost + ' here' + (n ? ' · ' + BO.label(skill, n) : '') + ' · ' + free + ' free</small></span>' +
+      btn('borem', '&minus;', { cls: 'bo-pm', off: !n }) + btn('boadd', '+', { cls: 'bo-pm add', off: !canAdd }) + '</div><p class="bo-why">' + (n ? '&minus; takes one back to your free boosts. ' : '') + '+ ' + why + '.</p>';
     return h;
   }
 
   // ---------- DESPENSA ----------
   // Todo lo que tienes, una fila por cosa, como un banco. No hay tope.
-  function stockPanel(s) {
+  // V4.1. Despensa: primero un resumen por roca (lo que hay de cada cosa); el detalle de cada
+  // receta, al pedirlo.
+  function stockPanel(s, ui) {
     const cell = (icon, name, amount, sub) => '<div class="stockrow' + (amount ? '' : ' empty') + '">' + icon + '<div class="info"><b>' + name + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</div><span class="qty">' + CM.fmt(amount) + '</span></div>';
     const bases = CM.cheesery.unlockedBases(s);
-    let h = '<p class="hint">Everything you own. There is no limit: it just piles up until the next stage uses it.</p>';
+    const lotsOf = cheeseByBase(s);
+    let h = '<p class="hint">What each rock has waiting for its next stage. Nothing has a limit except the shop shelves.</p><div class="ec-grid"><span></span><small>RAW</small><small>BASE</small><small>CHEESE</small>';
+    for (const b of bases) h += '<b>' + I.img('raw', b) + B.bases[b].name + '</b><span>' + CM.fmt(s.inv.raw[b]) + '</span><span>' + CM.fmt(s.inv.base[b]) + '</span><span>' + CM.fmt(lotsOf[b] || 0) + '</span>';
+    h += '</div>' + btn('stockall', ui.stockAll ? 'HIDE EVERY RECIPE' : 'SHOW EVERY RECIPE', { cls: 'mini' });
+    if (!ui.stockAll) return h;
     h += '<h3>RAW CHEESE · from the drills, used by the Refinery</h3>';
     for (const b of bases) h += cell(I.img('raw', b, 'big'), 'Raw ' + B.bases[b].name, s.inv.raw[b]);
     h += '<h3>CHEESE BASE · from the Refinery, used by the Cheesery</h3>';
@@ -619,6 +635,57 @@
       h += cell(I.img('lot', CM.cheesery.parseKey(r.key).base, 'big'), esc(r.name), n, 'sells for ' + CM.fmt(price) + ' each');
     }
     if (worth) h += '<p class="hint">Your cheese is worth ' + CM.fmt(worth) + ' coins in total.</p>';
+    return h;
+  }
+  const cheeseByBase = (s) => {
+    const out = {};
+    for (const r of s.recipes) if (s.lots[r.id]) out[CM.cheesery.parseKey(r.key).base] = (out[CM.cheesery.parseKey(r.key).base] || 0) + s.lots[r.id];
+    return out;
+  };
+  // Ventana de medida de COINS y SHOP: lo cobrado y vendido de verdad en los últimos minutos.
+  const EC_WINDOW = 180000;
+  const perMin = (n) => CM.fmt(Math.round(n)) + '/min';
+  const measured = (r) => (r.span < 0.2 ? '<p class="hint">Measuring: open it again in a moment for real numbers.</p>' : '<p class="ec-when">Real sales in the last ' + (r.span >= 1.5 ? Math.round(r.span) + ' min' : Math.round(r.span * 60) + ' s') + '.</p>');
+
+  // V4.1. SHOP: qué queso hay para vender, de qué roca, cuánto cabe y qué pasa con lo que sobra.
+  function shopInfoPanel(s) {
+    const cap = CM.shop.capacity(s);
+    const r = CM.telemetry.rates(s, EC_WINDOW);
+    const stock = q.lotsTotal(s);
+    const full = cap.shelf > 0 && stock >= cap.shelf * 0.97;
+    const lotsOf = cheeseByBase(s);
+    let h = '<div class="ec-top"><div><small>CHEESE ON THE SHELVES</small><b>' + CM.fmt(stock) + '</b></div>' + (full ? '<i class="ec-full">FULL</i>' : '') + '</div>';
+    h += '<div class="ec-meter"><i style="width:' + Math.min(100, cap.shelf ? Math.round((stock / cap.shelf) * 100) : 0) + '%"></i></div><p class="ec-sub">Shelves hold about ' + B.shop.shelfMinutes + ' minutes of sales: ' + CM.fmt(cap.shelf) + ' cheese.</p>';
+    h += '<div class="ec-stats"><span><small>CAN SELL</small><b>' + perMin(cap.perMin) + '</b></span><span><small>SOLD</small><b>' + perMin(r.sold - r.whole) + '</b></span><span><small>WHOLESALE</small><b class="' + (r.whole > 0.5 ? 'warn' : '') + '">' + perMin(r.whole) + '</b></span></div>';
+    h += measured(r);
+    h += '<h3>BY CHEESE</h3>';
+    for (const z of q.openZones(s)) {
+      const b = z.base;
+      const n = lotsOf[b] || 0;
+      const rb = r.bases[b] || { n: 0, wn: 0 };
+      h += '<div class="ec-row">' + I.img('lot', b, 'big') + '<div><b>' + B.bases[b].name + '<span>' + CM.fmt(n) + ' on the shelves</span></b><i class="ec-bar"><i style="width:' + (stock ? Math.round((n / stock) * 100) : 0) + '%"></i></i><small>sells ' + perMin(rb.n) + (rb.wn > 0.5 ? ' · <u>wholesale ' + perMin(rb.wn) + '</u>' : '') + '</small></div></div>';
+    }
+    h += '<p class="hint">The shop sells the dearest cheese first. When the shelves are full, the wholesaler takes the extra at half price, cheapest first: nothing is lost and nothing piles up for ever. A faster trader (or a boost on the shop) sells more at full price.</p>';
+    return h + '<div class="ec-btns">' + btn('gosell', 'SELL STATION', { cls: 'buy' }) + btn('open:stock', 'FULL PANTRY', { cls: 'buy' }) + '</div>';
+  }
+
+  // V4.1. COINS: de dónde sale el dinero. Monedas cobradas de verdad en ventas, por roca y canal.
+  function coinsPanel(s) {
+    const r = CM.telemetry.rates(s, EC_WINDOW);
+    const rows = q.openZones(s).map((z) => ({ z, c: (r.bases[z.base] || { c: 0 }).c, w: (r.bases[z.base] || { w: 0 }).w })).map((x) => Object.assign(x, { t: x.c + x.w }));
+    const fromRocks = rows.reduce((a, x) => a + x.t, 0);
+    const total = Math.max(r.coins, fromRocks);
+    rows.sort((a, b) => b.t - a.t);
+    let h = '<div class="ec-top"><div><small>COINS PER MINUTE</small><b>' + perMin(r.coins) + '</b></div></div>' + measured(r);
+    h += '<h3>BY ROCK</h3>';
+    for (const x of rows) {
+      const pc = total > 0 ? (x.t / total) * 100 : 0;
+      h += '<div class="ec-row' + (x === rows[0] && x.t > 0 ? ' top' : '') + '">' + I.img('lot', x.z.base, 'big') + '<div><b>' + x.z.name + '<span>' + (x.t > 0 ? perMin(x.t) + ' · ' + (pc >= 10 ? Math.round(pc) : pc.toFixed(1)) + '%' : 'nothing sold') + '</span></b>' +
+        '<i class="ec-bar two"><i style="width:' + (total ? (x.c / total) * 100 : 0) + '%"></i><i class="w" style="width:' + (total ? (x.w / total) * 100 : 0) + '%"></i></i>' + (x.w > 0.5 ? '<small>shelves ' + perMin(x.c) + ' · <u>wholesale ' + perMin(x.w) + '</u></small>' : '') + '</div></div>';
+    }
+    const other = r.coins - fromRocks;
+    if (other > total * 0.01) h += '<p class="hint">Another ' + perMin(other) + ' came from elsewhere (rewards, lab samples).</p>';
+    h += '<p class="hint">These are coins really paid by customers, after every bonus. A rock whose cheese does not sell earns nothing here, however much it makes. <span class="ec-key"><i></i>shelves</span> <span class="ec-key w"><i></i>wholesale, half price</span></p>';
     return h;
   }
 
@@ -1272,11 +1339,11 @@
       if (name === 'lab' && s && !s.recipes.length) return 'YOUR FIRST RECIPE';
       if (name === 'lab' && s && !s.built.lab) return 'RECIPES';
       if (name === 'tree') return ui.tree === 'colony' ? 'COLONY' : ui.tree === 'lab' ? 'LAB UPGRADES' : B.skills[ui.tree].name.toUpperCase() + ' UPGRADES';
-      return { cheese: 'CHEESERY', lab: 'CHEESE LAB', stock: 'PANTRY', mice: 'MICE', boosts: 'BOOSTS', options: 'MENU', dev: 'PLAYTEST TOOLS' }[name];
+      return { cheese: 'CHEESERY', lab: 'CHEESE LAB', stock: 'PANTRY', shopinfo: 'SHOP', coins: 'COINS', mice: 'MICE', boosts: 'BOOSTS', options: 'MENU', dev: 'PLAYTEST TOOLS' }[name];
     },
     render(name, s, ui) {
       GM = s.master && s.nodes['cheesemaking.master'] ? s.master : '';
-      return { tree: treePanel, cheese: cheesePanel, lab: labPanel, stock: stockPanel, mice: micePanel, boosts: boostsPanel, options: optionsPanel, dev: devPanel }[name](s, ui);
+      return { tree: treePanel, cheese: cheesePanel, lab: labPanel, stock: stockPanel, shopinfo: shopInfoPanel, coins: coinsPanel, mice: micePanel, boosts: boostsPanel, options: optionsPanel, dev: devPanel }[name](s, ui);
     },
   };
 })();

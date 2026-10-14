@@ -1890,6 +1890,33 @@
     valid(away);
   });
 
+  // V4.1: el desglose de COINS reparte lo cobrado de verdad (con los bonus), no la producción.
+  test('shop V4.1: coins by rock add up to the coins really earned, shelves and wholesale apart', () => {
+    const s = CM.storage.parse(JSON.stringify(withCheese()), Date.now());
+    staff(s, 'trading', 'all', { aff: { trading: 2 } });
+    const r = s.recipes[0];
+    s.lots[r.id] = 1e6;
+    s.totals.lotsProduced += 1e6;
+    CM.rev += 1;
+    const c0 = s.totals.coinsEarned;
+    const wc0 = s.totals.wholesaleCoins;
+    const base = CM.cheesery.parseKey(r.key).base;
+    const b0 = Object.assign({}, s.totals.byBase[base]);
+    eq(CM.shop.start(s, 'worker').ok, true, 'a sale starts');
+    const job = s.jobs.shop;
+    const got = job.coins;
+    run(s, job.total + STEP);
+    truthy(s.totals.coinsEarned - c0 >= got, 'the sale is paid');
+    const by = s.totals.byBase[base];
+    near(by.c - b0.c + (by.w - b0.w), got, 1, 'what the rock is credited is what the sale paid');
+    near(by.w - b0.w, s.totals.wholesaleCoins - wc0, 1, 'the wholesale part, with the trader bonus, matches the wholesale total');
+    truthy(by.w - b0.w > 0 && by.c - b0.c > 0, 'both channels are there');
+    eq(by.n - b0.n + (by.wn - b0.wn), job.count, 'and so is every cheese sold');
+    const back = CM.storage.parse(JSON.stringify(s), Date.now());
+    near(back.totals.byBase[base].c, by.c, 1e-6, 'it survives a save and load');
+    valid(s);
+  });
+
   test('boosts: extra speed for the post the player chooses, two per post, never lost', () => {
     const BO = CM.boosts;
     const s = withCheese();

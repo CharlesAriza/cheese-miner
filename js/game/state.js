@@ -137,6 +137,9 @@
         lotsSold: 0,
         wholesaleLots: 0, // vendidos al por mayor (ya contados en lotsSold)
         wholesaleCoins: 0,
+        // V4.1: monedas cobradas de verdad (con todos los bonus) y quesos vendidos, por roca y
+        // canal: c/n en estanterías, w/wn al mayorista. Para el desglose de COINS y SHOP.
+        byBase: Object.keys(B.bases).reduce((o, k) => ((o[k] = { c: 0, w: 0, n: 0, wn: 0 }), o), {}),
         coinsEarned: 0,
         coinsSpent: 0,
         goalCoins: 0,

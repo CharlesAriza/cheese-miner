@@ -671,6 +671,14 @@
   // Vender es un ciclo más: se retiran los quesos al empezar y se cobra una sola vez al terminar.
   CM.shop = {
     price: (s, recipe) => Math.max(1, Math.round(valueOf(s, recipe) * q.priceMult(s))),
+    // Lo que vende por minuto y lo que cabe en las estanterías, con el tendero de ahora (la
+    // misma cuenta que hace cada venta). Solo para enseñarlo.
+    capacity(s) {
+      const w = CM.mice.work(s, 'trading', 'all');
+      const cyc = CM.cycle(q.sellDuration(s) / (w ? w.speed : 1));
+      const perMin = ((q.sellCount(s) * cyc.mult) / cyc.total) * 60000;
+      return { perMin, shelf: Math.floor(perMin * B.shop.shelfMinutes), worker: !!w };
+    },
     status(s) {
       if (!s.built.shop) return 'not-built';
       if (s.jobs.shop) return 'running';
@@ -690,6 +698,10 @@
       let left = Math.floor(q.sellCount(s) * cyc.mult);
       let coins = 0;
       let count = 0;
+      // Lo que aporta cada roca a esta venta, para repartir después lo cobrado de verdad.
+      const per = {};
+      const baseOf = (r) => parseKey(r.key).base;
+      const add = (r, k, v) => ((per[baseOf(r)] = per[baseOf(r)] || { c: 0, w: 0, n: 0, wn: 0 })[k] += v);
       let top = stock[0].id;
       // Cheese Board: el bono es el que había antes de esta venta; luego la venta cuenta para el siguiente.
       const board = !!s.nodes['cheesemaking.board'];
@@ -701,6 +713,8 @@
         const price = prices[r.id];
         s.lots[r.id] -= n;
         coins += price * n;
+        add(r, 'c', price * n);
+        add(r, 'n', n);
         if (board) CM.milestones.sold(s, r, price * n);
         count += n;
         left -= n;
@@ -723,15 +737,26 @@
         if (n <= 0) continue;
         s.lots[r.id] -= n;
         wcoins += Math.round(prices[r.id] * B.shop.wholesale) * n;
+        add(r, 'w', Math.round(prices[r.id] * B.shop.wholesale) * n);
+        add(r, 'wn', n);
         whole += n;
         extra -= n;
       }
+      // Reparto de lo cobrado de verdad por roca: el Cheese Board ya va en `coins` (solo las
+      // estanterías) y el tendero multiplica los dos canales por igual.
+      const shelfRaw = Object.keys(per).reduce((a, k) => a + per[k].c, 0);
+      const shelfMult = shelfRaw > 0 ? coins / shelfRaw : 0;
+      const raw = coins + wcoins;
       coins += wcoins;
       count += whole;
       if (w) coins = Math.max(1, Math.round(coins * CM.mice.out(s, w)));
+      const f = raw > 0 ? coins / raw : 0;
+      const byBase = {};
+      for (const k of Object.keys(per)) byBase[k] = { c: per[k].c * shelfMult * f, w: per[k].w * f, n: per[k].n, wn: per[k].wn };
+      wcoins = Math.round(wcoins * f);
       // Una venta es una acción: la experiencia depende de lo mejor que vendes, no de cuántos.
       const xp = B.xp.perSale * recipeXp(stock[0]);
-      s.jobs.shop = { remaining: total, total, coins, count, xp, recipeId: top, source, whole, wcoins };
+      s.jobs.shop = { remaining: total, total, coins, count, xp, recipeId: top, source, whole, wcoins, byBase };
       CM.emit(s, 'sellStart', { source, count, recipeId: top });
       return CM.ok();
     },
@@ -751,6 +776,13 @@
       s.totals.coinsEarned += job.coins;
       s.totals.wholesaleLots += job.whole || 0;
       s.totals.wholesaleCoins += job.wcoins || 0;
+      // Por roca (una venta guardada antes de V4.1 no lo trae: se cuenta solo en el total).
+      for (const k of Object.keys(job.byBase || {})) {
+        const to = s.totals.byBase[k];
+        const from = job.byBase[k];
+        if (!to || !from) continue;
+        for (const f of ['c', 'w', 'n', 'wn']) to[f] += Number.isFinite(from[f]) ? from[f] : 0;
+      }
       const xm = job.source === 'worker' ? CM.mice.reward(s, 'trading', 'all') : 1;
       CM.skills.addXp(s, 'trading', job.xp * xm);
       CM.emit(s, 'sale', { coins: job.coins, count: job.count, whole: job.whole || 0, recipeId: job.recipeId, source: job.source });
