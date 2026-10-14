@@ -276,10 +276,8 @@
         if (ev.combo >= 3) retrigger(els.combo, 'pop');
         break;
       case 'reveal':
-        if (!here) {
-          tileBump('rock');
-          break;
-        }
+        // V4.16: una veta encontrada en OTRA roca ya no hace saltar la casilla MINE de la que se mira.
+        if (!here) break;
         play('reveal');
         buzz([30, 40, 80]);
         punch();
@@ -313,7 +311,8 @@
             fly(I.url('raw', ev.base), 'rock', $('res-raw'), Math.min(2, n), () => bump('res-raw'));
           }
         }
-        tileBump('drill');
+        // V4.16: la casilla salta solo si produce la roca que se mira (antes saltaba con cualquiera).
+        if (here) tileBump('drill');
         break;
       case 'deeper':
         if (here) {
@@ -334,7 +333,7 @@
             fly(I.url('base', ev.base), 'refinery', $('res-base'), Math.min(2, n), () => bump('res-base'));
           }
         }
-        tileBump('refinery');
+        if (here) tileBump('refinery');
         break;
       case 'lotDone': {
         const base = recipeBase(ev.recipeId);
@@ -346,7 +345,7 @@
             fly(I.url('lot', base), 'cheesery', $('res-lots'), 1, () => bump('res-lots'));
           }
         }
-        tileBump('cheesery');
+        if (here) tileBump('cheesery');
         break;
       }
       case 'recipeDiscovered': {
@@ -1963,25 +1962,35 @@
     dragPaint();
     mdrag.raf = requestAnimationFrame(dragTick);
   }
-  // Qué hay bajo el dedo: un puesto distinto del de origen, o nada (cancelar).
+  // Qué hay bajo el dedo: un puesto distinto del de origen, o nada.
   function dragTarget() {
     const el = document.elementFromPoint(mdrag.x, mdrag.y);
     const card = el && el.closest && el.closest('.mc-post[data-post]');
     return card && card !== mdrag.src && body.contains(card) ? card : null;
+  }
+  // V4.16: ¿el dedo está sobre la tarjeta de origen? Soltar ahí cancela; soltar donde no hay
+  // ningún puesto manda al ratón a la casa (sin asignar), con UNDO como cualquier movimiento.
+  function dragOnSelf() {
+    const el = document.elementFromPoint(mdrag.x, mdrag.y);
+    return !!(el && el.closest && el.closest('.mc-post') === mdrag.src);
   }
   function dragPaint() {
     const g = mdrag.ghost;
     if (!g) return;
     g.style.transform = 'translate(' + Math.round(mdrag.x - 28) + 'px,' + Math.round(mdrag.y - 46) + 'px)';
     const over = dragTarget();
-    if (over !== mdrag.over) {
+    const homeNow = !over && !!mdrag.src.dataset.post && !dragOnSelf();
+    if (over !== mdrag.over || homeNow !== mdrag.home) {
+      mdrag.home = homeNow;
       if (mdrag.over) mdrag.over.classList.remove('mcx-over');
       if (over) over.classList.add('mcx-over');
       mdrag.over = over;
       const other = over && over.dataset.mouse ? CM.mice.byId(state, over.dataset.mouse) : null;
       const fromHouse = !mdrag.src.dataset.post;
-      g.querySelector('small').textContent = !over ? 'drop on a post' : other ? (fromHouse ? 'replace ' + other.name : 'swap with ' + other.name) : 'move here';
+      const home = !over && !fromHouse && !dragOnSelf();
+      g.querySelector('small').textContent = !over ? (home ? 'send to the house' : 'drop on a post') : other ? (fromHouse ? 'replace ' + other.name : 'swap with ' + other.name) : 'move here';
       g.classList.toggle('ok', !!over);
+      g.classList.toggle('home', home);
     }
   }
   // Cerca de los bordes de la lista, se desplaza sola.
@@ -2009,11 +2018,12 @@
   function dragEnd(cancel) {
     if (!mdrag.active) return dragReset();
     const over = cancel ? null : dragTarget();
+    const home = !cancel && !over && !!mdrag.src.dataset.post && !dragOnSelf();
     const id = mdrag.src.dataset.mouse;
     mdrag.endAt = performance.now();
     dragReset();
-    if (over) {
-      report(moveMouse(id, over.dataset.post));
+    if (over || home) {
+      report(moveMouse(id, over ? over.dataset.post : ''));
       drainEvents();
     }
     ui.lastHtml = '';
@@ -2026,7 +2036,7 @@
     if (mdrag.over) mdrag.over.classList.remove('mcx-over');
     if (mdrag.src) mdrag.src.classList.remove('mcx-src');
     body.classList.remove('mcx-dragging');
-    Object.assign(mdrag, { active: false, src: null, timer: 0, ghost: null, over: null, raf: 0 });
+    Object.assign(mdrag, { active: false, src: null, timer: 0, ghost: null, over: null, raf: 0, home: false });
   }
   // Dedo: eventos táctiles, para poder frenar el scroll solo cuando hay un ratón levantado.
   body.addEventListener('touchstart', (e) => (e.touches.length === 1 ? dragStart(e.touches[0].clientX, e.touches[0].clientY, e.target, true) : dragReset()), { passive: true });

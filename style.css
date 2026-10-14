@@ -10801,3 +10801,12 @@ img.pix.pxi {
     animation: none;
   }
 }
+
+/* ======================= V4.16 ======================= */
+/* Soltar donde no hay puesto manda al ratón a la casa: el fantasma lo dice antes de soltar. */
+.mcx-ghost.home {
+  border-color: #ff9ab5;
+}
+.mcx-ghost.home small {
+  color: #ffd0dc;
+}
