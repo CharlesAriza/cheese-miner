@@ -76,9 +76,9 @@
     board: ['FFFFFFFF', 'FGWGGGGF', 'FGGWWGWF', 'FGGGGWGF', 'FFFFFFFF'],
     // V4.6. SPRITE: aviso de una roca que necesita algo (amarillo) o está parada (rojo), y la
     // flecha de ascenso disponible.
-    // V4.12. SPRITE: aviso de roca con contorno de tinta (se lee a 2x en la esquina de la ficha).
-    alert: ['....K....', '...KLK...', '..KYKYK..', '..KYKYK..', '.KYYKYYK.', '.KYYYYYK.', 'KYYYKYYYK', 'KKKKKKKKK'],
-    alertr: ['....K....', '...KLK...', '..KYKYK..', '..KYKYK..', '.KYYKYYK.', '.KYYYYYK.', 'KYYYKYYYK', 'KKKKKKKKK'],
+    // V4.13. SPRITE: aviso de roca, 13 × 12 a 1:1: contorno de tinta, brillo arriba, sombra abajo.
+    alert: ['......K......', '.....KLK.....', '.....KYK.....', '....KYYYK....', '....KYKYK....', '...KYYKYYK...', '...KYYKYYK...', '..KYYYKYYYK..', '..KYYYYYYYK..', '.KYYYYKYYYYK.', '.KDDDDDDDDDK.', 'KKKKKKKKKKKKK'],
+    alertr: ['......K......', '.....KLK.....', '.....KYK.....', '....KYYYK....', '....KYKYK....', '...KYYKYYK...', '...KYYKYYK...', '..KYYYKYYYK..', '..KYYYYYYYK..', '.KYYYYKYYYYK.', '.KDDDDDDDDDK.', 'KKKKKKKKKKKKK'],
     // V4.7. SPRITE: flecha de «toca aquí» para la barra del objetivo (marrón, sobre papel).
     go: ['AA...', '.AA..', '..AA.', '.AA..', 'AA...'],
     // V4.8. SPRITE: flecha de ascenso con contorno oscuro (se lee igual sobre verde, gris o azul).
@@ -109,8 +109,8 @@
     book: { P: '#f6ecd2', L: '#8b7a5a', B: '#5f3590' },
     book2: { P: '#f6ecd2', L: '#8b7a5a', B: '#5f3590' },
     board: { F: '#8b5a2b', G: '#2f5c3a', W: '#e8f0e8' },
-    alert: { Y: '#ffd43a', L: '#fff3a0', K: '#1b1622' },
-    alertr: { Y: '#ff5a7a', L: '#ffc2cc', K: '#1b1622' },
+    alert: { Y: '#ffd43a', L: '#fff3a0', D: '#d9a514', K: '#1b1622' },
+    alertr: { Y: '#ff5a7a', L: '#ffc2cc', D: '#c43a58', K: '#1b1622' },
     rankup: { G: '#46ef6c', L: '#c8ffd0', K: '#10301a' },
     tick: { W: '#ffffff' },
     ranknext: { G: '#46ef6c', L: '#c8ffd0', K: '#10301a' },

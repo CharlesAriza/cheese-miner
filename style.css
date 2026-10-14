@@ -10689,3 +10689,25 @@ img.pix.pxi {
 .rchip.need > .pix {
   transform: translateX(-8px);
 }
+
+/* ======================= V4.13: aviso de roca, bien dibujado ======================= */
+/* El sprite a 1:1 (13 × 12), en la esquina de arriba a la derecha. La roca no se mueve: sigue
+   centrada sobre su nombre. */
+.rchip.warn .rdot,
+.rchip.need .rdot {
+  top: 3px;
+  right: 3px;
+  width: 13px;
+  height: 12px;
+  background-size: 13px 12px;
+}
+.rchip.warn > .pix,
+.rchip.need > .pix {
+  transform: none;
+}
+/* Pegado a la esquina: deja aire entre el aviso y la roca también en fichas estrechas. */
+.rchip.warn .rdot,
+.rchip.need .rdot {
+  top: 2px;
+  right: 2px;
+}

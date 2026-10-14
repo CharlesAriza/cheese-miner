@@ -45,6 +45,7 @@
     combo: { base: 'cheddar', ingredient: 'herbs', treatment: 'washed', maturation: 'fresh' },
     lastHtml: '',
     navKeys: {},
+    rockSeen: {},
     rocksKey: null,
     dockKind: 'mine',
     shown: {},
@@ -1118,8 +1119,18 @@
       const el = rockEls[def.id];
       if (!el) continue;
       set(el, 'on', def.id === ui.zone);
-      set(el, 'warn', why[1] === 'warn');
-      set(el, 'need', why[1] === 'bad');
+      // V4.13: el aviso es para OTRA roca que se ha parado por algo nuevo. Antes salía mientras
+      // alguna etapa esperase un toque, así que una roca sin ratones lo llevaba siempre (también
+      // la que se está mirando). Ahora: al mirar una roca, su motivo se da por visto; vuelve a
+      // avisar solo con un motivo distinto, o si la roca vuelve a funcionar y se para otra vez.
+      const alarm = why[1] === 'warn' || why[1] === 'bad';
+      const kind = alarm ? why[0].split(':')[0] : '';
+      const seenR = ui.rockSeen[def.id] || (ui.rockSeen[def.id] = {});
+      if (!alarm) ui.rockSeen[def.id] = {};
+      else if (def.id === ui.zone) seenR[kind] = true;
+      const flag = alarm && def.id !== ui.zone && !seenR[kind];
+      set(el, 'warn', flag && why[1] === 'warn');
+      set(el, 'need', flag && why[1] === 'bad');
     }
     // Con más rocas de las que caben, la elegida queda siempre a la vista.
     if (show && ui.rockShown !== ui.zone && rockEls[ui.zone]) {
