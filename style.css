@@ -6928,7 +6928,6 @@ div.mc-row {
 /* Un puesto vacío late despacio (borde y signo +) hasta que alguien lo ocupa. */
 .panel button.mc-post.empty.mcx-vac {
   border-color: var(--vac-soft);
-  animation: mcx-vac 2.6s steps(4) infinite;
 }
 .mc-post.mcx-vac .mc-face.hole {
   color: var(--vac);
@@ -7598,10 +7597,21 @@ div.mc-row {
 }
 .mcx-bed {
   position: absolute;
-  left: 1px;
-  bottom: 1px;
-  width: 28px;
+  right: 4px;
+  bottom: 4px;
+  width: 18px;
   image-rendering: pixelated;
+  animation: mcx-bedpulse 2s steps(1) infinite;
+}
+@keyframes mcx-bedpulse {
+  50% {
+    transform: translateY(-2px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mcx-bed {
+    animation: none;
+  }
 }
 .mch-room {
   position: relative;
@@ -7620,8 +7630,16 @@ div.mc-row {
   left: 0;
   right: 0;
   bottom: 20px;
+  z-index: 0;
   height: 3px;
   background: #2a2016;
+}
+/* V4.2: cama, ratón y manta siempre por delante del zócalo y de la ventana. */
+.mch-bed {
+  z-index: 1;
+}
+.mch-zz {
+  z-index: 2;
 }
 .mch-window {
   position: absolute;
@@ -7661,14 +7679,16 @@ div.mc-row {
 }
 /* La manta le tapa el cuerpo: queda la cabeza sobre la almohada. */
 .mch-blanket {
+  /* V4.2: encaja en la rejilla del sprite (cada píxel, 10 px): contorno de un píxel arriba y las
+     mismas filas de color que la manta dibujada, sin bordes que corten la cama. */
   position: absolute;
   left: 50px;
-  top: 30px;
+  top: 20px;
   width: 80px;
-  height: 30px;
-  background: linear-gradient(#ff7aa8 0 8px, #c44a78 8px);
-  border-top: 3px solid #1b1622;
-  border-left: 3px solid #1b1622;
+  height: 40px;
+  box-sizing: border-box;
+  background: linear-gradient(#c44a78 0 20px, #ff7aa8 20px 30px);
+  border-top: 10px solid #1b1622;
 }
 .mch-zz {
   position: absolute;
@@ -7894,38 +7914,6 @@ div.mc-row {
   outline: 3px solid #fff;
   outline-offset: -3px;
 }
-.bo-ctl {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px;
-  padding: 8px;
-  background: var(--bg);
-  border: 3px solid var(--gold);
-  box-shadow: 0 -3px 0 var(--ink);
-}
-.bo-ctlname {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.bo-ctlname b {
-  font-weight: normal;
-  font-size: 8px;
-  color: #ffe55c;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.bo-ctlname small {
-  font-family: var(--text);
-  font-size: 11px;
-}
 .panel button.bo-pm {
   flex: none;
   width: 44px;
@@ -7945,12 +7933,7 @@ div.mc-row {
   background: #2a2338;
   box-shadow: none;
 }
-.bo-why {
-  margin: 4px 0 0;
-  font-family: var(--text);
-  font-size: 11px;
-  color: var(--muted);
-}
+
 
 /* ---------- V4.1: las chapas UP!/NEW! y el anillo de pop no se recortan ----------
    `.controls` tiene scroll propio y recortaba lo que asoma por arriba de las casillas: la chapa
@@ -7963,4 +7946,182 @@ div.mc-row {
   padding-top: 10px;
   padding-left: 3px;
   padding-right: 3px;
+}
+
+/* V4.2: el texto de la tarjeta deja sitio al icono de la cama. */
+.mc-post.inbed > span {
+  padding-right: 18px;
+}
+
+/* ---------- V4.2: controles del refuerzo, pegados a su casilla (clases bo-) ---------- */
+.bo-inline {
+  grid-column: 1 / -1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: -4px;
+  padding: 8px;
+  background: var(--bg);
+  border: 3px solid #fff;
+  box-shadow: 0 3px 0 var(--ink);
+}
+/* Flecha de píxeles hacia la casilla elegida (columna: etiqueta 1,3fr + 4 casillas de 1fr). */
+.bo-inline::before {
+  content: '';
+  position: absolute;
+  top: -9px;
+  width: 12px;
+  height: 6px;
+  margin-left: -6px;
+  background: #fff;
+  clip-path: polygon(0 100%, 33% 33%, 33% 0, 67% 0, 67% 33%, 100% 100%);
+}
+.bo-inline.c0::before {
+  left: 34%;
+}
+.bo-inline.c1::before {
+  left: 52.8%;
+}
+.bo-inline.c2::before {
+  left: 71.7%;
+}
+.bo-inline.c3::before {
+  left: 90.6%;
+}
+.bo-shopctl .bo-inline {
+  margin-top: 6px;
+}
+.bo-shopctl .bo-inline::before {
+  left: 50%;
+}
+.bo-iname {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bo-iname b {
+  font-weight: normal;
+  font-size: 8px;
+  color: #ffe55c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bo-iname small {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--text);
+  font-size: 11px;
+}
+.bo-pips {
+  display: inline-flex;
+  gap: 2px;
+}
+.bo-pips i {
+  width: 8px;
+  height: 8px;
+  background: #2a2338;
+  border: 2px solid #5aa9ff;
+}
+.bo-pips i.on {
+  background: #5aa9ff;
+}
+
+/* V4.2: cifras de ancho fijo en los paneles de cifras, para que no bailen. */
+.ec-grid span,
+.ec-row b span,
+.ec-stats b,
+.ec-top b,
+.stockrow .qty {
+  font-variant-numeric: tabular-nums;
+}
+.ec-grid span {
+  min-width: 4.5ch;
+}
+
+/* ---------- V4.2: la vacante llama con su «+» (clases mcx-) ----------
+   Cada 2 s el «+» da un saltito en dos pasos y suelta un anillo de píxeles que se abre y se
+   apaga. Nada parpadea entre medias. Al cubrir el puesto la clase desaparece y la animación
+   con ella. */
+.mc-post.mcx-vac .mc-face.hole {
+  animation: mcx-plus 2s steps(1) infinite;
+}
+@keyframes mcx-plus {
+  0%,
+  72% {
+    transform: none;
+    box-shadow: none;
+  }
+  76% {
+    transform: translateY(-3px);
+    box-shadow: 0 0 0 2px var(--vac);
+  }
+  84% {
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 5px var(--vac-glow);
+  }
+  92% {
+    transform: none;
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+/* El ratón recién contratado cae en su puesto con un destello de píxeles. */
+.panel button.mc-post.mcx-arrive {
+  animation: mcx-arrive 0.7s steps(1);
+}
+.panel button.mc-post.mcx-arrive::after {
+  content: '';
+  position: absolute;
+  left: 24px;
+  top: 24px;
+  width: 6px;
+  height: 6px;
+  animation: mcx-arrspark 0.7s steps(1) forwards;
+  pointer-events: none;
+}
+@keyframes mcx-arrive {
+  0% {
+    transform: translateY(-14px);
+    opacity: 0.4;
+  }
+  20% {
+    transform: translateY(-6px);
+    opacity: 1;
+    border-color: var(--gold);
+  }
+  40% {
+    transform: translateY(2px);
+    border-color: var(--gold);
+  }
+  60% {
+    transform: none;
+    border-color: var(--gold);
+  }
+}
+@keyframes mcx-arrspark {
+  0%,
+  19% {
+    box-shadow: none;
+  }
+  20% {
+    box-shadow: -12px -12px 0 #fff, 12px -12px 0 #fff, -12px 12px 0 #fff, 12px 12px 0 #fff;
+  }
+  45% {
+    box-shadow: -22px -22px 0 #ffe55c, 22px -22px 0 #ffe55c, -22px 22px 0 #ffe55c, 22px 22px 0 #ffe55c;
+  }
+  70%,
+  100% {
+    box-shadow: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mc-post.mcx-vac .mc-face.hole,
+  .panel button.mc-post.mcx-arrive,
+  .panel button.mc-post.mcx-arrive::after {
+    animation: none;
+  }
 }

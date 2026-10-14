@@ -373,10 +373,15 @@
         if (mouse.rarity === 2) legendMoment(mouse, mouse.traits[0], true);
         else play('build');
         scene.celebrate();
-        banner(mouse.name.toUpperCase() + ' JOINED!');
-        if (ev.taken) toast(CM.mice.postLabel(ev.wanted) + ' was filled while you chose: ' + (mouse.post ? mouse.name + ' went to ' + CM.mice.postLabel(mouse.post) : mouse.name + ' waits in the house') + '. Nobody was replaced', true);
-        else toast(mouse.post ? mouse.name + ' went to ' + CM.mice.postLabel(mouse.post) + ' and works there on its own' : mouse.name + ' is resting: every post has a mouse', true);
-        if (mouse.post) ui.landed = [mouse.post];
+        // Un solo aviso: quién llega y dónde trabaja (con el panel abierto, la franja sería otro aviso).
+        const where = ev.taken ? CM.mice.postLabel(ev.wanted) + ' was filled while you chose: ' + (mouse.post ? 'it works at ' + CM.mice.postLabel(mouse.post) : 'it waits in the house') + '. Nobody was replaced' : mouse.post ? 'Works at ' + CM.mice.postLabel(mouse.post) : 'It waits in the house: every post has a mouse';
+        if (covered()) toast(mouse.name.toUpperCase() + ' JOINED THE COLONY! ' + where, true);
+        else {
+          banner(mouse.name.toUpperCase() + ' JOINED THE COLONY!');
+          toast(where, true);
+        }
+        // V4.2: el nuevo llega a su puesto en COLONY con un pequeño salto y destello (sin ventanas).
+        if (mouse.post) ui.arrive = mouse.post;
         dirty = true;
         break;
       }
@@ -603,7 +608,7 @@
     if (!CM.events.length) return;
     const now = Date.now();
     CM.events.splice(0, CM.events.length).forEach((ev) => feedback(ev, now));
-    renderPanel();
+    renderPanel(true);
   }
 
   // Muestra por qué una acción no se pudo hacer.
@@ -1153,6 +1158,7 @@
     if (ui.panel !== name) {
       ui.openedAt = performance.now();
       $('mcx-fx').hidden = true;
+      ui.fxOn = false;
     }
     ui.panel = name;
     ui.lastHtml = '';
@@ -1187,15 +1193,22 @@
     ui.panel = null;
     ui.lastMove = null;
     ui.moveSel = null;
+    ui.fxOn = false;
     $('mcx-fx').hidden = true;
     $('sheet').hidden = true;
   }
   // Solo toca el DOM si el contenido cambió, para no perder taps a medio pulsar.
-  function renderPanel() {
+  // V4.2: los paneles de cifras que cambian solas (despensa, SHOP, COINS) se repintan como mucho
+  // cada 1,5 s cuando es la simulación la que pide repintar; la economía sigue igual y un toque
+  // del jugador repinta al momento. Así se pueden leer.
+  const CALM = { stock: 1, shopinfo: 1, coins: 1 };
+  function renderPanel(tick) {
     if (!ui.panel || mdrag.src) return;
+    if (tick && CALM[ui.panel] && performance.now() - (ui.calmAt || 0) < 1500) return;
     const html = P.render(ui.panel, state, ui);
     if (html !== ui.lastHtml) {
       ui.lastHtml = html;
+      ui.calmAt = performance.now();
       $('sheet-body').innerHTML = html;
       // Las filas que se desplazan de lado vuelven a enseñar lo elegido, centrado.
       $('sheet-body').querySelectorAll('.strainpick').forEach((row) => {
@@ -1340,6 +1353,7 @@
     const el = $('mcx-fx');
     el.innerHTML = '<div class="mcx-fxmain"><b>' + P2.esc(o.label).toUpperCase() + '</b><div class="mcx-chips">' + chips.join('') + '</div>' + combos + '</div>' + (o.undo ? '' : '<button data-act="undomove" class="mcx-undo mcx-pixbtn">' + I.img('undo') + 'UNDO</button>');
     el.hidden = false;
+    ui.fxOn = true; // mientras se ve, el UNDO está en el aviso; después, en la línea de ocupación
     el.classList.remove('in', 'out');
     void el.offsetWidth;
     el.classList.add('in');
@@ -1347,7 +1361,11 @@
     // Se va solo, a saltos como entró; uno nuevo lo sustituye al momento.
     fxTimer = setTimeout(() => {
       el.classList.add('out');
-      fxTimer = setTimeout(() => (el.hidden = true), 240);
+      fxTimer = setTimeout(() => {
+        el.hidden = true;
+        ui.fxOn = false;
+        renderPanel();
+      }, 240);
     }, 6000);
     if (gained.length) play('reveal');
   }
@@ -1363,6 +1381,16 @@
   }
   // Tras pintar, los puestos que acaban de cambiar dan un pequeño salto.
   function landCards() {
+    if (ui.arrive) {
+      const c = $('sheet-body').querySelector('[data-post="' + ui.arrive + '"]');
+      if (c) {
+        ui.arrive = '';
+        c.scrollIntoView({ block: 'center' });
+        c.classList.remove('mcx-arrive');
+        void c.offsetWidth;
+        c.classList.add('mcx-arrive');
+      }
+    }
     if (!ui.landed || !ui.landed.length) return;
     for (const k of ui.landed) {
       const c = $('sheet-body').querySelector('[data-post="' + k + '"]');
@@ -1505,10 +1533,6 @@
     },
     undomove: undoMove,
     stockall: () => void (ui.stockAll = !ui.stockAll),
-    gosell: () => {
-      closePanel();
-      select('shop');
-    },
     // Puesto vacío: mover uno que ya tienes o conocer a tres nuevos (pagando con dos toques).
     postopt: () => void (ui.postOpt = ui.postOpt === 'hide' ? null : 'hide'),
     recruitfor: (skill, zone) => {
@@ -2410,7 +2434,7 @@
     if (slowTick > 400) {
       slowTick = 0;
       updateDots();
-      renderPanel();
+      renderPanel(true);
       CM.telemetry.sample(state);
       updateRates();
       updateAfford();

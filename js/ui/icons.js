@@ -52,11 +52,14 @@
     bed: ['HH..........', 'HHWW........', 'HHWWWBBBBBBB', 'HHBBBBBBBBBB', 'HHLLLLLLLLLL', 'HHFFFFFFFFFF', 'HH........FF'],
     undo: ['..A....', '.AA....', 'AAAAAA.', '.AA...A', '..A...A', '....AA.'],
     news: ['.PPPPPP.', 'PLLLLLLP', 'PLDDDDLP', 'PLLLLLLP', 'PLDDDLLP', 'PLLLLLLP', 'PLDDDDLP', '.PPPPPP.'],
+    // V4.2. SPRITE: cabeza de ratón para contratar (HIRE).
+    mouse: ['EE....EE.', 'EPE..EPE.', '.GGGGGG..', 'GGKGGKGG.', 'GGGGGGGGN', '.GGWWGG..', '..GGGG...'],
     album: ['BBBBBBBB.', 'BLLLLLLBB', 'BLLSLLLBB', 'BLSSSLLBB', 'BLLSLLLBB', 'BLLLLLLBB', 'BBBBBBBBB'],
   };
   const EXTRA = {
-    bed: { H: '#8b5a2b', F: '#6b4220', W: '#f4f1e4', B: '#c44a78', L: '#ff7aa8' },
+    bed: { H: '#8b5a2b', F: '#b07a44', W: '#f4f1e4', B: '#c44a78', L: '#ff7aa8' },
     undo: { A: '#ffffff' },
+    mouse: { E: '#cfc6cc', P: '#ff9ab5', G: '#f1eaec', K: '#1b1622', N: '#ff7a9c', W: '#ffffff' },
     news: { P: '#c9a46a', L: '#f6ecd2', D: '#8b7a5a' },
     album: { B: '#5f3590', L: '#9a5fd0', S: '#ffcf2e' },
   };
