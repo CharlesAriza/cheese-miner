@@ -933,7 +933,7 @@
         const skill = m.post.split(':')[0];
         let best = null;
         for (const node of B.trees[skill] || []) {
-          if (node.unlock) continue; // los hitos y lo que abre funciones los compra el jugador
+          if (node.unlock || node.key) continue; // los hitos, lo que abre funciones y las inversiones los compra el jugador
           const info = CM.tree.info(s, skill, node.id);
           if (info.canBuy && (!best || info.cost < best.cost)) best = { id: node.id, cost: info.cost };
         }

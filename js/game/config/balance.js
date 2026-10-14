@@ -268,7 +268,8 @@ CM.BALANCE = {
       { id: 'samples', branch: 'power', name: 'Smaller Samples', desc: 'Every research uses 5% less Cheese Base', level: 0, max: 10, cost: 600, growth: 1.8, eff: { labSaving: 0.05 } },
     ],
     colony: [
-      { id: 'lamp', branch: 'special', name: 'Night Lamp', desc: 'Your mice keep working 2 more hours while you are away', level: 0, max: 10, cost: 500, growth: 2.2, eff: { offlineHours: 2 } },
+      // `key`: inversión con identidad propia. La compra el jugador (ni BUY ALL ni los gerentes) y se celebra.
+      { id: 'lamp', branch: 'special', key: true, name: 'Night Lamp', desc: 'Your mice keep working 2 more hours while you are away', level: 0, max: 10, cost: 500, growth: 2.2, eff: { offlineHours: 2 } },
     ],
   },
 

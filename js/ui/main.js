@@ -15,6 +15,8 @@
   const STATIONS = ['rock', 'drill', 'refinery', 'cheesery', 'shop'];
   const SKILL = { rock: 'mining', drill: 'drilling', refinery: 'refining', cheesery: 'cheesemaking', shop: 'trading' };
   const ui = {
+    investSeen: {}, // inversiones ya anunciadas (por rango)
+    openedAt: 0, // cuándo se abrió el último panel o ventana (para ignorar el clic fantasma)
     panel: null,
     tree: 'mining',
     station: 'rock',
@@ -474,6 +476,12 @@
         const mouse = CM.mice.byId(state, ev.id);
         play('goal');
         scene.celebrate();
+        // Master es el ascenso que se ve: el uniforme de su oficio. Se celebra con antes y después.
+        if (ev.rank === 2) {
+          masterCard([mouse]);
+          dirty = true;
+          break;
+        }
         banner(mouse.name.toUpperCase() + ' IS NOW ' + B.mice.ranks[ev.rank].name.toUpperCase() + '!');
         if (mouse.post) {
           const [skill, zone] = mouse.post.split(':');
@@ -547,6 +555,7 @@
           scene.celebrate();
         }
         if (ev.skill === 'lab' && node.unlock) labUpgradeCard(ev.id);
+        if (node.key && !ev.auto) investCard(ev.skill, ev.id);
         if (node.gate) milestoneCard(ev.id);
         if (ev.skill === 'cheesemaking' && ev.id === 'maker' && state.recipes.length) {
           ui.cheeseTab = 'book';
@@ -691,7 +700,11 @@
       set(tile.querySelector('u'), 'text', 'LV ' + q.level(state, skill));
       const auto = q.auto(state, skill, ui.zone);
       const ups = info.state !== 'locked' && info.state !== 'build' ? CM.tree.affordable(state, skill) : 0;
-      set(tile.querySelector('em'), 'text', info.state === 'locked' ? 'LOCK' : info.state === 'build' || hito ? 'NEW!' : ups ? 'UP! ' + ups : auto ? 'AUTO' : '');
+      // La mina pide ayuda cuando la roca busca veta y el taladro está parado esperándola.
+      const zr = state.zones[ui.zone];
+      const dig = st === 'rock' && state.built.drill && !zr.veinRevealed && !zr.drillJob && state.inv.raw[baseOfZone()] < 1;
+      set(tile, 'help', dig);
+      set(tile.querySelector('em'), 'text', info.state === 'locked' ? 'LOCK' : info.state === 'build' || hito ? 'NEW!' : dig ? 'DIG!' : ups ? 'UP! ' + ups : auto ? 'AUTO' : '');
       // Aviso sobre el edificio solo cuando está parado por algo.
       const reason = info.state === 'blocked' || (auto && info.state === 'waiting') ? BUBBLE[info.reason] : '';
       if (st !== 'rock') bubble(st, reason || '', 'bad');
@@ -957,7 +970,8 @@
     dirty = true;
     updateBuyAll();
     renderPanel();
-    if (r.bought) return toast('Bought ' + r.bought + ' upgrade' + (r.bought === 1 ? '' : 's') + ' for ' + CM.fmt(r.cost) + ': ' + Object.keys(r.bySkill).map((k) => TREE_NAME(k) + ' ' + r.bySkill[k]).join(', '), true);
+    const inv = CM.tree.investments(state);
+    if (r.bought) return toast('Bought ' + r.bought + ' upgrade' + (r.bought === 1 ? '' : 's') + ' for ' + CM.fmt(r.cost) + ': ' + Object.keys(r.bySkill).map((k) => TREE_NAME(k) + ' ' + r.bySkill[k]).join(', ') + (inv.length ? '. ' + inv[0].node.name + ' waits for you in COLONY' : ''), true);
     report(CM.fail('no-coins'), dk.all);
     if (r.next) toast('Next upgrade: ' + CM.tree.node(r.next.skill, r.next.id).name + ' (' + TREE_NAME(r.next.skill) + ') for ' + CM.fmt(r.next.cost));
   }
@@ -1122,6 +1136,7 @@
       if (state.lab.found) ui.labTab = 'strains';
       scene.focus(state.built.lab ? 'lab' : 'cheesery');
     }
+    if (ui.panel !== name) ui.openedAt = performance.now();
     ui.panel = name;
     ui.lastHtml = '';
     $('sheet-title').textContent = P.title(name, ui, state);
@@ -1205,6 +1220,12 @@
     const el = e.target.closest('[data-zone]');
     if (el) focusZone(el.dataset.zone);
   });
+  // Un toque que abre un panel o una ventana (al apoyar el dedo, o al tocar la escena) no debe
+  // pulsar además lo que aparece debajo del dedo cuando se levanta: el clic de ese mismo toque se
+  // ignora. Era lo que cocinaba un queso al tocar RECIPES o cambiaba de pestaña al abrir el LAB.
+  let pressAt = 0;
+  document.addEventListener('pointerdown', () => (pressAt = performance.now()), true);
+  const ghostClick = () => ui.openedAt > pressAt && performance.now() - pressAt < 700;
   // Clic suave en cualquier botón que no sea el de acción principal (ese ya suena por sí mismo).
   document.addEventListener('pointerdown', (e) => {
     const b = e.target.closest('button');
@@ -1344,6 +1365,8 @@
       const plan = CM.mice.promoteCost(state, ui.promo);
       // Un segundo toque, con la selección ya gastada, no hace nada.
       if (!plan.steps) return;
+      const ranks = {};
+      for (const m of state.mice) ranks[m.id] = m.rank;
       ui.bulkPromo = true;
       const r = CM.mice.promoteMany(state, ui.promo);
       drainEvents();
@@ -1353,6 +1376,9 @@
       ui.promoDone = r;
       play('goal');
       scene.celebrate();
+      // Los que se han hecho Master en el bloque: una sola tarjeta para todos.
+      const masters = state.mice.filter((m) => ranks[m.id] < 2 && m.rank >= 2);
+      if (masters.length) masterCard(masters);
       toast('Promoted ' + r.mice + (r.mice === 1 ? ' mouse' : ' mice') + ' for ' + CM.fmt(r.cost), true);
       return r;
     },
@@ -1423,7 +1449,7 @@
   };
   function onAct(e) {
     const el = e.target.closest('[data-act]');
-    if (!el) return;
+    if (!el || ghostClick()) return;
     const parts = el.dataset.act.split(':');
     const fn = ACTS[parts[0]];
     if (!fn) return;
@@ -1439,7 +1465,14 @@
 
   // ---------- Modales ----------
   let modalHandlers = {};
+  // Si ya hay una ventana abierta, la nueva espera su turno (salvo si la abre la propia ventana).
+  const modalQueue = [];
+  let inModal = false;
+  let modalToken = 0;
   function showModal(html, handlers) {
+    if (!$('modal').hidden && !inModal) return void modalQueue.push([html, handlers]);
+    ui.openedAt = performance.now();
+    modalToken += 1;
     modalHandlers = handlers || {};
     $('modal-body').classList.remove('badflash'); // el destello rojo de una manía no se queda para la siguiente ventana
     $('modal-body').innerHTML = html;
@@ -1448,14 +1481,65 @@
   function closeModal() {
     $('modal').hidden = true;
     modalHandlers = {};
+    const next = modalQueue.shift();
+    if (next) showModal(next[0], next[1]);
   }
   $('modal').addEventListener('click', (e) => {
     const el = e.target.closest('[data-m]');
-    if (!el) return;
+    if (!el || ghostClick()) return;
     const fn = modalHandlers[el.dataset.m];
-    if (!fn || fn() !== false) closeModal();
+    const token = modalToken;
+    inModal = true;
+    let keep = false;
+    try {
+      keep = !!fn && fn() === false;
+    } finally {
+      inModal = false;
+    }
+    // Si el manejador abrió otra ventana, esa se queda; si no, se cierra esta.
+    if (!keep && token === modalToken) closeModal();
     renderPanel();
   });
+
+  // Nombre de oficio para los uniformes: «Master Miner», «Master Cheesemaker».
+  const TRADE = { mining: 'MINER', drilling: 'DRILLER', refining: 'REFINER', cheesemaking: 'CHEESEMAKER', trading: 'TRADER', research: 'RESEARCHER' };
+  // Ascenso a Master: el antes y el después del ratón, con su uniforme y lo que gana. En un
+  // ascenso en bloque, todos en una sola tarjeta.
+  function masterCard(list) {
+    if (!list.length) return;
+    play('bell');
+    if (list.length === 1) {
+      const m = list[0];
+      const [skill, zone] = m.post ? m.post.split(':') : ['', ''];
+      const before = Object.assign({}, m, { rank: 1 });
+      // Lo que gana, en palabras: cuánto más rápido trabaja desde ahora.
+      const pct = skill && zone ? Math.round((CM.mice.speed(m, skill, state, zone) / CM.mice.speed(before, skill, state, zone) - 1) * 100) : 0;
+      const gain = pct > 0 ? '<p class="mm-gain">Works ' + pct + '% faster</p>' : '';
+      showModal(
+        '<h2>' + P.esc(m.name.toUpperCase()) + ' IS A MASTER</h2><div class="mm-pair"><figure><img class="pix" src="' + CM.mouseUrl(before) + '" alt="" /><figcaption>JOURNEYMAN</figcaption></figure><i class="mm-arrow"></i><figure class="now"><img class="pix" src="' + CM.mouseUrl(m) + '" alt="" /><figcaption>MASTER' + (TRADE[skill] ? ' ' + TRADE[skill] : '') + '</figcaption></figure></div>' + gain + '<p class="hint">Masters wear the uniform of their trade. Look for it at work. It changes if you move the mouse to another job.</p><div class="row"><button class="buy" data-m="ok">GREAT</button></div>',
+        { ok() {} }
+      );
+      return;
+    }
+    const shown = list.slice(0, 6);
+    showModal(
+      '<h2>' + list.length + ' NEW MASTERS</h2><div class="mm-team">' + shown.map((m) => '<figure><img class="pix" src="' + CM.mouseUrl(m) + '" alt="" /><figcaption>' + P.esc(m.name) + '</figcaption></figure>').join('') + '</div>' + (list.length > shown.length ? '<p class="hint">And ' + (list.length - shown.length) + ' more.</p>' : '') + '<p class="hint">Each one now wears the uniform of its trade at work.</p><div class="row"><button class="buy" data-m="ok">GREAT</button></div>',
+      { ok() {} }
+    );
+  }
+  // Inversión comprada (por ejemplo, una Night Lamp): qué cambia, con números de antes y después.
+  function investCard(skill, id) {
+    const node = CM.tree.node(skill, id);
+    const rank = CM.tree.rank(state, skill, id);
+    let what = node.desc;
+    if (node.eff.offlineHours) {
+      const now = Math.round(q.offlineCapMs(state) / 3600000);
+      what = 'Your mice now keep working <b>' + now + ' hours</b> while you are away, instead of ' + (now - node.eff.offlineHours) + '.';
+    }
+    play('bell');
+    scene.celebrate();
+    showModal('<h2>' + node.name.toUpperCase() + (node.max > 1 ? ' ' + rank + '/' + node.max : '') + '</h2><p class="lead">' + what + '</p><p class="hint">Investments are yours to buy: BUY ALL and managers leave them to you.</p><div class="row"><button class="buy" data-m="ok">NICE</button></div>', { ok() {} });
+  }
 
   function askRecipeName(recipeId, isNew) {
     const recipe = CM.cheesery.recipe(state, recipeId);
@@ -1891,8 +1975,24 @@
   // Aviso en COLONY cuando hay algo que comprar ahí.
   function updateDots() {
     const next = CM.zones.next(state);
-    const colony = next && state.coins >= next.unlockCost;
+    const invest = CM.tree.investments(state);
+    const colony = (next && state.coins >= next.unlockCost) || invest.length > 0;
     $('nav-colony').querySelector('.dot').classList.toggle('on', !!colony);
+    set($('nav-colony'), 'invest', invest.length > 0);
+    // Una inversión que ya se puede pagar se anuncia una vez por rango.
+    for (const it of invest) {
+      const k = it.skill + '.' + it.node.id + ':' + CM.tree.rank(state, it.skill, it.node.id);
+      if (ui.investSeen[k]) continue;
+      ui.investSeen[k] = true;
+      toast(it.node.name + ' ready in COLONY: ' + it.node.desc.charAt(0).toLowerCase() + it.node.desc.slice(1), true);
+    }
+    // Puestos cubiertos / totales, siempre a la vista en MICE.
+    if (state.built.house) {
+      const posts = CM.mice.posts(state);
+      const staffed = posts.filter((p) => CM.mice.at(state, p.skill, p.zone)).length;
+      set($('nav-mice-n'), 'text', staffed + '/' + posts.length);
+      set($('nav-mice'), 'vacant', staffed < posts.length);
+    }
     // MICE avisa si hay casa por construir, candidatos por elegir, un puesto libre y monedas para reclutar, o un ascenso que ya se puede pagar.
     const mice = CM.construction.buildInfo(state, 'house').canBuild || state.candidates.length > 0 || (state.built.house && !!CM.mice.freePost(state) && state.coins >= CM.mice.recruitCost(state)) || state.mice.some((m) => m.offer || CM.mice.promoteInfo(state, m).can);
     $('nav-mice').querySelector('.dot').classList.toggle('on', !!mice);

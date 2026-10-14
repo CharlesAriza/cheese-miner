@@ -6758,3 +6758,104 @@ div.mc-row {
     font-size: 8px;
   }
 }
+
+/* ---------- PROTOTIPO: inversiones, puestos, ayuda en la mina y ascenso a Master ---------- */
+/* Una inversión (Night Lamp) se distingue en su árbol: la compra el jugador. */
+.kv-tag {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 2px 4px;
+  font-style: normal;
+  font-size: 6px;
+  vertical-align: middle;
+  color: var(--ink);
+  background: #ffcf2e;
+  border-radius: 3px;
+}
+.row.kv-row {
+  border-color: #ffcf2e;
+}
+/* COLONY brilla en dorado mientras haya una inversión por comprar. */
+.tools button.invest {
+  border-color: #ffcf2e;
+  color: #ffe55c;
+}
+/* MICE dice siempre cuántos puestos hay cubiertos; en ámbar si falta alguno. */
+#nav-mice small {
+  font-size: 6px;
+  color: #8df09a;
+}
+#nav-mice.vacant small {
+  color: #ffd43a;
+}
+.mc-note.mc-full {
+  color: #8df09a;
+  border-color: #3d7a45;
+}
+/* La mina pide ayuda: la etiqueta DIG! late. */
+.tile.help em {
+  background: #ffd43a;
+  animation: hot 0.9s ease-in-out infinite;
+}
+/* Ascenso a Master: antes y después, grandes. */
+.mm-pair {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 10px 0 6px;
+}
+.mm-pair figure,
+.mm-team figure {
+  margin: 0;
+  text-align: center;
+}
+.mm-pair img {
+  width: 88px;
+  height: auto;
+  image-rendering: pixelated;
+}
+.mm-pair figure:first-child img {
+  opacity: 0.6;
+}
+.mm-pair figure.now img {
+  filter: drop-shadow(0 0 6px #ffcf2e);
+}
+.mm-pair figcaption,
+.mm-team figcaption {
+  margin-top: 6px;
+  font-size: 6px;
+  color: var(--muted);
+}
+.mm-pair figure.now figcaption {
+  color: #ffe55c;
+}
+.mm-arrow {
+  width: 0;
+  height: 0;
+  border: 9px solid transparent;
+  border-right: 0;
+  border-left: 12px solid #ffe55c;
+}
+.mm-gain {
+  margin: 4px 0;
+  text-align: center;
+  font-family: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  color: #8df09a;
+}
+.mm-gain b {
+  color: var(--muted);
+}
+.mm-team {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 10px 0;
+}
+.mm-team img {
+  width: 56px;
+  height: auto;
+  image-rendering: pixelated;
+}

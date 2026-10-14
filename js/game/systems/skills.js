@@ -67,7 +67,7 @@
       for (let guard = 0; guard < 500; guard++) {
         let best = null;
         for (const node of B.trees[skill]) {
-          if (node.unlock) continue; // lo que abre una función lo compra el jugador, leyendo qué es
+          if (node.unlock || node.key) continue; // lo que abre una función y las inversiones las compra el jugador, leyendo qué son
           const info = this.info(s, skill, node.id);
           if (info.canBuy && (!best || info.cost < best.cost)) best = { id: node.id, cost: info.cost };
         }
@@ -94,7 +94,7 @@
         for (const skill of Object.keys(B.trees)) {
           if (!this.open(s, skill)) continue;
           for (const node of B.trees[skill]) {
-            if (node.unlock) continue; // lo que abre una función lo compra el jugador, leyendo qué es
+            if (node.unlock || node.key) continue; // lo que abre una función y las inversiones las compra el jugador
             const info = this.info(w, skill, node.id);
             if (info.locked || info.maxed) continue;
             if (!best || info.cost < best.cost) best = { skill, id: node.id, cost: info.cost };
@@ -116,7 +116,9 @@
     },
     // Cuántos nudos de un árbol se pueden comprar ahora mismo.
     // `bulk`: solo lo que compraría BUY ALL (sin las mejoras que abren funciones).
-    affordable: (s, skill, bulk) => B.trees[skill].filter((n) => !(bulk && n.unlock) && CM.tree.info(s, skill, n.id).canBuy).length,
+    affordable: (s, skill, bulk) => B.trees[skill].filter((n) => !(bulk && (n.unlock || n.key)) && CM.tree.info(s, skill, n.id).canBuy).length,
+    // Inversiones (`key`) que ya se pueden pagar: las compra el jugador, no BUY ALL.
+    investments: (s) => Object.keys(B.trees).flatMap((skill) => B.trees[skill].filter((n) => n.key && CM.tree.open(s, skill) && CM.tree.info(s, skill, n.id).canBuy).map((n) => ({ skill, node: n }))),
   };
 
   // ---------- Hitos ----------

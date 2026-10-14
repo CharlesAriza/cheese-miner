@@ -92,19 +92,32 @@
     ['.....H.H.H.H........', '.....HHHHHHH........', '.....HLHHHLH........', '.....hhhhhhh........'],
   ];
   const SCARVES = [null, ['#4a8fe8', '#2b5cab'], ['#e2462f', '#9c2a1c'], ['#9a5fd0', '#ffcf2e']];
+  // PROTOTIPO: al ascender a Master, el ratón se pone el uniforme de su oficio (se ve trabajando).
+  // Sustituye a su gorro; los legendarios conservan la corona. Los Managers llevan el ala dorada.
+  // SPRITE: gorros de oficio.
+  const TOQUE = ['.....HHHHHH.........', '....HHHHHHHH........', '.....HHHHHH.........', '.....hhhhhh.........'];
+  const UNIFORMS = {
+    mining: { rows: HATS[0], H: '#ff9a1f', h: '#b35c00', L: '#8ff3ff' },
+    drilling: { rows: HATS[0], H: '#ffe55c', h: '#3a2a14', L: '#ff5a5a' },
+    refining: { rows: HATS[1], H: '#4a8fe8', h: '#2b5cab', L: '#fff3a0' },
+    cheesemaking: { rows: TOQUE, H: '#ffffff', h: '#cfc6d8', L: '#fff3a0' },
+    trading: { rows: HATS[3], H: '#3a2a5a', h: '#ffcf2e', L: '#fff3a0' },
+    research: { rows: HATS[1], H: '#5fcf6a', h: '#2f8a3a', L: '#fff3a0' },
+  };
   const spriteCache = {};
   // `p` son las piezas (CM.mice.parts): pelaje, gorro, color, accesorio y mochila.
-  function mouseSprite(p, rank) {
+  function mouseSprite(p, rank, job) {
     const r = Math.min(3, rank || 0);
     const marks = p.marks ? p.marks.split(',') : [];
     const has = (k) => marks.indexOf(k) >= 0;
-    const key = [p.fur, p.hat, p.hatColor, p.acc, p.pack, r, p.marks || ''].join(':');
+    const uni = r >= 2 && p.hat !== 5 ? UNIFORMS[job] : null;
+    const key = [p.fur, p.hat, p.hatColor, p.acc, p.pack, r, p.marks || '', uni ? job : ''].join(':');
     if (spriteCache[key]) return spriteCache[key];
     const fur = FURS[p.fur];
-    const hat = HATS[p.hat];
-    const hc = p.hat === 5 ? ['#ffcf2e', '#d99a12'] : HAT_COLORS[p.hatColor];
+    const hat = uni ? uni.rows : HATS[p.hat];
+    const hc = p.hat === 5 ? ['#ffcf2e', '#d99a12'] : uni ? [uni.H, uni.h] : HAT_COLORS[p.hatColor];
     const acc = p.acc;
-    const pal = mousePalette(hc[0], hc[1], p.hat === 5 ? '#e2462f' : '#fff3a0');
+    const pal = mousePalette(hc[0], hc[1], p.hat === 5 ? '#e2462f' : uni ? uni.L : '#fff3a0');
     pal.G = fur[0];
     pal.E = fur[1];
     pal.B = has('cape') ? '#b3263a' : PACKS[p.pack];
@@ -179,16 +192,16 @@
   let auraNext = false;
   const rankSprite = (m) => {
     auraNext = CM.mice.isLegend(m);
-    return mouseSprite(CM.mice.parts(m), m.rank);
+    return mouseSprite(CM.mice.parts(m), m.rank, m.post ? m.post.split(':')[0] : '');
   };
   // Retrato de un ratón (o de un candidato) para los paneles.
   const portraits = {};
-  const urlOf = (p, rank) => {
-    const c = mouseSprite(p, rank);
-    const key = [p.fur, p.hat, p.hatColor, p.acc, p.pack, rank, p.marks || ''].join(':');
+  const urlOf = (p, rank, job) => {
+    const c = mouseSprite(p, rank, job);
+    const key = [p.fur, p.hat, p.hatColor, p.acc, p.pack, rank, p.marks || '', rank >= 2 ? job || '' : ''].join(':');
     return portraits[key] || (portraits[key] = c.toDataURL());
   };
-  CM.mouseUrl = (m) => urlOf(CM.mice.parts(m), Math.min(3, m.rank || 0));
+  CM.mouseUrl = (m, job) => urlOf(CM.mice.parts(m), Math.min(3, m.rank || 0), job !== undefined ? job : m.post ? m.post.split(':')[0] : '');
   // Muestra de una pieza del álbum sobre un ratón neutro ('fur:3', 'hat:1', 'acc:2').
   CM.partUrl = (key) => {
     const [kind, i] = key.split(':');

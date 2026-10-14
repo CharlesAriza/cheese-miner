@@ -1726,6 +1726,23 @@
     valid(s);
   });
 
+  test('investments: BUY ALL and managers leave Night Lamps to the player', () => {
+    const s = withCheese();
+    s.coins = 1e9;
+    CM.rev += 1;
+    eq(CM.tree.investments(s).map((x) => x.node.id).join(), 'lamp', 'a Night Lamp is ready to buy');
+    CM.tree.sweep(s);
+    eq(CM.tree.rank(s, 'colony', 'lamp'), 0, 'BUY ALL does not buy it');
+    eq(CM.tree.buyAll(s, 'colony').ok, false, 'nor does buying everything in its tree');
+    const m = staff(s, 'drilling', 'cheddar', { rank: 3, xp: 1e9 });
+    m.post = 'drilling:cheddar';
+    for (let i = 0; i < 50; i++) CM.mice.managersTick(s);
+    eq(CM.tree.rank(s, 'colony', 'lamp'), 0, 'nor a manager');
+    const cap = q.offlineCapMs(s);
+    eq(CM.tree.buy(s, 'colony', 'lamp').ok, true, 'the player buys it');
+    eq(q.offlineCapMs(s) - cap, 2 * 3600000, 'and the mice work two more hours while away');
+  });
+
   test('shop (prototype): shelves hold a few minutes of sales; the rest goes wholesale at half price, nothing lost', () => {
     const s = withCheese();
     staff(s, 'trading', 'all');

@@ -114,7 +114,8 @@
     if (skill === 'colony') h += zonesBlock(s);
     if (skill === 'lab') h += btn('open:lab', '<b>BACK TO THE LAB</b><span>The lab starts simple. Each upgrade here teaches it something new.</span><em>BACK</em>', { cls: 'labrow' });
     const n = CM.tree.affordable(s, skill, true);
-    if (skill !== 'lab' || n) h += btn('buyAll:' + skill, n ? 'BUY EVERYTHING I CAN AFFORD HERE' : 'NOTHING AFFORDABLE YET', { off: !n, cls: 'buy wide serveall' });
+    // En la colonia solo hay inversiones (y las rocas): se compran una a una, sin botón de comprarlo todo.
+    if (skill !== 'colony' && (skill !== 'lab' || n)) h += btn('buyAll:' + skill, n ? 'BUY EVERYTHING I CAN AFFORD HERE' : 'NOTHING AFFORDABLE YET', { off: !n, cls: 'buy wide serveall' });
     // Qué compra cada cosa: este botón, BUY ALL y los gerentes.
     if (isSkill) h += '<p class="hint">This tree only. BUY ALL on the main screen does every skill at once, always the cheapest upgrade first.' + (s.mice.some((m) => M.ranks[m.rank].manager) ? ' Your managers already buy, on their own, upgrades of their job that cost under ' + Math.round(M.managerBudget * 100) + '% of your coins.' : '') + '</p>';
     if (skill === 'cheesemaking') h += quotaBlock(s);
@@ -130,7 +131,7 @@
         if (info.maxed) right = '<span class="tag">' + (node.unlock ? 'DONE' : node.max === 1 ? 'HIRED' : 'MAX') + '</span>';
         else if (info.locked) right = '<span class="tag lock">' + info.why.replace(/ (LV \d+)$/, '<br>$1') + '<br>' + coin(info.cost) + '</span>';
         else right = btn('node:' + skill + ':' + node.id, (node.unlock ? 'UNLOCK' : node.branch === 'auto' && node.max === 1 ? 'HIRE' : 'BUY') + '<br>' + coin(info.cost), { off: !info.canBuy, cls: 'buy', cost: info.cost });
-        h += row(title, sub, right, info.locked ? 'locked' : '');
+        h += row((node.key ? '<i class="kv-tag">INVESTMENT</i>' : '') + title, sub, right, (info.locked ? 'locked' : '') + (node.key ? ' kv-row' : ''));
       }
     }
     return h;
@@ -828,7 +829,10 @@
     let notes = '';
     if (promos.length) notes += btn('promos', '<b>' + promos.length + '</b> can be promoted', { cls: 'mc-note up' });
     if (idle.length) notes += btn('rosterfilter:free', '<b>' + idle.length + '</b> with no post', { cls: 'mc-note' });
-    if (empty.length && !idle.length) notes += btn('miceview:house', '<b>' + empty.length + '</b> empty ' + (empty.length === 1 ? 'post' : 'posts'), { cls: 'mc-note' });
+    // Puestos: cuántos libres (y a reclutar), o la confirmación de que están todos cubiertos.
+    const total = K.posts(s).length;
+    if (empty.length && !idle.length) notes += btn('miceview:house', '<b>' + empty.length + '</b> empty ' + (empty.length === 1 ? 'post' : 'posts') + ' · RECRUIT', { cls: 'mc-note' });
+    else if (!empty.length) notes += '<span class="mc-note mc-full">All <b>' + total + '</b> posts staffed</span>';
     if (s.care && K.byId(s, s.care.id)) notes += btn('miceview:house', 'Bed: <b>' + esc(K.byId(s, s.care.id).name) + '</b> ' + clock(s.care.remaining), { cls: 'mc-note bed' });
     if (notes) h += '<div class="mc-notes">' + notes + '</div>';
     // Puestos de toda la colonia: la tienda y el laboratorio.
