@@ -1726,6 +1726,40 @@
     valid(s);
   });
 
+  test('shop (prototype): shelves hold a few minutes of sales; the rest goes wholesale at half price, nothing lost', () => {
+    const s = withCheese();
+    staff(s, 'trading', 'all');
+    // Mucho más queso del que la tienda puede vender: el de la receta conocida, a montones.
+    const r = s.recipes[0];
+    s.lots[r.id] = 1e6;
+    s.totals.lotsProduced += 1e6;
+    CM.rev += 1;
+    const w = CM.mice.work(s, 'trading', 'all');
+    const cyc = CM.cycle(q.sellDuration(s) / w.speed);
+    const shelf = Math.floor(((q.sellCount(s) * cyc.mult) / cyc.total) * 60000 * B.shop.shelfMinutes);
+    const price = CM.shop.price(s, r);
+    const coins0 = s.totals.coinsEarned;
+    eq(CM.shop.start(s, 'worker').ok, true, 'a sale starts');
+    const job = s.jobs.shop;
+    eq(q.lotsTotal(s), shelf, 'what is left on the shelves is what fits: ' + shelf);
+    truthy(job.whole > 0, 'the rest goes to the wholesaler');
+    eq(job.count + q.lotsTotal(s), 1e6, 'not one cheese is lost');
+    run(s, cyc.total + STEP);
+    const earned = s.totals.coinsEarned - coins0;
+    truthy(earned < job.count * price * 2 && earned > 0, 'it pays');
+    eq(s.totals.wholesaleLots, job.whole, 'and counts what went wholesale');
+    // Con el juego cerrado pasa lo mismo: horas de ausencia no dejan montañas de queso.
+    const away = CM.storage.parse(JSON.stringify(s), s.lastSavedAt);
+    away.lots[r.id] += 5e6;
+    away.totals.lotsProduced += 5e6;
+    const gap = (g) => g.totals.lotsProduced - g.totals.lotsSold - q.lotsTotal(g) - (g.jobs.shop ? g.jobs.shop.count : 0);
+    const before = gap(away);
+    CM.sim.applyOffline(away, away.lastSavedAt + 2 * 3600000);
+    truthy(q.lotsTotal(away) <= shelf + q.sellCount(away) * 2, 'after two hours away the stock is back on the shelves (' + q.lotsTotal(away) + ')');
+    eq(gap(away), before, 'everything made is sold, on the shelves or being sold');
+    valid(away);
+  });
+
   test('boosts: extra speed for the post the player chooses, two per post, never lost', () => {
     const BO = CM.boosts;
     const s = withCheese();

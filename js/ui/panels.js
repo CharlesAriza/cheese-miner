@@ -1169,6 +1169,7 @@
       row('Sound', 'Effects are ' + (CM.sfx.isMuted() ? 'muted' : 'on'), btn('sound', CM.sfx.isMuted() ? 'TURN ON' : 'MUTE', { cls: 'buy' })) +
       row('Export save', 'Save + metrics as JSON', btn('export', 'EXPORT', { cls: 'buy' })) +
       row('Import save', 'Paste an exported JSON', btn('import', 'IMPORT', { cls: 'buy' })) +
+      row('Test colony', 'Prototype: replace this game with a saved one', btn('protoload:early', 'EARLY', { cls: 'buy' }) + btn('protoload:mid', 'MID', { cls: 'buy' }) + btn('protoload:late', 'LATE', { cls: 'buy' })) +
       row('Playtest tools', 'Dev menu: marks the session as assisted', btn('open:dev', 'OPEN', { cls: 'buy' })) +
       row('Reset save', 'Start over from zero', btn('reset', 'RESET', { cls: 'danger' })) +
       '<p class="hint">Played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'

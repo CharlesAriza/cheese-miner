@@ -153,6 +153,10 @@ CM.BALANCE = {
   shop: {
     perSale: 18, // quesos por ciclo (la tienda atiende a todas las rocas)
     durationMs: 2000,
+    // PROTOTIPO (rama proto-shop): la tienda es una etapa que puede quedarse corta.
+    scale: 0.6, // lo que vende por ciclo, respecto a antes (perSale + Bigger Counter)
+    shelfMinutes: 3, // en las estanterías caben 3 minutos de ventas
+    wholesale: 0.5, // lo que no cabe se vende al por mayor, a la mitad de precio
     boostMs: 250,
     buyers: [
       { level: 1, name: 'Neighbors', mult: 1 },

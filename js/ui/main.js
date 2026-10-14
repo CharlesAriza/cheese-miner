@@ -120,6 +120,29 @@
     const active = navigator.userActivation ? navigator.userActivation.hasBeenActive : true;
     if (navigator.vibrate && active) navigator.vibrate(pattern);
   };
+  // Con la colonia automatizada cada etapa de cada roca termina un ciclo por segundo: un sonido por
+  // ciclo era una metralleta. Lo que hace el jugador con el dedo suena siempre. Lo de los ratones,
+  // solo de la roca que se mira y como un latido suave cada pocos segundos; las ventas de la
+  // tienda, una caja registradora de vez en cuando.
+  const HUM_MS = 2600;
+  const TILL_MS = 5200;
+  let humAt = 0;
+  let tillAt = 0;
+  function workSound(name, ev, here) {
+    if (ev.source === 'manual') return play(name);
+    if (!here || covered()) return;
+    const t = performance.now();
+    if (t - humAt < HUM_MS) return;
+    humAt = t;
+    sfx.soft(name);
+  }
+  function saleSound(ev) {
+    if (ev.source === 'manual') return play('coin');
+    const t = performance.now();
+    if (t - tillAt < TILL_MS) return;
+    tillAt = t;
+    sfx.soft('coin');
+  }
   // Los ratones producen sin parar: se limita cada sonido para no saturar.
   const lastPlayed = {};
   function play(name, arg) {
@@ -247,7 +270,7 @@
         buzz(5);
         break;
       case 'drillDone':
-        play('raw');
+        workSound('raw', ev, here);
         // Números e iconos solo de la roca que se mira: el marcador de arriba es el suyo.
         if (here) {
           const n = pace('raw:' + ev.zone, ev.amount, FX_EVERY, ev.source === 'manual');
@@ -269,7 +292,7 @@
         } else toast(q.zoneDef(ev.zone).name + ' reached depth ' + ev.depth, true);
         break;
       case 'refineDone':
-        play('base');
+        workSound('base', ev, here);
         if (here) {
           const n = pace('base:' + ev.zone, ev.amount, FX_EVERY, ev.source === 'manual');
           if (n) {
@@ -281,7 +304,7 @@
         break;
       case 'lotDone': {
         const base = recipeBase(ev.recipeId);
-        play('lot');
+        workSound('lot', ev, here);
         if (here) {
           const n = pace('lot:' + ev.zone, ev.amount || 1, FX_EVERY, ev.source === 'manual');
           if (n) {
@@ -474,8 +497,8 @@
         break;
       }
       case 'sale':
-        play('coin');
-        buzz(15);
+        saleSound(ev);
+        if (ev.source === 'manual') buzz(15);
         {
           const n = pace('coins', ev.coins, FX_EVERY, ev.source === 'manual');
           if (n) {
@@ -517,7 +540,8 @@
         break;
       case 'nodeBought': {
         const node = CM.tree.node(ev.skill, ev.id);
-        play(ev.auto && node.max === 1 ? 'build' : 'upgrade');
+        // Lo que compran solos los gerentes no suena: pasa a menudo y nadie lo ha pedido.
+        if (!ev.auto || node.max === 1) play(ev.auto && node.max === 1 ? 'build' : 'upgrade');
         if (ev.auto && node.max === 1) {
           banner(node.name.toUpperCase() + ' HIRED!');
           scene.celebrate();
@@ -807,9 +831,13 @@
     const buyer = q.buyer(state);
     m.kind = 'sell';
     m.label = 'SELL';
-    m.status = buyer.name + ' pay x' + buyer.mult + ' · ' + q.sellCount(state) + ' per sale / ' + P.secs(q.sellDuration(state));
+    // Lo que puede vender por minuto (con su vendedor) y cuánto cabe en las estanterías.
+    const sw = CM.mice.work(state, 'trading', 'all');
+    const capMin = (q.sellCount(state) / (q.sellDuration(state) / 1000 / (sw ? sw.speed : 1))) * 60;
+    m.status = buyer.name + ' pay x' + buyer.mult + ' · sells up to ' + CM.fmt(Math.round(capMin)) + '/min · shelves hold ' + CM.fmt(Math.round(capMin * B.shop.shelfMinutes));
     if (info.state === 'working') {
-      m.sub = (auto ? 'Auto · ' : '') + 'selling for ' + CM.fmt(state.jobs.shop.coins);
+      const job = state.jobs.shop;
+      m.sub = (auto ? 'Auto · ' : '') + 'selling ' + CM.fmt(job.count) + ' for ' + CM.fmt(job.coins) + (job.whole ? ' (' + CM.fmt(job.whole) + ' at ½ price)' : '');
       m.fill = info.progress;
       m.mode = '';
     } else if (info.state === 'ready') {
@@ -1147,6 +1175,7 @@
   $('nav-mice').addEventListener('click', () => openPanel('mice'));
   // Tocar un contador de recurso abre la despensa.
   for (const id of ['res-raw', 'res-base', 'res-lots']) $(id).addEventListener('click', () => openPanel('stock'));
+  $('res-shop').addEventListener('click', () => select('shop'));
   $('nav-menu').addEventListener('click', () => openPanel('options'));
   $('nav-boosts').addEventListener('click', () => openPanel('boosts'));
   const muteLabel = () => {};
@@ -1197,6 +1226,21 @@
     choose: (i) => {
       ui.cand = -1;
       return CM.mice.choose(state, Number(i));
+    },
+    // PROTOTIPO: cargar una colonia de prueba (temprana, media o avanzada).
+    protoload: (which) => {
+      fetch('proto/' + which + '.json')
+        .then((r) => r.text())
+        .then((text) => {
+          const next = CM.storage.parse(text, Date.now());
+          if (!next) return toast('Could not load the test colony');
+          next.lastSavedAt = Date.now();
+          replaceState(next);
+          closePanel();
+          toast('Test colony loaded: ' + which, true);
+        })
+        .catch(() => toast('Could not load the test colony'));
+      return CM.ok();
     },
     // BEST FIT busca al tocarlo (unas décimas de segundo) y dice qué ha hecho.
     bestfit: () => {
@@ -1737,6 +1781,7 @@
     $('ic-raw').src = I.url('raw', base);
     $('ic-base').src = I.url('base', base);
     $('ic-lots').src = I.url('lot', base);
+    $('ic-shop').src = I.url('lot', 'cheddar');
     tiles.rock.querySelector('img').src = I.url('pick');
     tiles.drill.querySelector('img').src = I.url('raw', base);
     tiles.refinery.querySelector('img').src = I.url('base', base);
@@ -1760,11 +1805,9 @@
     const hb = baseOfZone();
     set($('raw'), 'text', CM.fmt(roll('raw', state.inv.raw[hb])));
     set($('base'), 'text', CM.fmt(roll('base', state.inv.base[hb])));
-    set($('lots'), 'text', CM.fmt(roll('lots', q.lotsOfBase(state, hb))));
-    const hname = B.bases[hb].name.toUpperCase();
-    // El nombre del queso en los tres; la forma del icono dice si es Raw, Base o queso.
-    set($('lane-name'), 'text', hname + ' · PER MIN');
-    set($('lanegroup'), 'cls', 'lanegroup ' + hb);
+    // La tienda: el queso en el mostrador (también el que se está vendiendo ahora mismo).
+    const onSale = state.jobs.shop ? state.jobs.shop.count - (state.jobs.shop.whole || 0) : 0;
+    set($('shop-stock'), 'text', CM.fmt(roll('shop', q.lotsTotal(state) + onSale)));
 
     const obj = CM.sim.objective(state);
     // Sin nada pendiente, la franja se queda en un renglón fino; vuelve a su tamaño con el siguiente objetivo.
@@ -1800,10 +1843,39 @@
       set($(id), 'neg', v < 0);
     };
     show('rate-coins', r.coins, '/min');
+    // La roca que se mira: para Raw y Base, si se amontona, se gasta todo lo que llega o está parada.
     const lane = r.lanes[ui.zone];
-    show('rate-raw', lane.raw - lane.rawUsed);
-    show('rate-base', lane.base - lane.baseUsed);
-    show('rate-lots', lane.lots);
+    const flow = (id, made, used, allWord, idleWord) => {
+      const el = $(id);
+      const net = made - used;
+      let text = '';
+      let cls = '';
+      if (made < 0.5 && used < 0.5) {
+        text = idleWord;
+        cls = 'idle';
+      } else if (Math.abs(net) <= 0.05 * Math.max(made, used)) {
+        text = allWord;
+        cls = 'ok';
+      } else {
+        text = (net > 0 ? '+' : '−') + CM.fmt(Math.round(Math.abs(net))) + '/min';
+        cls = net > 0 ? 'pile' : 'draw';
+      }
+      set(el, 'text', text);
+      set(el, 'cls', cls);
+    };
+    flow('rate-raw', lane.raw, lane.rawUsed, 'all refined', state.zones[ui.zone].veinRevealed ? 'no drilling' : 'finding a vein');
+    flow('rate-base', lane.base, lane.baseUsed, 'all cooked', 'no refining');
+    set($('lots'), 'text', lane.lots >= 0.5 ? '+' + CM.fmt(Math.round(lane.lots)) : '0');
+    set($('rate-lots'), 'text', lane.lots >= 0.5 ? '/min to shop' : 'not cooking');
+    set($('rate-lots'), 'cls', lane.lots >= 0.5 ? 'ok' : 'idle');
+    // La tienda: lo que vende por minuto frente a lo que podría; si no da abasto, lo que sobra
+    // se va al mayorista a mitad de precio.
+    const w = CM.mice.work(state, 'trading', 'all');
+    const cap = state.built.shop ? (q.sellCount(state) / (q.sellDuration(state) / 1000 / (w ? w.speed : 1))) * 60 : 0;
+    const full = r.whole >= 0.5;
+    set($('shop-rate'), 'text', !state.built.shop ? 'not built' : full ? 'FULL · extra at ½ price' : 'sells ' + CM.fmt(Math.round(r.sold)) + '/min');
+    set($('res-shop'), 'full', full);
+    set($('shop-fill'), 'width', (cap ? Math.round(Math.min(1, (r.sold - r.whole) / cap) * 100) : 0) + '%');
   }
   // Los botones de compra se van llenando según te acercas a poder pagarlos.
   function updateAfford() {

@@ -7,7 +7,7 @@
   function snapshot(s) {
     const lanes = {};
     for (const id of Object.keys(s.zones)) lanes[id] = Object.assign({}, s.zones[id].stats);
-    return { t: s.clock, coins: s.totals.coinsEarned, lanes };
+    return { t: s.clock, coins: s.totals.coinsEarned, sold: s.totals.lotsSold, whole: s.totals.wholesaleLots || 0, lanes };
   }
 
   CM.telemetry = {
@@ -52,7 +52,7 @@
       const from = samples.find((x) => s.clock - x.t <= 60000) || now;
       const span = Math.max(1, now.t - from.t) / 60000;
       const per = (a, b) => (span > 0.05 ? (a - b) / span : 0);
-      const out = { coins: per(now.coins, from.coins), lanes: {} };
+      const out = { coins: per(now.coins, from.coins), sold: per(now.sold, from.sold || now.sold), whole: per(now.whole, from.whole || 0), lanes: {} };
       for (const id of Object.keys(now.lanes)) {
         const a = now.lanes[id];
         const b = from.lanes[id] || a;

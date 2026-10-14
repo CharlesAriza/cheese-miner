@@ -710,10 +710,28 @@
         CM.milestones.boardUpdate(s);
         coins = Math.round(coins * boardMult);
       }
+      // Estanterías: caben unos minutos de ventas. Lo que sobra se lo lleva el mayorista a mitad de
+      // precio, empezando por lo más barato: nada se pierde ni se acumula sin fin, y una tienda que
+      // se queda corta se nota en lo que cobra.
+      const shelf = Math.floor(((q.sellCount(s) * cyc.mult) / total) * 60000 * B.shop.shelfMinutes);
+      let extra = q.lotsTotal(s) - shelf;
+      let whole = 0;
+      let wcoins = 0;
+      for (let i = stock.length - 1; i >= 0 && extra > 0; i--) {
+        const r = stock[i];
+        const n = Math.min(extra, s.lots[r.id] || 0);
+        if (n <= 0) continue;
+        s.lots[r.id] -= n;
+        wcoins += Math.round(prices[r.id] * B.shop.wholesale) * n;
+        whole += n;
+        extra -= n;
+      }
+      coins += wcoins;
+      count += whole;
       if (w) coins = Math.max(1, Math.round(coins * CM.mice.out(s, w)));
       // Una venta es una acción: la experiencia depende de lo mejor que vendes, no de cuántos.
       const xp = B.xp.perSale * recipeXp(stock[0]);
-      s.jobs.shop = { remaining: total, total, coins, count, xp, recipeId: top, source };
+      s.jobs.shop = { remaining: total, total, coins, count, xp, recipeId: top, source, whole, wcoins };
       CM.emit(s, 'sellStart', { source, count, recipeId: top });
       return CM.ok();
     },
@@ -731,9 +749,11 @@
       s.coins += job.coins;
       s.totals.lotsSold += job.count;
       s.totals.coinsEarned += job.coins;
+      s.totals.wholesaleLots += job.whole || 0;
+      s.totals.wholesaleCoins += job.wcoins || 0;
       const xm = job.source === 'worker' ? CM.mice.reward(s, 'trading', 'all') : 1;
       CM.skills.addXp(s, 'trading', job.xp * xm);
-      CM.emit(s, 'sale', { coins: job.coins, count: job.count, recipeId: job.recipeId, source: job.source });
+      CM.emit(s, 'sale', { coins: job.coins, count: job.count, whole: job.whole || 0, recipeId: job.recipeId, source: job.source });
     },
   };
 })();

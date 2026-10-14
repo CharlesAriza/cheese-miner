@@ -134,6 +134,8 @@
         wheels: 0, // Grand Wheels terminadas
         wheelLots: 0, // quesos que han dado (ya contados en lotsProduced)
         lotsSold: 0,
+        wholesaleLots: 0, // vendidos al por mayor (ya contados en lotsSold)
+        wholesaleCoins: 0,
         coinsEarned: 0,
         coinsSpent: 0,
         goalCoins: 0,
@@ -251,7 +253,7 @@
     refineBatch: (s) => B.refinery.batch + mods(s)('refBatch'),
     refineMult: (s) => (1 + mods(s)('refBonus')) * q.skillMult(s, 'refining'),
     refineDuration: (s) => Math.max(300, Math.round(B.refinery.durationMs / (1 + mods(s)('refSpeed')))),
-    sellCount: (s) => B.shop.perSale + mods(s)('sellCount'),
+    sellCount: (s) => Math.max(1, Math.round((B.shop.perSale + mods(s)('sellCount')) * (B.shop.scale || 1))),
     sellDuration: (s) => Math.max(300, Math.round(B.shop.durationMs / (1 + mods(s)('sellSpeed')))),
     buyer(s) {
       const level = levelOf(s, 'trading');

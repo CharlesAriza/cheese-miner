@@ -95,6 +95,18 @@
       return muted;
     },
     click: () => tone(700, 0.03, { type: 'square', vol: 0.02 }),
+    // Latido suave de la fábrica cuando trabajan los ratones: notas graves y redondas, sin subir
+    // de tono por racha, para que se pueda escuchar durante horas.
+    soft(kind) {
+      const f = { raw: 196, base: 247, lot: 294, coin: 784 }[kind] || 220;
+      if (kind === 'coin') {
+        tone(f, 0.12, { type: 'triangle', vol: 0.03 });
+        tone(f * 1.25, 0.16, { type: 'triangle', vol: 0.025, delay: 0.09 });
+        return;
+      }
+      tone(f, 0.16, { type: 'triangle', vol: 0.035 });
+      tone(f * 1.5, 0.12, { type: 'sine', vol: 0.015, delay: 0.04 });
+    },
     // El golpe sube de tono con el combo.
     hit(combo) {
       const c = Math.min(combo || 0, 20);
