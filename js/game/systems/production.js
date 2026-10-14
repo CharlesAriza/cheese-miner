@@ -26,7 +26,10 @@
         crit = s.combo % B.mining.critEvery === 0;
         s.metrics.taps.mine += 1;
       }
-      const amount = Math.min(need - z.discover, q.pickPower(s) * (crit ? q.critMult(s) : 1) * (mult || 1));
+      let power = q.pickPower(s) * (crit ? q.critMult(s) : 1) * (mult || 1);
+      // Ayudar a los ratones: si un minero trabaja esta roca, cada toque cuenta como un golpe de verdad.
+      if (source === 'manual' && CM.mice.at(s, 'mining', zoneId)) power = Math.max(power, need * (crit ? B.mining.helpCrit : B.mining.help));
+      const amount = Math.min(need - z.discover, power);
       z.discover += amount;
       s.totals.hits += 1;
       CM.skills.addXp(s, 'mining', B.xp.perHit * q.zoneXp(s, zoneId));

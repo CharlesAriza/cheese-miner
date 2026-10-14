@@ -1726,6 +1726,30 @@
     valid(s);
   });
 
+  test('mining (prototype): with a miner on the rock, each tap by hand is real help', () => {
+    const s = withChain();
+    const need = q.veinHits(s, 'cheddar');
+    s.zones.cheddar.veinRevealed = false;
+    s.zones.cheddar.discover = 0;
+    CM.mining.hit(s, 'cheddar', 'manual');
+    const alone = s.zones.cheddar.discover;
+    s.zones.cheddar.discover = 0;
+    s.combo = 0;
+    staff(s, 'mining', 'cheddar');
+    s.zones.cheddar.depth = 60;
+    CM.rev += 1;
+    const deep = q.veinHits(s, 'cheddar');
+    CM.mining.hit(s, 'cheddar', 'manual');
+    truthy(s.zones.cheddar.discover >= deep * B.mining.help - 1e-9, 'a tap does at least ' + B.mining.help * 100 + '% of the search, however deep');
+    truthy(alone <= need, 'without a miner, a tap is just the pick');
+    let taps = 1;
+    while (!s.zones.cheddar.veinRevealed && taps < 100) {
+      CM.mining.hit(s, 'cheddar', 'manual');
+      taps++;
+    }
+    truthy(taps <= 1 / B.mining.help, 'about twenty taps free the mice (' + taps + ')');
+  });
+
   test('investments: BUY ALL and managers leave Night Lamps to the player', () => {
     const s = withCheese();
     s.coins = 1e9;

@@ -40,6 +40,10 @@ CM.BALANCE = {
     pickPower: 1, // progreso de búsqueda por golpe
     comboWindowMs: 650, // golpes manuales más seguidos que esto hacen combo
     critEvery: 5, // cada N golpes de combo, golpe crítico
+    // PROTOTIPO: con un minero trabajando la roca, cada golpe a mano es una ayuda de verdad: hace al
+    // menos esta parte de la búsqueda (unos 20 toques por veta, menos con críticos), sea cual sea la profundidad.
+    help: 0.04,
+    helpCrit: 0.12,
     critMultiplier: 3,
     minerIntervalMs: 4500, // cada ratón minero da un golpe cada N ms en cada roca
   },

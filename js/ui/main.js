@@ -1036,7 +1036,10 @@
   }
 
   // Acción del botón grande según la estación.
-  const REPEATABLE = { mine: 1, drill: 1, refine: 1, cheeseBoost: 1, sell: 1 };
+  // Picar es a toques: cada uno, un golpe con su sonido. Las demás etapas se pueden mantener pulsadas.
+  const REPEATABLE = { drill: 1, refine: 1, cheeseBoost: 1, sell: 1 };
+  // Lo que se hace al apoyar el dedo (para que el golpe se sienta inmediato); lo demás, al soltar.
+  const ON_PRESS = { mine: 1, drill: 1, refine: 1, cheeseBoost: 1, sell: 1 };
   function mainAction() {
     const kind = ui.dockKind;
     if (kind === 'mine') return report(CM.mining.hit(state, ui.zone, 'manual'), els.main);
@@ -1060,8 +1063,14 @@
   els.main.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     stopHold();
+    // Abrir paneles, construir o ir a otra etapa se hace al soltar (con el clic): si se hiciera al
+    // apoyar el dedo, el clic de ese mismo toque caería sobre lo que acaba de aparecer debajo.
+    if (!ON_PRESS[ui.dockKind]) return;
     mainAction();
     if (REPEATABLE[ui.dockKind]) holdTimer = setInterval(() => (REPEATABLE[ui.dockKind] ? mainAction() : stopHold()), 160);
+  });
+  els.main.addEventListener('click', () => {
+    if (!ON_PRESS[ui.dockKind]) mainAction();
   });
   for (const type of ['pointerup', 'pointerleave', 'pointercancel']) els.main.addEventListener(type, stopHold);
   window.addEventListener('blur', stopHold);
@@ -1084,7 +1093,7 @@
   let lastStageTap = 0;
   const logical = (px) => (px / stage.getBoundingClientRect().width) * scene.W;
   stage.addEventListener('pointerdown', (e) => {
-    drag = { x: e.clientX, last: e.clientX, moved: false };
+    drag = { x: e.clientX, last: e.clientX, moved: false, at: performance.now() };
     stage.setPointerCapture(e.pointerId);
   });
   stage.addEventListener('pointermove', (e) => {
@@ -1095,23 +1104,25 @@
   });
   stage.addEventListener('pointerup', (e) => {
     const wasDrag = drag && drag.moved;
+    const held = drag && performance.now() - drag.at >= 450;
     drag = null;
     if (wasDrag) return;
-    // Un toque suelto sobre un ratón abre su ficha. Tocando seguido (jugando) no, para no estorbar.
-    const box = stage.getBoundingClientRect();
+    // Prioridad de los toques en la escena: el edificio manda. Un ratón trabajando delante de su
+    // estación no la tapa; su ficha se abre manteniendo el dedo sobre él, o tocándolo donde no hay
+    // ningún edificio (los que van acarreando por el camino).
     const calm = performance.now() - lastStageTap > 600;
     lastStageTap = performance.now();
     const cv = stage.tagName === 'CANVAS' ? stage : stage.querySelector('canvas');
     const cbox = cv.getBoundingClientRect();
     // La altura se convierte con la del propio lienzo: puede no escalar igual que el ancho.
-    const mouseId = calm ? scene.mouseAt(((e.clientX - cbox.left) / cbox.width) * cv.width, ((e.clientY - cbox.top) / cbox.height) * cv.height) : null;
-    if (mouseId) {
+    const mouseId = scene.mouseAt(((e.clientX - cbox.left) / cbox.width) * cv.width, ((e.clientY - cbox.top) / cbox.height) * cv.height);
+    const id = scene.hitTest(logical(e.clientX - stage.getBoundingClientRect().left));
+    if (mouseId && (held || (!id && calm))) {
       sfx.click();
       openPanel('mice');
       ui.card = mouseId;
       return renderPanel();
     }
-    const id = scene.hitTest(logical(e.clientX - stage.getBoundingClientRect().left));
     if (!id) return;
     if (id === 'storage') return openPanel('stock');
     if (id === 'house') return openPanel('mice');
@@ -1119,9 +1130,11 @@
     const same = ui.station === id;
     if (!same) select(id, true);
     updateDock();
-    if (same || REPEATABLE[ui.dockKind]) mainAction();
+    if (same || ON_PRESS[ui.dockKind]) mainAction();
   });
   stage.addEventListener('pointercancel', () => (drag = null));
+  // Mantener el dedo sobre un ratón no debe abrir el menú del navegador.
+  stage.addEventListener('contextmenu', (e) => e.preventDefault());
 
   // ---------- Paneles ----------
   function openPanel(name) {
@@ -1460,7 +1473,7 @@
   }
   $('sheet').addEventListener('click', onAct);
   $('sheet').addEventListener('click', (e) => {
-    if (e.target === $('sheet')) closePanel();
+    if (e.target === $('sheet') && !ghostClick()) closePanel();
   });
 
   // ---------- Modales ----------

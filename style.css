@@ -6859,3 +6859,7 @@ div.mc-row {
   height: auto;
   image-rendering: pixelated;
 }
+/* Mantener pulsado un ratón en la escena abre su ficha: sin el menú del navegador encima. */
+#scene {
+  -webkit-touch-callout: none;
+}
