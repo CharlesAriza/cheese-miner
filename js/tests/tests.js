@@ -1890,6 +1890,30 @@
     valid(away);
   });
 
+  // V4.7: subir varios rangos de golpe compra cada paso, en orden, con su precio; para cualquier rareza.
+  test('mice V4.7: a multi-rank promotion buys every step in order, for common, rare and legendary', () => {
+    const s = withCheese();
+    s.built.house = true;
+    const R = B.mice.ranks;
+    for (const rarity of [0, 1, 2]) {
+      const m = staff(s, 'drilling', 'cheddar', { rarity });
+      while (CM.mice.level(m) < R[2].level) m.xp = m.xp * 1.5 + 100;
+      const steps = CM.mice.promoteSteps(s, m);
+      eq(steps.length, 2, 'apprentice at LV ' + CM.mice.level(m) + ' can go to Journeyman or Master');
+      eq(steps[1].total, R[1].cost + R[2].cost, 'Master costs both steps');
+      s.coins = 1e9;
+      CM.events.length = 0;
+      const r = CM.mice.promoteMany(s, { [m.id]: 2 });
+      eq(r.ok, true, 'promote up to Master');
+      eq(m.rank, 2, 'it is a Master');
+      eq(s.coins, 1e9 - R[1].cost - R[2].cost, 'charged exactly both steps, once');
+      const ranks = CM.events.filter((e) => e.type === 'promoted' && e.id === m.id).map((e) => e.rank).join(',');
+      eq(ranks, '1,2', 'one promotion per rank, in order: no rank skipped');
+      s.mice.splice(s.mice.indexOf(m), 1);
+    }
+    valid(s);
+  });
+
   // V4.1: el desglose de COINS reparte lo cobrado de verdad (con los bonus), no la producción.
   test('shop V4.1: coins by rock add up to the coins really earned, shelves and wholesale apart', () => {
     const s = CM.storage.parse(JSON.stringify(withCheese()), Date.now());

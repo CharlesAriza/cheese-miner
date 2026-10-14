@@ -739,7 +739,16 @@
     set(el, 'text', text || '');
     set(el, 'cls', 'bubble ' + (cls || '') + (on ? ' on' : ''));
     if (on) {
-      el.style.left = at[0] * 100 + '%';
+      let x = at[0];
+      // V4.7: el cartel de la roca no se sale de la escena: si su centro cae cerca de un borde, se
+      // desplaza lo justo para quedar entero, con 6 px de margen.
+      if (cls === 'name') {
+        const sw = els.bubbles.offsetWidth || 1;
+        const half = el.offsetWidth / 2 / sw;
+        const pad = 6 / sw;
+        x = Math.min(Math.max(x, half + pad), 1 - half - pad);
+      }
+      el.style.left = x * 100 + '%';
       el.style.top = at[1] * 100 + '%';
     }
   }
@@ -950,6 +959,7 @@
     // V4.5: en el botón grande, el efecto real («x2.25 SPEED»); en las tarjetas pequeñas, la cantidad.
     set(dk.boost, 'text', nb ? CM.boosts.label(skill, nb).replace(/^x/, '\u00d7') : '');
     if (dk.boost.dataset.n !== String(nb || '')) dk.boost.dataset.n = String(nb || '');
+    set(els.main, 'boosted', nb > 0); // deja sitio a la cartela: el contenido baja un poco
     set(els.main.querySelector('b'), 'text', m.label);
     set(els.main.querySelector('small'), 'text', m.sub);
     set(els.main.querySelector('.fill'), 'width', Math.round(m.fill * 100) + '%');
@@ -1302,7 +1312,7 @@
     sfx.click();
     questGo();
   });
-  $('obj-text').insertAdjacentHTML('afterend', '<img class="pix obj-go" alt="" src="' + I.url('arrow') + '">');
+  $('obj-text').insertAdjacentHTML('afterend', '<img class="pix obj-go" alt="" src="' + I.url('go') + '">');
   $('nav-mice').addEventListener('click', () => openPanel('mice'));
   // Tocar un contador de recurso abre la despensa.
   for (const id of ['res-raw', 'res-base', 'res-lots']) $(id).addEventListener('click', () => openPanel('stock'));
@@ -2085,7 +2095,7 @@
     return (
       '<div class="pv-card r' + it.to + (special ? ' special' : '') + (promo.fast ? ' fast' : '') + '">' + (n > 1 ? '<small class="pv-count">' + (promo.i + 1) + ' / ' + n + '</small>' : '') +
       '<h2>' + title + '</h2><div class="pv-stage">' + (special ? '<i class="pv-rays"></i>' : '') + '<img class="pix pv-before" src="' + before + '" alt="" /><img class="pix pv-after" src="' + CM.mouseUrl(m) + '" alt="" /><i class="pv-spark"></i></div>' +
-      '<p class="pv-who"><b>' + P.esc(m.name) + '</b><span>' + RANK_NAME[it.from] + ' <i>&gt;</i> <u>' + RANK_NAME[it.to] + '</u></span></p>' +
+      '<p class="pv-who"><b>' + P.esc(m.name) + '</b><span>' + RANK_NAME.slice(it.from, it.to).join(' <i>&gt;</i> ') + ' <i>&gt;</i> <u>' + RANK_NAME[it.to] + '</u></span></p>' +
       '<ul class="pv-gains">' + promoGains(m, it.from, it.to).map((g) => '<li>' + g + '</li>').join('') + '</ul>' +
       '<div class="row">' + (!last ? '<button class="close pv-btn" data-m="skip">SKIP ALL</button><button class="close pv-btn" data-m="fast">' + (promo.fast ? 'NORMAL' : 'FASTER') + '</button>' : '') + '<button class="buy pv-btn" data-m="next">' + (last ? 'GREAT' : 'NEXT') + '</button></div></div>'
     );
@@ -2098,7 +2108,7 @@
     const it = promo.list[promo.i];
     play(it && it.to >= 2 && !promo.summary ? 'goal' : 'bell');
     // Más rápido: pasa solo al siguiente cuando ha terminado su animación.
-    if (promo.fast && !promo.summary && promo.i < promo.list.length - 1) promo.timer = setTimeout(() => (promo.i++, promoStep()), it.to >= 2 ? 1300 : 700);
+    if (promo.fast && !promo.summary && promo.i < promo.list.length - 1) promo.timer = setTimeout(() => (promo.i++, promoStep()), it.to >= 2 ? 900 : 500);
   }
   function promoShow(list) {
     if (!list.length) return;

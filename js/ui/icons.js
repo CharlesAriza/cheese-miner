@@ -78,6 +78,8 @@
     // flecha de ascenso disponible.
     alert: ['...Y...', '..YKY..', '..YKY..', '.YYKYY.', '.YYYYY.', 'YYYKYYY', 'YYYYYYY'],
     alertr: ['...Y...', '..YKY..', '..YKY..', '.YYKYY.', '.YYYYY.', 'YYYKYYY', 'YYYYYYY'],
+    // V4.7. SPRITE: flecha de «toca aquí» para la barra del objetivo (marrón, sobre papel).
+    go: ['AA...', '.AA..', '..AA.', '.AA..', 'AA...'],
     rankup: ['...L...', '..LGL..', '.LGGGL.', 'GGGGGGG', '..GGG..', '..GGG..', '..GGG..'],
     treat: ['.WWWWWW.', 'WWWRRWWW', 'WRRRRRRW', 'WRRRRRRW', 'WWWRRWWW', '.WWWWWW.'],
     // V4.2. SPRITE: cabeza de ratón para contratar (HIRE).
@@ -104,6 +106,7 @@
     alert: { Y: '#ffd43a', K: '#1b1622' },
     alertr: { Y: '#ff5a7a', K: '#1b1622' },
     rankup: { G: '#5fcf6a', L: '#c8ffd0' },
+    go: { A: '#7a4a14' },
     treat: { W: '#f4f1e4', R: '#e2462f' },
     mouse: { E: '#cfc6cc', P: '#ff9ab5', G: '#f1eaec', K: '#1b1622', N: '#ff7a9c', W: '#ffffff' },
     news: { P: '#c9a46a', L: '#f6ecd2', D: '#8b7a5a' },

@@ -975,13 +975,18 @@
       const step = steps.find((st) => st.rank === to) || steps[steps.length - 1];
       const after = Object.assign({}, m, { rank: step.rank });
       const [skill, zone] = m.post ? m.post.split(':') : [];
-      const gain = skill ? mouseRate(s, m, skill, zone) + ' &gt; <b>' + mouseRate(s, after, skill, zone) + '</b>' : 'No post: it will work faster once placed';
+      // V4.7: el ritmo redondeado (p. ej. «251 Raw every 0.6s») podía salir igual antes y después;
+      // la mejora real se dice en porcentaje de velocidad, que no se pierde en el redondeo.
+      const pctUp = skill ? Math.round((K.speed(after, skill, s, zone) / K.speed(m, skill, s, zone) - 1) * 1000) / 10 : 0;
+      const gain = skill ? mouseRate(s, after, skill, zone) + ' · <b>+' + pctUp + '% speed</b>' : 'No post: it will work faster once placed';
       h += '<div role="button" tabindex="0" data-act="promosel:' + m.id + '" class="pm-row' + (to ? ' on' : '') + (step.total > s.coins ? ' dear' : '') + '">' + portrait(m) +
         '<span class="pm-main"><b>' + esc(m.name) + '<i>LV ' + K.level(m) + (m.rarity ? ' · ' + RARITY_NAME[m.rarity] : '') + '</i></b>' +
         '<small>' + M.ranks[m.rank].name + ' &gt; <u>' + step.name + '</u></small><small class="pm-gain">' + gain + (M.ranks[step.rank].manager ? ' · buys upgrades on its own' : '') + '</small></span>' +
         '<span class="pm-side">' + coin(step.total) + '<i class="pm-check"></i></span>';
       // Con varios rangos acumulados se elige hasta dónde; cada rango cobra su precio.
-      if (steps.length > 1) h += '<span class="pm-steps">' + steps.map((st) => btn('promoto:' + m.id + ':' + st.rank, st.name + ' ' + CM.fmt(st.total), { cls: 'chip' + (to === st.rank ? ' on' : '') })).join('') + '</span>';
+      // Varios rangos a la vez: cada opción dice hasta dónde llega y cuántos pasos paga (se compran
+      // uno a uno, con todo lo que da cada rango).
+      if (steps.length > 1) h += '<span class="pm-steps">' + steps.map((st, i) => btn('promoto:' + m.id + ':' + st.rank, 'UP TO ' + st.name.toUpperCase() + '<small>' + (i + 1) + (i ? ' ranks · ' : ' rank · ') + CM.fmt(st.total) + '</small>', { cls: 'chip' + (to === st.rank ? ' on' : '') })).join('') + '</span>';
       h += '</div>';
     }
     const short = plan.cost > s.coins;
@@ -1292,8 +1297,7 @@
     // V4.6. Habitaciones: THE BED y TRAINING ROOM, con la misma estructura (escena, estado,
     // lista de ratones con su acción). La casa sigue cuidando de un ratón a la vez.
     const room = ui.houseRoom === 'training' ? 'training' : 'bed';
-    const inUse = (r) => s.care && (r === 'bed' ? s.care.kind === 'quirk' : s.care.kind === 'spec');
-    h += '<div class="mch-rooms">' + btn('houseroom:bed', I.img('bed', '', 'mch-ico') + 'THE BED' + (inUse('bed') ? '<i class="mch-inuse"></i>' : ''), { cls: room === 'bed' ? 'on' : '' }) + btn('houseroom:training', I.img('teaching', '', 'mch-ico') + 'TRAINING' + (inUse('training') ? '<i class="mch-inuse"></i>' : ''), { cls: room === 'training' ? 'on' : '' }) + '</div>';
+    h += '<div class="mch-rooms">' + btn('houseroom:bed', I.img('bed', '', 'mch-ico') + 'THE BED', { cls: room === 'bed' ? 'on' : '' }) + btn('houseroom:training', I.img('teaching', '', 'mch-ico') + 'TRAINING', { cls: room === 'training' ? 'on' : '' }) + '</div>';
     if (room === 'bed') {
       h += bedScene(s, ui) + '<p class="hint">' + mins + ' minutes and it keeps working at its post. Treat a quirk: <b>' + CM.fmt(tc) + '</b> coins.</p>';
       const sick = s.mice.filter((m) => quirksOf(m).length).sort((a, b) => K.level(b) - K.level(a));
@@ -1403,7 +1407,7 @@
       row('Playtest tools', 'Dev menu: marks the session as assisted', btn('open:dev', 'OPEN', { cls: 'buy' })) +
       row('Reset save', 'Start over from zero', btn('reset', 'RESET', { cls: 'danger' })) +
       // Qué versión del prototipo se está probando (para no confundirla con una copia en caché).
-      '<p class="hint"><b>Prototype V4.6</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
+      '<p class="hint"><b>Prototype V4.7</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
     );
   }
 
