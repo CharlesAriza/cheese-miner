@@ -10484,3 +10484,65 @@ img.pix.pxi {
   line-height: 1.3;
   color: var(--muted);
 }
+
+/* ======================= V4.9.1: el verde, por DENTRO ======================= */
+/* Los anillos verdes iban por fuera del borde y el panel con scroll los recortaba por los lados
+   y por arriba. Ahora el borde es el verde y el brillo va hacia dentro: nada asoma, nada se
+   recorta y nada cambia de tamaño. */
+.panel button.mc-post.mc-due:not(.mcx-over, .mcx-target, .mcx-picked, .mcx-land, .mcx-src),
+.panel .mc-row.mc-due {
+  border-color: #46ef6c;
+  box-shadow: inset 0 0 0 1px #10301a, inset 0 0 10px #46ef6c40, 0 2px 0 var(--ink);
+  animation: duein2 0.4s steps(4) both, duebreath2 2.8s ease-in-out 0.4s infinite;
+  animation-delay: var(--upd, 0s), calc(var(--upd, 0s) + 0.4s);
+}
+@keyframes duein2 {
+  0% {
+    border-color: var(--ink);
+    box-shadow: inset 0 0 0 1px #10301a, 0 2px 0 var(--ink);
+  }
+  50% {
+    border-color: #b8ffc8;
+    box-shadow: inset 0 0 0 1px #10301a, inset 0 0 16px #46ef6c99, 0 2px 0 var(--ink);
+  }
+  100% {
+    border-color: #46ef6c;
+    box-shadow: inset 0 0 0 1px #10301a, inset 0 0 10px #46ef6c40, 0 2px 0 var(--ink);
+  }
+}
+@keyframes duebreath2 {
+  0%,
+  100% {
+    border-color: #46ef6c;
+    box-shadow: inset 0 0 0 1px #10301a, inset 0 0 10px #46ef6c40, 0 2px 0 var(--ink);
+  }
+  50% {
+    border-color: #7dffa0;
+    box-shadow: inset 0 0 0 1px #10301a, inset 0 0 16px #46ef6c80, 0 2px 0 var(--ink);
+  }
+}
+.mc-face.mc-dueface {
+  box-shadow: none;
+}
+.panel .mc-tabs button.mc-promo {
+  border-color: #46ef6c;
+  box-shadow: inset 0 0 10px #46ef6c40, 0 3px 0 var(--ink);
+}
+.mpr {
+  border-color: #46ef6c;
+  box-shadow: inset 0 0 0 1px #10301a, 0 3px 0 var(--ink);
+}
+.mpr.short {
+  border-color: #2f6b3c;
+  box-shadow: 0 3px 0 var(--ink);
+}
+.pm-row.on {
+  border-color: #46ef6c;
+  box-shadow: inset 0 0 10px #46ef6c33;
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel button.mc-post.mc-due,
+  .panel .mc-row.mc-due {
+    animation: none;
+  }
+}
