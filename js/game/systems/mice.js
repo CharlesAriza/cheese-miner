@@ -616,7 +616,12 @@
     // `forKey`: el puesto vacío desde el que se recluta; el elegido irá ahí.
     offer(s, forKey) {
       if (!s.built.house) return CM.fail('no-house');
-      if (s.candidates.length) return CM.ok();
+      // Ya hay tres pagados esperando: no se cobra otra vez. Si se pide desde otro puesto vacío,
+      // el que se elija irá a ese.
+      if (s.candidates.length) {
+        if (forKey && this.posts(s).some((p) => p.key === forKey)) s.candidatesFor = forKey;
+        return CM.ok();
+      }
       const cost = this.recruitCost(s);
       if (s.coins < cost) return CM.fail('no-coins');
       s.coins -= cost;

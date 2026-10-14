@@ -348,6 +348,11 @@
     eq(s.candidatesFor, 'refining:cheddar', 'remembers the post');
     eq(CM.mice.offer(s, 'refining:cheddar').ok, true, 'asking again with candidates waiting');
     eq(s.coins, 1e9 - cost, 'is not charged twice');
+    // V4.1: pedirlos desde otro puesto vacío no cobra: los mismos tres irán a ese puesto.
+    eq(CM.mice.offer(s, 'cheesemaking:cheddar').ok, true, 'asking from another empty post');
+    eq(s.coins, 1e9 - cost, 'still charged only once');
+    eq(s.candidatesFor, 'cheesemaking:cheddar', 'the waiting mice now go to the post asked from');
+    CM.mice.offer(s, 'refining:cheddar');
     // Guardar y cargar con los candidatos a medias: siguen ahí, pagados y para el mismo puesto.
     const back = CM.storage.parse(JSON.stringify(s), Date.now());
     eq(back.candidates.length, 3, 'candidates survive a reload');

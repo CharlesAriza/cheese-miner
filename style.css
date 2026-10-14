@@ -7187,3 +7187,71 @@ div.mc-row {
     animation: none;
   }
 }
+
+/* ---------- MICE V4.1: elegir destino a la vista (clases mcx-) ---------- */
+.mcx-movebar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin: 0 0 8px;
+  padding: 7px;
+  background: var(--bg);
+  border: 2px solid var(--gold);
+  box-shadow: 0 3px 0 var(--ink);
+}
+.mcx-mvhead {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.mcx-mvhead > span {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.mcx-mvhead b {
+  font-weight: normal;
+  font-size: 8px;
+  color: #ffe55c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mcx-mvhead small {
+  font-family: var(--text);
+  font-size: 11px;
+}
+.mcx-jumps {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.panel button.mcx-jump {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 7px;
+  font-size: 7px;
+  color: #fff;
+  background: var(--panel-2);
+  border: 2px solid var(--ink);
+  box-shadow: 0 2px 0 var(--ink);
+}
+.mcx-jump img {
+  width: 12px;
+  height: 12px;
+}
+.panel button.mc-post.mcx-target {
+  outline: 2px dashed #ffe55c99;
+  outline-offset: -2px;
+}
+.panel button.mc-post.mcx-picked {
+  outline: 3px solid var(--gold);
+  outline-offset: -3px;
+  background: #4a3f2a;
+}

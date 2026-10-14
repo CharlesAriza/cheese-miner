@@ -1181,6 +1181,7 @@
       ui.pick = null;
       ui.card = null;
       ui.miceTab = '';
+      ui.moveSel = null;
       ui.cardSec = {};
       ui.rosterOpts = false;
       if (state.built.house) scene.focus('house');
@@ -1195,6 +1196,7 @@
   function closePanel() {
     ui.panel = null;
     ui.lastMove = null;
+    ui.moveSel = null;
     $('mcx-fx').hidden = true;
     $('sheet').hidden = true;
   }
@@ -1213,6 +1215,7 @@
       updateAfford();
     }
     landCards();
+    jumpRock();
     const rep = $('dev-report');
     if (rep) rep.textContent = CM.dev.report(state);
   }
@@ -1278,6 +1281,7 @@
     const from = mover.post;
     const r = K.assign(state, id, key);
     if (!r.ok) return r;
+    ui.moveSel = null;
     const snap1 = K.snapshot(state);
     ui.lastMove = { before, label: other && from ? mover.name + ' ↔ ' + other.name : mover.name + ' → ' + (key ? K.postLabel(key) : 'house') + (other ? ' · ' + other.name + ' to house' : '') };
     play('click');
@@ -1351,6 +1355,16 @@
     fxTimer = setTimeout(() => (el.hidden = true), 6000);
     if (gained.length) play('reveal');
   }
+  // Llevar una roca (o los puestos de toda la colonia) arriba de la lista, bajo la barra de mover.
+  function jumpRock() {
+    if (!ui.jumpTo) return;
+    const body = $('sheet-body');
+    const el = body.querySelector('[data-rock="' + ui.jumpTo + '"]');
+    ui.jumpTo = '';
+    if (!el) return;
+    const bar = body.querySelector('.mcx-movebar');
+    body.scrollTop += el.getBoundingClientRect().top - body.getBoundingClientRect().top - (bar ? bar.offsetHeight + 4 : 0);
+  }
   // Tras pintar, los puestos que acaban de cambiar dan un pequeño salto.
   function landCards() {
     if (!ui.landed || !ui.landed.length) return;
@@ -1376,15 +1390,24 @@
       return CM.zones.unlock(state, id);
     },
     build: (id) => CM.construction.build(state, id),
+    // V4.1: el botón con el precio paga una vez y abre a los tres candidatos.
     recruit: () => {
-      ui.payArm = null;
       ui.cand = -1;
-      return CM.mice.offer(state);
+      const r = CM.mice.offer(state);
+      if (r.ok) ui.miceTab = 'recruit';
+      return r;
     },
+    // Ir a los candidatos ya pagados, o dejarlos esperando para mirar otra cosa.
+    recruitview: () => void ((ui.miceTab = state.candidates.length ? 'recruit' : ''), ($('sheet-body').scrollTop = 0)),
+    recruitlater: () => void (ui.miceTab = ''),
     choose: (i) => {
       ui.cand = -1;
-      // De vuelta a COLONY, para ver al nuevo llegar a su puesto.
+      // De vuelta a COLONY, para ver al nuevo llegar a su puesto. Nada de lo que hubiera antes
+      // (una ficha, un puesto elegido) se abre después por su cuenta.
       ui.pick = null;
+      ui.card = null;
+      ui.miceTab = '';
+      ui.moveSel = null;
       return CM.mice.choose(state, Number(i));
     },
     // PROTOTIPO: cargar una colonia de prueba (temprana, media o avanzada).
@@ -1412,19 +1435,35 @@
     pickpost: (skill, zone) => {
       const key = skill + ':' + zone;
       ui.postOpt = null;
-      ui.payArm = null;
       $('sheet-body').scrollTop = 0;
       ui.pick = ui.pick && ui.pick.type === 'post' && ui.pick.key === key ? null : { type: 'post', key };
     },
+    // V4.1: MOVE vuelve a COLONY con el ratón elegido; el destino se toca a la vista.
     pickmouse: (id) => {
       ui.card = null;
-      ui.pick = ui.pick && ui.pick.type === 'mouse' && ui.pick.id === id ? null : { type: 'mouse', id };
-      $('sheet-body').scrollTop = 0;
+      ui.pick = null;
+      ui.miceTab = '';
+      ui.miceView = 'rocks';
+      ui.moveSel = id;
+      const m = CM.mice.byId(state, id);
+      ui.jumpTo = m && m.post ? m.post.split(':')[1] : '';
+    },
+    movecancel: () => void (ui.moveSel = null),
+    moveto: (skill, zone) => {
+      const id = ui.moveSel;
+      ui.moveSel = null;
+      return moveMouse(id, skill + ':' + zone);
+    },
+    // Saltar a una roca sin tener que recorrer la colonia (también con un ratón elegido).
+    jump: (zone) => {
+      if (zone !== 'all') ui.rockOpen[zone] = true;
+      ui.jumpTo = zone;
     },
     unpick: () => void (ui.pick = null),
     miceview: (v) => {
       ui.miceView = v;
       ui.pick = null;
+      ui.moveSel = null;
       $('sheet-body').scrollTop = 0;
     },
     rocktoggle: (zoneId) => {
@@ -1470,13 +1509,15 @@
     },
     undomove: undoMove,
     // Puesto vacío: mover uno que ya tienes o conocer a tres nuevos (pagando con dos toques).
-    postopt: (v) => void ((ui.postOpt = v), (ui.payArm = null)),
-    // La clave de un puesto lleva dos puntos («refining:gouda»): llega partida en dos.
-    payarm: (a, b) => void (ui.payArm = { key: b ? a + ':' + b : a, at: performance.now() }),
+    postopt: () => void (ui.postOpt = ui.postOpt === 'hide' ? null : 'hide'),
     recruitfor: (skill, zone) => {
-      ui.payArm = null;
       ui.cand = -1;
-      return CM.mice.offer(state, skill + ':' + zone);
+      const r = CM.mice.offer(state, skill + ':' + zone);
+      if (r.ok) {
+        ui.miceTab = 'recruit';
+        $('sheet-body').scrollTop = 0;
+      }
+      return r;
     },
     promote: (id) => CM.mice.promote(state, id),
     // Refuerzos: tocar un puesto pone uno libre; si no cabe o no queda ninguno, quita uno de ahí.
