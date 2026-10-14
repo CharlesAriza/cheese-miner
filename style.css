@@ -480,9 +480,6 @@ button {
   animation: goal 0.8s ease-in-out infinite;
 }
 
-.tile.bump {
-  animation: bump 0.25s;
-}
 
 /* Dock de la estación seleccionada */
 .dock {
@@ -6305,10 +6302,18 @@ div.mc-row {
   border-radius: 3px;
 }
 .tile[data-boost='1']::before {
-  content: '\25B2';
+  content: '';
+  width: 7px;
+  height: 6px;
+  background: var(--px-boost) left center / 7px 6px repeat-x;
+  background-color: #5ad1ff;
 }
 .tile[data-boost='2']::before {
-  content: '\25B2\25B2';
+  content: '';
+  width: 16px;
+  height: 6px;
+  background: var(--px-boost) left center / 7px 6px repeat-x;
+  background-color: #5ad1ff;
   letter-spacing: -2px;
   padding-right: 4px;
 }
@@ -6338,7 +6343,11 @@ div.mc-row {
 }
 .dboost[data-n='1']::before,
 .dboost[data-n='2']::before {
-  content: '\25B2';
+  content: '';
+  width: 7px;
+  height: 6px;
+  background: var(--px-boost) left center / 7px 6px repeat-x;
+  background-color: #5ad1ff;
   margin-right: 4px;
   font-family: var(--text);
   font-size: 9px;
@@ -6346,7 +6355,11 @@ div.mc-row {
   letter-spacing: -1px;
 }
 .dboost[data-n='2']::before {
-  content: '\25B2\25B2';
+  content: '';
+  width: 16px;
+  height: 6px;
+  background: var(--px-boost) left center / 7px 6px repeat-x;
+  background-color: #5ad1ff;
 }
 .bo-head {
   display: flex;
@@ -6583,11 +6596,12 @@ div.mc-row {
    etiqueta UP! de la otra esquina. */
 @media (max-width: 345px) {
   .tile[data-boost='2']::before {
-    content: '\25B2\A\25B2';
-    white-space: pre;
-    line-height: 0.72;
-    letter-spacing: -1px;
-    padding: 1px 3px 3px;
+    width: 7px;
+    height: 13px;
+    background-repeat: repeat-y;
+    background-size: 7px 6px;
+    background-position: center top;
+    padding: 2px 3px;
   }
 }
 
@@ -7914,25 +7928,7 @@ div.mc-row {
   outline: 3px solid #fff;
   outline-offset: -3px;
 }
-.panel button.bo-pm {
-  flex: none;
-  width: 44px;
-  height: 44px;
-  font-size: 16px;
-  color: #fff;
-  background: #4a3f66;
-  border: 2px solid var(--ink);
-  border-radius: 0;
-  box-shadow: inset 0 2px 0 #ffffff33, 0 3px 0 var(--ink);
-}
-.panel button.bo-pm.add {
-  background: #2f6fd0;
-}
-.panel button.bo-pm.off {
-  color: #6b6480;
-  background: #2a2338;
-  box-shadow: none;
-}
+
 
 
 /* ---------- V4.1: las chapas UP!/NEW! y el anillo de pop no se recortan ----------
@@ -7943,7 +7939,7 @@ div.mc-row {
   padding-top: 1px;
 }
 .controls > .chain {
-  padding-top: 10px;
+  padding-top: 12px;
   padding-left: 3px;
   padding-right: 3px;
 }
@@ -7951,84 +7947,6 @@ div.mc-row {
 /* V4.2: el texto de la tarjeta deja sitio al icono de la cama. */
 .mc-post.inbed > span {
   padding-right: 18px;
-}
-
-/* ---------- V4.2: controles del refuerzo, pegados a su casilla (clases bo-) ---------- */
-.bo-inline {
-  grid-column: 1 / -1;
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: -4px;
-  padding: 8px;
-  background: var(--bg);
-  border: 3px solid #fff;
-  box-shadow: 0 3px 0 var(--ink);
-}
-/* Flecha de píxeles hacia la casilla elegida (columna: etiqueta 1,3fr + 4 casillas de 1fr). */
-.bo-inline::before {
-  content: '';
-  position: absolute;
-  top: -9px;
-  width: 12px;
-  height: 6px;
-  margin-left: -6px;
-  background: #fff;
-  clip-path: polygon(0 100%, 33% 33%, 33% 0, 67% 0, 67% 33%, 100% 100%);
-}
-.bo-inline.c0::before {
-  left: 34%;
-}
-.bo-inline.c1::before {
-  left: 52.8%;
-}
-.bo-inline.c2::before {
-  left: 71.7%;
-}
-.bo-inline.c3::before {
-  left: 90.6%;
-}
-.bo-shopctl .bo-inline {
-  margin-top: 6px;
-}
-.bo-shopctl .bo-inline::before {
-  left: 50%;
-}
-.bo-iname {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.bo-iname b {
-  font-weight: normal;
-  font-size: 8px;
-  color: #ffe55c;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.bo-iname small {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-family: var(--text);
-  font-size: 11px;
-}
-.bo-pips {
-  display: inline-flex;
-  gap: 2px;
-}
-.bo-pips i {
-  width: 8px;
-  height: 8px;
-  background: #2a2338;
-  border: 2px solid #5aa9ff;
-}
-.bo-pips i.on {
-  background: #5aa9ff;
 }
 
 /* V4.2: cifras de ancho fijo en los paneles de cifras, para que no bailen. */
@@ -8043,30 +7961,40 @@ div.mc-row {
   min-width: 4.5ch;
 }
 
-/* ---------- V4.2: la vacante llama con su «+» (clases mcx-) ----------
-   Cada 2 s el «+» da un saltito en dos pasos y suelta un anillo de píxeles que se abre y se
-   apaga. Nada parpadea entre medias. Al cubrir el puesto la clase desaparece y la animación
-   con ella. */
+/* ---------- V4.3: la vacante llama (clases mcx-) ----------
+   Cada 2,4 s, un latido corto en dos golpes (borde y «+» se encienden a la vez, el «+» sube un
+   píxel), y luego pausa. Todo a pasos, sin fundidos. Al cubrir el puesto la clase se va y la
+   animación con ella; no interfiere con el arrastre (no mueve la tarjeta). */
+.panel button.mc-post.empty.mcx-vac {
+  animation: mcx-vacb 2.4s steps(1) infinite;
+}
 .mc-post.mcx-vac .mc-face.hole {
-  animation: mcx-plus 2s steps(1) infinite;
+  animation: mcx-plus 2.4s steps(1) infinite;
+}
+@keyframes mcx-vacb {
+  0%,
+  79%,
+  92%,
+  100% {
+    border-color: var(--vac-soft);
+  }
+  80%,
+  86% {
+    border-color: var(--vac);
+  }
 }
 @keyframes mcx-plus {
   0%,
-  72% {
+  79%,
+  92%,
+  100% {
     transform: none;
-    box-shadow: none;
+    background: none;
   }
-  76% {
-    transform: translateY(-3px);
-    box-shadow: 0 0 0 2px var(--vac);
-  }
-  84% {
+  80%,
+  86% {
     transform: translateY(-1px);
-    box-shadow: 0 0 0 5px var(--vac-glow);
-  }
-  92% {
-    transform: none;
-    box-shadow: 0 0 0 8px transparent;
+    background: #6fdc7c33;
   }
 }
 /* El ratón recién contratado cae en su puesto con un destello de píxeles. */
@@ -8124,4 +8052,333 @@ div.mc-row {
   .panel button.mc-post.mcx-arrive::after {
     animation: none;
   }
+}
+
+/* ---------- V4.3: iconos pixel art dentro del texto (clases pxi-) ----------
+   A su tamaño natural (un píxel del sprite = un píxel CSS), para que no se deformen. */
+.pxi {
+  display: inline-block;
+  width: auto;
+  height: auto;
+  vertical-align: middle;
+  image-rendering: pixelated;
+}
+.pxi + .pxi {
+  margin-left: 1px;
+}
+.hrt .pxi {
+  vertical-align: -1px;
+}
+/* Las chapas de refuerzo que dibuja el CSS: el sprite, sin rellenos que lo encojan. */
+.tile[data-boost='1']::before,
+.tile[data-boost='2']::before {
+  box-sizing: content-box;
+  padding: 2px 3px;
+  letter-spacing: 0;
+}
+.bo-chip {
+  display: inline-flex;
+  gap: 1px;
+  padding: 2px 3px;
+}
+
+/* ---------- V4.3: contratar (clases mhi-) ---------- */
+.mhi-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 8px;
+  font-family: var(--text);
+  background: var(--bg);
+  border: 3px solid var(--ink);
+  box-shadow: inset 0 0 0 2px #3b3350;
+}
+.mhi-card.waiting {
+  box-shadow: inset 0 0 0 2px var(--gold);
+}
+.mhi-ico {
+  flex: none;
+  width: 22px;
+  image-rendering: pixelated;
+}
+.mhi-card > div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mhi-card > div > b {
+  font-family: var(--pixel);
+  font-weight: normal;
+  font-size: 8px;
+  line-height: 1.3;
+  color: #ffe55c;
+}
+.mhi-card > div > small {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--muted);
+}
+/* El botón que paga lleva el precio grande; el de seguir, solo la acción. */
+.panel button.mhi-go {
+  flex: none;
+  min-width: 84px;
+  min-height: 44px;
+  padding: 5px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--ink);
+  background: #ffe55c;
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  box-shadow: inset 0 2px 0 #ffffff66, inset 0 -3px 0 #d9a514, 0 3px 0 var(--ink);
+}
+.mhi-go small {
+  font-family: var(--pixel);
+  font-size: 6px;
+  color: var(--ink);
+}
+.mhi-go b {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--pixel);
+  font-weight: normal;
+  font-size: 10px;
+}
+.panel button.mhi-go.short {
+  color: #6b6480;
+  background: #2a2338;
+  box-shadow: none;
+}
+.panel button.mhi-go.short small {
+  color: #6b6480;
+}
+.mhi-put {
+  margin-top: 4px;
+  padding: 3px 5px;
+  font-style: normal;
+  font-family: var(--pixel);
+  font-size: 6px;
+  color: var(--ink);
+  background: var(--vac);
+  box-shadow: 0 2px 0 var(--ink);
+}
+.mc-row.pickable .mc-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+/* ---------- V4.3: tratar y reentrenar (clases mct-) ----------
+   Botiquín, la acción y el coste, con marco rojo de manía; ocupado y en cama, en gris y azul. */
+.mct-btn,
+.panel button.mct-btn {
+  flex: none;
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 5px;
+  row-gap: 2px;
+  min-height: 40px;
+  padding: 4px 7px;
+  font-family: var(--text);
+  color: #fff;
+  background: #4a2433;
+  border: 2px solid #ff7a8a;
+  border-radius: 0;
+  box-shadow: 0 3px 0 var(--ink);
+}
+.mct-ico {
+  grid-row: 1 / 3;
+  width: 18px;
+  image-rendering: pixelated;
+}
+.mct-btn b {
+  font-family: var(--pixel);
+  font-weight: normal;
+  font-size: 7px;
+  text-align: left;
+}
+.mct-btn small {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffe55c;
+}
+.panel button.mct-btn.short small {
+  color: var(--bad);
+}
+.panel button.mct-btn.short {
+  opacity: 0.75;
+}
+.mct-btn.busy {
+  background: var(--bg);
+  border-color: #4a4458;
+  box-shadow: none;
+}
+.mct-btn.busy small {
+  color: var(--muted);
+}
+.mct-btn.on {
+  background: #1f2f4a;
+  border-color: #5aa9ff;
+  box-shadow: none;
+}
+.mct-btn.on small {
+  color: #bfe8fd;
+}
+.panel button.mct-btn.retrain {
+  background: #20304a;
+  border-color: #5aa9ff;
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel button.mc-post.empty.mcx-vac,
+  .mc-post.mcx-vac .mc-face.hole {
+    animation: none;
+    border-color: var(--vac);
+  }
+}
+
+/* ---------- V4.3: llegada de un ratón contratado, en el aviso de arriba (clases mcx-) ---------- */
+.mcx-fx.join {
+  border-color: var(--vac);
+}
+.mcx-joinpic {
+  flex: none;
+  width: 44px;
+  image-rendering: pixelated;
+  animation: mcx-hop 0.9s steps(1) 2;
+}
+@keyframes mcx-hop {
+  0%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: translateY(-4px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+  75% {
+    transform: translateY(-2px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mcx-joinpic {
+    animation: none;
+  }
+}
+
+/* ---------- V4.3: refuerzos con huecos dentro de cada casilla (clases bo-) ----------
+   La casilla se parte en dos mitades a toda altura, una por hueco: zonas grandes para el dedo.
+   El icono va encima sin recibir toques. */
+.bo-cell {
+  height: 64px;
+}
+.bo-face {
+  position: absolute;
+  top: 6px;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+.bo-cell .bo-slots {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.panel button.bo-slot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 0 10px;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.bo-cell .bo-slot + .bo-slot {
+  border-left: 1px dashed #3b3350;
+}
+.bo-slot i {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 12px;
+  background: #221c2e;
+  border: 2px solid #5aa9ff4d;
+}
+.bo-slot i .pxi {
+  opacity: 0.7;
+}
+.bo-slot.on i {
+  background: #1d4558;
+  border-color: #5ad1ff;
+}
+.bo-slot.on i .pxi {
+  opacity: 1;
+}
+.bo-slot.none i {
+  border-color: #3b3350;
+  border-style: dashed;
+}
+.panel button.bo-slot:active i {
+  transform: translateY(1px);
+}
+.bo-cell em {
+  z-index: 2;
+  top: -6px;
+  bottom: auto;
+  pointer-events: none;
+}
+/* La tienda: los dos huecos a la derecha, de tamaño de dedo. */
+.bo-shop .bo-slots {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.bo-shop .panel button.bo-slot,
+.panel .bo-shop button.bo-slot {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  align-items: center;
+}
+.bo-shop > span {
+  flex: 1;
+  min-width: 0;
+}
+.bo-shop u {
+  display: block;
+  margin: 3px 0 0;
+}
+/* Los iconos de los huecos, a su tamaño natural (la regla de la casilla daba 18 px a toda imagen). */
+.bo-cell .bo-slot .pix.pxi {
+  width: auto;
+}
+
+/* ---------- V4.3: puntos de aviso en pixel art ----------
+   Cuadrados con borde de tinta y un brillo de un píxel, en vez de círculos lisos. */
+.dot,
+.mc-dot,
+.rdot {
+  border-radius: 0;
+  box-shadow: inset 1px 1px 0 #ffffff80;
 }

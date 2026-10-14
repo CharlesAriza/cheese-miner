@@ -227,7 +227,25 @@
     return total;
   }
   const bump = (id) => retrigger($(id), 'bump');
-  const tileBump = (st) => retrigger(tiles[st], 'bump');
+  // V4.3: el pop de una estación. Antes era una clase (`bump`) que no se quitaba nunca y competía
+  // en la misma propiedad `animation` con el latido de NEW! y con la casilla elegida: una tarjeta
+  // podía quedarse con el estado equivocado. Ahora es una animación de la Web Animations API que
+  // se suma a su posición (no la sustituye), la siguiente cancela a la anterior y al acabar no
+  // deja nada puesto. Un salto de dos píxeles a pasos, como el resto del pixel art, en vez de
+  // escalar la tarjeta (que además sacaba la chapa UP!/NEW! fuera de su sitio).
+  const tilePops = {};
+  const calmMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  const tileBump = (st) => {
+    const el = tiles[st];
+    if (!el || !el.animate || (calmMotion && calmMotion.matches)) return;
+    if (tilePops[st]) tilePops[st].cancel();
+    const step = (y) => ({ transform: 'translateY(' + y + 'px)', easing: 'steps(1, end)' });
+    try {
+      tilePops[st] = el.animate([step(0), step(-2), step(-1), step(0)], { duration: 240, composite: 'add' });
+    } catch (e) {
+      tilePops[st] = el.animate([step(0), step(-2), step(-1), step(0)], { duration: 240 });
+    }
+  };
   const punch = () => retrigger($('scene'), 'punch');
   const baseOfZone = () => q.zoneDef(ui.zone).base;
   const recipeBase = (id) => {
@@ -375,7 +393,8 @@
         scene.celebrate();
         // Un solo aviso: quién llega y dónde trabaja (con el panel abierto, la franja sería otro aviso).
         const where = ev.taken ? CM.mice.postLabel(ev.wanted) + ' was filled while you chose: ' + (mouse.post ? 'it works at ' + CM.mice.postLabel(mouse.post) : 'it waits in the house') + '. Nobody was replaced' : mouse.post ? 'Works at ' + CM.mice.postLabel(mouse.post) : 'It waits in the house: every post has a mouse';
-        if (covered()) toast(mouse.name.toUpperCase() + ' JOINED THE COLONY! ' + where, true);
+        if (ui.panel === 'mice') showFx('<img class="pix mcx-joinpic" alt="" src="' + CM.mouseUrl(mouse) + '"><div class="mcx-fxmain"><b>' + P.esc(mouse.name).toUpperCase() + ' JOINED THE COLONY!</b><span class="up">' + P.esc(where) + '</span></div>', 3800, 'join');
+        else if (covered()) toast(mouse.name.toUpperCase() + ' JOINED THE COLONY! ' + where, true);
         else {
           banner(mouse.name.toUpperCase() + ' JOINED THE COLONY!');
           toast(where, true);
@@ -1343,22 +1362,26 @@
     let combos = '';
     if (gained.length) combos += '<span class="up">NEW COMBO: ' + gained.map(P2.esc).join(', ') + '</span>';
     if (lost.length) combos += '<span class="down">LOST: ' + lost.map(P2.esc).join(', ') + '</span>';
-    // Si había un aviso normal a la vista, vuelve a la cola y sale después.
+    showFx('<div class="mcx-fxmain"><b>' + P2.esc(o.label).toUpperCase().replace(' \u2194 ', ' ' + I.px('swap') + ' ').replace(' \u2192 ', ' ' + I.px('arrow') + ' ') + '</b><div class="mcx-chips">' + chips.join('') + '</div>' + combos + '</div>' + (o.undo ? '' : '<button data-act="undomove" class="mcx-undo mcx-pixbtn">' + I.img('undo') + 'UNDO</button>'));
+    if (gained.length) play('reveal');
+  }
+  // El aviso de arriba del panel: uno a la vez (el nuevo sustituye al anterior), entra y sale
+  // a saltos y se va solo. Lo usan los movimientos de ratones y las llegadas de contratados.
+  function showFx(html, ms, cls) {
+    const el = $('mcx-fx');
     if (toastBusy && els.toast.classList.contains('show')) {
       toastQueue.unshift({ text: els.toast.textContent, good: els.toast.classList.contains('good') });
       els.toast.classList.remove('show');
       clearTimeout(toastTimer);
       toastTimer = setTimeout(nextToast, 500);
     }
-    const el = $('mcx-fx');
-    el.innerHTML = '<div class="mcx-fxmain"><b>' + P2.esc(o.label).toUpperCase() + '</b><div class="mcx-chips">' + chips.join('') + '</div>' + combos + '</div>' + (o.undo ? '' : '<button data-act="undomove" class="mcx-undo mcx-pixbtn">' + I.img('undo') + 'UNDO</button>');
+    el.innerHTML = html;
+    el.className = 'mcx-fx' + (cls ? ' ' + cls : '');
     el.hidden = false;
     ui.fxOn = true; // mientras se ve, el UNDO está en el aviso; después, en la línea de ocupación
-    el.classList.remove('in', 'out');
     void el.offsetWidth;
     el.classList.add('in');
     clearTimeout(fxTimer);
-    // Se va solo, a saltos como entró; uno nuevo lo sustituye al momento.
     fxTimer = setTimeout(() => {
       el.classList.add('out');
       fxTimer = setTimeout(() => {
@@ -1366,8 +1389,7 @@
         ui.fxOn = false;
         renderPanel();
       }, 240);
-    }, 6000);
-    if (gained.length) play('reveal');
+    }, ms || 6000);
   }
   // Llevar una roca (o los puestos de toda la colonia) arriba de la lista, bajo la barra de mover.
   function jumpRock() {
@@ -1458,7 +1480,6 @@
     // Colonia: tocar un puesto enseña candidatos; tocar un ratón, sus puestos posibles.
     pickpost: (skill, zone) => {
       const key = skill + ':' + zone;
-      ui.postOpt = null;
       $('sheet-body').scrollTop = 0;
       ui.pick = ui.pick && ui.pick.type === 'post' && ui.pick.key === key ? null : { type: 'post', key };
     },
@@ -1534,7 +1555,6 @@
     undomove: undoMove,
     stockall: () => void (ui.stockAll = !ui.stockAll),
     // Puesto vacío: mover uno que ya tienes o conocer a tres nuevos (pagando con dos toques).
-    postopt: () => void (ui.postOpt = ui.postOpt === 'hide' ? null : 'hide'),
     recruitfor: (skill, zone) => {
       ui.cand = -1;
       const r = CM.mice.offer(state, skill + ':' + zone);
@@ -1554,9 +1574,14 @@
       return B2.place(state, key);
     },
     // V4.1: elegir un puesto, y poner o quitar con botones separados (misma mecánica).
-    bosel: (skill, zone) => void (ui.boSel = ui.boSel === skill + ':' + zone ? '' : skill + ':' + zone),
-    boadd: () => (ui.boSel ? CM.boosts.place(state, ui.boSel) : CM.fail('invalid')),
-    borem: () => (ui.boSel ? CM.boosts.remove(state, ui.boSel) : CM.fail('invalid')),
+    // V4.3: un hueco lleno se quita; uno vacío pone un refuerzo libre. Si no queda ninguno, no
+    // se toca nada (nunca se quita de otro puesto) y se dice por qué.
+    boslot: (skill, zone, i) => {
+      const key = skill + ':' + zone;
+      if (Number(i) < CM.boosts.at(state, skill, zone)) return CM.boosts.remove(state, key);
+      if (CM.boosts.free(state) <= 0) return CM.fail('no-boost');
+      return CM.boosts.place(state, key);
+    },
     boostclear: () => {
       while (state.boosts.length) CM.boosts.remove(state, state.boosts[state.boosts.length - 1]);
     },
@@ -2080,11 +2105,11 @@
     for (const n of news) {
       for (const t of (n.grew || []).filter(isLegend)) {
         legends += 1;
-        if (legends <= 3) lines.push('<b class="tleg">&#9733; ' + P.esc(n.name) + ' developed a LEGENDARY trait: ' + TR[t].name + '</b>');
+        if (legends <= 3) lines.push('<b class="tleg">' + I.px('star') + ' ' + P.esc(n.name) + ' developed a LEGENDARY trait: ' + TR[t].name + '</b>');
         jewel = jewel || { id: n.id, trait: t };
       }
     }
-    if (legends > 3) lines.push('<b class="tleg">&#9733; ...and ' + (legends - 3) + ' more legendary traits.</b> Find them in MICE: ROSTER, show Legendary');
+    if (legends > 3) lines.push('<b class="tleg">' + I.px('star') + ' ...and ' + (legends - 3) + ' more legendary traits.</b> Find them in MICE: ROSTER, show Legendary');
     if (sum.careDone) {
       const pat = CM.mice.byId(state, sum.careDone.id);
       if (pat) lines.push('Mouse House bed: ' + P.esc(pat.name) + (sum.careDone.kind === 'quirk' ? ' is over <b class="tok">' + TR[sum.careDone.what].name + '</b>' : ' retrained to <b class="tok">' + TR[sum.careDone.to].name + '</b>') + '. The bed is free');
@@ -2183,7 +2208,7 @@
       });
     }
     legendEl.innerHTML =
-      '<div class="rays"></div><div class="rain">' + rain + '</div><div class="card"><div class="top">&#9733; LEGENDARY &#9733;</div><img class="pix" alt="" src="' + CM.mouseUrl(mouse) + '"><div class="who">' + P.esc(mouse.name) + (born ? ' joined your colony' : '') + '</div><div class="name">' + def.name.toUpperCase() + '</div><p>' + def.desc + '.</p>' + change + '<small>tap to continue</small></div>';
+      '<div class="rays"></div><div class="rain">' + rain + '</div><div class="card"><div class="top">' + I.px('star') + ' LEGENDARY ' + I.px('star') + '</div><img class="pix" alt="" src="' + CM.mouseUrl(mouse) + '"><div class="who">' + P.esc(mouse.name) + (born ? ' joined your colony' : '') + '</div><div class="name">' + def.name.toUpperCase() + '</div><p>' + def.desc + '.</p>' + change + '<small>tap to continue</small></div>';
     legendEl.shownAt = performance.now();
     legendEl.hidden = false;
     retrigger(legendEl, 'go');
