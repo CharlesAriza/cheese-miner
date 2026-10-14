@@ -883,7 +883,7 @@
     return (
       '<button data-act="' + act('card:' + m.id) + '" data-post="' + key + '" data-mouse="' + m.id + '" class="mc-post' + (wide ? ' wide' : '') + (due ? ' mc-due' : '') + (s.care && s.care.id === m.id ? ' inbed' : '') + selCls + '"' + (due ? upDelay(m) : '') + '>' + portrait(m) +
       // V4.9: en la casa se dice con texto en su renglón (sin icono de cama en la esquina).
-      '<span><small>' + JOB_SHORT[skill].toUpperCase() + hearts(m.aff[skill]) + '</small><b>' + esc(m.name) + '</b>' + (s.care && s.care.id === m.id ? '<em class="mc-incare ' + (s.care.kind === 'spec' ? 'train' : 'bed') + '">' + (s.care.kind === 'spec' ? 'Training' : 'In bed') + ' · ' + clock(s.care.remaining) + '</em>' : '<em>' + rankLv(m) + '</em>') + '</span>' +
+      '<span><small>' + JOB_SHORT[skill].toUpperCase() + hearts(m.aff[skill]) + '</small><b>' + esc(m.name) + '</b>' + (s.care && s.care.id === m.id ? '<em class="mc-incare ' + (s.care.kind === 'spec' ? 'train' : 'bed') + '">' + (s.care.kind === 'spec' ? 'Training' : 'Resting') + ' · ' + clock(s.care.remaining) + '</em>' : '<em>' + rankLv(m) + '</em>') + '</span>' +
       '<i class="mc-out">' + mult(K.here(s, m)) + '</i>' + (due ? upArrow() : '') + '</button>'
     );
   }
@@ -916,7 +916,7 @@
     const empty = K.posts(s).filter((p) => !K.at(s, p.skill, p.zone));
     let notes = '';
     if (promos.length) notes += btn('promos', '<b>' + promos.length + '</b> can be promoted', { cls: 'mc-note up' });
-    if (idle.length) notes += btn('rosterfilter:free', '<b>' + idle.length + '</b> with no post', { cls: 'mc-note' });
+    if (idle.length) notes += btn(idle.length === 1 ? 'pickmouse:' + idle[0].id : 'rosterfilter:free', '<b>' + idle.length + '</b> unassigned · ASSIGN', { cls: 'mc-note idle' });
     // Ocupación: una línea fija arriba. Lo importante es el propio puesto vacío, que late.
     const total = K.posts(s).length;
     const sel = ui.moveSel ? K.byId(s, ui.moveSel) : null;
@@ -1043,7 +1043,7 @@
     if (!list.length) return h + '<p class="hint">No mouse matches.</p>';
     for (const m of list) {
       const due = canPromote(s, m);
-      const right = (m.post ? '<i class="mc-out">' + mult(K.here(s, m)) + '</i>' : '<i class="mc-out none">FREE</i>') + (due ? upArrow('mc-uprow') : s.care && s.care.id === m.id ? '<small class="mc-todo bed">' + (s.care.kind === 'spec' ? 'TRAINING' : 'IN BED') + '</small>' : '');
+      const right = (m.post ? '<i class="mc-out">' + mult(K.here(s, m)) + '</i>' : '<i class="mc-out none">UNASSIGNED</i>') + (due ? upArrow('mc-uprow') : s.care && s.care.id === m.id ? '<small class="mc-todo bed">' + (s.care.kind === 'spec' ? 'TRAINING' : 'RESTING') + '</small>' : '');
       h += mouseLine(s, m, 'card:' + m.id, right, { cls: due ? 'mc-due' : '', skill: likes || undefined }).replace('class="mc-row', (due ? upDelay(m).trim() + ' ' : '') + 'class="mc-row');
     }
     return h;
@@ -1091,7 +1091,7 @@
     const list = s.mice.map((m) => ({ m, v: K.solo(m, skill, s, zone) }));
     list.sort((a, b) => (a.m.post ? 1 : 0) - (b.m.post ? 1 : 0) || b.v - a.v);
     for (const { m, v } of list) {
-      const sub = m.post ? '<span class="mcx-leaves">Leaves ' + K.postLabel(m.post) + ' empty</span>' : m.rest ? 'Free · resting in the house' : 'Free · waiting in the house';
+      const sub = m.post ? '<span class="mcx-leaves">Leaves ' + K.postLabel(m.post) + ' empty</span>' : 'Unassigned · in the house';
       h += mouseLine(s, m, 'post:' + m.id + ':' + key, '<i class="mc-out">' + mult(v) + '</i><i class="mhi-put">PUT HERE</i>', { sub, skill, likes: false, traits: 2, cls: 'pickable' }).replace('<span class="mc-tags">', '<span class="mc-tags">' + (m.aff[skill] ? '<i class="mc-like a' + m.aff[skill] + '">' + JOB_SHORT[skill] + hearts(m.aff[skill]) + '</i>' : ''));
     }
     return h;
@@ -1108,12 +1108,19 @@
     const short = s.coins < cost;
     return '<div class="mhi-card"><div><b>FIND NEW MICE</b><small>Meet 3 candidates. Choose one to hire.</small></div>' + btn(payAct, I.img('coin', '', 'mhi-coin') + CM.fmt(cost), { cls: 'mhi-go pay' + (short ? ' short' : ''), off: short, cost }) + '</div>';
   }
+  // V4.10. Fila fija de MICE: HIRE (con su precio, o seguir eligiendo si ya hay tres pagados).
+  function hireBar(s) {
+    if (s.candidates.length) return '<div class="mc-hirebar">' + btn('recruitview', '<b>HIRE</b><small>3 mice waiting · CONTINUE</small>', { cls: 'mc-hire waiting' }) + '</div>';
+    const cost = CM.mice.recruitCost(s);
+    const short = s.coins < cost;
+    return '<div class="mc-hirebar">' + btn('recruit', '<b>HIRE</b><small>Meet 3, pick 1 · ' + I.px('coin') + CM.fmt(cost) + '</small>', { cls: 'mc-hire' + (short ? ' short' : ''), off: short, cost }) + '</div>';
+  }
   // V4.3. Tratar una manía: botiquín pixel art, TREAT y el coste en su línea. Estados claros:
   // se puede, falta dinero, la cama la ocupa otro, y este mismo en tratamiento. Clases `mct-`.
   function treatBtn(s, m, id) {
     const c = s.care;
     // V4.9: sin iconos sueltos; el estado lo dicen el texto y el color de la sala (rosa la cama).
-    if (c && c.id === m.id && c.what === id) return '<span class="mct-btn on bed"><b>IN BED</b><small>' + clock(c.remaining) + ' left</small></span>';
+    if (c && c.id === m.id && c.what === id) return '<span class="mct-btn on bed"><b>RESTING</b><small>' + clock(c.remaining) + ' left</small></span>';
     if (c) return '<span class="mct-btn busy"><b>HOUSE BUSY</b><small>' + clock(c.remaining) + '</small></span>';
     const cost = CM.mice.careCost(s, 'quirk');
     const short = s.coins < cost;
@@ -1154,7 +1161,7 @@
     h +=
       '<div class="mc-hero r' + (m.rarity || 0) + '">' + portrait(m, 'huge') + '<div><b class="mc-name">' + esc(m.name) + '</b><small class="mc-rar r' + (m.rarity || 0) + '">' + RARITY[m.rarity || 0].name + ' · ' + M.ranks[m.rank].name + '</small>' +
       '<span class="mc-lv">LV ' + p.level + '</span>' + xpBar(p) + '</div></div>';
-    h += '<div class="mc-job">' + (skill ? '<span><small>WORKS AT</small><b>' + K.postLabel(m.post) + '</b><em>' + mouseRate(s, m, skill, zone) + '</em></span>' : '<span><small>' + (m.rest ? 'RESTING' : 'WAITING') + '</small><b>In the Mouse House</b><em>It only levels up on a post</em></span>') + btn('pickmouse:' + m.id, 'MOVE', { cls: 'buy' }) + '</div>';
+    h += '<div class="mc-job">' + (skill ? '<span><small>WORKS AT</small><b>' + K.postLabel(m.post) + '</b><em>' + mouseRate(s, m, skill, zone) + '</em></span>' : '<span><small>UNASSIGNED</small><b>In the Mouse House</b><em>It only works and levels up on a post</em></span>') + btn('pickmouse:' + m.id, skill ? 'MOVE' : 'ASSIGN', { cls: 'buy' }) + '</div>';
     // Afinidades: los seis oficios, de un vistazo.
     h += '<div class="mc-affs">' + K.JOBS.map((k) => '<i class="a' + ((m.aff && m.aff[k]) || 0) + (k === skill ? ' here' : '') + '">' + JOB_SHORT[k] + hearts(m.aff && m.aff[k]) + '</i>').join('') + '</div>';
     // V4.1: un ascenso disponible se ve arriba, con lo que da y lo que cuesta.
@@ -1375,16 +1382,17 @@
     const c = cands[at];
     const free = K.posts(s).filter((p) => !K.at(s, p.skill, p.zone));
     const want = s.candidatesFor ? free.find((p) => p.key === s.candidatesFor) : null;
-    const dest = want || free[0];
+    // V4.10: solo una vacante elegida decide el puesto; si no, llega sin asignar.
+    const dest = want;
     let h = btn('recruitlater', '&lt; LATER', { cls: 'mini' }) + '<div class="mc-pickhead"><span><small>ALREADY PAID · THEY WAIT IF YOU LEAVE</small><b>CHOOSE WHO TO HIRE</b></span></div>';
-    if (s.candidatesFor) h += '<div class="mcx-for' + (want ? '' : ' gone') + '"><small>HIRING FOR</small><b>' + K.postLabel(s.candidatesFor).toUpperCase() + '</b>' + (want ? '' : '<span>Filled meanwhile: the new mouse ' + (free.length ? 'goes to ' + K.postLabel(free[0].key) : 'waits in the house') + '</span>') + '</div>';
+    if (s.candidatesFor) h += '<div class="mcx-for' + (want ? '' : ' gone') + '"><small>HIRING FOR</small><b>' + K.postLabel(s.candidatesFor).toUpperCase() + '</b>' + (want ? '' : '<span>Filled meanwhile: the new mouse arrives unassigned and you choose its post</span>') + '</div>';
     h += '<div class="mc-cands">' + cands.map((x, i) => '<button data-act="cand:' + i + '" class="r' + (x.rarity || 0) + (i === at ? ' on' : '') + '">' + portrait(x) + '<b>' + esc(x.name) + '</b><small class="mc-rar r' + (x.rarity || 0) + '">' + RARITY[x.rarity || 0].name + '</small></button>').join('') + '</div>';
     h += '<div class="mc-hero r' + (c.rarity || 0) + '">' + portrait(c, 'huge') + '<div><b class="mc-name">' + esc(c.name) + '</b><small class="mc-rar r' + (c.rarity || 0) + '">' + RARITY[c.rarity || 0].name + (c.rarity ? ' · ' + Math.round(RARITY[c.rarity].bonus * 100) + '% faster at any job' : '') + '</small><span class="mc-lv">LV 1</span></div></div>';
     h += '<div class="mc-affs">' + K.JOBS.map((k) => '<i class="a' + (c.aff[k] || 0) + '">' + JOB_SHORT[k] + hearts(c.aff[k]) + '</i>').join('') + '</div>';
     h += '<ul class="mc-traits">' + c.traits.map((id) => '<li class="' + KIND_CLS[T[id].kind] + '">' + traitChip(id) + '<span>' + traitDesc(id) + '</span></li>').join('') + '</ul>';
     // En tu colonia: hechos, no promesas.
     const liked = free.filter((p) => c.aff[p.skill]);
-    h += '<div class="mc-fit"><small>IN YOUR COLONY</small>' + (dest ? '<span>It would start at <b>' + K.postLabel(dest.key) + '</b>: ' + mouseRate(s, c, dest.skill, dest.zone) + '.</span>' : '<span>Every post is taken: it would wait in the house until you swap it in.</span>') + (liked.length ? '<span>Empty posts it likes: ' + liked.slice(0, 3).map((p) => K.postLabel(p.key)).join(', ') + '.</span>' : '') + '<span>What it becomes later is for you to find out.</span></div>';
+    h += '<div class="mc-fit"><small>IN YOUR COLONY</small>' + (dest ? '<span>It would start at <b>' + K.postLabel(dest.key) + '</b>: ' + mouseRate(s, c, dest.skill, dest.zone) + '.</span>' : '<span>It arrives <b>unassigned</b>: after hiring you choose its post.</span>') + (liked.length ? '<span>Empty posts it likes: ' + liked.slice(0, 3).map((p) => K.postLabel(p.key)).join(', ') + '.</span>' : '') + '<span>What it becomes later is for you to find out.</span></div>';
     return h + btn('choose:' + at, 'HIRE ' + esc(c.name).toUpperCase(), { cls: 'buy wide' });
   }
 
@@ -1426,13 +1434,14 @@
     const posts = K.posts(s);
     if (ui.pick && ui.pick.type === 'post' && posts.some((p) => p.key === ui.pick.key)) return postPicker(s, ui, ui.pick.key);
 
-    if (!s.mice.length) {
-      const cost = K.recruitCost(s);
-      return '<p class="lead">Your first mouse takes over a stage so you do not have to tap it.</p>' + btn('recruit', '<b>MEET THREE NEW MICE</b><span>You hire one of the three.</span><em>' + coin(cost) + '</em>', { off: s.coins < cost, cls: 'labrow ready', cost });
-    }
+    // V4.10: las pestañas (con HOUSE) se ven desde el primer momento, también sin ratones.
     const view = ui.miceView === 'roster' || ui.miceView === 'house' ? ui.miceView : 'rocks';
     const todo = s.mice.filter((m) => canPromote(s, m)).length;
     let h = '<div class="tabs mc-tabs">' + btn('miceview:rocks', 'COLONY', { cls: view === 'rocks' ? 'on' : '' }) + btn('miceview:roster', 'ROSTER ' + s.mice.length, { cls: (view === 'roster' ? 'on' : '') + (todo ? ' mc-promo' : '') }) + btn('miceview:house', 'HOUSE', { cls: view === 'house' ? 'on' : '' }) + '</div>';
+    // V4.10: HIRE siempre a mano en COLONY y ROSTER (en HOUSE ya tiene su sección). Contratar
+    // desde aquí no elige puesto: el nuevo llega sin asignar y el jugador lo coloca.
+    if (view !== 'house') h += hireBar(s);
+    if (!s.mice.length && view === 'rocks') h += '<p class="hint mc-first">Hire your first mouse, then tap a post to put it to work. A mouse on a post does that stage for you, even while you are away.</p>';
     return h + (view === 'roster' ? rosterView(s, ui) : view === 'house' ? houseView(s, ui) : colonyView(s, ui));
   }
 
@@ -1445,7 +1454,7 @@
       row('Playtest tools', 'Dev menu: marks the session as assisted', btn('open:dev', 'OPEN', { cls: 'buy' })) +
       row('Reset save', 'Start over from zero', btn('reset', 'RESET', { cls: 'danger' })) +
       // Qué versión del prototipo se está probando (para no confundirla con una copia en caché).
-      '<p class="hint"><b>Prototype V4.9</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
+      '<p class="hint"><b>Prototype V4.10</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
     );
   }
 

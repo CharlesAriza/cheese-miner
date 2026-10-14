@@ -10546,3 +10546,93 @@ img.pix.pxi {
     animation: none;
   }
 }
+
+/* ======================= V4.10: primeros minutos (onboarding y UX) ======================= */
+/* RESTING / TRAINING en ROSTER: misma chapa compacta y su color de estado, con texto oscuro
+   legible (la V4.9 lo había dejado rosa claro sobre cian). Es un estado, no un botón. */
+.panel .mc-todo.bed,
+.panel .mc-side small.mc-todo.bed {
+  color: var(--ink);
+  background: var(--pick);
+  font-size: 6px;
+  padding: 3px 5px 2px;
+}
+/* Cadena de la roca: el nombre del recurso, pequeño y apagado, encima de la cantidad. */
+.fchip small.fname {
+  display: block;
+  margin-bottom: 2px;
+  font-family: var(--pixel);
+  font-size: 5px;
+  line-height: 6px;
+  letter-spacing: 0.5px;
+  color: #b9b0d0;
+}
+/* Precio limpio en la compra rápida y en BUY ALL: el « · in ~3 min» que se añadía al precio no
+   cabía y el renglón lo cortaba justo después del punto («798 ·»). Lo que falta ya lo dice el
+   relleno verde del botón. */
+.dup.quick[data-eta]:not([data-eta='']) span::after,
+.dup.all[data-eta]:not([data-eta='']) u::after {
+  content: none;
+}
+/* El objetivo lleva aquí: el botón principal se marca tres veces con un contorno amarillo
+   (el color de «esto es lo que toca») y se queda normal. */
+.act.qpoint {
+  animation: qpoint 0.45s steps(1) 3;
+}
+@keyframes qpoint {
+  0%,
+  50% {
+    outline: 3px solid #ffe55c;
+    outline-offset: 1px;
+  }
+  51%,
+  100% {
+    outline: 0 solid transparent;
+  }
+}
+/* La barra del objetivo es un botón: se nota al tocarla. */
+#objective:active {
+  transform: translateY(1px);
+  filter: brightness(0.95);
+}
+/* MICE: HIRE siempre a mano, bajo las pestañas. El mismo botón verde de comprar del juego. */
+.mc-hirebar {
+  margin: 0 0 8px;
+}
+.panel button.mc-hire {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 12px;
+  background: #3fa860;
+}
+.panel button.mc-hire b {
+  font-family: var(--pixel);
+  font-weight: normal;
+  font-size: 9px;
+}
+.panel button.mc-hire small {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+}
+.panel button.mc-hire.waiting {
+  background: #2b5a3a;
+}
+.panel button.mc-hire.short {
+  background: linear-gradient(90deg, #58704e var(--p, 0%), #4a4458 var(--p, 0%));
+}
+.mc-first {
+  margin: 0 0 8px;
+}
+/* El aviso de ratones sin asignar lleva a colocarlos. */
+.panel button.mc-note.idle {
+  border-color: #ffe55c;
+  color: #fff3b0;
+}

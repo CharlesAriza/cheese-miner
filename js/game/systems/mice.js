@@ -642,8 +642,9 @@
       this.note(s, m);
       s.candidates = [];
       s.totals.miceRecruited += 1;
-      // Reclutado para un puesto: va a ese puesto. Si mientras tanto se ocupó, no se quita a
-      // nadie: va al primer puesto libre o espera en la casa, y el aviso lo cuenta.
+      // Reclutado para un puesto (desde su vacante): va a ese puesto. V4.10: reclutado desde el
+      // botón general HIRE, o si la vacante se ocupó mientras tanto, queda SIN ASIGNAR: contratar
+      // y colocar son dos decisiones del jugador. No se quita a nadie de su puesto.
       const want = s.candidatesFor || '';
       s.candidatesFor = '';
       const open = want && this.posts(s).some((p) => p.key === want) && !s.mice.some((x) => x.post === want);
@@ -651,7 +652,7 @@
         m.post = want;
         teamKey = '';
         CM.rev += 1;
-      } else this.autoPlace(s, m);
+      }
       CM.emit(s, 'recruited', { id: m.id, wanted: want, taken: !!want && !open });
       return CM.ok({ id: m.id });
     },
@@ -763,6 +764,8 @@
       return !!free;
     },
     // Coloca a los que esperan en la casa (salvo a los que el jugador mandó descansar).
+    // V4.10: ya no lo llama el juego (ni cada 2 s ni al despedir): un ratón sin puesto espera
+    // hasta que el jugador lo coloca. Queda para herramientas de prueba.
     fillEmpty(s) {
       for (const m of s.mice) {
         if (m.post || m.rest) continue;
@@ -906,7 +909,6 @@
       if (s.care && s.care.id === m.id) s.care = null; // la cama queda libre
       if (s.master === m.id) s.master = ''; // el título queda libre
       CM.emit(s, 'dismissed', { name: m.name, post: m.post });
-      this.fillEmpty(s);
       return CM.ok();
     },
 

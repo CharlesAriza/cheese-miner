@@ -228,7 +228,11 @@
     eq(s.mice.length, 1, 'one mouse');
     eq(s.mice[0].name, picked, 'the one chosen');
     eq(s.candidates.length, 0, 'candidates cleared');
-    eq(s.mice[0].post, 'trading:all', 'placed on the first post by priority: the shop');
+    // V4.10: contratado desde HIRE (sin vacante), llega SIN ASIGNAR; lo coloca el jugador.
+    eq(s.mice[0].post, '', 'hired from HIRE: unassigned until the player places it');
+    run(s, 10000);
+    eq(s.mice[0].post, '', 'and nothing places it on its own');
+    eq(CM.storage.parse(JSON.stringify(s), 1000000).mice[0].post, '', 'it stays unassigned after a reload');
     truthy(CM.mice.recruitCost(s) > cost, 'the next one costs more');
     valid(s);
   });
@@ -286,7 +290,7 @@
     const c = staff(s, 'mining');
     c.post = '';
     run(s, 5000);
-    truthy(c.post !== '', 'a new idle mouse takes a free post on its own');
+    eq(c.post, '', 'V4.10: an idle mouse does not take a free post on its own');
     // Best fit: cada puesto, por prioridad, se lleva al mejor que quede.
     a.aff = { trading: 2 };
     b.aff = { drilling: 2 };
@@ -810,7 +814,8 @@
     const d = staff(s, 'mining', 'cheddar', { post: '' });
     const working = s.mice.find((m) => m.post && m !== d);
     CM.mice.dismiss(s, working.id);
-    eq(d.post, 'trading:all', 'a waiting mouse takes the best free post right away');
+    eq(d.post, '', 'V4.10: a waiting mouse does not take the freed post on its own');
+    CM.mice.assign(s, d.id, 'trading:all');
     CM.mice.assign(s, d.id, '');
     const e = s.mice.find((m) => m !== d);
     const post = e.post;
@@ -2519,7 +2524,7 @@
         // y deja que se coloque solo), luego ascensos, luego lo más barato de cada árbol.
         const wantsMouse = s.built.house && !!CM.mice.freePost(s);
         const power = (m, skill, zone) => CM.mice.speed(m, skill, s, zone) * CM.mice.yieldMult(m, skill, s, zone) * (1 + CM.mice.doubleChance(m, skill, s, zone));
-        if (wantsMouse && CM.mice.offer(s).ok) {
+        if (wantsMouse && CM.mice.offer(s, CM.mice.freePost(s).key).ok) {
           let pickAt = 0;
           if (smart) {
             const dest = CM.mice.freePost(s);

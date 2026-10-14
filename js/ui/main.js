@@ -394,7 +394,7 @@
         else play('build');
         scene.celebrate();
         // Un solo aviso: quién llega y dónde trabaja (con el panel abierto, la franja sería otro aviso).
-        const where = ev.taken ? CM.mice.postLabel(ev.wanted) + ' was filled while you chose: ' + (mouse.post ? 'it works at ' + CM.mice.postLabel(mouse.post) : 'it waits in the house') + '. Nobody was replaced' : mouse.post ? 'Works at ' + CM.mice.postLabel(mouse.post) : 'It waits in the house: every post has a mouse';
+        const where = ev.taken ? CM.mice.postLabel(ev.wanted) + ' was filled while you chose. Nobody was replaced: it is UNASSIGNED, tap a post for it' : mouse.post ? 'Works at ' + CM.mice.postLabel(mouse.post) : 'UNASSIGNED: tap a post to put it to work';
         if (ui.panel === 'mice') showFx('<img class="pix mcx-joinpic" alt="" src="' + CM.mouseUrl(mouse) + '"><div class="mcx-fxmain"><b>' + P.esc(mouse.name).toUpperCase() + ' JOINED THE COLONY!</b><span class="up">' + P.esc(where) + '</span></div>', 3800, 'join');
         else if (covered()) toast(mouse.name.toUpperCase() + ' JOINED THE COLONY! ' + where, true);
         else {
@@ -857,9 +857,11 @@
         m.tone = 'good';
         // Con la veta a la vista, este mismo botón taladra: sin paso intermedio.
         const ds = CM.drilling.status(state, ui.zone);
-        m.kind = state.built.drill ? 'drill' : 'none';
-        m.label = 'DRILL';
-        m.sub = ds === 'running' ? (q.auto(state, 'drilling', ui.zone) ? 'Auto · hold to boost' : 'HOLD TO BOOST!') : 'Tap to drill the vein';
+        // V4.10: sin taladro, este botón no hacía nada (y parecía el camino). Ahora lleva a
+        // construirlo, igual que el objetivo; no lo compra solo.
+        m.kind = state.built.drill ? 'drill' : 'goto:drill';
+        m.label = state.built.drill ? 'DRILL' : 'BUILD THE DRILL';
+        m.sub = !state.built.drill ? 'It gets the cheese out of the vein' : ds === 'running' ? (q.auto(state, 'drilling', ui.zone) ? 'Auto · hold to boost' : 'HOLD TO BOOST!') : 'Tap to drill the vein';
         m.fill = progress(z.drillJob);
         m.mode = ds === 'ready' ? 'hot' : '';
       } else {
@@ -1142,7 +1144,7 @@
     if (kind === 'refine') return report(CM.refining.tap(state, ui.zone), els.main);
     if (kind === 'cheeseBoost') return report(CM.cheesery.tap(state, ui.zone), els.main);
     if (kind === 'sell') return report(CM.shop.tap(state), els.main);
-    if (kind.startsWith('goto:')) return select(kind.slice(5));
+    if (kind.startsWith('goto:')) return select(kind.slice(5)), pointMain();
     if (kind.startsWith('open:')) return openPanel(kind.slice(5));
     if (kind.startsWith('locked:')) return report(CM.fail('locked'), els.main), toast(CM.construction.buildInfo(state, kind.slice(7)).condText);
     if (kind.startsWith('build:')) {
@@ -1257,6 +1259,7 @@
     ui.lastHtml = '';
     $('sheet-title').textContent = P.title(name, ui, state);
     $('sheet').hidden = false;
+    navSel();
     $('sheet-body').scrollTop = 0;
     if (name === 'cheese') {
       scene.focus('cheesery');
@@ -1291,6 +1294,7 @@
     ui.fxOn = false;
     $('mcx-fx').hidden = true;
     $('sheet').hidden = true;
+    navSel();
   }
   // Solo toca el DOM si el contenido cambió, para no perder taps a medio pulsar.
   // V4.2: los paneles de cifras que cambian solas (despensa, SHOP, COINS) se repintan como mucho
@@ -1478,12 +1482,22 @@
   // V4.4. Objetivos como acceso: tocar la barra lleva a donde se avanza en el objetivo actual,
   // resalta el control que toca y no compra ni ejecuta nada. Ver la tabla en la entrega.
   const QUEST_STATION = { vein: 'rock', depth3: 'rock', drill: 'drill', raw: 'drill', refinery: 'refinery', base: 'refinery', cheesery: 'cheesery', shop: 'shop', sale: 'shop' };
+  // V4.10: al llegar a una estación desde el objetivo (o desde «BUILD THE DRILL»), su botón
+  // principal se marca un momento: es ahí donde se hace lo que pide. No pulsa nada.
+  let pointTimer = 0;
+  function pointMain() {
+    retrigger(els.main, 'qpoint');
+    // Se quita al acabar (3 × 0,45 s) para no pisar después la animación «hot» del botón.
+    clearTimeout(pointTimer);
+    pointTimer = setTimeout(() => els.main.classList.remove('qpoint'), 1400);
+  }
   function questGo() {
     const goal = CM.sim.objective(state);
     const id = goal.id;
     if (QUEST_STATION[id]) {
       if (ui.panel) closePanel();
-      return select(QUEST_STATION[id]);
+      select(QUEST_STATION[id]);
+      return pointMain();
     }
     if (id === 'recipe') return openPanel('cheese');
     if (id === 'recipes8') return openPanel(state.built.lab ? 'lab' : 'cheese');
@@ -1611,7 +1625,15 @@
       ui.card = null;
       ui.miceTab = '';
       ui.moveSel = null;
-      return CM.mice.choose(state, Number(i));
+      const r = CM.mice.choose(state, Number(i));
+      // V4.10: contratado desde HIRE (sin vacante elegida), llega SIN ASIGNAR y la colonia se
+      // abre en «elige su puesto»: el jugador toca un puesto o cancela. Nada lo coloca solo.
+      const nm = r.ok && CM.mice.byId(state, r.id);
+      if (nm && !nm.post) {
+        ui.miceView = 'rocks';
+        ui.moveSel = nm.id;
+      }
+      return r;
     },
     // PROTOTIPO: cargar una colonia de prueba (temprana, media o avanzada).
     protoload: (which) => {
@@ -2665,6 +2687,11 @@
     const b = $(id);
     if (b.dataset.alert !== st) b.dataset.alert = st;
   }
+  // V4.10: la pestaña abierta (`sel`) se actualiza en el momento de abrir o cerrar el panel. Antes
+  // solo se recalculaba cada 400 ms y, al cerrar rápido, COLONY o MICE seguían un rato hundidos.
+  function navSel() {
+    for (const [id, name] of Object.entries(NAV)) set($(id), 'sel', name === 'colony' ? ui.panel === 'tree' && ui.tree === 'colony' : ui.panel === name);
+  }
   function navSeen(name) {
     const keys = ui.navKeys[name] || [];
     if (keys.length) markSeen(...keys.map((k) => 'nav:' + k));
@@ -2688,6 +2715,7 @@
       toast(it.node.name + ' ready in COLONY: ' + it.node.desc.charAt(0).toLowerCase() + it.node.desc.slice(1), true);
     }
     // Puestos cubiertos / totales, siempre a la vista en MICE.
+    if (!state.built.house) set($('nav-mice-n'), 'text', '');
     if (state.built.house) {
       const posts = CM.mice.posts(state);
       const staffed = posts.filter((p) => CM.mice.at(state, p.skill, p.zone)).length;
@@ -2707,7 +2735,7 @@
     if ($('nav-boosts').hidden === owned > 0) $('nav-boosts').hidden = !(owned > 0);
     const freeB = CM.boosts.free(state);
     navAlert('nav-boosts', freeB > 0 ? ['free:' + owned] : []);
-    for (const [id, name] of Object.entries(NAV)) set($(id), 'sel', name === 'colony' ? ui.panel === 'tree' && ui.tree === 'colony' : ui.panel === name);
+    navSel();
     updateBuyAll();
   }
 

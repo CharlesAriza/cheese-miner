@@ -7,7 +7,7 @@
     <title>Cheese Miner</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" />
-    <link rel="stylesheet" href="style.css?v=1792008730" />
+    <link rel="stylesheet" href="style.css?v=1792012568" />
   </head>
   <body>
     <div id="app">
@@ -17,20 +17,21 @@
         <button class="hshop" id="res-shop"><img class="pix" id="ic-shop" alt="" /><div><span>SHOP · ALL ROCKS</span><b id="shop-stock">0</b><em id="shop-rate"></em></div><i class="hbar"><i id="shop-fill"></i></i></button>
       </header>
 
-      <section class="objective" id="objective">
+      <section class="objective" id="objective" role="button" tabindex="0">
         <div class="obj-row"><span id="obj-text"></span><span id="obj-num"></span></div>
         <div class="bar" id="obj-bar"><i id="obj-fill"></i></div>
       </section>
 
       <main class="stage" id="stage">
         <canvas id="scene"></canvas>
-        <!-- La roca que se mira, de izquierda a derecha como su cadena: lo que hay y cómo fluye. -->
+        <!-- La roca que se mira, de izquierda a derecha como su cadena: lo que hay y cómo fluye.
+             V4.10: cada casilla dice qué es (RAW → BASE → CHEESE), luego cuánto y su estado. -->
         <div class="flowband" id="flowband">
-          <div class="fchip" id="res-raw"><img class="pix" id="ic-raw" alt="" /><div><b id="raw">0</b><em id="rate-raw"></em></div></div>
+          <div class="fchip" id="res-raw"><img class="pix" id="ic-raw" alt="" /><div><small class="fname">RAW</small><b id="raw">0</b><em id="rate-raw"></em></div></div>
           <i class="farrow"></i>
-          <div class="fchip" id="res-base"><img class="pix" id="ic-base" alt="" /><div><b id="base">0</b><em id="rate-base"></em></div></div>
+          <div class="fchip" id="res-base"><img class="pix" id="ic-base" alt="" /><div><small class="fname">BASE</small><b id="base">0</b><em id="rate-base"></em></div></div>
           <i class="farrow"></i>
-          <div class="fchip" id="res-lots"><img class="pix" id="ic-lots" alt="" /><div><b id="lots">0</b><em id="rate-lots"></em></div></div>
+          <div class="fchip" id="res-lots"><img class="pix" id="ic-lots" alt="" /><div><small class="fname">CHEESE</small><b id="lots">0</b><em id="rate-lots"></em></div></div>
         </div>
         <div id="bubbles"></div>
         <div id="floaters"></div>
@@ -109,21 +110,21 @@
         if (!localStorage.getItem(CM.SAVE_KEY) && localStorage.getItem('cheese-miner-v3')) localStorage.setItem(CM.SAVE_KEY, localStorage.getItem('cheese-miner-v3'));
       } catch (e) {}
     </script>
-    <script src="js/game/config/balance.js?v=1792008730"></script>
-    <script src="js/game/config/traits.js?v=1792008730"></script>
-    <script src="js/playtest/telemetry.js?v=1792008730"></script>
-    <script src="js/game/state.js?v=1792008730"></script>
-    <script src="js/game/systems/skills.js?v=1792008730"></script>
-    <script src="js/game/systems/mice.js?v=1792008730"></script>
-    <script src="js/game/systems/production.js?v=1792008730"></script>
-    <script src="js/game/systems/cheesery.js?v=1792008730"></script>
-    <script src="js/game/simulation.js?v=1792008730"></script>
-    <script src="js/storage.js?v=1792008730"></script>
-    <script src="js/playtest/devtools.js?v=1792008730"></script>
-    <script src="js/ui/sfx.js?v=1792008730"></script>
-    <script src="js/ui/icons.js?v=1792008730"></script>
-    <script src="js/ui/scene.js?v=1792008730"></script>
-    <script src="js/ui/panels.js?v=1792008730"></script>
-    <script src="js/ui/main.js?v=1792008730"></script>
+    <script src="js/game/config/balance.js?v=1792012568"></script>
+    <script src="js/game/config/traits.js?v=1792012568"></script>
+    <script src="js/playtest/telemetry.js?v=1792012568"></script>
+    <script src="js/game/state.js?v=1792012568"></script>
+    <script src="js/game/systems/skills.js?v=1792012568"></script>
+    <script src="js/game/systems/mice.js?v=1792012568"></script>
+    <script src="js/game/systems/production.js?v=1792012568"></script>
+    <script src="js/game/systems/cheesery.js?v=1792012568"></script>
+    <script src="js/game/simulation.js?v=1792012568"></script>
+    <script src="js/storage.js?v=1792012568"></script>
+    <script src="js/playtest/devtools.js?v=1792012568"></script>
+    <script src="js/ui/sfx.js?v=1792012568"></script>
+    <script src="js/ui/icons.js?v=1792012568"></script>
+    <script src="js/ui/scene.js?v=1792012568"></script>
+    <script src="js/ui/panels.js?v=1792012568"></script>
+    <script src="js/ui/main.js?v=1792012568"></script>
   </body>
 </html>

@@ -104,9 +104,9 @@
       }
     },
     run(s, dt) {
-      // Cada 2 s: los ratones sin puesto ocupan los libres y los gerentes compran.
+      // Cada 2 s: combinaciones, rasgos pendientes y compras de los gerentes. V4.10: los ratones
+      // sin puesto ya no ocupan solos los libres; los coloca el jugador.
       if (Math.floor(s.clock / 2000) !== Math.floor((s.clock - dt) / 2000)) {
-        CM.mice.fillEmpty(s);
         CM.mice.scan(s);
         for (const m of s.mice) if (CM.mice.pending(m)) CM.mice.choice(s, m);
         CM.mice.managersTick(s);
