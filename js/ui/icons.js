@@ -82,6 +82,8 @@
     go: ['AA...', '.AA..', '..AA.', '.AA..', 'AA...'],
     // V4.8. SPRITE: flecha de ascenso con contorno oscuro (se lee igual sobre verde, gris o azul).
     rankup: ['....K....', '...KLK...', '..KLGLK..', '.KLGGGLK.', 'KGGGGGGGK', 'KKKGGGKKK', '..KGGGK..', '..KGGGK..', '..KKKKK..'],
+    // V4.9. SPRITE: la misma flecha, hacia la derecha (rango actual → rango nuevo).
+    ranknext: ['...KK....', '...KGK...', 'KKKKGLK..', 'KGGGGGLK.', 'KGGGGGGLK', 'KGGGGGLK.', 'KKKKGLK..', '...KGK...', '...KK....'],
     // V4.8. SPRITE: marca de elegido en las casillas de BULK PROMOTE.
     tick: ['.....WW', '....WW.', 'W..WW..', 'WWWW...', '.WW....'],
     treat: ['.WWWWWW.', 'WWWRRWWW', 'WRRRRRRW', 'WRRRRRRW', 'WWWRRWWW', '.WWWWWW.'],
@@ -110,6 +112,7 @@
     alertr: { Y: '#ff5a7a', K: '#1b1622' },
     rankup: { G: '#46ef6c', L: '#c8ffd0', K: '#10301a' },
     tick: { W: '#ffffff' },
+    ranknext: { G: '#46ef6c', L: '#c8ffd0', K: '#10301a' },
     go: { A: '#7a4a14' },
     treat: { W: '#f4f1e4', R: '#e2462f' },
     mouse: { E: '#cfc6cc', P: '#ff9ab5', G: '#f1eaec', K: '#1b1622', N: '#ff7a9c', W: '#ffffff' },

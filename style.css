@@ -9486,63 +9486,67 @@ div.mc-row {
 }
 
 /* ======================= V4.8: MAIN y avisos de navegación ======================= */
-/* Cartela del refuerzo: columna propia a la izquierda DENTRO del botón grande, de ancho fijo. El
-   texto de la acción se centra en el resto (cada texto deja ese margen; el botón no cambia de
-   ancho), así que nunca se tocan. Vale para los tres altos del botón (76, 62 y 54 px). */
+/* V4.9. Cartela del refuerzo: una pestaña pequeña en la esquina de arriba del botón, metida en
+   su borde (la esquina redondeada del botón la recorta) y con el lado derecho en diagonal, como
+   una carpeta. Una línea, sin icono. El nombre y la descripción de la acción se centran debajo,
+   sin tocarla, en los tres altos del botón (76, 62 y 54 px). Ver también la regla V4.9 abajo. */
 #dock-main .dboost {
   display: none;
 }
 #dock-main.boosted {
   gap: 2px;
-  padding-top: 4px;
-  padding-bottom: 6px;
-}
-#dock-main.boosted > b,
-#dock-main.boosted > small {
-  align-self: stretch;
-  margin-left: 55px !important;
-  text-align: center;
+  padding-top: 15px;
+  padding-bottom: 5px;
 }
 #dock-main.boosted .dboost[data-n='1'],
 #dock-main.boosted .dboost[data-n='2'] {
   position: absolute;
-  top: 50%;
-  left: 7px;
-  width: 46px;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  max-width: none;
-  padding: 4px 0 3px;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  display: block;
+  max-width: 80%;
+  padding: 0 2px 2px 0;
   font-family: var(--pixel);
   font-size: 6px;
   line-height: 1;
   letter-spacing: 0;
+  color: var(--ink);
+  background: var(--ink);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   overflow: visible;
-  box-shadow: 0 2px 0 var(--ink);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 9px) 100%, 0 100%);
 }
-#dock-main.boosted .dboost span:first-child {
-  font-size: 7px;
+#dock-main.boosted .dboost span {
+  display: block;
+  padding: 3px 13px 3px 6px;
+  white-space: nowrap;
+  background: #8fe0ff;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}
+#dock-main.boosted .dboost[data-n='2'] span {
+  background: #c4f1ff;
 }
 #dock-main.boosted b {
   max-width: 100%;
   margin: 0;
-  font-size: 11px;
-  line-height: 13px;
+  font-size: 12px;
+  line-height: 14px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 #dock-main.boosted small {
   display: block;
-  overflow: hidden;
   max-width: 100%;
-  max-height: 22px;
   margin: 0;
+  overflow: hidden;
   font-size: 10px;
-  line-height: 11px;
+  line-height: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* Avisos de la barra de abajo: un solo sistema (navAlert en main.js) y las mismas reglas para
@@ -10037,4 +10041,446 @@ div.mc-row {
   flex-wrap: wrap;
   max-height: 19px;
   overflow: hidden;
+}
+
+/* ======================= V4.9: pulido final ======================= */
+/* ---- Pipeline: un refuerzo, brillo azul tenue; dos, brillo azul intenso que respira suave
+   (continuo, sin pasos: nada de parpadeo). Todo por dentro del borde: nada cambia de tamaño. */
+.tile[data-boost='1'],
+.tile.sel[data-boost='1'] {
+  background-color: var(--panel-2);
+  background-image: linear-gradient(0deg, #5ad1ff26, #5ad1ff00 70%);
+}
+.tile[data-boost='1'] {
+  box-shadow: inset 0 0 0 2px #5ad1ff8c, inset 0 0 8px #5ad1ff4d, 0 3px 0 var(--ink);
+}
+.tile.sel[data-boost='1'] {
+  box-shadow: inset 0 0 0 2px #5ad1ff8c, inset 0 0 8px #5ad1ff4d, 0 6px 0 var(--ink);
+}
+.tile[data-boost='2'],
+.tile.sel[data-boost='2'] {
+  background-color: #1f4258;
+  background-image: linear-gradient(0deg, #5ad1ff66, #5ad1ff1a 85%);
+}
+.tile[data-boost='2'] {
+  --tdrop: 0 3px 0 var(--ink);
+  box-shadow: inset 0 0 0 2px #9fe9ff, inset 0 0 14px #5ad1ffcc, var(--tdrop);
+  animation: tileglow 2.6s ease-in-out infinite;
+}
+.tile.sel[data-boost='2'] {
+  --tdrop: 0 6px 0 var(--ink);
+  box-shadow: inset 0 0 0 2px #9fe9ff, inset 0 0 14px #5ad1ffcc, var(--tdrop);
+}
+@keyframes tileglow {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 2px #9fe9ff, inset 0 0 12px #5ad1ffb3, var(--tdrop);
+  }
+  50% {
+    box-shadow: inset 0 0 0 2px #c4f1ff, inset 0 0 18px #8fe0ffe6, var(--tdrop);
+  }
+}
+.tile.isnew[data-boost='2'],
+.tile.goal[data-boost='2'] {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tile[data-boost='2'] {
+    animation: none;
+  }
+}
+
+/* ---- BOOSTS: casillas y perlas un poco mayores (sprite de 11 px a 3x), más fáciles de tocar. */
+.bo-cell {
+  height: 88px;
+}
+.bo-cell .bo-slot .pix.bo-gem,
+.bo-shop .bo-slot .pix.bo-gem {
+  width: 33px;
+  height: 33px;
+}
+.panel .bo-shop button.bo-slot {
+  width: 56px;
+  height: 56px;
+}
+
+/* ---- Avisos de la barra de abajo: un solo aspecto, quieto (ver navAlert en main.js). */
+.tools button[data-alert='on'] {
+  animation: none;
+  box-shadow: 0 0 0 3px #ffe55c, 0 2px 0 var(--ink);
+}
+
+/* ---- HOUSE: pestañas de sala sin iconos. La elegida, como las demás pestañas (naranja); la
+   que está en uso dice quién y cuánto le queda, en texto. */
+.panel .mch-rooms button {
+  flex-direction: column;
+  gap: 4px;
+  min-height: 46px;
+  color: #d5cfe6;
+  background: var(--panel-2);
+  border-color: var(--ink);
+}
+.panel .mch-rooms button small {
+  max-width: 100%;
+  overflow: hidden;
+  font-family: var(--text);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.panel .mch-rooms button.used small {
+  color: #fff;
+}
+.panel .mch-rooms button.on {
+  color: var(--ink);
+  background: #ff9a1f;
+  border-color: var(--ink);
+}
+.panel .mch-rooms button.on small {
+  color: #3a2410;
+}
+/* Botones de la casa: sin icono. La acción arriba y el coste o el tiempo debajo. Rosa la cama,
+   violeta el entrenamiento (el color de los libros del escritorio); el azul es de los refuerzos. */
+.mct-btn,
+.panel button.mct-btn {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 84px;
+  min-height: 42px;
+  padding: 5px 8px;
+}
+.mct-btn small {
+  justify-content: center;
+}
+.mct-btn.on.bed {
+  background: #3d1f2c;
+  border-color: #ff9ab5;
+}
+.mct-btn.on.bed small {
+  color: #ffd0dc;
+}
+.mct-btn.on.train,
+.panel button.mct-btn.retrain {
+  background: #2c2142;
+  border-color: #b58cff;
+}
+.mct-btn.on.train small {
+  color: #e3d4ff;
+}
+.panel button.mct-btn.retrain.close small {
+  display: none;
+}
+/* En las tarjetas de COLONY: el estado en su renglón, en texto. */
+.mc-post em.mc-incare {
+  font-weight: 700;
+}
+.mc-post em.mc-incare.bed {
+  color: #ff9ab5;
+}
+.mc-post em.mc-incare.train {
+  color: #c9a8ff;
+}
+.panel .mc-todo.bed {
+  color: #ff9ab5;
+}
+/* TRAINING: el mismo violeta en su recuadro de elegir y en la revelación. */
+.mtr-pick {
+  padding: 10px;
+  background: #1f1830;
+  border-color: #b58cff;
+}
+.mtr-sum > div {
+  background: #171224;
+}
+.mtr-sum small,
+.mtr-maybe small {
+  color: #c9a8ff;
+}
+.mtr-maybe span,
+.mch-info .mtr-q,
+.mtr-sum .mtr-q {
+  color: #e3d4ff;
+  border-color: #6f5a99;
+}
+.mrt-card {
+  background: #1f1830;
+  border-color: #b58cff;
+}
+.mrt-top {
+  color: #c9a8ff;
+}
+.mrt-ico {
+  display: none;
+}
+.mrt-new {
+  background: #c9a8ff;
+}
+
+/* ---- Ascensos: verde de evolución. */
+/* ROSTER: el propio botón se ilumina en verde mientras haya ascensos (sin flecha suelta). */
+.panel .mc-tabs button.mc-promo {
+  color: #c8ffd0;
+  border-color: #1d5a2a;
+  box-shadow: 0 0 0 2px #46ef6c, 0 0 0 4px #46ef6c47, 0 3px 0 var(--ink);
+}
+.panel .mc-tabs button.mc-promo.on {
+  color: var(--ink);
+}
+/* Tarjetas y filas: además del contorno, el marco del retrato brilla en verde, la flecha es
+   mayor (3x) y el contorno respira suave. */
+.panel button.mc-post.mc-due:not(.mcx-over, .mcx-target, .mcx-picked, .mcx-land, .mcx-src),
+.panel .mc-row.mc-due {
+  animation: duein 0.4s steps(4) both, duebreath 2.8s ease-in-out 0.4s infinite;
+  animation-delay: var(--upd, 0s), calc(var(--upd, 0s) + 0.4s);
+}
+@keyframes duebreath {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px #46ef6c, 0 0 0 4px #46ef6c47, 0 2px 0 var(--ink);
+  }
+  50% {
+    box-shadow: 0 0 0 2px #7dffa0, 0 0 0 5px #46ef6c80, 0 2px 0 var(--ink);
+  }
+}
+.mc-due .mc-face {
+  border-color: #46ef6c;
+  box-shadow: inset 0 0 8px #46ef6c80;
+}
+.mc-post .pix.mc-up,
+.mc-up {
+  right: 4px;
+  bottom: 4px;
+  width: 27px;
+}
+.mc-uprow {
+  width: 27px;
+}
+.mc-face.mc-dueface {
+  border-color: #46ef6c;
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel button.mc-post.mc-due,
+  .panel .mc-row.mc-due {
+    animation: none;
+  }
+}
+/* Bloque de ascenso de la ficha: cabecera, los dos retratos con su rango y la flecha, lo que
+   gana (una línea cada cosa) y un botón ancho. */
+.mpr {
+  margin: 0 0 10px;
+  padding: 10px;
+  background: #1b2b1f;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: 0 0 0 2px #46ef6c, 0 3px 0 2px var(--ink);
+}
+.mpr.short {
+  box-shadow: 0 0 0 2px #2f6b3c, 0 3px 0 2px var(--ink);
+}
+.mpr-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.mpr-head b {
+  font-family: var(--pixel);
+  font-weight: normal;
+  font-size: 8px;
+  color: #8df09a;
+}
+.mpr-head small {
+  font-family: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.mpr-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+.mpr-stage figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.mpr-stage .face {
+  width: 52px;
+  height: 52px;
+  padding: 3px;
+  background: #121c15;
+  border: 2px solid #2f6b3c;
+  border-radius: 6px;
+  image-rendering: pixelated;
+}
+.mpr-stage .to .face {
+  border-color: #46ef6c;
+  box-shadow: inset 0 0 10px #46ef6c66;
+}
+.mpr-stage figcaption {
+  font-family: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.mpr-stage .to figcaption {
+  color: #ffe55c;
+}
+.mpr-arrow {
+  width: 27px;
+  margin-bottom: 18px;
+  image-rendering: pixelated;
+}
+.mpr-gains {
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+  font-family: var(--text);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.mpr-gains li {
+  padding: 3px 0 3px 12px;
+  position: relative;
+}
+.mpr-gains li::before {
+  content: '+';
+  position: absolute;
+  left: 0;
+  font-weight: 800;
+  color: #8df09a;
+}
+.panel button.mpr-go {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 46px;
+  background: #2fc458;
+}
+.panel button.mpr-go.off {
+  background: #4a4458;
+}
+.panel button.mpr-go b {
+  font-family: var(--pixel);
+  font-weight: normal;
+  font-size: 8px;
+}
+.panel button.mpr-go small {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
+.panel button.mpr-go small .pix {
+  width: 12px;
+}
+/* BULK: el camino de rangos en una línea. */
+.pm-main small.pm-path i {
+  font-style: normal;
+  color: #6f8f78;
+}
+.pm-main small.pm-path em {
+  font-style: normal;
+  margin-left: 4px;
+  color: #8df09a;
+}
+
+/* ---- MAIN: los nombres de roca caben enteros (Emmental, Parmesan). */
+.rchip {
+  padding-left: 0;
+  padding-right: 0;
+}
+.rchip b {
+  font-size: 8.5px;
+  letter-spacing: -0.3px;
+  text-overflow: clip;
+}
+/* ---- Iconos dentro del texto (estrella de legendario, corazones, moneda...): una regla general
+   de «toda imagen de esta tarjeta a 96 px» no puede agrandarlos nunca. Como mucho 2x. */
+img.pix.pxi {
+  max-width: 20px;
+  max-height: 20px;
+}
+/* El aviso de COLONY de quién está en la casa, con el color de su sala (no el azul de refuerzos). */
+.panel button.mc-note.bed {
+  border-color: #ff9ab5;
+}
+.panel button.mc-note.bed.train {
+  border-color: #b58cff;
+}
+.panel button.mpr-go small {
+  color: #fff;
+}
+.panel button.mpr-go.off small {
+  color: #d5cfe6;
+}
+/* El camino de rangos entero, aunque ocupe dos renglones (no se corta a media palabra). */
+.pm-main small.pm-path {
+  white-space: normal;
+  overflow: visible;
+}
+.panel .mc-row.mtr-open {
+  border-color: #b58cff;
+}
+/* ---- Ficha, SPECIALITIES: una tarjeta por oficio, aireada. Arriba el oficio y su grado en
+   texto; luego la especialidad, qué hace y su progreso; abajo, RETRAIN con lo que hace al lado. */
+.mcs-spec {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 10px;
+  background: var(--bg);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+}
+.mcs-spec:first-child {
+  border-top: 2px solid var(--ink);
+}
+.mcs-spec.here {
+  background: #241d31;
+  border-color: #4a4068;
+}
+.mcs-main {
+  gap: 6px;
+}
+.mcs-grade {
+  margin-left: auto;
+  padding: 3px 6px 2px;
+  font-family: var(--pixel);
+  font-size: 7px;
+  font-style: normal;
+  color: #8df09a;
+  border: 1px solid #2f6b3c;
+  border-radius: 3px;
+}
+.mcs-act {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  align-self: stretch;
+  padding-top: 8px;
+  border-top: 1px dashed #3b3350;
+}
+.mcs-act > small {
+  font-family: var(--text);
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--muted);
 }

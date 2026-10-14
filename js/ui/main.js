@@ -44,6 +44,7 @@
     strainRecipe: null,
     combo: { base: 'cheddar', ingredient: 'herbs', treatment: 'washed', maturation: 'fresh' },
     lastHtml: '',
+    navKeys: {},
     rocksKey: null,
     dockKind: 'mine',
     shown: {},
@@ -962,15 +963,14 @@
     // Refuerzos del puesto que se mira, con lo que dan («+50% SPEED», «x2.25 BASE»).
     const nb = m.tree ? CM.boosts.at(state, skill, ui.zone) : 0;
     // V4.5: en el botón grande, el efecto real («x2.25 SPEED»); en las tarjetas pequeñas, la cantidad.
-    // V4.8: en dos renglones («×2.25» / «SPEED») para caber en su columna del botón.
+    // V4.9: pestaña pequeña en la esquina del botón, una línea («×2.25 SPEED»).
     const blbl = nb ? CM.boosts.label(skill, nb).replace(/^x/, '\u00d7') : '';
     if (dk.boost.dataset.t !== blbl) {
       dk.boost.dataset.t = blbl;
-      const sp = blbl.indexOf(' ');
-      dk.boost.innerHTML = blbl ? '<span>' + blbl.slice(0, sp) + '</span><span>' + blbl.slice(sp + 1) + '</span>' : '';
+      dk.boost.innerHTML = blbl ? '<span>' + blbl + '</span>' : '';
     }
     if (dk.boost.dataset.n !== String(nb || '')) dk.boost.dataset.n = String(nb || '');
-    set(els.main, 'boosted', nb > 0); // la cartela ocupa su columna a la izquierda
+    set(els.main, 'boosted', nb > 0); // el texto baja lo justo bajo la pestaña
     set(els.main.querySelector('b'), 'text', m.label);
     set(els.main.querySelector('small'), 'text', m.sub);
     set(els.main.querySelector('.fill'), 'width', Math.round(m.fill * 100) + '%');
@@ -998,7 +998,7 @@
     // V4.6: «NEW MILESTONE» solo mientras no lo has visto (se ve al abrir el árbol); luego es una
     // mejora más, que compra el jugador, y cuenta en READY si se puede pagar.
     const hito = m.tree && skill === 'cheesemaking' && CM.milestones.waiting(state).some((n) => !seen('hito:' + n.id));
-    set(dk.treeNum, 'text', !m.tree ? 'LOCKED' : hito ? 'NEW MILESTONE' : ups ? ups + ' READY' : 'TREE');
+    set(dk.treeNum, 'text', !m.tree ? 'LOCKED' : hito ? 'MILESTONE!' : ups ? ups + ' READY' : 'TREE');
     set(dk.tree, 'has', ups > 0 || hito);
     set(dk.tree, 'hito', hito);
     set(dk.tree, 'off', !m.tree);
@@ -1027,7 +1027,8 @@
     const why = updateRocks();
     const def = q.zoneDef(ui.zone);
     // Sin línea que contar (antes del taladro, o en un edificio sin construir), la explicación usa los dos renglones.
-    const line = m.tree && why ? def.name + ' · depth ' + state.zones[ui.zone].depth + ' · ' + why[0] : '';
+    // V4.9: «Cheddar · depth 68 · ...» (sin «Rock», que la cortaba en pantallas estrechas).
+    const line = m.tree && why ? def.name.replace(/ Rock$/, '') + ' · depth ' + state.zones[ui.zone].depth + ' · ' + why[0] : '';
     set(dk.why, 'text', line);
     set(dk.why, 'cls', why ? why[1] || 'good' : '');
     set(dk.info, 'wide', !line);
@@ -1238,6 +1239,7 @@
     if (name === 'lab') markSeen(...labKeys());
     if (name === 'mice') markSeen('build:house');
     if (name === 'boosts') markSeen('boosts:' + CM.boosts.owned(state));
+    if (name === 'mice' || name === 'boosts') navSeen(name);
     if (name === 'lab') {
       ui.labDirOpen = false;
       ui.labDirCat = null;
@@ -1277,7 +1279,7 @@
   }
   function openTree(skill) {
     if (skill === 'cheesemaking') markSeen(...milestoneKeys());
-    if (skill === 'colony') markSeen(...colonyKeys());
+    if (skill === 'colony') navSeen('colony'), markSeen(...colonyKeys());
     ui.tree = skill;
     openPanel('tree');
     scene.focus(skill === 'colony' ? 'storage' : skill === 'lab' ? 'lab' : B.skills[skill].station);
@@ -2649,27 +2651,35 @@
   // lo pendiente (UP!, PICK, +N) es una chapa pequeña mientras dure.
   // V4.6: un solo aviso por pestaña, su contorno amarillo (sin chapas UP!/+N encima, que decían
   // lo mismo dos veces). Fijo si hay algo pendiente; si además es una novedad sin ver, entra y sale.
-  // V4.8: UN solo sistema de avisos para la barra de abajo (COLONY, MICE, BOOSTS). Cada pestaña
-  // está en uno de tres estados, en `data-alert`, y el CSS los pinta igual en todas:
-  //  - 'new': novedad sin ver. Contorno amarillo que late dos veces al aparecer y se queda fijo
-  //    hasta abrir la pestaña (entonces se marca vista).
-  //  - 'pend': hay una acción disponible (o el objetivo pide ir ahí). El mismo contorno, quieto,
-  //    mientras dure.
-  //  - '': nada.
-  // La pestaña abierta lleva además `sel`, que es otra cosa y se pinta distinto.
-  function navAlert(id, pending, fresh) {
+  // V4.9: UN solo sistema de avisos para la barra de abajo (COLONY, MICE, BOOSTS), igual en las
+  // tres y sin animación: un contorno amarillo fijo (`data-alert="on"`) o nada.
+  // Cada cosa que avisa tiene una clave (este ascenso, esta inversión, estos refuerzos libres...).
+  // Al abrir la pestaña, sus claves se dan por vistas (se guardan en la partida) y el aviso se
+  // apaga; vuelve a encenderse solo si aparece algo que no habías visto. La pestaña abierta lleva
+  // `sel`, que no es un aviso y se pinta distinto.
+  const NAV = { 'nav-colony': 'colony', 'nav-mice': 'mice', 'nav-boosts': 'boosts' };
+  function navAlert(id, keys) {
+    ui.navKeys[NAV[id]] = keys;
+    const on = keys.some((k) => !seen('nav:' + k));
+    const st = on ? 'on' : '';
     const b = $(id);
-    const st = fresh ? 'new' : pending ? 'pend' : '';
     if (b.dataset.alert !== st) b.dataset.alert = st;
+  }
+  function navSeen(name) {
+    const keys = ui.navKeys[name] || [];
+    if (keys.length) markSeen(...keys.map((k) => 'nav:' + k));
   }
   function updateDots() {
     const next = CM.zones.next(state);
     const invest = CM.tree.investments(state);
-    const colony = (next && state.coins >= next.unlockCost) || invest.length > 0;
-    // V4.4: chapas con texto en vez de puntos rojos. NEW! hasta abrirlo; luego UP! mientras siga.
-    const ckeys = colonyKeys();
-    const goalAt = GOAL_AT[CM.sim.objective(state).id];
-    navAlert('nav-colony', colony || goalAt === 'colony', ckeys.some((k) => !seen(k)));
+    const goal = CM.sim.objective(state).id;
+    const goalAt = GOAL_AT[goal];
+    // COLONY: lo nuevo de la colonia, una roca que ya se puede abrir, una inversión pagable, o el objetivo.
+    const ck = colonyKeys().filter((k) => !seen(k));
+    if (next && state.coins >= next.unlockCost) ck.push('zone:' + next.id);
+    for (const it of invest) ck.push('inv:' + it.skill + '.' + it.node.id + ':' + CM.tree.rank(state, it.skill, it.node.id));
+    if (goalAt === 'colony') ck.push('goal:' + goal);
+    navAlert('nav-colony', ck);
     // Una inversión que ya se puede pagar se anuncia una vez por rango.
     for (const it of invest) {
       const k = it.skill + '.' + it.node.id + ':' + CM.tree.rank(state, it.skill, it.node.id);
@@ -2684,18 +2694,20 @@
       set($('nav-mice-n'), 'text', staffed + '/' + posts.length);
       set($('nav-mice'), 'vacant', staffed < posts.length);
     }
-    // MICE avisa si hay casa por construir, candidatos por elegir, un puesto libre y monedas para reclutar, o un ascenso que ya se puede pagar.
-    // MICE: la casa por construir (novedad), candidatos pagados esperando (PICK) o un ascenso
-    // que ya se puede pagar (UP!). Las vacantes las dice el contador 24/26.
-    const house = !state.built.house && CM.construction.buildInfo(state, 'house').canBuild;
-    navAlert('nav-mice', house || state.candidates.length > 0 || goalAt === 'mice' || state.mice.some((m) => CM.mice.promoteInfo(state, m).can), house && !seen('build:house'));
-    // BOOSTS aparece con el primer refuerzo; el punto solo avisa de los que están sin colocar.
+    // MICE: la casa por construir, candidatos pagados esperando, cada ascenso que ya se puede
+    // pagar (por ratón y rango) o el objetivo. Las vacantes las dice el contador 24/26.
+    const mk = [];
+    if (!state.built.house && CM.construction.buildInfo(state, 'house').canBuild) mk.push('house');
+    if (state.candidates.length) mk.push('cand:' + state.candidates.map((c) => c.look).join('.'));
+    for (const m of state.mice) if (CM.mice.promoteInfo(state, m).can) mk.push('promo:' + m.id + ':' + m.rank);
+    if (goalAt === 'mice') mk.push('goal:' + goal);
+    navAlert('nav-mice', mk);
+    // BOOSTS aparece con el primer refuerzo; avisa de los que están sin colocar.
     const owned = CM.boosts.owned(state);
     if ($('nav-boosts').hidden === owned > 0) $('nav-boosts').hidden = !(owned > 0);
-    // BOOSTS: cuántos refuerzos quedan por colocar.
     const freeB = CM.boosts.free(state);
-    navAlert('nav-boosts', freeB > 0, owned > 0 && !seen('boosts:' + owned));
-    for (const [id, name] of [['nav-colony', 'colony'], ['nav-mice', 'mice'], ['nav-boosts', 'boosts']]) set($(id), 'sel', name === 'colony' ? ui.panel === 'tree' && ui.tree === 'colony' : ui.panel === name);
+    navAlert('nav-boosts', freeB > 0 ? ['free:' + owned] : []);
+    for (const [id, name] of Object.entries(NAV)) set($(id), 'sel', name === 'colony' ? ui.panel === 'tree' && ui.tree === 'colony' : ui.panel === name);
     updateBuyAll();
   }
 
