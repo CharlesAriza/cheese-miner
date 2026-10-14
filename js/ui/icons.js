@@ -85,6 +85,8 @@
     rankup: ['....K....', '...KLK...', '..KLGLK..', '.KLGGGLK.', 'KGGGGGGGK', 'KKKGGGKKK', '..KGGGK..', '..KGGGK..', '..KKKKK..'],
     // V4.9. SPRITE: la misma flecha, hacia la derecha (rango actual → rango nuevo).
     ranknext: ['...KK....', '...KGK...', 'KKKKGLK..', 'KGGGGGLK.', 'KGGGGGGLK', 'KGGGGGLK.', 'KKKKGLK..', '...KGK...', '...KK....'],
+    // V4.18. SPRITE: «hecho» de la franja del objetivo cuando ya no queda ninguno.
+    done: ['.......KK', '......KGK', 'K....KGK.', 'KGK.KGK..', '.KGKGK...', '..KGK....', '...K.....'],
     // V4.8. SPRITE: marca de elegido en las casillas de BULK PROMOTE.
     tick: ['.....WW', '....WW.', 'W..WW..', 'WWWW...', '.WW....'],
     treat: ['.WWWWWW.', 'WWWRRWWW', 'WRRRRRRW', 'WRRRRRRW', 'WWWRRWWW', '.WWWWWW.'],
@@ -113,6 +115,7 @@
     alertr: { Y: '#ff5a7a', L: '#ffc2cc', D: '#c43a58', K: '#1b1622' },
     rankup: { G: '#46ef6c', L: '#c8ffd0', K: '#10301a' },
     tick: { W: '#ffffff' },
+    done: { G: '#3fa860', K: '#1b1622' },
     ranknext: { G: '#46ef6c', L: '#c8ffd0', K: '#10301a' },
     go: { A: '#7a4a14' },
     treat: { W: '#f4f1e4', R: '#e2462f' },
@@ -159,4 +162,5 @@
   document.documentElement.style.setProperty('--px-alertr', 'url(' + icon('alertr') + ')');
   document.documentElement.style.setProperty('--px-rankup', 'url(' + icon('rankup') + ')');
   document.documentElement.style.setProperty('--px-tick', 'url(' + icon('tick') + ')');
+  document.documentElement.style.setProperty('--px-done', 'url(' + icon('done') + ')');
 })();

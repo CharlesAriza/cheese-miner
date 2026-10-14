@@ -773,7 +773,8 @@
       const fresh = (canBuild && !seen('build:' + st)) || hito;
       set(tile, 'isnew', fresh);
       set(tile, 'sel', ui.station === st);
-      set(tile, 'goal', goalAt === st && ui.station !== st);
+      // V4.18: el aura dorada del objetivo se queda también con la casilla elegida (antes se iba al tocarla).
+      set(tile, 'goal', goalAt === st);
       set(tile.querySelector('.mini > i'), 'width', Math.round(info.progress * 100) + '%');
       // Refuerzos de esta etapa en la roca que se mira: marco azul y una chapa con uno o dos galones.
       const nb = String((info.state !== 'locked' && info.state !== 'build' && CM.boosts.at(state, skill, ui.zone)) || '');
@@ -2612,7 +2613,7 @@
     const obj = CM.sim.objective(state);
     // Sin nada pendiente, la franja se queda en un renglón fino; vuelve a su tamaño con el siguiente objetivo.
     set($('objective'), 'idle', !!obj.done);
-    set($('obj-text'), 'text', (obj.done ? '' : 'GOAL: ') + obj.text + (obj.reward ? '  (+' + CM.fmt(obj.reward) + ' coins)' : ''));
+    set($('obj-text'), 'text', obj.done ? obj.text.toUpperCase() : 'GOAL: ' + obj.text + (obj.reward ? '  (+' + CM.fmt(obj.reward) + ' coins)' : ''));
     set($('obj-num'), 'text', obj.hasBar ? CM.fmt(obj.cur) + '/' + CM.fmt(obj.max) : '');
     set($('obj-fill'), 'width', (obj.hasBar ? Math.round((obj.cur / obj.max) * 100) : obj.done ? 100 : 0) + '%');
 

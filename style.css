@@ -10833,3 +10833,29 @@ img.pix.pxi {
     filter: drop-shadow(0 0 3px var(--gold));
   }
 }
+
+/* ======================= V4.18: objetivos cumplidos ======================= */
+/* Con todos los objetivos cumplidos, la franja fina no lleva la flecha de «ir a» (asomaba
+   cortada y no llevaba a ningún sitio): lleva una marca de hecho pixel art junto al texto. */
+.objective.idle .obj-go {
+  display: none;
+}
+.objective.idle .obj-row {
+  align-items: center;
+  height: 14px;
+  line-height: 14px;
+}
+.objective.idle #obj-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: visible;
+}
+.objective.idle #obj-text::before {
+  content: '';
+  flex: none;
+  width: 9px;
+  height: 7px;
+  background: var(--px-done) center / 9px 7px no-repeat;
+  image-rendering: pixelated;
+}
