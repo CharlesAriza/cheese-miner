@@ -10879,3 +10879,46 @@ img.pix.pxi {
   height: 9px;
   margin: 0;
 }
+
+/* ======================= V4.20: ratones en la casa ======================= */
+/* Igual que el verde de ascenso, por dentro del borde (nada asoma ni se recorta): rosa si
+   descansa en la cama, violeta si reentrena (los colores de cada sala de HOUSE). Respira suave.
+   Arrastrar y mover mandan sobre él. */
+.panel button.mc-post.mc-care:not(.mcx-over, .mcx-target, .mcx-picked, .mcx-land, .mcx-src),
+.panel .mc-row.mc-care {
+  --care: #ff9ab5;
+  --careglow: #ff9ab540;
+  --careglow2: #ff9ab580;
+  border-color: var(--care);
+  box-shadow: inset 0 0 0 1px #2a1020, inset 0 0 10px var(--careglow), 0 2px 0 var(--ink);
+  animation: carebreath 2.8s ease-in-out infinite;
+}
+.panel button.mc-post.mc-care.train:not(.mcx-over, .mcx-target, .mcx-picked, .mcx-land, .mcx-src),
+.panel .mc-row.mc-care.train {
+  --care: #b58cff;
+  --careglow: #b58cff40;
+  --careglow2: #b58cff80;
+}
+@keyframes carebreath {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 1px #2a1020, inset 0 0 10px var(--careglow), 0 2px 0 var(--ink);
+  }
+  50% {
+    box-shadow: inset 0 0 0 1px #2a1020, inset 0 0 16px var(--careglow2), 0 2px 0 var(--ink);
+  }
+}
+.mc-care .mc-face {
+  border-color: var(--care, #ff9ab5);
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel button.mc-post.mc-care,
+  .panel .mc-row.mc-care {
+    animation: none;
+  }
+}
+/* «Resting 29:44» cabe entero también a 320 px. */
+.mc-post em.mc-incare {
+  font-size: 11px;
+  letter-spacing: -0.2px;
+}

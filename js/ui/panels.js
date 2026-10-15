@@ -820,6 +820,9 @@
     const t = (performance.now() - (upAt[k] || (upAt[k] = performance.now()))) / 1000;
     return ' style="--upd:-' + (t > 0.5 ? '1' : t.toFixed(2)) + 's"';
   };
+  // V4.20: un ratón en la casa resalta su tarjeta con el color de su sala: rosa si descansa en la
+  // cama, el de entrenamiento si reentrena. Manda sobre el verde de ascenso (la flecha sigue).
+  const careCls = (s, m) => (s.care && s.care.id === m.id ? (s.care.kind === 'spec' ? ' mc-care train' : ' mc-care bed') : '');
   const upArrow = (cls) => I.img('rankup', '', cls || 'mc-up');
   const quirksOf = (m) => m.traits.concat(m.learned).filter((id) => T[id] && T[id].kind === 'quirk');
   const legendsOf = (m) => CM.mice.traitsOf(m).filter((t) => T[t.id].kind === 'legend');
@@ -881,9 +884,9 @@
     const due = canPromote(s, m);
     // V4: tocar abre la ficha; mantener pulsado lo levanta para arrastrarlo a otro puesto.
     return (
-      '<button data-act="' + act('card:' + m.id) + '" data-post="' + key + '" data-mouse="' + m.id + '" class="mc-post' + (wide ? ' wide' : '') + (due ? ' mc-due' : '') + (s.care && s.care.id === m.id ? ' inbed' : '') + selCls + '"' + (due ? upDelay(m) : '') + '>' + portrait(m) +
+      '<button data-act="' + act('card:' + m.id) + '" data-post="' + key + '" data-mouse="' + m.id + '" class="mc-post' + (wide ? ' wide' : '') + (due && !careCls(s, m) ? ' mc-due' : '') + (s.care && s.care.id === m.id ? ' inbed' : '') + careCls(s, m) + selCls + '"' + (due ? upDelay(m) : '') + '>' + portrait(m) +
       // V4.9: en la casa se dice con texto en su renglón (sin icono de cama en la esquina).
-      '<span><small>' + JOB_SHORT[skill].toUpperCase() + hearts(m.aff[skill]) + '</small><b>' + esc(m.name) + '</b>' + (s.care && s.care.id === m.id ? '<em class="mc-incare ' + (s.care.kind === 'spec' ? 'train' : 'bed') + '">' + (s.care.kind === 'spec' ? 'Training' : 'Resting') + ' · ' + clock(s.care.remaining) + '</em>' : '<em>' + rankLv(m) + '</em>') + '</span>' +
+      '<span><small>' + JOB_SHORT[skill].toUpperCase() + hearts(m.aff[skill]) + '</small><b>' + esc(m.name) + '</b>' + (s.care && s.care.id === m.id ? '<em class="mc-incare ' + (s.care.kind === 'spec' ? 'train' : 'bed') + '">' + (s.care.kind === 'spec' ? 'Training' : 'Resting') + '</em>' : '<em>' + rankLv(m) + '</em>') + '</span>' +
       '<i class="mc-out">' + mult(K.here(s, m)) + '</i>' + (due ? upArrow() : '') + '</button>'
     );
   }
@@ -1044,7 +1047,7 @@
     for (const m of list) {
       const due = canPromote(s, m);
       const right = (m.post ? '<i class="mc-out">' + mult(K.here(s, m)) + '</i>' : '<i class="mc-out none">UNASSIGNED</i>') + (due ? upArrow('mc-uprow') : s.care && s.care.id === m.id ? '<small class="mc-todo bed">' + (s.care.kind === 'spec' ? 'TRAINING' : 'RESTING') + '</small>' : '');
-      h += mouseLine(s, m, 'card:' + m.id, right, { cls: due ? 'mc-due' : '', skill: likes || undefined }).replace('class="mc-row', (due ? upDelay(m).trim() + ' ' : '') + 'class="mc-row');
+      h += mouseLine(s, m, 'card:' + m.id, right, { cls: (due && !careCls(s, m) ? 'mc-due' : '') + careCls(s, m), skill: likes || undefined }).replace('class="mc-row', (due ? upDelay(m).trim() + ' ' : '') + 'class="mc-row');
     }
     return h;
   }
@@ -1445,7 +1448,7 @@
       row('Playtest tools', 'Dev menu: marks the session as assisted', btn('open:dev', 'OPEN', { cls: 'buy' })) +
       row('Reset save', 'Start over from zero', btn('reset', 'RESET', { cls: 'danger' })) +
       // Qué versión del prototipo se está probando (para no confundirla con una copia en caché).
-      '<p class="hint"><b>Prototype V4.19</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
+      '<p class="hint"><b>Prototype V4.20</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
     );
   }
 
