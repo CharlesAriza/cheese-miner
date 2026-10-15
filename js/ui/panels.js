@@ -884,10 +884,10 @@
     const due = canPromote(s, m);
     // V4: tocar abre la ficha; mantener pulsado lo levanta para arrastrarlo a otro puesto.
     return (
-      '<button data-act="' + act('card:' + m.id) + '" data-post="' + key + '" data-mouse="' + m.id + '" class="mc-post' + (wide ? ' wide' : '') + (due && !careCls(s, m) ? ' mc-due' : '') + (s.care && s.care.id === m.id ? ' inbed' : '') + careCls(s, m) + selCls + '"' + (due ? upDelay(m) : '') + '>' + portrait(m) +
+      '<button data-act="' + act('card:' + m.id) + '" data-post="' + key + '" data-mouse="' + m.id + '" class="mc-post' + (wide ? ' wide' : '') + (due && !careCls(s, m) ? ' mc-due' : '') + (due && !careCls(s, m) ? ' has-up' : '') + (s.care && s.care.id === m.id ? ' inbed' : '') + careCls(s, m) + selCls + '"' + (due ? upDelay(m) : '') + '>' + portrait(m) +
       // V4.9: en la casa se dice con texto en su renglón (sin icono de cama en la esquina).
-      '<span><small>' + JOB_SHORT[skill].toUpperCase() + hearts(m.aff[skill]) + '</small><b>' + esc(m.name) + '</b>' + (s.care && s.care.id === m.id ? '<em class="mc-incare ' + (s.care.kind === 'spec' ? 'train' : 'bed') + '">' + (s.care.kind === 'spec' ? 'Training' : 'Resting') + '</em>' : '<em>' + rankLv(m) + '</em>') + '</span>' +
-      '<i class="mc-out">' + mult(K.here(s, m)) + '</i>' + (due ? upArrow() : '') + '</button>'
+      '<span><small>' + JOB_SHORT[skill].toUpperCase() + hearts(m.aff[skill]) + '</small><b>' + esc(m.name) + '</b>' + (s.care && s.care.id === m.id ? '<em class="mc-incare ' + (s.care.kind === 'spec' ? 'train' : 'bed') + '">' + (s.care.kind === 'spec' ? 'Training ' : 'Resting ') + Math.max(1, Math.ceil(s.care.remaining / 60000)) + 'm</em>' : '<em>' + rankLv(m) + '</em>') + '</span>' +
+      '<i class="mc-out">' + mult(K.here(s, m)) + '</i>' + (due && !careCls(s, m) ? upArrow() : '') + '</button>'
     );
   }
   // Fila de un ratón en una lista: quién es, dónde está, qué le gusta, sus rasgos y un dato a la derecha.
@@ -1448,7 +1448,7 @@
       row('Playtest tools', 'Dev menu: marks the session as assisted', btn('open:dev', 'OPEN', { cls: 'buy' })) +
       row('Reset save', 'Start over from zero', btn('reset', 'RESET', { cls: 'danger' })) +
       // Qué versión del prototipo se está probando (para no confundirla con una copia en caché).
-      '<p class="hint"><b>Prototype V4.21</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
+      '<p class="hint"><b>Prototype V4.22</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
     );
   }
 

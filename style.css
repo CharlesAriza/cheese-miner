@@ -10976,3 +10976,26 @@ img.pix.pxi {
     outline-color: #ffe55c;
   }
 }
+
+/* ======================= V4.22: tiempo en la casa y flecha de ascenso ======================= */
+/* La línea de abajo de la tarjeta (rango, o «Resting 29m» / «Training 29m») termina antes de la
+   flecha de ascenso: nunca pasa por debajo. En la casa la flecha es de 18 px (el borde de color
+   ya dice dónde está el ratón) para que quepa el tiempo. */
+.mc-post.has-up > span > em {
+  margin-right: 29px;
+}
+.mc-post.mc-care .pix.mc-up {
+  width: 18px;
+}
+.mc-post.mc-care.has-up > span > em {
+  margin-right: 20px;
+}
+.mc-post.inbed .pix.mc-up {
+  right: 4px;
+}
+/* En la casa la tarjeta no lleva flecha (el ascenso sigue en el contador de COLONY, ROSTER y la
+   ficha): «Resting 29m» / «Training 29m» caben enteros también a 320 px. */
+.mc-post em.mc-incare {
+  font-size: 10px;
+  letter-spacing: -0.1px;
+}
