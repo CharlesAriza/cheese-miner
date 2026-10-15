@@ -931,7 +931,7 @@
     h += '<div class="mcx-occ' + (empty.length ? ' gap' : '') + '"><b>' + (total - empty.length) + '/' + total + ' POSTS</b><span>' + (empty.length ? empty.length + ' EMPTY' : 'ALL STAFFED') + '</span>' + (ui.lastMove && !ui.fxOn ? btn('undomove', I.img('undo') + 'UNDO', { cls: 'mcx-undo mcx-pixbtn' }) : '') + '</div>';
     if (s.candidates.length) h += btn('recruitview', '<b>' + '3 CANDIDATES WAITING</b><span>Already paid' + (s.candidatesFor ? ', for ' + K.postLabel(s.candidatesFor) : '') + '. They wait until you choose.</span><em>CHOOSE</em>', { cls: 'labrow ready mcx-waiting' });
     if (!ui.dragTold && s.mice.length > 1) h += '<p class="mcx-tip">Tap a mouse for its card. Hold it to drag it to another post; drop it on a mouse to swap them.</p>';
-    if (s.care && K.byId(s, s.care.id)) notes += btn('housego:' + (s.care.kind === 'spec' ? 'training' : 'bed'), (s.care.kind === 'spec' ? 'Training: <b>' : 'Bed: <b>') + esc(K.byId(s, s.care.id).name) + '</b> ' + clock(s.care.remaining), { cls: 'mc-note bed' + (s.care.kind === 'spec' ? ' train' : '') });
+    if (s.care && K.byId(s, s.care.id)) notes += btn('housego:' + (s.care.kind === 'spec' ? 'training' : 'bed'), (s.care.kind === 'spec' ? 'Training: <b>' : 'Bed: <b>') + esc(K.byId(s, s.care.id).name) + '</b> ' + Math.max(1, Math.ceil(s.care.remaining / 60000)) + 'm', { cls: 'mc-note bed' + (s.care.kind === 'spec' ? ' train' : '') });
     if (notes) h += '<div class="mc-notes">' + notes + '</div>';
     // Puestos de toda la colonia: la tienda y el laboratorio.
     const globals = [];
@@ -1448,7 +1448,7 @@
       row('Playtest tools', 'Dev menu: marks the session as assisted', btn('open:dev', 'OPEN', { cls: 'buy' })) +
       row('Reset save', 'Start over from zero', btn('reset', 'RESET', { cls: 'danger' })) +
       // Qué versión del prototipo se está probando (para no confundirla con una copia en caché).
-      '<p class="hint"><b>Prototype V4.25</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
+      '<p class="hint"><b>Prototype V4.26</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
     );
   }
 

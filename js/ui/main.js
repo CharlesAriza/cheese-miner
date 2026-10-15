@@ -1307,6 +1307,7 @@
     ui.fxOn = false;
     $('mcx-fx').hidden = true;
     $('sheet').hidden = true;
+    ui.touchingSheet = false;
     navSel();
   }
   // Solo toca el DOM si el contenido cambió, para no perder taps a medio pulsar.
@@ -1316,12 +1317,20 @@
   const CALM = { stock: 1, shopinfo: 1, coins: 1 };
   function renderPanel(tick) {
     if (!ui.panel || mdrag.src) return;
+    // V4.26: con el dedo sobre el panel no se repinta solo (cortaba los desplazamientos laterales
+    // y verticales a medio gesto); se repinta al soltar. Lo que pide el jugador sí repinta.
+    if (tick && ui.touchingSheet) return;
     if (tick && CALM[ui.panel] && performance.now() - (ui.calmAt || 0) < 1500) return;
     const html = P.render(ui.panel, state, ui);
     if (html !== ui.lastHtml) {
       ui.lastHtml = html;
       ui.calmAt = performance.now();
+      // Las filas con desplazamiento lateral conservan su posición al repintar.
+      const keepX = [...$('sheet-body').querySelectorAll('.mcx-jumps')].map((e) => e.scrollLeft);
       $('sheet-body').innerHTML = html;
+      $('sheet-body').querySelectorAll('.mcx-jumps').forEach((e, i) => {
+        if (keepX[i]) e.scrollLeft = keepX[i];
+      });
       // Las filas que se desplazan de lado vuelven a enseñar lo elegido, centrado.
       $('sheet-body').querySelectorAll('.strainpick').forEach((row) => {
         const on = row.querySelector('.on');
@@ -2080,6 +2089,11 @@
   );
   body.addEventListener('touchend', () => dragEnd(false));
   body.addEventListener('touchcancel', () => dragEnd(true));
+  // V4.26: mientras el dedo está en el panel, los repintados automáticos esperan.
+  body.addEventListener('touchstart', () => (ui.touchingSheet = true), { passive: true });
+  for (const t of ['touchend', 'touchcancel']) body.addEventListener(t, (e) => {
+    if (!e.touches.length) ui.touchingSheet = false;
+  }, { passive: true });
   // Ratón (escritorio): lo mismo con el botón izquierdo.
   body.addEventListener('pointerdown', (e) => {
     if (e.pointerType === 'mouse' && e.button === 0) dragStart(e.clientX, e.clientY, e.target, false);
