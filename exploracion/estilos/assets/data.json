@@ -1,0 +1,1886 @@
+{
+ "main": {
+  "coins": "101Qa",
+  "coinRate": "+339T/min",
+  "shop": "446K",
+  "shopRate": "FULL · extra at ½ price",
+  "goal": "GOAL: New milestone in CHEESE upgrades: Grand Wheel",
+  "raw": "276M",
+  "rawRate": "+567K/min",
+  "base": "89.2M",
+  "baseRate": "+124K/min",
+  "lots": "+58.9K",
+  "lotsRate": "/min to shop",
+  "tiles": [
+   {
+    "st": "rock",
+    "label": "MINE",
+    "lv": "LV 72",
+    "badge": "UP! 1",
+    "boost": "",
+    "sel": false,
+    "isnew": false
+   },
+   {
+    "st": "drill",
+    "label": "DRILL",
+    "lv": "LV 96",
+    "badge": "UP! 1",
+    "boost": "2",
+    "sel": true,
+    "isnew": false
+   },
+   {
+    "st": "refinery",
+    "label": "REFINE",
+    "lv": "LV 88",
+    "badge": "UP! 1",
+    "boost": "1",
+    "sel": false,
+    "isnew": false
+   },
+   {
+    "st": "cheesery",
+    "label": "CHEESE",
+    "lv": "LV 97",
+    "badge": "NEW!",
+    "boost": "",
+    "sel": false,
+    "isnew": true
+   },
+   {
+    "st": "shop",
+    "label": "SELL",
+    "lv": "LV 87",
+    "badge": "UP! 1",
+    "boost": "",
+    "sel": false,
+    "isnew": false
+   },
+   {
+    "st": "lab",
+    "label": "LAB",
+    "lv": "LV 52",
+    "badge": "NEW!",
+    "boost": "",
+    "sel": false,
+    "isnew": true
+   }
+  ],
+  "rocks": [
+   {
+    "z": "cheddar",
+    "name": "Cheddar",
+    "on": true
+   },
+   {
+    "z": "gouda",
+    "name": "Gouda",
+    "on": false
+   },
+   {
+    "z": "brie",
+    "name": "Brie",
+    "on": false
+   },
+   {
+    "z": "emmental",
+    "name": "Emmental",
+    "on": false
+   },
+   {
+    "z": "parmesan",
+    "name": "Parmesan",
+    "on": false
+   },
+   {
+    "z": "blue",
+    "name": "Blue",
+    "on": false
+   }
+  ],
+  "title": "Drilling · LV 96",
+  "xp": "3.6M/14.6M xp",
+  "xpPct": "24%",
+  "status": "+215.3 Raw / 0.8s · 15.5K/min",
+  "why": "Cheddar · depth 92 · Running",
+  "mainLabel": "DRILL",
+  "mainSub": "Auto · hold to boost",
+  "plate": "×2.25 SPEED",
+  "worker": "Muenster",
+  "workerSub": "LV 51 Manager",
+  "workerId": "m1",
+  "quick": "Bigger Bit",
+  "quickCost": "30.9Qa",
+  "tree": "1 READY",
+  "all": "9 for 90.5Qa",
+  "miceN": "26/26",
+  "freeBoosts": 6,
+  "promotable": 17,
+  "recruitCost": "3.8M",
+  "depthLabel": "CHEDDAR ROCK · DEPTH 92"
+ },
+ "mice": [
+  {
+   "id": "m3",
+   "name": "Swiss",
+   "lv": 55,
+   "rank": "Manager",
+   "rarity": "Rare",
+   "job": "Trading",
+   "jobShort": "Sell",
+   "rock": "",
+   "mult": 4.7,
+   "affs": [
+    {
+     "job": "Drill",
+     "hearts": 2
+    },
+    {
+     "job": "Lab",
+     "hearts": 2
+    },
+    {
+     "job": "Refine",
+     "hearts": 1
+    },
+    {
+     "job": "Sell",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Sell",
+     "name": "Night Market",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Scholar",
+     "kind": "good",
+     "desc": "Its work gives 30% more skill xp"
+    },
+    {
+     "name": "Shy",
+     "kind": "quirk",
+     "desc": "15% slower while you are playing"
+    },
+    {
+     "name": "Collector",
+     "kind": "good",
+     "desc": "Makes 1% more for each recipe you know"
+    },
+    {
+     "name": "Strong",
+     "kind": "good",
+     "desc": "Makes 20% more each time"
+    },
+    {
+     "name": "Nocturnal",
+     "kind": "good",
+     "desc": "50% faster while you are away"
+    },
+    {
+     "name": "Ambitious",
+     "kind": "good",
+     "desc": "5% faster for each rank it has earned"
+    },
+    {
+     "name": "Sociable",
+     "kind": "good",
+     "desc": "1% faster for each mouse in your colony"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m177",
+   "name": "Colby",
+   "lv": 54,
+   "rank": "Master",
+   "rarity": "Common",
+   "job": "Drilling",
+   "jobShort": "Drill",
+   "rock": "Blue",
+   "mult": 10.1,
+   "can": true,
+   "affs": [
+    {
+     "job": "Lab",
+     "hearts": 2
+    },
+    {
+     "job": "Drill",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Drill",
+     "name": "Bit Expert",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Quick Study",
+     "kind": "good",
+     "desc": "Levels up 25% faster and gives 15% more skill xp"
+    },
+    {
+     "name": "Loner",
+     "kind": "quirk",
+     "desc": "1% slower for each mouse in your colony"
+    },
+    {
+     "name": "Nocturnal",
+     "kind": "good",
+     "desc": "50% faster while you are away"
+    },
+    {
+     "name": "Strong",
+     "kind": "good",
+     "desc": "Makes 20% more each time"
+    },
+    {
+     "name": "Heavy Hands",
+     "kind": "good",
+     "desc": "Makes 35% more, but works 10% slower"
+    },
+    {
+     "name": "Deep Diver",
+     "kind": "good",
+     "desc": "2% faster for each depth level of its rock"
+    },
+    {
+     "name": "Sturdy",
+     "kind": "good",
+     "desc": "5% faster, and 20% faster while you are away"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m178",
+   "name": "Nibbles",
+   "lv": 52,
+   "rank": "Master",
+   "rarity": "Common",
+   "job": "Refining",
+   "jobShort": "Refine",
+   "rock": "Blue",
+   "mult": 14.5,
+   "can": true,
+   "affs": [
+    {
+     "job": "Mine",
+     "hearts": 2
+    },
+    {
+     "job": "Sell",
+     "hearts": 2
+    },
+    {
+     "job": "Cheese",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Refine",
+     "name": "Alchemist",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Collector",
+     "kind": "good",
+     "desc": "Makes 1% more for each recipe you know"
+    },
+    {
+     "name": "Grumpy",
+     "kind": "quirk",
+     "desc": "The next mouse in its line works 8% slower"
+    },
+    {
+     "name": "Deep Diver",
+     "kind": "good",
+     "desc": "2% faster for each depth level of its rock"
+    },
+    {
+     "name": "Cheerleader",
+     "kind": "good",
+     "desc": "The previous mouse in its line works 10% faster"
+    },
+    {
+     "name": "Sturdy",
+     "kind": "good",
+     "desc": "5% faster, and 20% faster while you are away"
+    },
+    {
+     "name": "Heavy Hands",
+     "kind": "good",
+     "desc": "Makes 35% more, but works 10% slower"
+    },
+    {
+     "name": "Sociable",
+     "kind": "good",
+     "desc": "1% faster for each mouse in your colony"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m179",
+   "name": "Jack",
+   "lv": 54,
+   "rank": "Master",
+   "rarity": "Rare",
+   "job": "Cheesemaking",
+   "jobShort": "Cheese",
+   "rock": "Blue",
+   "mult": 14.1,
+   "can": true,
+   "affs": [
+    {
+     "job": "Mine",
+     "hearts": 1
+    },
+    {
+     "job": "Sell",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Cheese",
+     "name": "Taster",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Deep Diver",
+     "kind": "good",
+     "desc": "2% faster for each depth level of its rock"
+    },
+    {
+     "name": "Stubborn",
+     "kind": "quirk",
+     "desc": "Specialises in a job 40% slower"
+    },
+    {
+     "name": "Mentor",
+     "kind": "good",
+     "desc": "The next mouse in its line works 10% faster"
+    },
+    {
+     "name": "Heavy Hands",
+     "kind": "good",
+     "desc": "Makes 35% more, but works 10% slower"
+    },
+    {
+     "name": "Focused",
+     "kind": "good",
+     "desc": "Specialises in a job 50% faster"
+    },
+    {
+     "name": "Steady",
+     "kind": "good",
+     "desc": "8% faster and makes 8% more"
+    },
+    {
+     "name": "Collector",
+     "kind": "good",
+     "desc": "Makes 1% more for each recipe you know"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m151",
+   "name": "Ricotta",
+   "lv": 54,
+   "rank": "Master",
+   "rarity": "Common",
+   "job": "Drilling",
+   "jobShort": "Drill",
+   "rock": "Parmesan",
+   "mult": 8.6,
+   "can": true,
+   "affs": [
+    {
+     "job": "Mine",
+     "hearts": 1
+    },
+    {
+     "job": "Sell",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Drill",
+     "name": "Bit Expert",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Fast",
+     "kind": "good",
+     "desc": "Works 15% faster"
+    },
+    {
+     "name": "Glutton",
+     "kind": "quirk",
+     "desc": "Eats 8% of what it makes"
+    },
+    {
+     "name": "Focused",
+     "kind": "good",
+     "desc": "Specialises in a job 50% faster"
+    },
+    {
+     "name": "Quick Study",
+     "kind": "good",
+     "desc": "Levels up 25% faster and gives 15% more skill xp"
+    },
+    {
+     "name": "Sturdy",
+     "kind": "good",
+     "desc": "5% faster, and 20% faster while you are away"
+    },
+    {
+     "name": "Deep Diver",
+     "kind": "good",
+     "desc": "2% faster for each depth level of its rock"
+    },
+    {
+     "name": "Early Bird",
+     "kind": "good",
+     "desc": "25% faster while you are playing"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m152",
+   "name": "Squeak",
+   "lv": 54,
+   "rank": "Master",
+   "rarity": "Common",
+   "job": "Refining",
+   "jobShort": "Refine",
+   "rock": "Parmesan",
+   "mult": 6.1,
+   "can": true,
+   "affs": [
+    {
+     "job": "Lab",
+     "hearts": 2
+    }
+   ],
+   "specs": [
+    {
+     "job": "Refine",
+     "name": "Stoker",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Strong",
+     "kind": "good",
+     "desc": "Makes 20% more each time"
+    },
+    {
+     "name": "Lazy",
+     "kind": "quirk",
+     "desc": "12% slower, but levels up 20% faster"
+    },
+    {
+     "name": "Steady",
+     "kind": "good",
+     "desc": "8% faster and makes 8% more"
+    },
+    {
+     "name": "Veteran",
+     "kind": "good",
+     "desc": "3% faster for every 10 levels of the skill it works"
+    },
+    {
+     "name": "Cheerleader",
+     "kind": "good",
+     "desc": "The previous mouse in its line works 10% faster"
+    },
+    {
+     "name": "Mentor",
+     "kind": "good",
+     "desc": "The next mouse in its line works 10% faster"
+    },
+    {
+     "name": "Scholar",
+     "kind": "good",
+     "desc": "Its work gives 30% more skill xp"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m153",
+   "name": "Truffle",
+   "lv": 53,
+   "rank": "Master",
+   "rarity": "Common",
+   "job": "Cheesemaking",
+   "jobShort": "Cheese",
+   "rock": "Parmesan",
+   "mult": 12.1,
+   "can": true,
+   "affs": [
+    {
+     "job": "Lab",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Cheese",
+     "name": "Master Chef",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Steady",
+     "kind": "good",
+     "desc": "8% faster and makes 8% more"
+    },
+    {
+     "name": "Claustrophobic",
+     "kind": "quirk",
+     "desc": "1% slower for each depth level of its rock"
+    },
+    {
+     "name": "Sociable",
+     "kind": "good",
+     "desc": "1% faster for each mouse in your colony"
+    },
+    {
+     "name": "Collector",
+     "kind": "good",
+     "desc": "Makes 1% more for each recipe you know"
+    },
+    {
+     "name": "Taskmaster",
+     "kind": "good",
+     "desc": "Both neighbours in its line work 5% faster"
+    },
+    {
+     "name": "Veteran",
+     "kind": "good",
+     "desc": "3% faster for every 10 levels of the skill it works"
+    },
+    {
+     "name": "Deep Diver",
+     "kind": "good",
+     "desc": "2% faster for each depth level of its rock"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m117",
+   "name": "Nacho",
+   "lv": 53,
+   "rank": "Master",
+   "rarity": "Rare",
+   "job": "Drilling",
+   "jobShort": "Drill",
+   "rock": "Emmental",
+   "mult": 10.5,
+   "can": true,
+   "affs": [
+    {
+     "job": "Cheese",
+     "hearts": 2
+    },
+    {
+     "job": "Drill",
+     "hearts": 1
+    },
+    {
+     "job": "Refine",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Drill",
+     "name": "Bit Expert",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Lucky",
+     "kind": "good",
+     "desc": "10% chance to make double"
+    },
+    {
+     "name": "Lazy",
+     "kind": "quirk",
+     "desc": "12% slower, but levels up 20% faster"
+    },
+    {
+     "name": "Heavy Hands",
+     "kind": "good",
+     "desc": "Makes 35% more, but works 10% slower"
+    },
+    {
+     "name": "Sturdy",
+     "kind": "good",
+     "desc": "5% faster, and 20% faster while you are away"
+    },
+    {
+     "name": "Deep Diver",
+     "kind": "good",
+     "desc": "2% faster for each depth level of its rock"
+    },
+    {
+     "name": "Nocturnal",
+     "kind": "good",
+     "desc": "50% faster while you are away"
+    },
+    {
+     "name": "Taskmaster",
+     "kind": "good",
+     "desc": "Both neighbours in its line work 5% faster"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m119",
+   "name": "Mozza",
+   "lv": 52,
+   "rank": "Master",
+   "rarity": "Common",
+   "job": "Refining",
+   "jobShort": "Refine",
+   "rock": "Emmental",
+   "mult": 7.8,
+   "can": true,
+   "affs": [
+    {
+     "job": "Drill",
+     "hearts": 2
+    },
+    {
+     "job": "Mine",
+     "hearts": 1
+    },
+    {
+     "job": "Refine",
+     "hearts": 1
+    },
+    {
+     "job": "Cheese",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Refine",
+     "name": "Purifier",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Lucky",
+     "kind": "good",
+     "desc": "10% chance to make double"
+    },
+    {
+     "name": "Picky",
+     "kind": "quirk",
+     "desc": "Makes 15% less, but works 5% faster"
+    },
+    {
+     "name": "Mentor",
+     "kind": "good",
+     "desc": "The next mouse in its line works 10% faster"
+    },
+    {
+     "name": "Heavy Hands",
+     "kind": "good",
+     "desc": "Makes 35% more, but works 10% slower"
+    },
+    {
+     "name": "Tidy",
+     "kind": "good",
+     "desc": "Makes 10% more and works 5% faster"
+    },
+    {
+     "name": "Ambitious",
+     "kind": "good",
+     "desc": "5% faster for each rank it has earned"
+    },
+    {
+     "name": "Nocturnal",
+     "kind": "good",
+     "desc": "50% faster while you are away"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m120",
+   "name": "Rye",
+   "lv": 55,
+   "rank": "Master",
+   "rarity": "Common",
+   "job": "Cheesemaking",
+   "jobShort": "Cheese",
+   "rock": "Emmental",
+   "mult": 13.4,
+   "can": true,
+   "affs": [
+    {
+     "job": "Cheese",
+     "hearts": 1
+    },
+    {
+     "job": "Lab",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Cheese",
+     "name": "Affineur",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Deep Diver",
+     "kind": "good",
+     "desc": "2% faster for each depth level of its rock"
+    },
+    {
+     "name": "Fussy",
+     "kind": "quirk",
+     "desc": "Its work gives 30% less skill xp"
+    },
+    {
+     "name": "Scholar",
+     "kind": "good",
+     "desc": "Its work gives 30% more skill xp"
+    },
+    {
+     "name": "Tidy",
+     "kind": "good",
+     "desc": "Makes 10% more and works 5% faster"
+    },
+    {
+     "name": "Collector",
+     "kind": "good",
+     "desc": "Makes 1% more for each recipe you know"
+    },
+    {
+     "name": "Taskmaster",
+     "kind": "good",
+     "desc": "Both neighbours in its line work 5% faster"
+    },
+    {
+     "name": "Lucky",
+     "kind": "good",
+     "desc": "10% chance to make double"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m73",
+   "name": "Roque",
+   "lv": 53,
+   "rank": "Master",
+   "rarity": "Common",
+   "job": "Drilling",
+   "jobShort": "Drill",
+   "rock": "Brie",
+   "mult": 5.9,
+   "can": true,
+   "affs": [
+    {
+     "job": "Lab",
+     "hearts": 2
+    },
+    {
+     "job": "Drill",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Drill",
+     "name": "Bit Expert",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Lucky",
+     "kind": "good",
+     "desc": "10% chance to make double"
+    },
+    {
+     "name": "Claustrophobic",
+     "kind": "quirk",
+     "desc": "1% slower for each depth level of its rock"
+    },
+    {
+     "name": "Steady",
+     "kind": "good",
+     "desc": "8% faster and makes 8% more"
+    },
+    {
+     "name": "Early Bird",
+     "kind": "good",
+     "desc": "25% faster while you are playing"
+    },
+    {
+     "name": "Mentor",
+     "kind": "good",
+     "desc": "The next mouse in its line works 10% faster"
+    },
+    {
+     "name": "Heavy Hands",
+     "kind": "good",
+     "desc": "Makes 35% more, but works 10% slower"
+    },
+    {
+     "name": "Strong",
+     "kind": "good",
+     "desc": "Makes 20% more each time"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m75",
+   "name": "Poppy",
+   "lv": 50,
+   "rank": "Master",
+   "rarity": "Common",
+   "job": "Refining",
+   "jobShort": "Refine",
+   "rock": "Brie",
+   "mult": 7.8,
+   "can": true,
+   "affs": [
+    {
+     "job": "Sell",
+     "hearts": 2
+    }
+   ],
+   "specs": [
+    {
+     "job": "Refine",
+     "name": "Quick Press",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Focused",
+     "kind": "good",
+     "desc": "Specialises in a job 50% faster"
+    },
+    {
+     "name": "Shy",
+     "kind": "quirk",
+     "desc": "15% slower while you are playing"
+    },
+    {
+     "name": "Deep Diver",
+     "kind": "good",
+     "desc": "2% faster for each depth level of its rock"
+    },
+    {
+     "name": "Steady",
+     "kind": "good",
+     "desc": "8% faster and makes 8% more"
+    },
+    {
+     "name": "Veteran",
+     "kind": "good",
+     "desc": "3% faster for every 10 levels of the skill it works"
+    },
+    {
+     "name": "Nocturnal",
+     "kind": "good",
+     "desc": "50% faster while you are away"
+    },
+    {
+     "name": "Mentor",
+     "kind": "good",
+     "desc": "The next mouse in its line works 10% faster"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m76",
+   "name": "Pip",
+   "lv": 54,
+   "rank": "Manager",
+   "rarity": "Common",
+   "job": "Cheesemaking",
+   "jobShort": "Cheese",
+   "rock": "Brie",
+   "mult": 17.6,
+   "affs": [
+    {
+     "job": "Mine",
+     "hearts": 1
+    },
+    {
+     "job": "Cheese",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Cheese",
+     "name": "Affineur",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Prodigy",
+     "kind": "good",
+     "desc": "Levels up 50% faster"
+    },
+    {
+     "name": "Shy",
+     "kind": "quirk",
+     "desc": "15% slower while you are playing"
+    },
+    {
+     "name": "Steady",
+     "kind": "good",
+     "desc": "8% faster and makes 8% more"
+    },
+    {
+     "name": "Golden Paws",
+     "kind": "legend",
+     "desc": "Makes three times as much"
+    },
+    {
+     "name": "Wired",
+     "kind": "good",
+     "desc": "Works 30% faster, but makes 10% less"
+    },
+    {
+     "name": "Fast",
+     "kind": "good",
+     "desc": "Works 15% faster"
+    },
+    {
+     "name": "Scholar",
+     "kind": "good",
+     "desc": "Its work gives 30% more skill xp"
+    }
+   ],
+   "legend": true
+  },
+  {
+   "id": "m25",
+   "name": "Paneer",
+   "lv": 53,
+   "rank": "Master",
+   "rarity": "Common",
+   "job": "Drilling",
+   "jobShort": "Drill",
+   "rock": "Gouda",
+   "mult": 8.5,
+   "can": true,
+   "affs": [
+    {
+     "job": "Cheese",
+     "hearts": 2
+    }
+   ],
+   "specs": [
+    {
+     "job": "Drill",
+     "name": "Bit Expert",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Tidy",
+     "kind": "good",
+     "desc": "Makes 10% more and works 5% faster"
+    },
+    {
+     "name": "Claustrophobic",
+     "kind": "quirk",
+     "desc": "1% slower for each depth level of its rock"
+    },
+    {
+     "name": "Sturdy",
+     "kind": "good",
+     "desc": "5% faster, and 20% faster while you are away"
+    },
+    {
+     "name": "Cheerleader",
+     "kind": "good",
+     "desc": "The previous mouse in its line works 10% faster"
+    },
+    {
+     "name": "Heavy Hands",
+     "kind": "good",
+     "desc": "Makes 35% more, but works 10% slower"
+    },
+    {
+     "name": "Steady",
+     "kind": "good",
+     "desc": "8% faster and makes 8% more"
+    },
+    {
+     "name": "Deep Diver",
+     "kind": "good",
+     "desc": "2% faster for each depth level of its rock"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m26",
+   "name": "Feta",
+   "lv": 52,
+   "rank": "Master",
+   "rarity": "Common",
+   "job": "Refining",
+   "jobShort": "Refine",
+   "rock": "Gouda",
+   "mult": 4.1,
+   "can": true,
+   "affs": [
+    {
+     "job": "Lab",
+     "hearts": 2
+    },
+    {
+     "job": "Mine",
+     "hearts": 1
+    },
+    {
+     "job": "Refine",
+     "hearts": 1
+    },
+    {
+     "job": "Cheese",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Refine",
+     "name": "Alchemist",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Sturdy",
+     "kind": "good",
+     "desc": "5% faster, and 20% faster while you are away"
+    },
+    {
+     "name": "Loner",
+     "kind": "quirk",
+     "desc": "1% slower for each mouse in your colony"
+    },
+    {
+     "name": "Scholar",
+     "kind": "good",
+     "desc": "Its work gives 30% more skill xp"
+    },
+    {
+     "name": "Lucky",
+     "kind": "good",
+     "desc": "10% chance to make double"
+    },
+    {
+     "name": "Mentor",
+     "kind": "good",
+     "desc": "The next mouse in its line works 10% faster"
+    },
+    {
+     "name": "Steady",
+     "kind": "good",
+     "desc": "8% faster and makes 8% more"
+    },
+    {
+     "name": "Taskmaster",
+     "kind": "good",
+     "desc": "Both neighbours in its line work 5% faster"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m27",
+   "name": "Pepper",
+   "lv": 51,
+   "rank": "Master",
+   "rarity": "Legendary",
+   "job": "Cheesemaking",
+   "jobShort": "Cheese",
+   "rock": "Gouda",
+   "mult": 13.8,
+   "can": true,
+   "affs": [
+    {
+     "job": "Mine",
+     "hearts": 1
+    },
+    {
+     "job": "Drill",
+     "hearts": 1
+    },
+    {
+     "job": "Refine",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Cheese",
+     "name": "Taster",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Moonlit",
+     "kind": "legend",
+     "desc": "Four times as fast while you are away"
+    },
+    {
+     "name": "Early Bird",
+     "kind": "good",
+     "desc": "25% faster while you are playing"
+    },
+    {
+     "name": "Cheerleader",
+     "kind": "good",
+     "desc": "The previous mouse in its line works 10% faster"
+    },
+    {
+     "name": "Collector",
+     "kind": "good",
+     "desc": "Makes 1% more for each recipe you know"
+    },
+    {
+     "name": "Wired",
+     "kind": "good",
+     "desc": "Works 30% faster, but makes 10% less"
+    },
+    {
+     "name": "Lucky",
+     "kind": "good",
+     "desc": "10% chance to make double"
+    },
+    {
+     "name": "Tidy",
+     "kind": "good",
+     "desc": "Makes 10% more and works 5% faster"
+    }
+   ],
+   "legend": true
+  },
+  {
+   "id": "m1",
+   "name": "Muenster",
+   "lv": 51,
+   "rank": "Manager",
+   "rarity": "Common",
+   "job": "Drilling",
+   "jobShort": "Drill",
+   "rock": "Cheddar",
+   "mult": 20.9,
+   "affs": [
+    {
+     "job": "Mine",
+     "hearts": 2
+    },
+    {
+     "job": "Drill",
+     "hearts": 2
+    },
+    {
+     "job": "Refine",
+     "hearts": 2
+    },
+    {
+     "job": "Cheese",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Drill",
+     "name": "Core Keeper",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Strong",
+     "kind": "good",
+     "desc": "Makes 20% more each time"
+    },
+    {
+     "name": "Glutton",
+     "kind": "quirk",
+     "desc": "Eats 8% of what it makes"
+    },
+    {
+     "name": "Deep Diver",
+     "kind": "good",
+     "desc": "2% faster for each depth level of its rock"
+    },
+    {
+     "name": "Sturdy",
+     "kind": "good",
+     "desc": "5% faster, and 20% faster while you are away"
+    },
+    {
+     "name": "Veteran",
+     "kind": "good",
+     "desc": "3% faster for every 10 levels of the skill it works"
+    },
+    {
+     "name": "Heavy Hands",
+     "kind": "good",
+     "desc": "Makes 35% more, but works 10% slower"
+    },
+    {
+     "name": "Scholar",
+     "kind": "good",
+     "desc": "Its work gives 30% more skill xp"
+    },
+    {
+     "name": "Nocturnal",
+     "kind": "good",
+     "desc": "50% faster while you are away"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m4",
+   "name": "Monty",
+   "lv": 55,
+   "rank": "Manager",
+   "rarity": "Common",
+   "job": "Refining",
+   "jobShort": "Refine",
+   "rock": "Cheddar",
+   "mult": 6.2,
+   "affs": [
+    {
+     "job": "Mine",
+     "hearts": 1
+    },
+    {
+     "job": "Drill",
+     "hearts": 1
+    },
+    {
+     "job": "Cheese",
+     "hearts": 1
+    },
+    {
+     "job": "Sell",
+     "hearts": 1
+    },
+    {
+     "job": "Lab",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Refine",
+     "name": "Alchemist",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Steady",
+     "kind": "good",
+     "desc": "8% faster and makes 8% more"
+    },
+    {
+     "name": "Tidy",
+     "kind": "good",
+     "desc": "Makes 10% more and works 5% faster"
+    },
+    {
+     "name": "Mentor",
+     "kind": "good",
+     "desc": "The next mouse in its line works 10% faster"
+    },
+    {
+     "name": "Fast",
+     "kind": "good",
+     "desc": "Works 15% faster"
+    },
+    {
+     "name": "Cheerleader",
+     "kind": "good",
+     "desc": "The previous mouse in its line works 10% faster"
+    },
+    {
+     "name": "Scholar",
+     "kind": "good",
+     "desc": "Its work gives 30% more skill xp"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m5",
+   "name": "Tilly",
+   "lv": 55,
+   "rank": "Manager",
+   "rarity": "Common",
+   "job": "Cheesemaking",
+   "jobShort": "Cheese",
+   "rock": "Cheddar",
+   "mult": 10.9,
+   "affs": [
+    {
+     "job": "Drill",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Cheese",
+     "name": "Taster",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Lucky",
+     "kind": "good",
+     "desc": "10% chance to make double"
+    },
+    {
+     "name": "Grumpy",
+     "kind": "quirk",
+     "desc": "The next mouse in its line works 8% slower"
+    },
+    {
+     "name": "Taskmaster",
+     "kind": "good",
+     "desc": "Both neighbours in its line work 5% faster"
+    },
+    {
+     "name": "Heavy Hands",
+     "kind": "good",
+     "desc": "Makes 35% more, but works 10% slower"
+    },
+    {
+     "name": "Wired",
+     "kind": "good",
+     "desc": "Works 30% faster, but makes 10% less"
+    },
+    {
+     "name": "Tidy",
+     "kind": "good",
+     "desc": "Makes 10% more and works 5% faster"
+    },
+    {
+     "name": "Sturdy",
+     "kind": "good",
+     "desc": "5% faster, and 20% faster while you are away"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m10",
+   "name": "Gus",
+   "lv": 52,
+   "rank": "Manager",
+   "rarity": "Common",
+   "job": "Research",
+   "jobShort": "Lab",
+   "rock": "",
+   "mult": 2.7,
+   "affs": [
+    {
+     "job": "Refine",
+     "hearts": 2
+    },
+    {
+     "job": "Mine",
+     "hearts": 1
+    },
+    {
+     "job": "Drill",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Lab",
+     "name": "Good Nose",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Nocturnal",
+     "kind": "good",
+     "desc": "50% faster while you are away"
+    },
+    {
+     "name": "Dreamer",
+     "kind": "quirk",
+     "desc": "Works 8% slower"
+    },
+    {
+     "name": "Mentor",
+     "kind": "good",
+     "desc": "The next mouse in its line works 10% faster"
+    },
+    {
+     "name": "Quick Study",
+     "kind": "good",
+     "desc": "Levels up 25% faster and gives 15% more skill xp"
+    },
+    {
+     "name": "Steady",
+     "kind": "good",
+     "desc": "8% faster and makes 8% more"
+    },
+    {
+     "name": "Scholar",
+     "kind": "good",
+     "desc": "Its work gives 30% more skill xp"
+    },
+    {
+     "name": "Focused",
+     "kind": "good",
+     "desc": "Specialises in a job 50% faster"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m180",
+   "name": "Hazel",
+   "lv": 40,
+   "rank": "Master",
+   "rarity": "Legendary",
+   "job": "Mining",
+   "jobShort": "Mine",
+   "rock": "Blue",
+   "mult": 19.2,
+   "can": false,
+   "affs": [
+    {
+     "job": "Refine",
+     "hearts": 1
+    },
+    {
+     "job": "Cheese",
+     "hearts": 1
+    },
+    {
+     "job": "Sell",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Mine",
+     "name": "Rock Whisperer",
+     "grade": "II",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "King of Mice",
+     "kind": "legend",
+     "desc": "6% faster for each mouse in your colony"
+    },
+    {
+     "name": "Collector",
+     "kind": "good",
+     "desc": "Makes 1% more for each recipe you know"
+    },
+    {
+     "name": "Deep Diver",
+     "kind": "good",
+     "desc": "2% faster for each depth level of its rock"
+    },
+    {
+     "name": "Lucky",
+     "kind": "good",
+     "desc": "10% chance to make double"
+    },
+    {
+     "name": "Strong",
+     "kind": "good",
+     "desc": "Makes 20% more each time"
+    },
+    {
+     "name": "Fast",
+     "kind": "good",
+     "desc": "Works 15% faster"
+    }
+   ],
+   "legend": true
+  },
+  {
+   "id": "m154",
+   "name": "Sage",
+   "lv": 37,
+   "rank": "Master",
+   "rarity": "Common",
+   "job": "Mining",
+   "jobShort": "Mine",
+   "rock": "Parmesan",
+   "mult": 6.6,
+   "can": false,
+   "affs": [
+    {
+     "job": "Refine",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Mine",
+     "name": "Double Strike",
+     "grade": "II",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Sociable",
+     "kind": "good",
+     "desc": "1% faster for each mouse in your colony"
+    },
+    {
+     "name": "Picky",
+     "kind": "quirk",
+     "desc": "Makes 15% less, but works 5% faster"
+    },
+    {
+     "name": "Collector",
+     "kind": "good",
+     "desc": "Makes 1% more for each recipe you know"
+    },
+    {
+     "name": "Fast",
+     "kind": "good",
+     "desc": "Works 15% faster"
+    },
+    {
+     "name": "Heavy Hands",
+     "kind": "good",
+     "desc": "Makes 35% more, but works 10% slower"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m121",
+   "name": "Rind",
+   "lv": 42,
+   "rank": "Master",
+   "rarity": "Common",
+   "job": "Mining",
+   "jobShort": "Mine",
+   "rock": "Emmental",
+   "mult": 11.4,
+   "can": true,
+   "affs": [
+    {
+     "job": "Mine",
+     "hearts": 2
+    },
+    {
+     "job": "Drill",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Mine",
+     "name": "Pick Master",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Sociable",
+     "kind": "good",
+     "desc": "1% faster for each mouse in your colony"
+    },
+    {
+     "name": "Glutton",
+     "kind": "quirk",
+     "desc": "Eats 8% of what it makes"
+    },
+    {
+     "name": "Lucky",
+     "kind": "good",
+     "desc": "10% chance to make double"
+    },
+    {
+     "name": "Steady",
+     "kind": "good",
+     "desc": "8% faster and makes 8% more"
+    },
+    {
+     "name": "Deep Diver",
+     "kind": "good",
+     "desc": "2% faster for each depth level of its rock"
+    },
+    {
+     "name": "Strong",
+     "kind": "good",
+     "desc": "Makes 20% more each time"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m77",
+   "name": "Fondue",
+   "lv": 38,
+   "rank": "Master",
+   "rarity": "Common",
+   "job": "Mining",
+   "jobShort": "Mine",
+   "rock": "Brie",
+   "mult": 6.5,
+   "can": false,
+   "affs": [
+    {
+     "job": "Cheese",
+     "hearts": 2
+    },
+    {
+     "job": "Sell",
+     "hearts": 2
+    },
+    {
+     "job": "Mine",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Mine",
+     "name": "Vein Sniffer",
+     "grade": "II",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Prodigy",
+     "kind": "good",
+     "desc": "Levels up 50% faster"
+    },
+    {
+     "name": "Forgetful",
+     "kind": "quirk",
+     "desc": "Levels up 30% slower"
+    },
+    {
+     "name": "Nocturnal",
+     "kind": "good",
+     "desc": "50% faster while you are away"
+    },
+    {
+     "name": "Steady",
+     "kind": "good",
+     "desc": "8% faster and makes 8% more"
+    },
+    {
+     "name": "Deep Diver",
+     "kind": "good",
+     "desc": "2% faster for each depth level of its rock"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m28",
+   "name": "Curd",
+   "lv": 38,
+   "rank": "Master",
+   "rarity": "Common",
+   "job": "Mining",
+   "jobShort": "Mine",
+   "rock": "Gouda",
+   "mult": 7.7,
+   "can": false,
+   "affs": [
+    {
+     "job": "Mine",
+     "hearts": 1
+    },
+    {
+     "job": "Sell",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Mine",
+     "name": "Rock Whisperer",
+     "grade": "II",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Deep Diver",
+     "kind": "good",
+     "desc": "2% faster for each depth level of its rock"
+    },
+    {
+     "name": "Fussy",
+     "kind": "quirk",
+     "desc": "Its work gives 30% less skill xp"
+    },
+    {
+     "name": "Sociable",
+     "kind": "good",
+     "desc": "1% faster for each mouse in your colony"
+    },
+    {
+     "name": "Lucky",
+     "kind": "good",
+     "desc": "10% chance to make double"
+    },
+    {
+     "name": "Heavy Hands",
+     "kind": "good",
+     "desc": "Makes 35% more, but works 10% slower"
+    }
+   ],
+   "legend": false
+  },
+  {
+   "id": "m14",
+   "name": "Biscuit",
+   "lv": 45,
+   "rank": "Master",
+   "rarity": "Common",
+   "job": "Mining",
+   "jobShort": "Mine",
+   "rock": "Cheddar",
+   "mult": 13.7,
+   "can": true,
+   "affs": [
+    {
+     "job": "Drill",
+     "hearts": 2
+    },
+    {
+     "job": "Cheese",
+     "hearts": 1
+    }
+   ],
+   "specs": [
+    {
+     "job": "Mine",
+     "name": "Vein Sniffer",
+     "grade": "III",
+     "here": true
+    }
+   ],
+   "traits": [
+    {
+     "name": "Heavy Hands",
+     "kind": "good",
+     "desc": "Makes 35% more, but works 10% slower"
+    },
+    {
+     "name": "Picky",
+     "kind": "quirk",
+     "desc": "Makes 15% less, but works 5% faster"
+    },
+    {
+     "name": "Strong",
+     "kind": "good",
+     "desc": "Makes 20% more each time"
+    },
+    {
+     "name": "Lucky",
+     "kind": "good",
+     "desc": "10% chance to make double"
+    },
+    {
+     "name": "Deep Diver",
+     "kind": "good",
+     "desc": "2% faster for each depth level of its rock"
+    },
+    {
+     "name": "Sociable",
+     "kind": "good",
+     "desc": "1% faster for each mouse in your colony"
+    }
+   ],
+   "legend": false
+  }
+ ]
+}

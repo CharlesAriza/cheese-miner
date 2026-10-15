@@ -1,0 +1,474 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cheese Miner Styles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Página de comparación (oscura a propósito: es la paleta del juego). */
+:root { color-scheme: dark; --pg: #100e15; --pg2: #1a1722; --pgline: #2c2838; --pgtext: #ece8f4; --pgmuted: #a59fb8; --gold: #ffcf2e; }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--pg); color: var(--pgtext); font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; padding: 0 16px 48px; }
+.px { image-rendering: pixelated; }
+.top { max-width: 1180px; margin: 0 auto; padding: 24px 0 12px; }
+.top h1 { margin: 0 0 6px; font-family: 'Press Start 2P', monospace; font-size: 15px; line-height: 1.5; color: var(--gold); text-wrap: balance; }
+.top p { margin: 0; max-width: 70ch; color: var(--pgmuted); font-size: 14px; line-height: 1.5; }
+.ctrls { max-width: 1180px; margin: 0 auto 18px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.seg { display: inline-flex; padding: 3px; gap: 3px; background: var(--pg2); border: 1px solid var(--pgline); border-radius: 10px; }
+.seg button { font: 600 13px Inter, system-ui, sans-serif; color: var(--pgmuted); background: none; border: 0; border-radius: 7px; padding: 8px 14px; cursor: pointer; }
+.seg button.on { color: #1b1622; background: var(--gold); }
+.only-narrow { display: none; }
+.cols { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 360px); justify-content: space-between; gap: 24px; }
+.col > header { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; min-height: 44px; }
+.vk { flex: none; width: 34px; height: 34px; display: grid; place-items: center; font-family: 'Press Start 2P', monospace; font-size: 13px; color: #1b1622; background: var(--gold); border-radius: 8px; }
+.col h2 { margin: 0; font-size: 15px; font-weight: 700; }
+.col > header p { margin: 2px 0 0; font-size: 12px; color: var(--pgmuted); }
+.scr { display: none; }
+body[data-s="main"] .scr-main, body[data-s="mice"] .scr-mice { display: block; }
+@media (max-width: 1220px) {
+  .only-narrow { display: inline-flex; }
+  .cols { grid-template-columns: 360px; justify-content: center; }
+  .col { display: none; }
+  body[data-v="A"] .col[data-v="A"], body[data-v="B"] .col[data-v="B"], body[data-v="C"] .col[data-v="C"] { display: block; }
+}
+@media (max-width: 392px) { body { padding: 0 0 40px; } .top, .ctrls { padding-left: 16px; padding-right: 16px; } .col > header { padding: 0 16px; } }
+
+/* Marco de teléfono: 360 × 740, como las capturas del juego. */
+.ph { position: relative; width: 360px; height: 740px; overflow: hidden; border-radius: 18px; outline: 1px solid var(--pgline); display: flex; flex-direction: column; }
+.vA img { display: block; width: 360px; height: 740px; }
+
+/* ============================== B · HÍBRIDO ============================== */
+.vB { --ink: #0c0910; --bg: #1b1622; --panel: #241f30; --p2: #322b44; --line: #3b3350; --text: #f1edf8; --muted: #a9a1c2; --gold: #ffcf2e; --sun: #ffe55c; --ok: #7ee08a; --hot: #ffb35c; --blue: #5ad1ff; --green: #46ef6c; --pink: #ff9ab5;
+  background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+.vB .ok { color: var(--ok); } .vB .hot { color: var(--hot); }
+.vB button { font: inherit; color: inherit; cursor: pointer; }
+.b-top { display: grid; grid-template-columns: 1fr 1.15fr; gap: 6px; padding: 8px 8px 0; }
+.b-res { display: flex; gap: 8px; align-items: center; min-width: 0; padding: 6px 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+.b-res.warn { border-color: #b8742e; }
+.b-res .big { width: 20px; flex: none; }
+.b-res div { min-width: 0; }
+.b-res small { display: block; font: 6px 'Press Start 2P', monospace; color: var(--muted); letter-spacing: .5px; }
+.b-res b { display: block; margin-top: 3px; font: 11px 'Press Start 2P', monospace; }
+.b-res em { display: block; margin-top: 3px; font-style: normal; font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.b-goal { display: flex; align-items: center; gap: 8px; margin: 6px 8px 0; padding: 6px 8px; background: #f4e9c6; color: #2b2236; border-radius: 10px; }
+.b-tag { flex: none; padding: 3px 5px 2px; font: 6px 'Press Start 2P', monospace; color: #fff; background: #3a2c1a; border-radius: 4px; }
+.b-goal p { flex: 1; min-width: 0; margin: 0; font-size: 12px; font-weight: 600; line-height: 1.25; }
+.b-goal .go { width: 9px; flex: none; }
+.b-scene { position: relative; height: 266px; margin-top: 6px; overflow: hidden; border-top: 2px solid var(--ink); border-bottom: 2px solid var(--ink); }
+.b-scene .scene { position: absolute; left: 0; bottom: -12px; width: 360px; height: auto; }
+.b-depth { position: absolute; top: 8px; right: 8px; padding: 4px 6px 3px; font: 6px 'Press Start 2P', monospace; color: var(--sun); background: #0c0910d0; border-radius: 4px; }
+.b-flow { position: absolute; left: 6px; right: 6px; bottom: 6px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.b-fc { display: flex; gap: 5px; align-items: center; min-width: 0; padding: 5px 6px; background: #0c0910d9; border-radius: 8px; }
+.b-fc img { width: 16px; flex: none; }
+.b-fc div { min-width: 0; }
+.b-fc small { display: block; font: 5px 'Press Start 2P', monospace; color: var(--muted); letter-spacing: .5px; }
+.b-fc b { display: block; margin-top: 3px; font: 8px 'Press Start 2P', monospace; }
+.b-fc em { display: block; margin-top: 3px; font-style: normal; font-size: 9px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.b-body { flex: 1; min-height: 0; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.b-stations { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.b-st { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 0 5px; background: var(--panel); border: 1px solid var(--line); border-radius: 9px; }
+.b-st .ico { width: 22px; height: 18px; object-fit: contain; }
+.b-st b { font: 6px 'Press Start 2P', monospace; }
+.b-st small { font-size: 9px; font-weight: 700; color: var(--muted); }
+.b-st em { position: absolute; top: 2px; left: 2px; right: 2px; text-align: center; font: 5px 'Press Start 2P', monospace; font-style: normal; color: var(--sun); }
+.b-st em.new { color: var(--ok); }
+.b-st.sel { border-color: var(--sun); background: #3a3150; }
+.b-st.new { border-color: #3c8a4a; }
+.b-st.boost1 { box-shadow: inset 0 0 0 1px #5ad1ff80, inset 0 0 8px #5ad1ff40; }
+.b-st.boost2 { box-shadow: inset 0 0 0 1px #9fe9ff, inset 0 0 12px #5ad1ffb0; }
+.b-rocks { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.b-rock { display: flex; flex-direction: column; gap: 3px; align-items: center; padding: 5px 0 4px; font-size: 9.5px; font-weight: 700; letter-spacing: -0.2px; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 9px; white-space: nowrap; }
+.b-rock img { width: 14px; }
+.b-rock.on { color: var(--sun); border-color: var(--sun); }
+.b-dock { display: flex; flex-direction: column; gap: 5px; padding: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+.b-dhead { display: flex; align-items: baseline; gap: 8px; }
+.b-dhead b { font: 10px 'Press Start 2P', monospace; color: var(--sun); }
+.b-lv { font-size: 12px; font-weight: 800; }
+.b-dhead small { margin-left: auto; font-size: 11px; color: var(--muted); }
+.b-xp { height: 4px; background: #0c0910; border-radius: 3px; overflow: hidden; }
+.b-xp i { display: block; height: 100%; background: #6f8cff; }
+.b-stats { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; }
+.b-why { font-size: 12px; font-weight: 600; }
+.b-act { display: grid; grid-template-columns: 1.35fr 1fr; gap: 6px; }
+.b-main { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 64px; padding: 14px 6px 6px; background: #e2562a; border: 0; border-radius: 10px; box-shadow: inset 0 -4px 0 #00000033; }
+.b-main b { font: 13px 'Press Start 2P', monospace; text-shadow: 2px 2px #0c0910; }
+.b-main small { font-size: 11px; font-weight: 700; }
+.b-plate { position: absolute; top: 0; left: 0; padding: 3px 10px 3px 6px; font: 6px 'Press Start 2P', monospace; color: #0c0910; background: #c4f1ff; border-radius: 10px 0 8px 0; }
+.b-worker { display: flex; gap: 8px; align-items: center; min-width: 0; padding: 6px; background: var(--p2); border-radius: 10px; }
+.b-worker .face { width: 33px; flex: none; }
+.b-worker div { min-width: 0; }
+.b-worker b { display: block; font-size: 13px; }
+.b-worker small { font-size: 11px; color: var(--muted); }
+.b-ups { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 6px; }
+.b-ups button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; background: var(--p2); border: 0; border-radius: 9px; min-width: 0; }
+.b-ups button.buy { background: #2f7d48; }
+.b-ups b { font-size: 11px; white-space: nowrap; }
+.b-ups span { display: flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.b-ups img { width: 10px; }
+.b-nav { display: grid; grid-template-columns: 1fr 1.2fr 1.2fr 1fr; gap: 6px; padding: 8px; background: #141019; border-top: 1px solid var(--line); }
+.b-nav button { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 10px 2px; font: 7px 'Press Start 2P', monospace; background: var(--panel); border: 1px solid var(--line); border-radius: 9px; white-space: nowrap; }
+.b-nav small { font: 600 10px system-ui, sans-serif; color: var(--ok); }
+.b-nav button.alert { border-color: var(--sun); }
+/* B · ROSTER */
+.b-appbar { display: flex; align-items: center; gap: 10px; padding: 12px 10px 8px; }
+.b-appbar b { font: 12px 'Press Start 2P', monospace; color: var(--sun); }
+.b-appbar span { flex: 1; font-size: 12px; color: var(--muted); }
+.b-appbar button { padding: 8px 10px; font: 7px 'Press Start 2P', monospace; background: var(--p2); border: 0; border-radius: 8px; }
+.b-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin: 0 10px; padding: 3px; background: var(--panel); border-radius: 10px; }
+.b-seg button { padding: 9px 0; font: 7px 'Press Start 2P', monospace; background: none; border: 0; border-radius: 8px; color: var(--muted); }
+.b-seg button.on { color: #1b1622; background: #ff9a1f; }
+.b-seg button.promo { box-shadow: inset 0 0 0 2px var(--green); }
+.b-hire { display: flex; gap: 10px; align-items: center; margin: 8px 10px 0; padding: 9px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+.b-hire div { flex: 1; min-width: 0; }
+.b-hire b { display: block; font: 7px 'Press Start 2P', monospace; color: var(--sun); }
+.b-hire small { display: block; margin-top: 4px; font-size: 11px; color: var(--muted); }
+.b-hire button { display: flex; gap: 5px; align-items: center; padding: 8px 10px; font: 8px 'Press Start 2P', monospace; color: #1b1622; background: var(--sun); border: 0; border-radius: 8px; }
+.b-hire button img { width: 11px; }
+.b-note { display: block; width: calc(100% - 20px); margin: 6px 10px 0; padding: 8px; font-size: 12px; font-weight: 600; color: var(--ok); background: #1f2e24; border: 1px solid #2f6b3c; border-radius: 10px; }
+.b-note b { color: #fff; }
+.b-filter { display: flex; justify-content: space-between; align-items: center; margin: 6px 10px; font-size: 11px; color: var(--muted); }
+.b-filter b { color: var(--text); }
+.b-filter em { font: 6px 'Press Start 2P', monospace; font-style: normal; color: var(--blue); }
+.b-list { flex: 1; min-height: 0; overflow: hidden; padding: 0 10px; display: flex; flex-direction: column; gap: 6px; }
+.b-row { display: grid; grid-template-columns: 44px 1fr auto; gap: 8px; align-items: center; padding: 7px 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+.b-row.due { border-color: var(--green); box-shadow: inset 0 0 12px #46ef6c30; }
+.b-face { display: grid; place-items: center; width: 44px; height: 44px; background: #120e18; border: 2px solid #5b546d; border-radius: 9px; }
+.b-face.r1 { border-color: #5aa9ff; } .b-face.r2 { border-color: var(--gold); }
+.b-row.due .b-face { border-color: var(--green); }
+.b-face .face { width: 33px; }
+.b-rmain { min-width: 0; }
+.b-name { display: flex; align-items: baseline; gap: 6px; }
+.b-name b { font-size: 14px; }
+.b-rank { padding: 1px 5px; font-size: 10px; font-weight: 700; color: var(--muted); background: var(--p2); border-radius: 4px; }
+.b-name small { font-size: 11px; color: var(--muted); }
+.b-where { display: block; margin-top: 1px; font-size: 11px; color: var(--muted); }
+.b-chips { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; max-height: 20px; overflow: hidden; }
+.b-aff { display: inline-flex; align-items: center; gap: 2px; padding: 2px 5px; font-size: 10px; font-weight: 700; color: #ffd0dc; background: #4a2433; border-radius: 5px; }
+.b-aff .hrt { width: 9px; }
+.b-spec { padding: 2px 5px; font-size: 10px; font-weight: 700; color: var(--ok); background: #1f2e24; border-radius: 5px; }
+.b-more { padding: 2px 4px; font-size: 10px; color: var(--muted); }
+.b-rside { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.b-mult { font: 9px 'Press Start 2P', monospace; color: #ffe9a8; }
+.b-rside .up { width: 22px; }
+
+/* ============================== C · IDLE RPG ============================== */
+.vC { --bg: #14121b; --panel: #1d1a27; --line: #2e2a3d; --text: #ebe7f5; --muted: #9a93b0; --gold: #ffcf2e; --ok: #5fd88b; --hot: #ffb35c; --blue: #63c9f2; --green: #4fdc7f; --pink: #ff9ab5;
+  background: var(--bg); color: var(--text); font-family: Inter, system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+.vC .ok { color: var(--ok); } .vC .hot { color: var(--hot); } .vC .blue { color: var(--blue); } .vC .bad { color: #ff8a9c; }
+.vC button { font: inherit; color: inherit; cursor: pointer; }
+.c-bar { display: flex; align-items: center; gap: 12px; height: 48px; padding: 0 12px; background: #1b1824; border-bottom: 1px solid var(--line); }
+.c-menu { display: grid; gap: 3px; width: 18px; }
+.c-menu i { display: block; height: 2px; background: var(--muted); border-radius: 1px; }
+.c-bar b { flex: 1; font-size: 16px; font-weight: 700; }
+.c-coins { display: flex; gap: 6px; align-items: center; font-size: 14px; font-weight: 700; color: var(--gold); }
+.c-coins img { width: 14px; }
+.c-scroll { flex: 1; min-height: 0; overflow: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; scrollbar-width: thin; }
+.c-scroll > * { flex: none; }
+.c-goal { padding: 8px 10px; border-left: 3px solid var(--gold); background: var(--panel); border-radius: 4px; }
+.c-goal small { font-size: 10px; font-weight: 700; letter-spacing: .8px; color: var(--gold); }
+.c-goal p { margin: 2px 0 0; font-size: 13px; }
+.c-skill { display: flex; gap: 10px; align-items: center; padding: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+.c-skill .sk { width: 36px; flex: none; }
+.c-skm { flex: 1; min-width: 0; }
+.c-skh { display: flex; justify-content: space-between; align-items: baseline; }
+.c-skh b { font-size: 15px; }
+.c-skh span { font-size: 13px; font-weight: 600; color: var(--muted); }
+.c-bar2 { height: 6px; margin: 6px 0 4px; background: #0e0c13; border-radius: 3px; overflow: hidden; }
+.c-bar2 i { display: block; height: 100%; background: #6f8cff; }
+.c-skm small { font-size: 11px; color: var(--muted); }
+.c-scene { position: relative; height: 128px; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; }
+.c-scene .scene { position: absolute; left: 0; bottom: -58px; width: 336px; }
+.c-scene span { position: absolute; left: 8px; top: 8px; padding: 3px 7px; font-size: 11px; font-weight: 600; background: #0c0910cc; border-radius: 4px; }
+.c-rocks { display: flex; align-items: center; gap: 5px; }
+.c-rocks small { font-size: 10px; font-weight: 700; letter-spacing: .8px; color: var(--muted); margin-right: 2px; }
+.c-rock { display: grid; place-items: center; width: 30px; height: 30px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+.c-rock img { width: 16px; }
+.c-rock.on { border-color: var(--gold); }
+.c-rocks b { margin-left: auto; font-size: 13px; }
+.c-panel { padding: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+.c-panel h4 { margin: 0 0 8px; font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); }
+.c-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.c-tbl td { padding: 5px 0; border-top: 1px solid var(--line); }
+.c-tbl tr:first-child td { border-top: 0; }
+.c-tbl td:first-child { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.c-tbl td:nth-child(2) { text-align: right; font-weight: 700; }
+.c-tbl td:last-child { text-align: right; width: 92px; font-size: 12px; }
+.c-tbl img { width: 16px; }
+.c-sts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.c-st { position: relative; display: flex; gap: 8px; align-items: center; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; }
+.c-st.sel { border-color: var(--gold); background: #262131; }
+.c-st .ico { width: 22px; height: 18px; object-fit: contain; flex: none; }
+.c-st b { display: block; font-size: 13px; }
+.c-st small { font-size: 11px; color: var(--muted); }
+.c-boost { margin-left: auto; font-size: 10px; font-weight: 700; color: var(--blue); }
+.c-boost.b2 { padding: 1px 4px; color: #0e0c13; background: var(--blue); border-radius: 3px; }
+.c-tag { position: absolute; top: -7px; right: 6px; padding: 1px 5px; font-size: 9px; font-weight: 700; color: #1b1622; background: var(--gold); border-radius: 3px; }
+.c-tag.new { background: var(--ok); }
+.c-main { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 12px 14px; background: #c84b25; border: 0; border-radius: 6px; }
+.c-main b { font-size: 16px; }
+.c-main small { font-size: 12px; font-weight: 600; opacity: .9; }
+.c-dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 10px 0 8px; font-size: 13px; }
+.c-dl dt { color: var(--muted); }
+.c-dl dd { margin: 0; text-align: right; font-weight: 600; }
+.c-worker { display: flex; gap: 10px; align-items: center; padding-top: 8px; border-top: 1px solid var(--line); }
+.c-worker .face { width: 33px; }
+.c-worker b { display: block; font-size: 13px; }
+.c-worker small { font-size: 11px; color: var(--muted); }
+.c-worker span { margin-left: auto; font-size: 11px; color: var(--muted); }
+.c-up { display: flex; gap: 10px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); }
+.c-up:first-of-type { border-top: 0; }
+.c-up div { flex: 1; min-width: 0; }
+.c-up b { display: block; font-size: 13px; }
+.c-up small { font-size: 11px; color: var(--muted); }
+.c-up button { display: flex; gap: 5px; align-items: center; padding: 7px 10px; font-size: 12px; font-weight: 700; background: #2c7a47; border: 0; border-radius: 5px; white-space: nowrap; }
+.c-up button.ghost { background: none; border: 1px solid var(--line); }
+.c-up img { width: 11px; }
+.c-nav { display: grid; grid-template-columns: repeat(4, 1fr); height: 56px; background: #1b1824; border-top: 1px solid var(--line); }
+.c-nav button { position: relative; background: none; border: 0; font-size: 12px; font-weight: 600; color: var(--muted); }
+.c-nav button small { display: block; font-size: 10px; color: var(--ok); }
+.c-nav button.alert { color: var(--gold); }
+.c-nav button.alert small { color: var(--gold); }
+.c-nav button.on { color: var(--text); box-shadow: inset 0 2px 0 var(--gold); }
+/* C · ROSTER */
+.c-tabs { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--line); }
+.c-tabs button { padding: 11px 0; font-size: 13px; font-weight: 600; color: var(--muted); background: none; border: 0; }
+.c-tabs button.on { color: var(--text); box-shadow: inset 0 -2px 0 var(--gold); }
+.c-tabs small { color: var(--muted); font-weight: 500; }
+.c-sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.c-sum small { display: block; font-size: 10px; font-weight: 700; letter-spacing: .6px; color: var(--muted); }
+.c-sum b { display: flex; gap: 4px; align-items: center; margin-top: 3px; font-size: 15px; }
+.c-sum img { width: 12px; }
+.c-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.c-actions button { padding: 10px; font-size: 13px; font-weight: 700; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+.c-actions button.primary { color: #1b1622; background: var(--gold); border-color: var(--gold); }
+.c-th { display: grid; grid-template-columns: 1fr auto auto; gap: 14px; padding: 0 2px; font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--muted); }
+.c-row { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; padding: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+.c-row.due { border-left: 3px solid var(--green); padding-left: 6px; }
+.c-face { display: grid; place-items: center; width: 40px; height: 40px; background: #0e0c13; border: 1px solid #4d475e; border-radius: 6px; }
+.c-face.r1 { border-color: #5aa9ff; } .c-face.r2 { border-color: var(--gold); }
+.c-face .face { width: 31px; }
+.c-rm { min-width: 0; }
+.c-rn { display: flex; align-items: baseline; gap: 6px; }
+.c-rn b { font-size: 14px; }
+.c-rn small { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.c-rj { font-size: 12px; color: var(--muted); }
+.c-rs { display: flex; flex-wrap: wrap; gap: 2px 10px; margin-top: 4px; font-size: 11px; color: var(--muted); }
+.c-rs b { color: var(--text); font-weight: 600; }
+.c-rs .hrt { width: 8px; vertical-align: -1px; }
+.c-rr { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.c-rr > b { font-size: 14px; color: var(--gold); }
+.c-ready { display: flex; gap: 3px; align-items: center; font-size: 11px; font-weight: 700; color: var(--green); }
+.c-ready img { width: 11px; }
+
+/* Evaluación */
+.eval { max-width: 1180px; margin: 36px auto 0; }
+.eval h2 { font-size: 18px; margin: 0 0 4px; }
+.eval > p { color: var(--pgmuted); margin: 0 0 14px; max-width: 75ch; line-height: 1.5; font-size: 14px; }
+.scroll { overflow-x: auto; }
+.eval table { border-collapse: collapse; min-width: 640px; width: 100%; font-size: 13px; }
+.eval th, .eval td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--pgline); line-height: 1.45; }
+.eval th { font-size: 11px; letter-spacing: .6px; text-transform: uppercase; color: var(--pgmuted); }
+.eval td:first-child { font-weight: 700; width: 18%; }
+.score { display: inline-block; min-width: 34px; margin-right: 6px; padding: 1px 6px; font-weight: 700; font-variant-numeric: tabular-nums; color: #1b1622; background: var(--gold); border-radius: 4px; text-align: center; }
+.verdict { margin-top: 18px; padding: 14px 16px; background: var(--pg2); border: 1px solid var(--pgline); border-left: 3px solid var(--gold); border-radius: 8px; line-height: 1.55; font-size: 14px; max-width: 90ch; }
+.verdict p { margin: 0 0 8px; } .verdict p:last-child { margin: 0; }
+</style>
+
+<div class="top">
+  <h1>Cheese Miner · tres estilos</h1>
+  <p>Las tres propuestas enseñan el mismo momento de la misma partida (6 rocas, 26 ratones, Drilling en Cheddar con dos refuerzos). A es el juego real; B y C son maquetas estáticas con los sprites y datos reales extraídos del juego. Nada de esto toca el código del juego.</p>
+</div>
+<div class="ctrls">
+  <div class="seg" role="group" aria-label="Pantalla"><button data-s="main" class="on">MAIN</button><button data-s="mice">MICE · ROSTER</button></div>
+  <div class="seg only-narrow" role="group" aria-label="Propuesta"><button data-v="A">A</button><button data-v="B" class="on">B</button><button data-v="C">C</button></div>
+</div>
+<div class="cols"><article class="col" data-v="A"><header><span class="vk">A</span><div><h2>Pixel art actual</h2><p>Captura del juego real a 360 px</p></div></header><div class="scr scr-main"><div class="ph vA"><img src="assets/a_main.png" alt="Current MAIN screen"></div></div><div class="scr scr-mice"><div class="ph vA"><img src="assets/a_roster.png" alt="Current MICE roster"></div></div></article><article class="col" data-v="B"><header><span class="vk">B</span><div><h2>Híbrido pixel art + UI moderna</h2><p>Maqueta HTML/CSS con sprites reales</p></div></header><div class="scr scr-main">
+<div class="ph vB">
+  <header class="b-top">
+    <div class="b-res"><img class="px big" src="assets/coin.png" alt=""><div><small>COINS</small><b>101Qa</b><em class="ok">+339T/min</em></div></div>
+    <div class="b-res warn"><img class="px big" src="assets/shop.png" alt=""><div><small>SHOP · ALL ROCKS</small><b>446K</b><em class="hot">Full · extra at ½ price</em></div></div>
+  </header>
+  <div class="b-goal"><span class="b-tag">GOAL</span><p>New milestone in CHEESE upgrades: Grand Wheel</p><img class="px go" src="assets/ic_go.png" alt=""></div>
+  <div class="b-scene"><img class="px scene" src="assets/scene.png" alt="Cheddar rock scene">
+    <span class="b-depth">CHEDDAR ROCK · DEPTH 92</span>
+    <div class="b-flow"><div class="b-fc"><img class="px " src="assets/res_raw.png" alt=""><div><small>RAW</small><b>276M</b><em class="ok">+567K/min</em></div></div><div class="b-fc"><img class="px " src="assets/res_base.png" alt=""><div><small>BASE</small><b>89.2M</b><em class="ok">+124K/min</em></div></div><div class="b-fc"><img class="px " src="assets/res_lot.png" alt=""><div><small>CHEESE</small><b>+58.9K</b><em class="ok">/min to shop</em></div></div></div>
+  </div>
+  <div class="b-body">
+    <div class="b-stations"><div class="b-st"><em class="">UP 1</em><img class="px ico" src="assets/tile_rock.png" alt=""><b>MINE</b><small>LV 72</small></div><div class="b-st sel boost2"><em class="">UP 1</em><img class="px ico" src="assets/tile_drill.png" alt=""><b>DRILL</b><small>LV 96</small></div><div class="b-st boost1"><em class="">UP 1</em><img class="px ico" src="assets/tile_refinery.png" alt=""><b>REFINE</b><small>LV 88</small></div><div class="b-st new"><em class="new">NEW</em><img class="px ico" src="assets/tile_cheesery.png" alt=""><b>CHEESE</b><small>LV 97</small></div><div class="b-st"><em class="">UP 1</em><img class="px ico" src="assets/tile_shop.png" alt=""><b>SELL</b><small>LV 87</small></div><div class="b-st new"><em class="new">NEW</em><img class="px ico" src="assets/tile_lab.png" alt=""><b>LAB</b><small>LV 52</small></div></div>
+    <div class="b-rocks"><span class="b-rock on"><img class="px " src="assets/rock_cheddar.png" alt="">Cheddar</span><span class="b-rock"><img class="px " src="assets/rock_gouda.png" alt="">Gouda</span><span class="b-rock"><img class="px " src="assets/rock_brie.png" alt="">Brie</span><span class="b-rock"><img class="px " src="assets/rock_emmental.png" alt="">Emmental</span><span class="b-rock"><img class="px " src="assets/rock_parmesan.png" alt="">Parmesan</span><span class="b-rock"><img class="px " src="assets/rock_blue.png" alt="">Blue</span></div>
+    <section class="b-dock">
+      <div class="b-dhead"><b>Drilling</b><span class="b-lv">LV 96</span><small>3.6M/14.6M xp</small></div>
+      <div class="b-xp"><i style="width:24%"></i></div>
+      <div class="b-stats"><span>+215.3 Raw / 0.8s</span><span>15.5K/min</span></div>
+      <div class="b-why ok">Cheddar · depth 92 · Running</div>
+      <div class="b-act">
+        <button class="b-main"><span class="b-plate">×2.25 SPEED</span><b>DRILL</b><small>Auto · hold to boost</small></button>
+        <div class="b-worker"><img class="px face" src="assets/mouse_m1.png" alt=""><div><b>Muenster</b><small>LV 51 · Manager</small></div></div>
+      </div>
+      <div class="b-ups">
+        <button class="buy"><b>Bigger Bit</b><span><img class="px " src="assets/coin.png" alt="">30.9Qa</span></button>
+        <button><b>UPGRADES</b><span class="ok">1 READY</span></button>
+        <button class="buy"><b>BUY ALL</b><span>9 for 90.5Qa</span></button>
+      </div>
+    </section>
+  </div>
+  <nav class="b-nav"><button>COLONY</button><button class="alert">MICE <small>26/26</small></button><button class="alert">BOOSTS <small>6 free</small></button><button>MENU</button></nav>
+</div></div><div class="scr scr-mice">
+<div class="ph vB">
+  <header class="b-appbar"><b>MICE</b><span>26 mice · 26/26 posts</span><button>CLOSE</button></header>
+  <div class="b-seg"><button>COLONY</button><button class="on promo">ROSTER 26</button><button>HOUSE</button></div>
+  <div class="b-hire"><div><b>FIND NEW MICE</b><small>Meet 3 candidates. Choose one to hire.</small></div><button><img class="px " src="assets/coin.png" alt="">3.8M</button></div>
+  <button class="b-note"><b>17</b> can be promoted</button>
+  <div class="b-filter"><span>Sort: <b>Post</b> · Show: <b>All</b> · 26/26</span><em>CHANGE</em></div>
+  <div class="b-list"><div class="b-row">
+  <span class="b-face r1"><img class="px face" src="assets/mouse_m3.png" alt=""></span>
+  <div class="b-rmain"><div class="b-name"><b>Swiss</b><span class="b-rank">Manager</span><small>LV 55</small></div>
+    <small class="b-where">Trading</small>
+    <div class="b-chips"><span class="b-aff">Drill<img class="px hrt" src="assets/ic_heart.png" alt=""><img class="px hrt" src="assets/ic_heart.png" alt=""></span><span class="b-aff">Lab<img class="px hrt" src="assets/ic_heart.png" alt=""><img class="px hrt" src="assets/ic_heart.png" alt=""></span><span class="b-spec">Night Market III</span><span class="b-more">6 traits</span></div></div>
+  <div class="b-rside"><b class="b-mult">×4.7</b></div>
+</div><div class="b-row due">
+  <span class="b-face r0"><img class="px face" src="assets/mouse_m177.png" alt=""></span>
+  <div class="b-rmain"><div class="b-name"><b>Colby</b><span class="b-rank">Master</span><small>LV 54</small></div>
+    <small class="b-where">Drilling · Blue</small>
+    <div class="b-chips"><span class="b-aff">Lab<img class="px hrt" src="assets/ic_heart.png" alt=""><img class="px hrt" src="assets/ic_heart.png" alt=""></span><span class="b-aff">Drill<img class="px hrt" src="assets/ic_heart.png" alt=""></span><span class="b-spec">Bit Expert III</span><span class="b-more">6 traits</span></div></div>
+  <div class="b-rside"><b class="b-mult">×10</b><img class="px up" src="assets/ic_rankup.png" alt=""></div>
+</div><div class="b-row due">
+  <span class="b-face r0"><img class="px face" src="assets/mouse_m178.png" alt=""></span>
+  <div class="b-rmain"><div class="b-name"><b>Nibbles</b><span class="b-rank">Master</span><small>LV 52</small></div>
+    <small class="b-where">Refining · Blue</small>
+    <div class="b-chips"><span class="b-aff">Mine<img class="px hrt" src="assets/ic_heart.png" alt=""><img class="px hrt" src="assets/ic_heart.png" alt=""></span><span class="b-aff">Sell<img class="px hrt" src="assets/ic_heart.png" alt=""><img class="px hrt" src="assets/ic_heart.png" alt=""></span><span class="b-spec">Alchemist III</span><span class="b-more">6 traits</span></div></div>
+  <div class="b-rside"><b class="b-mult">×14</b><img class="px up" src="assets/ic_rankup.png" alt=""></div>
+</div><div class="b-row due">
+  <span class="b-face r1"><img class="px face" src="assets/mouse_m179.png" alt=""></span>
+  <div class="b-rmain"><div class="b-name"><b>Jack</b><span class="b-rank">Master</span><small>LV 54</small></div>
+    <small class="b-where">Cheesemaking · Blue</small>
+    <div class="b-chips"><span class="b-aff">Mine<img class="px hrt" src="assets/ic_heart.png" alt=""></span><span class="b-aff">Sell<img class="px hrt" src="assets/ic_heart.png" alt=""></span><span class="b-spec">Taster III</span><span class="b-more">6 traits</span></div></div>
+  <div class="b-rside"><b class="b-mult">×14</b><img class="px up" src="assets/ic_rankup.png" alt=""></div>
+</div><div class="b-row due">
+  <span class="b-face r0"><img class="px face" src="assets/mouse_m151.png" alt=""></span>
+  <div class="b-rmain"><div class="b-name"><b>Ricotta</b><span class="b-rank">Master</span><small>LV 54</small></div>
+    <small class="b-where">Drilling · Parmesan</small>
+    <div class="b-chips"><span class="b-aff">Mine<img class="px hrt" src="assets/ic_heart.png" alt=""></span><span class="b-aff">Sell<img class="px hrt" src="assets/ic_heart.png" alt=""></span><span class="b-spec">Bit Expert III</span><span class="b-more">6 traits</span></div></div>
+  <div class="b-rside"><b class="b-mult">×8.6</b><img class="px up" src="assets/ic_rankup.png" alt=""></div>
+</div><div class="b-row due">
+  <span class="b-face r0"><img class="px face" src="assets/mouse_m152.png" alt=""></span>
+  <div class="b-rmain"><div class="b-name"><b>Squeak</b><span class="b-rank">Master</span><small>LV 54</small></div>
+    <small class="b-where">Refining · Parmesan</small>
+    <div class="b-chips"><span class="b-aff">Lab<img class="px hrt" src="assets/ic_heart.png" alt=""><img class="px hrt" src="assets/ic_heart.png" alt=""></span><span class="b-spec">Stoker III</span><span class="b-more">6 traits</span></div></div>
+  <div class="b-rside"><b class="b-mult">×6.1</b><img class="px up" src="assets/ic_rankup.png" alt=""></div>
+</div><div class="b-row due">
+  <span class="b-face r0"><img class="px face" src="assets/mouse_m153.png" alt=""></span>
+  <div class="b-rmain"><div class="b-name"><b>Truffle</b><span class="b-rank">Master</span><small>LV 53</small></div>
+    <small class="b-where">Cheesemaking · Parmesan</small>
+    <div class="b-chips"><span class="b-aff">Lab<img class="px hrt" src="assets/ic_heart.png" alt=""></span><span class="b-spec">Master Chef III</span><span class="b-more">6 traits</span></div></div>
+  <div class="b-rside"><b class="b-mult">×12</b><img class="px up" src="assets/ic_rankup.png" alt=""></div>
+</div></div>
+</div></div></article><article class="col" data-v="C"><header><span class="vk">C</span><div><h2>Idle RPG · Melvor-like</h2><p>Maqueta HTML/CSS con sprites reales</p></div></header><div class="scr scr-main">
+<div class="ph vC">
+  <header class="c-bar"><span class="c-menu" aria-hidden="true"><i></i><i></i><i></i></span><b>Drilling</b><span class="c-coins"><img class="px " src="assets/coin.png" alt="">101Qa</span></header>
+  <div class="c-scroll">
+    <div class="c-goal"><small>CURRENT GOAL</small><p>New milestone in Cheese upgrades: Grand Wheel</p></div>
+    <section class="c-skill"><img class="px sk" src="assets/tile_drill.png" alt=""><div class="c-skm"><div class="c-skh"><b>Drilling</b><span>Level 96</span></div><div class="c-bar2"><i style="width:24%"></i></div><small>3.6M/14.6M XP</small></div></section>
+    <div class="c-scene"><img class="px scene" src="assets/scene.png" alt="Cheddar rock scene"><span>Cheddar Rock · Depth 92</span></div>
+    <div class="c-rocks"><small>ROCK</small><span class="c-rock on"><img class="px " src="assets/rock_cheddar.png" alt=""></span><span class="c-rock"><img class="px " src="assets/rock_gouda.png" alt=""></span><span class="c-rock"><img class="px " src="assets/rock_brie.png" alt=""></span><span class="c-rock"><img class="px " src="assets/rock_emmental.png" alt=""></span><span class="c-rock"><img class="px " src="assets/rock_parmesan.png" alt=""></span><span class="c-rock"><img class="px " src="assets/rock_blue.png" alt=""></span><b>Cheddar</b></div>
+    <section class="c-panel"><h4>Production chain</h4>
+      <table class="c-tbl"><tr><td><img class="px " src="assets/res_raw.png" alt="">Raw</td><td>276M</td><td class="ok">+567K/min</td></tr>
+      <tr><td><img class="px " src="assets/res_base.png" alt="">Base</td><td>89.2M</td><td class="ok">+124K/min</td></tr>
+      <tr><td><img class="px " src="assets/res_lot.png" alt="">Cheese</td><td>+58.9K/min</td><td class="ok">to shop</td></tr>
+      <tr><td><img class="px " src="assets/shop.png" alt="">Shop</td><td>446K</td><td class="hot">full</td></tr></table></section>
+    <section class="c-panel"><h4>Stations</h4><div class="c-sts"><div class="c-st"><img class="px ico" src="assets/tile_rock.png" alt=""><div><b>Mine</b><small>Lv 72</small></div><span class="c-tag">UP 1</span></div><div class="c-st sel"><img class="px ico" src="assets/tile_drill.png" alt=""><div><b>Drill</b><small>Lv 96</small></div><span class="c-boost b2">×2.25</span><span class="c-tag">UP 1</span></div><div class="c-st"><img class="px ico" src="assets/tile_refinery.png" alt=""><div><b>Refine</b><small>Lv 88</small></div><span class="c-boost b1">+50%</span><span class="c-tag">UP 1</span></div><div class="c-st"><img class="px ico" src="assets/tile_cheesery.png" alt=""><div><b>Cheese</b><small>Lv 97</small></div><span class="c-tag new">NEW</span></div><div class="c-st"><img class="px ico" src="assets/tile_shop.png" alt=""><div><b>Sell</b><small>Lv 87</small></div><span class="c-tag">UP 1</span></div><div class="c-st"><img class="px ico" src="assets/tile_lab.png" alt=""><div><b>Lab</b><small>Lv 52</small></div><span class="c-tag new">NEW</span></div></div></section>
+    <section class="c-panel c-actp">
+      <button class="c-main"><b>Drill</b><small>Auto · hold to boost</small></button>
+      <dl class="c-dl"><dt>Output</dt><dd>+215.3 Raw / 0.8s</dd><dt>Rate</dt><dd>15.5K / min</dd><dt>Boost</dt><dd class="blue">×2.25 SPEED (2/2)</dd><dt>Status</dt><dd class="ok">Running</dd></dl>
+      <div class="c-worker"><img class="px face" src="assets/mouse_m1.png" alt=""><div><b>Muenster</b><small>Lv 51 · Manager</small></div><span>Worker</span></div>
+    </section>
+    <section class="c-panel"><h4>Upgrades</h4>
+      <div class="c-up"><div><b>Bigger Bit</b><small>Cheapest Drilling upgrade</small></div><button><img class="px " src="assets/coin.png" alt="">30.9Qa</button></div>
+      <div class="c-up"><div><b>Upgrade tree</b><small class="ok">1 ready</small></div><button class="ghost">Open</button></div>
+      <div class="c-up"><div><b>Buy all</b><small>Every skill, cheapest first</small></div><button>9 for 90.5Qa</button></div>
+    </section>
+  </div>
+  <nav class="c-nav"><button>Colony</button><button class="alert">Mice <small>26/26</small></button><button class="alert">Boosts <small>6</small></button><button>Menu</button></nav>
+</div></div><div class="scr scr-mice">
+<div class="ph vC">
+  <header class="c-bar"><span class="c-menu" aria-hidden="true"><i></i><i></i><i></i></span><b>Mice</b><span class="c-coins"><img class="px " src="assets/coin.png" alt="">101Qa</span></header>
+  <div class="c-tabs"><button>Colony</button><button class="on">Roster <small>26</small></button><button>House</button></div>
+  <div class="c-scroll">
+    <section class="c-panel c-sum"><div><small>POSTS</small><b>26/26</b></div><div><small>PROMOTABLE</small><b class="ok">17</b></div><div><small>NEXT HIRE</small><b><img class="px " src="assets/coin.png" alt="">3.8M</b></div></section>
+    <div class="c-actions"><button class="primary">Find new mice</button><button>Promote 17</button></div>
+    <div class="c-th"><span>Mouse</span><span>Sort: Post</span><span>Output</span></div>
+    <div class="c-row">
+  <span class="c-face r1"><img class="px face" src="assets/mouse_m3.png" alt=""></span>
+  <div class="c-rm"><div class="c-rn"><b>Swiss</b><small>Lv 55 · Manager</small></div>
+    <div class="c-rj">Trading</div>
+    <div class="c-rs"><span>Spec <b>Night Market III</b></span><span>Likes Drill <img class="px hrt" src="assets/ic_heart.png" alt=""><img class="px hrt" src="assets/ic_heart.png" alt=""> Lab <img class="px hrt" src="assets/ic_heart.png" alt=""><img class="px hrt" src="assets/ic_heart.png" alt=""></span><span>Traits <b>6</b> · <b class="bad">1</b> quirk</span></div></div>
+  <div class="c-rr"><b>×4.7</b></div>
+</div><div class="c-row due">
+  <span class="c-face r0"><img class="px face" src="assets/mouse_m177.png" alt=""></span>
+  <div class="c-rm"><div class="c-rn"><b>Colby</b><small>Lv 54 · Master</small></div>
+    <div class="c-rj">Drilling · Blue</div>
+    <div class="c-rs"><span>Spec <b>Bit Expert III</b></span><span>Likes Lab <img class="px hrt" src="assets/ic_heart.png" alt=""><img class="px hrt" src="assets/ic_heart.png" alt=""> Drill <img class="px hrt" src="assets/ic_heart.png" alt=""></span><span>Traits <b>6</b> · <b class="bad">1</b> quirk</span></div></div>
+  <div class="c-rr"><b>×10</b><span class="c-ready"><img class="px " src="assets/ic_rankup.png" alt="">Ready</span></div>
+</div><div class="c-row due">
+  <span class="c-face r0"><img class="px face" src="assets/mouse_m178.png" alt=""></span>
+  <div class="c-rm"><div class="c-rn"><b>Nibbles</b><small>Lv 52 · Master</small></div>
+    <div class="c-rj">Refining · Blue</div>
+    <div class="c-rs"><span>Spec <b>Alchemist III</b></span><span>Likes Mine <img class="px hrt" src="assets/ic_heart.png" alt=""><img class="px hrt" src="assets/ic_heart.png" alt=""> Sell <img class="px hrt" src="assets/ic_heart.png" alt=""><img class="px hrt" src="assets/ic_heart.png" alt=""></span><span>Traits <b>6</b> · <b class="bad">1</b> quirk</span></div></div>
+  <div class="c-rr"><b>×14</b><span class="c-ready"><img class="px " src="assets/ic_rankup.png" alt="">Ready</span></div>
+</div><div class="c-row due">
+  <span class="c-face r1"><img class="px face" src="assets/mouse_m179.png" alt=""></span>
+  <div class="c-rm"><div class="c-rn"><b>Jack</b><small>Lv 54 · Master</small></div>
+    <div class="c-rj">Cheesemaking · Blue</div>
+    <div class="c-rs"><span>Spec <b>Taster III</b></span><span>Likes Mine <img class="px hrt" src="assets/ic_heart.png" alt=""> Sell <img class="px hrt" src="assets/ic_heart.png" alt=""></span><span>Traits <b>6</b> · <b class="bad">1</b> quirk</span></div></div>
+  <div class="c-rr"><b>×14</b><span class="c-ready"><img class="px " src="assets/ic_rankup.png" alt="">Ready</span></div>
+</div><div class="c-row due">
+  <span class="c-face r0"><img class="px face" src="assets/mouse_m151.png" alt=""></span>
+  <div class="c-rm"><div class="c-rn"><b>Ricotta</b><small>Lv 54 · Master</small></div>
+    <div class="c-rj">Drilling · Parmesan</div>
+    <div class="c-rs"><span>Spec <b>Bit Expert III</b></span><span>Likes Mine <img class="px hrt" src="assets/ic_heart.png" alt=""> Sell <img class="px hrt" src="assets/ic_heart.png" alt=""></span><span>Traits <b>6</b> · <b class="bad">1</b> quirk</span></div></div>
+  <div class="c-rr"><b>×8.6</b><span class="c-ready"><img class="px " src="assets/ic_rankup.png" alt="">Ready</span></div>
+</div><div class="c-row due">
+  <span class="c-face r0"><img class="px face" src="assets/mouse_m152.png" alt=""></span>
+  <div class="c-rm"><div class="c-rn"><b>Squeak</b><small>Lv 54 · Master</small></div>
+    <div class="c-rj">Refining · Parmesan</div>
+    <div class="c-rs"><span>Spec <b>Stoker III</b></span><span>Likes Lab <img class="px hrt" src="assets/ic_heart.png" alt=""><img class="px hrt" src="assets/ic_heart.png" alt=""></span><span>Traits <b>6</b> · <b class="bad">1</b> quirk</span></div></div>
+  <div class="c-rr"><b>×6.1</b><span class="c-ready"><img class="px " src="assets/ic_rankup.png" alt="">Ready</span></div>
+</div><div class="c-row due">
+  <span class="c-face r0"><img class="px face" src="assets/mouse_m153.png" alt=""></span>
+  <div class="c-rm"><div class="c-rn"><b>Truffle</b><small>Lv 53 · Master</small></div>
+    <div class="c-rj">Cheesemaking · Parmesan</div>
+    <div class="c-rs"><span>Spec <b>Master Chef III</b></span><span>Likes Lab <img class="px hrt" src="assets/ic_heart.png" alt=""></span><span>Traits <b>6</b> · <b class="bad">1</b> quirk</span></div></div>
+  <div class="c-rr"><b>×12</b><span class="c-ready"><img class="px " src="assets/ic_rankup.png" alt="">Ready</span></div>
+</div>
+  </div>
+  <nav class="c-nav"><button>Colony</button><button class="alert on">Mice <small>26/26</small></button><button class="alert">Boosts <small>6</small></button><button>Menu</button></nav>
+</div></div></article></div>
+
+<section class="eval">
+  <h2>Valoración</h2>
+  <p>Puntuación de 1 a 5; más alto es mejor en todos los criterios (en «implementación», 5 = más fácil). Las notas comparan las tres entre sí, no con un ideal.</p>
+  <div class="scroll"><table>
+    <tr><th>Criterio</th><th>A · Pixel art actual</th><th>B · Híbrido</th><th>C · Idle RPG</th></tr>
+    <tr><td>Calidad visual</td><td><span class="score">4</span>Muy de videojuego: botones con volumen, chapas, todo en el mismo idioma. A cambio, mucho elemento compitiendo a la vez (sombras, bordes gruesos, brillos).</td><td><span class="score">4</span>Más ordenado y respirado; el escenario gana tamaño. Pierde algo del «tacto» de los botones gruesos.</td><td><span class="score">3</span>Limpio y profesional, pero plano: correcto antes que atractivo.</td></tr>
+    <tr><td>Personalidad de Cheese Miner</td><td><span class="score">5</span>Es la identidad que ya tiene: fuente pixel por todas partes, marcos retro, el escenario manda.</td><td><span class="score">4</span>Se mantiene por el mundo, los ratones, la paleta y la fuente pixel en títulos y momentos clave. Hay que vigilar que no derive a «app».</td><td><span class="score">2</span>Los sprites salvan la identidad, pero la interfaz podría ser de cualquier idle. El escenario queda como una franja.</td></tr>
+    <tr><td>Legibilidad en móvil</td><td><span class="score">3</span>Texto pixel de 5–7 px en muchas etiquetas; denso a 360 px. Cuesta escanear ROSTER.</td><td><span class="score">4</span>Texto de lectura en sans de 10–14 px; jerarquía clara; mismo contenido sin scroll en MAIN.</td><td><span class="score">5</span>La más legible: tablas, etiquetas y números alineados. Pero MAIN necesita scroll (929 px de contenido para 636 visibles) y la acción principal queda abajo.</td></tr>
+    <tr><td>Implementación en HTML/CSS</td><td><span class="score">5</span>Ya existe.</td><td><span class="score">3</span>Se puede hacer por partes: misma estructura y mismos datos, cambia la piel (tokens, tarjetas, chips). Una pantalla cada vez.</td><td><span class="score">2</span>No es solo piel: cambia la estructura (MAIN con scroll, otra navegación) y choca con reglas del contrato como el panel inferior de alto fijo.</td></tr>
+    <tr><td>Mantenimiento y ampliación</td><td><span class="score">2</span>style.css tiene 11.092 líneas y 45 bloques de parches por versión; la casilla con refuerzo se redefine en 26 reglas y la cartela en 33. Cada pieza nueva pide ajuste pixel a pixel.</td><td><span class="score">4</span>Un juego pequeño de componentes (tarjeta, chip, pestañas, botón) con tokens: lo nuevo se compone, no se dibuja.</td><td><span class="score">5</span>La más sistemática: paneles, filas y tablas repetidos.</td></tr>
+    <tr><td>Compatibilidad con MICE 2.0</td><td><span class="score">3</span>Cabe, pero fusiones, linajes y mutaciones multiplicarán las fichas y listas: el coste de pulir cada una crece.</td><td><span class="score">4</span>Las filas y fichas de ratón escalan bien (más chips, más secciones) sin perder el pixel art de los personajes.</td><td><span class="score">4</span>Ideal para datos (árboles de linaje, comparativas), con riesgo de convertir MICE en una hoja de cálculo.</td></tr>
+  </table></div>
+  <div class="verdict">
+    <p><b>Mi recomendación: no migrar el juego entero.</b> La pantalla principal en A sigue siendo la mejor: es donde vive la identidad (escenario, botón grande, cadena) y ya funciona. Rehacerla en B gana poco y en C pierde lo esencial de un clicker.</p>
+    <p><b>B sí merece la pena para las pantallas de gestión</b> (MICE, HOUSE, BOOSTS, árboles): son las que crecen con MICE 2.0, las más densas en texto y las que más parches acumulan. Propuesta para cuando lo apruebes: definir los componentes de B (tarjeta, chip, pestañas, fila de ratón, botón) y usarlos primero en las pantallas nuevas de MICE 2.0; las existentes se pasarían una a una solo si compensa.</p>
+    <p><b>C, no.</b> Es la más legible y la más fácil de mantener, pero diluye a Cheese Miner y obliga a reestructurar MAIN.</p>
+  </div>
+</section>
+
+<script>
+document.body.dataset.s = 'main';
+document.body.dataset.v = 'B';
+document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
+  const k = b.dataset.s ? 's' : 'v';
+  document.body.dataset[k] = b.dataset[k];
+  b.parentElement.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+}));
+</script>
