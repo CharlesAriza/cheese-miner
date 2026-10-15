@@ -760,6 +760,7 @@
     }
   }
 
+  const NO_GLOW = { milestone: 1, quota: 1 };
   function updateChain() {
     const goal = CM.sim.objective(state);
     const goalAt = GOAL_AT[goal.id];
@@ -773,8 +774,10 @@
       const fresh = (canBuild && !seen('build:' + st)) || hito;
       set(tile, 'isnew', fresh);
       set(tile, 'sel', ui.station === st);
-      // V4.18: el aura dorada del objetivo se queda también con la casilla elegida (antes se iba al tocarla).
-      set(tile, 'goal', goalAt === st);
+      // V4.19: los objetivos de hito (y el de producción que abre Grand Master) no marcan la
+      // casilla: su aviso es la chapa NEW! del hito. Los demás objetivos siguen señalando su
+      // estación con el aura dorada, también con la casilla elegida.
+      set(tile, 'goal', goalAt === st && !NO_GLOW[goal.id]);
       set(tile.querySelector('.mini > i'), 'width', Math.round(info.progress * 100) + '%');
       // Refuerzos de esta etapa en la roca que se mira: marco azul y una chapa con uno o dos galones.
       const nb = String((info.state !== 'locked' && info.state !== 'build' && CM.boosts.at(state, skill, ui.zone)) || '');
@@ -2151,7 +2154,7 @@
     return (
       '<div class="pv-card r' + it.to + (special ? ' special' : '') + (promo.fast ? ' fast' : '') + '">' + (n > 1 ? '<small class="pv-count">' + (promo.i + 1) + ' / ' + n + '</small>' : '') +
       '<h2>' + title + '</h2><div class="pv-stage">' + (special ? '<i class="pv-rays"></i>' : '') + '<img class="pix pv-before" src="' + before + '" alt="" /><img class="pix pv-after" src="' + CM.mouseUrl(m) + '" alt="" /><i class="pv-spark"></i></div>' +
-      '<p class="pv-who"><b>' + P.esc(m.name) + '</b><span>' + RANK_NAME.slice(it.from, it.to).join(' <i>&gt;</i> ') + ' <i>&gt;</i> <u>' + RANK_NAME[it.to] + '</u></span></p>' +
+      '<p class="pv-who"><b>' + P.esc(m.name) + '</b><span>' + RANK_NAME.slice(it.from, it.to).map((r) => '<em>' + r + '</em>').join(I.px('ranknext')) + I.px('ranknext') + '<u>' + RANK_NAME[it.to] + '</u></span></p>' +
       '<ul class="pv-gains">' + promoGains(m, it.from, it.to).map((g) => '<li>' + g + '</li>').join('') + '</ul>' +
       '<div class="row">' + (!last ? '<button class="close pv-btn" data-m="skip">SKIP ALL</button><button class="close pv-btn" data-m="fast">' + (promo.fast ? 'NORMAL' : 'FASTER') + '</button>' : '') + '<button class="buy pv-btn" data-m="next">' + (last ? 'GREAT' : 'NEXT') + '</button></div></div>'
     );

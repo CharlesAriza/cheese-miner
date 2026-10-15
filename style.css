@@ -10859,3 +10859,23 @@ img.pix.pxi {
   background: var(--px-done) center / 9px 7px no-repeat;
   image-rendering: pixelated;
 }
+
+/* ======================= V4.19 ======================= */
+/* Presentación de ascenso: «APPRENTICE → JOURNEYMAN → MASTER» con la flecha pixel art del
+   juego entre rangos (el «>» de la fuente pixel se veía roto). */
+.pv-who span {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1;
+}
+.pv-who span em {
+  font-style: normal;
+}
+.pv-who span .pxi-ranknext {
+  width: 9px;
+  height: 9px;
+  margin: 0;
+}
