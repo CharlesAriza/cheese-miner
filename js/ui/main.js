@@ -1560,7 +1560,7 @@
   function questHighlight() {
     const q2 = ui.questHl;
     if (!q2) return;
-    if (typeof q2 === 'string') ui.questHl = { sel: q2, until: performance.now() + 3200, scrolled: false }; // V4.21: dos destellos suaves
+    if (typeof q2 === 'string') ui.questHl = { sel: q2, at: performance.now(), until: performance.now() + 2500, scrolled: false }; // V4.23: tres latidos de 0,8 s
     const h = ui.questHl;
     if (performance.now() > h.until) {
       $('sheet-body').querySelectorAll('.qhl').forEach((e) => e.classList.remove('qhl'));
@@ -1573,7 +1573,12 @@
       el.scrollIntoView({ block: 'center' });
       h.scrolled = true;
     }
-    if (!el.classList.contains('qhl')) el.classList.add('qhl');
+    // V4.24: el panel se repinta (cambian cifras) y el elemento resaltado se crea de nuevo; su
+    // animación seguía desde cero y el anillo daba un salto. El nuevo arranca donde iba el anterior.
+    if (!el.classList.contains('qhl')) {
+      el.style.animationDelay = -((performance.now() - h.at) / 1000).toFixed(3) + 's';
+      el.classList.add('qhl');
+    }
   }
   // Llevar una roca (o los puestos de toda la colonia) arriba de la lista, bajo la barra de mover.
   function jumpRock() {
