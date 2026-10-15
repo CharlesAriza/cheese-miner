@@ -10922,3 +10922,57 @@ img.pix.pxi {
   font-size: 11px;
   letter-spacing: -0.2px;
 }
+
+/* ======================= V4.21: un solo efecto de «el objetivo está aquí» ======================= */
+/* El del botón UPGRADES con un hito nuevo: un anillo amarillo que se enciende y se apaga suave
+   (ease-in-out) con un leve brillo. Va como contorno, así que no pisa el brillo azul de los
+   refuerzos, el borde amarillo de la casilla elegida ni la sombra de los botones, y no cambia
+   el tamaño de nada. */
+@keyframes questglow {
+  0%,
+  100% {
+    outline-color: #ffe55c00;
+    filter: none;
+  }
+  50% {
+    outline-color: #ffe55c;
+    filter: brightness(1.25);
+  }
+}
+/* Casilla de la cadena a la que lleva un objetivo (no los de hito): mientras dure el objetivo. */
+.tile.goal,
+.tile.goal[data-boost] {
+  outline: 3px solid #ffe55c00;
+  outline-offset: 1px;
+  animation: questglow 1.6s ease-in-out infinite;
+}
+/* Con dos refuerzos la casilla ya respira en azul: el anillo va en su propio contorno y el
+   brillo azul sigue igual (las dos animaciones a la vez). */
+.tile.goal[data-boost='2'] {
+  animation: questglow 1.6s ease-in-out infinite, tileglow 2.6s ease-in-out infinite;
+}
+.tile.goal > .pix {
+  animation: none;
+  filter: none;
+}
+/* Control de un panel al que lleva el objetivo: el mismo anillo (antes parpadeaba a golpes). */
+.panel .qhl {
+  outline: 3px solid #ffe55c00;
+  outline-offset: 2px;
+  animation: questglow 1.6s ease-in-out infinite;
+}
+/* El botón grande al llegar desde el objetivo: el mismo anillo, dos veces. */
+.act.qpoint {
+  outline: 3px solid #ffe55c00;
+  outline-offset: 1px;
+  animation: questglow 0.8s ease-in-out 2;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tile.goal,
+  .tile.goal[data-boost],
+  .panel .qhl,
+  .act.qpoint {
+    animation: none;
+    outline-color: #ffe55c;
+  }
+}

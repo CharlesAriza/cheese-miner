@@ -1502,7 +1502,7 @@
     retrigger(els.main, 'qpoint');
     // Se quita al acabar (3 × 0,45 s) para no pisar después la animación «hot» del botón.
     clearTimeout(pointTimer);
-    pointTimer = setTimeout(() => els.main.classList.remove('qpoint'), 1400);
+    pointTimer = setTimeout(() => els.main.classList.remove('qpoint'), 1700);
   }
   function questGo() {
     const goal = CM.sim.objective(state);
@@ -1560,7 +1560,7 @@
   function questHighlight() {
     const q2 = ui.questHl;
     if (!q2) return;
-    if (typeof q2 === 'string') ui.questHl = { sel: q2, until: performance.now() + 1600, scrolled: false };
+    if (typeof q2 === 'string') ui.questHl = { sel: q2, until: performance.now() + 3200, scrolled: false }; // V4.21: dos destellos suaves
     const h = ui.questHl;
     if (performance.now() > h.until) {
       $('sheet-body').querySelectorAll('.qhl').forEach((e) => e.classList.remove('qhl'));
