@@ -11082,3 +11082,11 @@ img.pix.pxi {
 .bo-head {
   padding-left: 4px;
 }
+
+/* ======================= V4.25: todo lo que redirige marca su destino ======================= */
+/* El mismo latido de los hitos (msring, tres veces). Dentro de los paneles el anillo crece hacia
+   dentro, sobre el borde de la pieza: el panel no tiene margen lateral y por fuera se cortaría
+   en las piezas a todo lo ancho. */
+.panel .qhl {
+  outline-offset: -3px;
+}

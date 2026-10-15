@@ -1562,6 +1562,11 @@
     if (!q2) return;
     if (typeof q2 === 'string') ui.questHl = { sel: q2, at: performance.now(), until: performance.now() + 2500, scrolled: false }; // V4.23: tres latidos de 0,8 s
     const h = ui.questHl;
+    // V4.25: un resaltado nuevo quita el anterior (antes se quedaba marcado hasta caducar).
+    if (h !== ui.questLast) {
+      $('sheet-body').querySelectorAll('.qhl').forEach((e) => e.classList.remove('qhl'));
+      ui.questLast = h;
+    }
     if (performance.now() > h.until) {
       $('sheet-body').querySelectorAll('.qhl').forEach((e) => e.classList.remove('qhl'));
       ui.questHl = null;
@@ -1633,7 +1638,7 @@
       return r;
     },
     // Ir a los candidatos ya pagados, o dejarlos esperando para mirar otra cosa.
-    recruitview: () => void ((ui.miceTab = state.candidates.length ? 'recruit' : ''), ($('sheet-body').scrollTop = 0)),
+    recruitview: () => void ((ui.miceTab = state.candidates.length ? 'recruit' : ''), ($('sheet-body').scrollTop = 0), (ui.questHl = '[data-act^="choose:"]')),
     recruitlater: () => void (ui.miceTab = ''),
     choose: (i) => {
       ui.cand = -1;
@@ -1689,6 +1694,17 @@
       ui.moveSel = id;
       const m = CM.mice.byId(state, id);
       ui.jumpTo = m && m.post ? m.post.split(':')[1] : '';
+      ui.questHl = '.mcx-movebar';
+    },
+    // V4.25: el aviso de COLONY de quién está en la casa lleva a SU sala, marcada.
+    housego: (room) => {
+      ui.miceView = 'house';
+      ui.houseRoom = room;
+      ui.trainSel = null;
+      ui.pick = null;
+      ui.moveSel = null;
+      $('sheet-body').scrollTop = 0;
+      ui.questHl = '.mch-room';
     },
     movecancel: () => void (ui.moveSel = null),
     moveto: (skill, zone) => {
@@ -1700,6 +1716,8 @@
     jump: (zone) => {
       if (zone !== 'all') ui.rockOpen[zone] = true;
       ui.jumpTo = zone;
+      // La roca ya la coloca jumpRock: el resaltado no vuelve a desplazar la lista.
+      if (zone !== 'all') ui.questHl = { sel: '.mc-rock[data-rock="' + zone + '"]', at: performance.now(), until: performance.now() + 2500, scrolled: true };
     },
     unpick: () => void (ui.pick = null),
     miceview: (v) => {
@@ -1720,6 +1738,7 @@
       ui.miceView = 'roster';
       ui.miceShow = v;
       ui.pick = null;
+      ui.questHl = '.mc-filter';
     },
     rosterlikes: (job) => void (ui.miceLikes = ui.miceLikes === job ? '' : job),
     sec: (id) => {
@@ -1801,6 +1820,7 @@
       ui.miceTab = 'promos';
       ui.promo = CM.mice.promotePicks(state, 'afford');
       ui.promoDone = null;
+      ui.questHl = '.pm-foot';
     },
     promoback: () => void (ui.miceTab = ''),
     promosel: (id) => {
@@ -1859,7 +1879,7 @@
       ui.miceView = 'house';
       ui.houseRoom = 'training';
       ui.trainSel = { id, job: job || '' };
-      ui.questHl = '[data-train="' + id + '"]';
+      ui.questHl = '.mtr-pick';
     },
     album: () => void ((ui.miceTab = ui.miceTab === 'album' ? '' : 'album'), ($('sheet-body').scrollTop = 0)),
     dismiss: (id) => void confirmDismiss(id),
