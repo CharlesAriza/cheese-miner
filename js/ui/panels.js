@@ -574,7 +574,7 @@
     const BO = CM.boosts;
     const owned = BO.owned(s);
     const free = BO.free(s);
-    let h = '<div class="bo-head"><div><b>' + free + '</b><small>FREE</small></div><div><b>' + s.boosts.length + '</b><small>PLACED</small></div><p>A boost gives one post <b>' + BO.label('mining', 1).toLowerCase() + '</b>, whoever works there. On a refinery it gives <b>' + BO.label('refining', 1).split(' ')[0] + ' Base</b> from the same Raw instead. Up to ' + B.boosts.perPost + ' per post.</p></div>';
+    let h = '<div class="bo-head"><div class="bo-free' + (free > 0 ? ' ms-pulse' : '') + '"><b>' + free + '</b><small>FREE</small></div><div><b>' + s.boosts.length + '</b><small>PLACED</small></div><p>A boost gives one post <b>' + BO.label('mining', 1).toLowerCase() + '</b>, whoever works there. On a refinery it gives <b>' + BO.label('refining', 1).split(' ')[0] + ' Base</b> from the same Raw instead. Up to ' + B.boosts.perPost + ' per post.</p></div>';
     // Cuándo llega el siguiente.
     const nx = BO.next(s);
     if (nx && nx.kind === 'rock') h += '<div class="bo-next"><b>NEXT BOOST</b><span>when you open ' + (owned ? 'your next rock' : 'your third rock') + '</span></div>';
@@ -1448,7 +1448,7 @@
       row('Playtest tools', 'Dev menu: marks the session as assisted', btn('open:dev', 'OPEN', { cls: 'buy' })) +
       row('Reset save', 'Start over from zero', btn('reset', 'RESET', { cls: 'danger' })) +
       // Qué versión del prototipo se está probando (para no confundirla con una copia en caché).
-      '<p class="hint"><b>Prototype V4.22</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
+      '<p class="hint"><b>Prototype V4.23</b> · played ' + Math.floor(s.clock / 60000) + ' min · total level ' + q.totalLevel(s) + (s.devUsed ? ' · dev tools used' : '') + '. Data never leaves this browser.</p>'
     );
   }
 

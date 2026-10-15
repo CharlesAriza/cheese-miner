@@ -10999,3 +10999,86 @@ img.pix.pxi {
   font-size: 10px;
   letter-spacing: -0.1px;
 }
+
+/* ======================= V4.23: el latido de los hitos, en todos los resaltados ======================= */
+/* Copia exacta del botón UPGRADES con un hito (`goal`, 0,8 s ease-in-out): un anillo amarillo
+   que crece de 0 a 3 px y vuelve, con brillo 1,3. Va en el contorno (no en la sombra) para no
+   pisar el brillo de los refuerzos ni las sombras de los botones; se ve igual.
+   · msring: tres latidos y para (como el hito): control de un panel, botón grande.
+   · msloop: los mismos tres latidos, descanso de 1,6 s y otra vez, mientras haga falta:
+     casilla del objetivo, pestañas de abajo con aviso, cartel FREE de BOOSTS. */
+@keyframes msring {
+  0%,
+  100% {
+    outline-width: 0;
+    filter: none;
+  }
+  50% {
+    outline-width: 3px;
+    filter: brightness(1.3);
+  }
+}
+@keyframes msloop {
+  0%,
+  20%,
+  40%,
+  60%,
+  100% {
+    outline-width: 0;
+    filter: none;
+  }
+  10%,
+  30%,
+  50% {
+    outline-width: 3px;
+    filter: brightness(1.3);
+  }
+}
+.tile.goal,
+.tile.goal[data-boost],
+.panel .qhl,
+.act.qpoint,
+.tools button[data-alert='on'],
+.bo-head .bo-free.ms-pulse {
+  outline: 0 solid #ffe55c;
+  outline-offset: 0;
+}
+.tile.goal,
+.tile.goal[data-boost] {
+  animation: msloop 4s ease-in-out infinite;
+}
+.tile.goal[data-boost='2'] {
+  animation: msloop 4s ease-in-out infinite, tileglow 2.6s ease-in-out infinite;
+}
+.panel .qhl,
+.act.qpoint {
+  animation: msring 0.8s ease-in-out 3;
+}
+/* Pestañas con aviso y cartel FREE: borde amarillo fijo (como el botón del hito) y el latido. */
+.tools button[data-alert='on'] {
+  border-color: #ffe55c;
+  box-shadow: 0 2px 0 var(--ink);
+  animation: msloop 4s ease-in-out infinite;
+}
+.bo-head .bo-free.ms-pulse {
+  border-color: #ffe55c;
+  animation: msloop 4s ease-in-out infinite;
+}
+.bo-head .bo-free.ms-pulse b {
+  color: #ffe55c;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tile.goal,
+  .tile.goal[data-boost],
+  .panel .qhl,
+  .act.qpoint,
+  .tools button[data-alert='on'],
+  .bo-head .bo-free.ms-pulse {
+    animation: none;
+    outline-width: 3px;
+  }
+}
+/* El anillo del cartel FREE no se recorta contra el borde del panel. */
+.bo-head {
+  padding-left: 4px;
+}

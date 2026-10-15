@@ -1502,7 +1502,7 @@
     retrigger(els.main, 'qpoint');
     // Se quita al acabar (3 × 0,45 s) para no pisar después la animación «hot» del botón.
     clearTimeout(pointTimer);
-    pointTimer = setTimeout(() => els.main.classList.remove('qpoint'), 1700);
+    pointTimer = setTimeout(() => els.main.classList.remove('qpoint'), 2500);
   }
   function questGo() {
     const goal = CM.sim.objective(state);
