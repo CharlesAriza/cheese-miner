@@ -3454,8 +3454,8 @@ function sleepBed(g, bx, by, m, state = 'covered', o = {}) {
 // Pose aprobada: el ratón acurrucado (poseCanvas 'A'), tapado con la manta hasta la cabeza o destapado. De pie, el sprite
 // oficial (andar con las patas a/b, quieto con su respiración y su parpadeo) y, en la cama, el mismo sprite oficial sin la
 // mochila: se la cuelga en el pie de la cama al llegar y la recoge al irse. No hay ninguna otra pose.
-// Capas, de atrás adelante: cama · almohada · mochila colgada · manta en reposo (doblada a los pies) · ratón · manta que lo
-// tapa · mochila en la mano · Z. La manta solo cambia de capa en un fotograma en que no toca al ratón.
+// Capas, de atrás adelante: cama · almohada · manta en reposo (doblada a los pies) · ratón en la cama · manta que lo tapa ·
+// mochila colgada (por fuera del pie) · ratón en el suelo · mochila en la mano · Z. La manta solo cambia de capa en un fotograma en que no toca al ratón.
 
 // El sprite oficial sin la mochila: se borran sus tres colores y se rehace el contorno (el de mouseCanvas: pal.o por fuera de
 // la silueta). Nada más cambia.
@@ -3477,7 +3477,7 @@ function noPackCanvas(m, dy = 0, blink = false, o = {}) {
 // hebilla, bolsillo delantero y dos correas. Colgada del pie de la cama, las correas abrazan el poste.
 const PACK_ROWS = ['..SS.SS..', '.DMMMMMD.', 'DMLLLLLMD', 'DMMMBMMMD', 'DDDDDDDDD', 'DMMMMMMMD', 'DMLLLLMMD', 'DMLLLLMMD', '.DDDDDDD.'];
 const packSprite = (m) => art('pack' + m.name, () => { const pk = packOf(m), c = PB(11, 11), C = { L: pk[0], M: pk[1], D: pk[2], S: mixc(pk[2], '#000000', 0.25), B: '#f2c02a' }; PACK_ROWS.forEach((r, j) => [...r].forEach((ch, i) => { if (ch !== '.') c.px(i + 1, j + 1, C[ch]); })); c.outline(); return c.canvas(); });
-function packOnPost(g, bx, by, m) { g.drawImage(packSprite(m), bx - 3, by + 7); }
+function packOnPost(g, bx, by, m) { g.drawImage(packSprite(m), bx - 6, by + 7); } // por fuera del poste, sin pisar el colchón
 function packHeld(g, x, y, m) { g.drawImage(packSprite(m), x - 2, y - 2); }
 
 // Guion (ms). El bucle dura 12,2 s; dormir es la parte larga.
@@ -3532,10 +3532,13 @@ function drawMouseB(g, mo) { if (!mo) return; if (mo.flip) { g.save(); g.transla
 function drawBedFrame(g, t, m, bx, by) {
   const f = bedFrame(t, m, bx, by), mat = by + 14;
   g.drawImage(bed3(), bx, by); g.drawImage(pillow3(), bx + 30, mat - 5);
-  if (f.pack === 'post') packOnPost(g, bx, by, m);
+  // La mochila cuelga por fuera del pie: delante de la manta; el ratón, cuando está en el suelo, delante de la mochila.
+  const onFloor = ['walkIn', 'hang', 'hopUp', 'hopDown', 'walkOut'].includes(PH_NAMES[f.phase][0]);
   if (f.blanket.layer === 'below') drawBlanketB(g, bx, by, f.blanket, f.csx, f.csy, m);
-  drawMouseB(g, f.mouse);
+  if (!onFloor) drawMouseB(g, f.mouse);
   if (f.blanket.layer === 'above') drawBlanketB(g, bx, by, f.blanket, f.csx, f.csy, m);
+  if (f.pack === 'post') packOnPost(g, bx, by, m);
+  if (onFloor) drawMouseB(g, f.mouse);
   if (f.pack === 'held') packHeld(g, f.held[0], f.held[1], m);
   if (f.z) zzz(g, f.csx + 14, f.csy - 3, t);
   return f;
