@@ -81,6 +81,15 @@
   },
   "files": [
     {
+      "file": "badge_stop.png",
+      "w": 9,
+      "h": 9,
+      "source": "gameIcon('stop')",
+      "for": "icons.js · stop (ya aprobado en el juego)",
+      "state": "nuevo",
+      "note": "Icono de máquina parada, 9 × 9 (en escena, ×2). A 1:1; en escena, ×2."
+    },
+    {
       "file": "cage_back.png",
       "w": 12,
       "h": 15,
@@ -106,15 +115,6 @@
       "for": "icons.js · alert (ya aprobado en el juego)",
       "state": "congelado",
       "note": "Aviso de máquina (ámbar). A 1:1; en escena, ×2."
-    },
-    {
-      "file": "badge_alertr.png",
-      "w": 13,
-      "h": 12,
-      "source": "gameIcon('alertr')",
-      "for": "icons.js · alertr (ya aprobado en el juego)",
-      "state": "congelado",
-      "note": "Máquina parada (rojo). A 1:1; en escena, ×2."
     },
     {
       "file": "badge_done.png",

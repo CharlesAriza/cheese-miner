@@ -692,7 +692,7 @@ body { background: #120f18; }
 .b5-code { overflow-x: auto; max-width: 100%; padding: 10px 12px; border-radius: 6px; background: #1c1410; color: #e8dcb0; font: 12px/1.5 ui-monospace, Menlo, monospace; }
 .ad-warn.lb-red { background: #7e1626; border-color: #ff5a7a; box-shadow: 0 0 0 2px #1b1220, inset 0 2px 0 #b8344a; animation: lb-pulse 1s steps(1) infinite; }
 .ad-warn.lb-red b { color: #ffffff; }
-.ad-warn.lb-red img { filter: none; }
+.ad-warn.lb-red img { filter: none; width: 18px; height: 18px; image-rendering: pixelated; }
 .ad-warn.lb-red .ad-chain { background: repeating-linear-gradient(#ff5a7a 0 2px, transparent 2px 4px); }
 @keyframes lb-pulse { 0%, 60% { border-color: #ff5a7a; } 61%, 100% { border-color: #ffc2cc; } }
 .ad-warn.lb-mini { padding: 3px; gap: 0; }
@@ -4384,6 +4384,9 @@ const GAME_ICON = {
   alertr: [['......K......', '.....KLK.....', '.....KYK.....', '....KYYYK....', '....KYKYK....', '...KYYKYYK...', '...KYYKYYK...', '..KYYYKYYYK..', '..KYYYYYYYK..', '.KYYYYKYYYYK.', '.KDDDDDDDDDK.', 'KKKKKKKKKKKKK'], { Y: '#ff5a7a', L: '#ffc2cc', D: '#c43a58', K: '#1b1622' }],
   done: [['.......KK', '......KGK', 'K....KGK.', 'KGK.KGK..', '.KGKGK...', '..KGK....', '...K.....'], { G: '#3fa860', K: '#1b1622' }],
 };
+// Icono de máquina parada (Pulido+): octógono rojo de 9 × 9 con contorno de tinta, luz arriba a la izquierda, sombra abajo a
+// la derecha, un brillo en la esquina y la barra blanca de «parar» con su sombra debajo. Se pinta a ×2 exacto (18 px), nunca a una escala que no sea entera.
+GAME_ICON.stop = [['..KKKKK..', '.KHLLLRK.', 'KLLRRRRDK', 'KLWWWWWDK', 'KLWWWWWDK', 'KRSSSSSDK', 'KRRRRRDDK', '.KRDDDDK.', '..KKKKK..'], { K: '#1b1622', H: '#ffd0da', L: '#ff8aa0', R: '#e8364e', D: '#9e1c32', S: '#b82640', W: '#fff4f4' }];
 const gameIcon = (name) => art('gi' + name, () => { const [rows, pal] = GAME_ICON[name], c = document.createElement('canvas'); c.width = rows[0].length; c.height = rows.length; const g = c.getContext('2d'); rows.forEach((r, y) => [...r].forEach((ch, x) => { if (ch !== '.') { g.fillStyle = pal[ch]; g.fillRect(x, y, 1, 1); } })); return c; });
 const PLATE_MAX = 3, PRIO = { red: 3, say: 2, amber: 1 };
 // host: un div posicionado del tamaño de la escena; k: px de pantalla por px de arte; view(): [x, y, w, h] visible en px del
@@ -4391,9 +4394,9 @@ const PLATE_MAX = 3, PRIO = { red: 3, say: 2, amber: 1 };
 // que ninguna placa puede tapar (el bocadillo tampoco tapa a otro ratón que no sea el que habla).
 function labelLayer(host, { k, view, keepOut = () => [], mice = () => [] }) {
   const L = { plates: new Map(), q: [], cur: null, gapUntil: 0, stats: { bubble: 0, plates: 0, badges: 0, hidden: 0, overlaps: 0, closed: 0 } };
-  // La placa roja lleva el triángulo rojo del juego (no un icono de recurso) y el texto en blanco. La versión pequeña es la
+  // La placa roja lleva el icono de parada (no un icono de recurso) y el texto en blanco. La versión pequeña es la
   // misma placa con solo su icono y su cadena: se lee igual que la grande y está a la escala de la escena.
-  const mkPlate = (it) => { const red = it.tone === 'red', ic = red ? gameIcon('alertr').toDataURL() : it.icon, el = document.createElement('div'); el.className = 'ad-warn' + (red ? ' lb-red' : ''); el.innerHTML = `<img class="pix" src="${ic}" alt=""><b>${it.text}</b><i class="ad-chain"></i>`; host.appendChild(el); const bd = document.createElement('div'); bd.className = 'ad-warn lb-mini' + (red ? ' lb-red' : ''); bd.innerHTML = `<img class="pix" src="${ic}" alt=""><i class="ad-chain"></i>`; host.appendChild(bd); it.el = el; it.bd = bd; it.w = el.offsetWidth; it.h = el.offsetHeight; it.bw = bd.offsetWidth; it.bh = bd.offsetHeight; it.ci = -1; it.t = performance.now(); };
+  const mkPlate = (it) => { const red = it.tone === 'red', ic = red ? gameIcon('stop').toDataURL() : it.icon, el = document.createElement('div'); el.className = 'ad-warn' + (red ? ' lb-red' : ''); el.innerHTML = `<img class="pix" src="${ic}" alt=""><b>${it.text}</b><i class="ad-chain"></i>`; host.appendChild(el); const bd = document.createElement('div'); bd.className = 'ad-warn lb-mini' + (red ? ' lb-red' : ''); bd.innerHTML = `<img class="pix" src="${ic}" alt=""><i class="ad-chain"></i>`; host.appendChild(bd); it.el = el; it.bd = bd; it.w = el.offsetWidth; it.h = el.offsetHeight; it.bw = bd.offsetWidth; it.bh = bd.offsetHeight; it.ci = -1; it.t = performance.now(); };
   L.warn = (id, o) => { const old = L.plates.get(id); if (old && old.text === o.text && old.tone === o.tone) { old.anchor = o.anchor; return; } if (old) L.unwarn(id); const it = { id, kind: o.tone, ...o }; mkPlate(it); L.plates.set(id, it); };
   L.unwarn = (id) => { const it = L.plates.get(id); if (!it) return; it.el.remove(); it.bd.remove(); L.plates.delete(id); };
   L.say = (who, text, head) => { if (L.cur && L.cur.who === who) return; if (L.q.some((s) => s.who === who)) return; if (L.q.length >= 2) L.q.shift(); L.q.push({ who, text, head }); };
@@ -4462,7 +4465,7 @@ const MK = 7;
 const EXPORT5 = [
   { file: 'cage_back.png', cv: cageBack, src: 'cageBack()', marker: 'nuevo · montacargas', note: 'Marco, techo con argolla, fondo y suelo de la jaula. Las ruedas van entre las dos capas.', state: 'nuevo' },
   { file: 'cage_front.png', cv: cageFront, src: 'cageFront()', marker: 'nuevo · montacargas', note: 'Barrotes delante de la carga.', state: 'nuevo' },
-  ...[['alert', 'Aviso de máquina (ámbar).'], ['alertr', 'Máquina parada (rojo).'], ['done', 'Hecho (verde).']].map(([n, note]) => ({ file: `badge_${n}.png`, cv: () => gameIcon(n), src: `gameIcon('${n}')`, marker: `icons.js · ${n} (ya aprobado en el juego)`, note: note + ' A 1:1; en escena, ×2.', state: 'congelado' })),
+  ...[['stop', 'Icono de máquina parada, 9 × 9 (en escena, ×2).'], ['alert', 'Aviso de máquina (ámbar).'], ['done', 'Hecho (verde).']].map(([n, note]) => ({ file: `badge_${n}.png`, cv: () => gameIcon(n), src: `gameIcon('${n}')`, marker: `icons.js · ${n} (ya aprobado en el juego)`, note: note + ' A 1:1; en escena, ×2.', state: 'congelado' })),
 ];
 window.B5_EXPORT = EXPORT5;
 const urlOf = (cv) => cv.toDataURL('image/png');
@@ -4517,7 +4520,7 @@ setInterval(() => {
 COL.insertBefore(bar, scene);
 UL([
   '<b>Bocadillo:</b> el validado en la revisión de arte, sin cambios: crema con 2 px de tinta y esquinas recortadas, letra pixel y la punta escalonada. Ahora va anclado al ratón: se recoloca en cada fotograma sobre su cabeza y la punta lo sigue señalando. Si no cabe encima, se corre o se pone a un lado; si el ratón sale de la vista o no hay sitio durante más de 0,4 s, se cierra. Habla uno a la vez; el siguiente espera su turno.',
-  '<b>Placa de aviso:</b> la validada: chapa oscura con borde ámbar, el icono del recurso que falta, el texto del juego y la cadena hasta la máquina. <b>La de máquina parada</b> se distingue al primer vistazo: chapa roja, texto en blanco, el triángulo rojo de aviso del juego en lugar de un recurso y un borde que late despacio.',
+  '<b>Placa de aviso:</b> la validada: chapa oscura con borde ámbar, el icono del recurso que falta, el texto del juego y la cadena hasta la máquina. <b>La de máquina parada</b> se distingue al primer vistazo: chapa roja, texto en blanco, un icono de parada propio (octógono rojo con su barra blanca, a ×2 exacto) y un borde que late despacio.',
   '<b>Placa pequeña:</b> cuando una placa no cabe con texto, queda la misma placa con solo su icono y su cadena: se lee igual, está a la escala de la escena y nunca tapa a un ratón (las placas evitan a todos los ratones; el bocadillo, a todos menos al que habla).',
   '<b>Reglas de colocación:</b> primero lo rojo (máquina parada), luego el bocadillo (dura unos segundos) y al final lo ámbar (un aviso que puede esperar en placa pequeña); la placa roja, si no cabe encima, cuelga por debajo de su punto; cada pieza prueba sus posiciones en orden (la placa: cadena de 8, 20 o 32 px y corrida a los lados sin dejar de colgar de su punto) y se queda con la primera que no pisa nada; si la que tenía sigue valiendo, no se mueve. Como mucho 3 placas con texto a la vez; las demás pasan a placa pequeña; si ni eso cabe, no se pinta, y el aviso sigue activo. La línea de debajo de la escena cuenta en directo lo que se ve y los solapes, que deben ser 0.',
   '<b>Los botones:</b> HABLA QUIETO (el perforador, en su puesto) · HABLA ANDANDO (espera a que un ratón se esté moviendo y es ese el que habla: el bocadillo lo sigue) · AVISOS DE MÁQUINA (dos ámbar y una roja) · CONFLICTOS (seis avisos y dos ratones a la vez: lo rojo sale con texto, hablan los dos por turnos, tres ámbar con texto y el resto en placa pequeña o fuera) · SIN SITIO (el quesero, junto al borde y con la placa roja donde iría su bocadillo: no se tapa lo crítico, así que su bocadillo se cierra y el contador lo apunta).',

@@ -21,6 +21,9 @@ const GAME_ICON = {
   alertr: [['......K......', '.....KLK.....', '.....KYK.....', '....KYYYK....', '....KYKYK....', '...KYYKYYK...', '...KYYKYYK...', '..KYYYKYYYK..', '..KYYYYYYYK..', '.KYYYYKYYYYK.', '.KDDDDDDDDDK.', 'KKKKKKKKKKKKK'], { Y: '#ff5a7a', L: '#ffc2cc', D: '#c43a58', K: '#1b1622' }],
   done: [['.......KK', '......KGK', 'K....KGK.', 'KGK.KGK..', '.KGKGK...', '..KGK....', '...K.....'], { G: '#3fa860', K: '#1b1622' }],
 };
+// Icono de máquina parada (Pulido+): octógono rojo de 9 × 9 con contorno de tinta, luz arriba a la izquierda, sombra abajo a
+// la derecha, un brillo en la esquina y la barra blanca de «parar» con su sombra debajo. Se pinta a ×2 exacto (18 px), nunca a una escala que no sea entera.
+GAME_ICON.stop = [['..KKKKK..', '.KHLLLRK.', 'KLLRRRRDK', 'KLWWWWWDK', 'KLWWWWWDK', 'KRSSSSSDK', 'KRRRRRDDK', '.KRDDDDK.', '..KKKKK..'], { K: '#1b1622', H: '#ffd0da', L: '#ff8aa0', R: '#e8364e', D: '#9e1c32', S: '#b82640', W: '#fff4f4' }];
 const gameIcon = (name) => art('gi' + name, () => { const [rows, pal] = GAME_ICON[name], c = document.createElement('canvas'); c.width = rows[0].length; c.height = rows.length; const g = c.getContext('2d'); rows.forEach((r, y) => [...r].forEach((ch, x) => { if (ch !== '.') { g.fillStyle = pal[ch]; g.fillRect(x, y, 1, 1); } })); return c; });
 const PLATE_MAX = 3, PRIO = { red: 3, say: 2, amber: 1 };
 // host: un div posicionado del tamaño de la escena; k: px de pantalla por px de arte; view(): [x, y, w, h] visible en px del
@@ -28,9 +31,9 @@ const PLATE_MAX = 3, PRIO = { red: 3, say: 2, amber: 1 };
 // que ninguna placa puede tapar (el bocadillo tampoco tapa a otro ratón que no sea el que habla).
 function labelLayer(host, { k, view, keepOut = () => [], mice = () => [] }) {
   const L = { plates: new Map(), q: [], cur: null, gapUntil: 0, stats: { bubble: 0, plates: 0, badges: 0, hidden: 0, overlaps: 0, closed: 0 } };
-  // La placa roja lleva el triángulo rojo del juego (no un icono de recurso) y el texto en blanco. La versión pequeña es la
+  // La placa roja lleva el icono de parada (no un icono de recurso) y el texto en blanco. La versión pequeña es la
   // misma placa con solo su icono y su cadena: se lee igual que la grande y está a la escala de la escena.
-  const mkPlate = (it) => { const red = it.tone === 'red', ic = red ? gameIcon('alertr').toDataURL() : it.icon, el = document.createElement('div'); el.className = 'ad-warn' + (red ? ' lb-red' : ''); el.innerHTML = `<img class="pix" src="${ic}" alt=""><b>${it.text}</b><i class="ad-chain"></i>`; host.appendChild(el); const bd = document.createElement('div'); bd.className = 'ad-warn lb-mini' + (red ? ' lb-red' : ''); bd.innerHTML = `<img class="pix" src="${ic}" alt=""><i class="ad-chain"></i>`; host.appendChild(bd); it.el = el; it.bd = bd; it.w = el.offsetWidth; it.h = el.offsetHeight; it.bw = bd.offsetWidth; it.bh = bd.offsetHeight; it.ci = -1; it.t = performance.now(); };
+  const mkPlate = (it) => { const red = it.tone === 'red', ic = red ? gameIcon('stop').toDataURL() : it.icon, el = document.createElement('div'); el.className = 'ad-warn' + (red ? ' lb-red' : ''); el.innerHTML = `<img class="pix" src="${ic}" alt=""><b>${it.text}</b><i class="ad-chain"></i>`; host.appendChild(el); const bd = document.createElement('div'); bd.className = 'ad-warn lb-mini' + (red ? ' lb-red' : ''); bd.innerHTML = `<img class="pix" src="${ic}" alt=""><i class="ad-chain"></i>`; host.appendChild(bd); it.el = el; it.bd = bd; it.w = el.offsetWidth; it.h = el.offsetHeight; it.bw = bd.offsetWidth; it.bh = bd.offsetHeight; it.ci = -1; it.t = performance.now(); };
   L.warn = (id, o) => { const old = L.plates.get(id); if (old && old.text === o.text && old.tone === o.tone) { old.anchor = o.anchor; return; } if (old) L.unwarn(id); const it = { id, kind: o.tone, ...o }; mkPlate(it); L.plates.set(id, it); };
   L.unwarn = (id) => { const it = L.plates.get(id); if (!it) return; it.el.remove(); it.bd.remove(); L.plates.delete(id); };
   L.say = (who, text, head) => { if (L.cur && L.cur.who === who) return; if (L.q.some((s) => s.who === who)) return; if (L.q.length >= 2) L.q.shift(); L.q.push({ who, text, head }); };
