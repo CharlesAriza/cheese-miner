@@ -3429,7 +3429,9 @@ const phaseAt = (t) => PH_NAMES.findIndex(([k]) => t < BT[k]);
 const BP = { start: -48, door: -19, bedFoot: 6, bedMid: 18, out: -24, gone: -62, hop: 15 };
 
 // Describe un fotograma: qué sprite, dónde, la manta (cuánto tapa y en qué capa), la mochila y las Z.
-function bedFrame(t, m, bx, by) {
+// opt.door (x relativa al pie de la cama): si la habitación tiene una puerta en la pared del fondo, el ratón aparece dentro
+// de su hueco saliendo de la oscuridad, y al irse vuelve al hueco y se funde con ella (f.fade: 0 visible, 1 a oscuras).
+function bedFrame(t, m, bx, by, opt = {}) {
   const mat = by + 14, floor = by + 22, ph = phaseAt(t), P = PH_NAMES[ph][0], f = {};
   const A = poseCanvas(m, 'A'), csx = bx + SLEEP_X - A.width, csy = mat - A.height + 1;
   const breath = Math.floor((t + m.name.length * 431) / 650) % 2, blink = (t + m.name.length * 997) % 3300 < 110, legs = { legs: Math.floor(t / 120) % 2 ? 'a' : 'b' };
@@ -3438,7 +3440,8 @@ function bedFrame(t, m, bx, by) {
   // Salto: primero sube y luego avanza, para pasar por encima del pie de la cama sin atravesarlo.
   const hop = (k, x0, f0, x1, f1, up) => { const e = up ? Math.min(1, Math.max(0, (k - 0.3) / 0.55)) : Math.min(1, Math.max(0, (k - 0.15) / 0.55)); return [Math.round(x0 + (x1 - x0) * e), Math.round(f0 + (f1 - f0) * k - BP.hop * Math.sin(Math.PI * k))]; };
   f.pack = 'back'; f.blanket = { cover: 0, layer: 'below', lift: 0 }; f.z = false; f.phase = ph;
-  if (P === 'walkIn') stand(Math.round(bx + BP.start + (BP.door - BP.start) * span(0, BT.walkIn)), floor, false, true, legs);
+  const S0 = opt.door ?? BP.start, G0 = opt.door ?? BP.gone; f.fade = 0;
+  if (P === 'walkIn') { const k = opt.door != null ? span(400, BT.walkIn) : span(0, BT.walkIn); stand(Math.round(bx + S0 + (BP.door - S0) * k), floor, false, true, k > 0 ? legs : {}); if (opt.door != null) f.fade = Math.max(0, 1 - t / 400); }
   else if (P === 'hang') { const held = t < BT.walkIn + 150; stand(bx + BP.door, floor, false, false, {}, true); f.pack = held ? 'held' : 'post'; f.held = [bx + BP.door + 15, floor - 13]; }
   else if (P === 'hopUp') { const [x, feet] = hop(span(BT.hang, BT.hopUp), bx + BP.door, floor, bx + BP.bedFoot, mat, true); stand(x, feet, false, false); f.pack = 'post'; f.air = true; }
   else if (P === 'walkBed') { stand(Math.round(bx + BP.bedFoot + (BP.bedMid - BP.bedFoot) * span(BT.hopUp, BT.walkBed)), mat, false, false, legs); f.pack = 'post'; }
@@ -3456,7 +3459,7 @@ function bedFrame(t, m, bx, by) {
     else if (P === 'walkFoot') stand(Math.round(bx + BP.bedMid + (BP.bedFoot - BP.bedMid) * span(BT.stand, BT.walkFoot)), mat, true, false, legs);
     else if (P === 'takePack') { const held = t < BT.walkFoot + 150; stand(bx + BP.bedFoot, mat, true, !held, {}, true); f.pack = held ? 'held' : 'back'; f.held = [bx + BP.bedFoot + 1, mat - 13]; }
     else if (P === 'hopDown') { const [x, feet] = hop(span(BT.takePack, BT.hopDown), bx + BP.bedFoot, mat, bx + BP.out, floor, false); stand(x, feet, true, true); f.pack = 'back'; f.air = true; }
-    else if (P === 'walkOut') { stand(Math.round(bx + BP.out + (BP.gone - BP.out) * span(BT.hopDown, BT.walkOut)), floor, true, true, legs); f.pack = 'back'; }
+    else if (P === 'walkOut') { const end = opt.door != null ? BT.walkOut - 450 : BT.walkOut, k = span(BT.hopDown, end); stand(Math.round(bx + BP.out + (G0 - BP.out) * k), floor, true, true, k < 1 ? legs : {}); f.pack = 'back'; if (opt.door != null) f.fade = Math.min(1, Math.max(0, (t - end) / 400)); }
     else { f.mouse = null; f.pack = 'back'; }
   }
   f.csx = csx; f.csy = csy; return f;
@@ -3469,8 +3472,8 @@ function drawBlanketB(g, bx, by, b, csx, csy, m) {
   blanket3(g, bx + 5, (x) => Math.min(mat - 2, x >= csx && x - csx < T.length ? csy + T[x - csx] - (b.lift && x >= csx + 2 && x <= csx + 9 ? 1 : 0) : mat - 2), () => x1, mat, 1, () => false, false);
 }
 function drawMouseB(g, mo) { if (!mo) return; if (mo.flip) { g.save(); g.translate(mo.x + mo.cv.width, mo.y); g.scale(-1, 1); g.drawImage(mo.cv, 0, 0); g.restore(); } else g.drawImage(mo.cv, mo.x, mo.y); }
-function drawBedFrame(g, t, m, bx, by) {
-  const f = bedFrame(t, m, bx, by), mat = by + 14;
+function drawBedFrame(g, t, m, bx, by, opt = {}) {
+  const f = bedFrame(t, m, bx, by, opt), mat = by + 14;
   g.drawImage(bed3(), bx, by); g.drawImage(pillow3(), bx + 30, mat - 5);
   // La mochila cuelga por fuera del pie: delante de la manta; el ratón, cuando está en el suelo, delante de la mochila.
   const onFloor = ['walkIn', 'hang', 'hopUp', 'hopDown', 'walkOut'].includes(PH_NAMES[f.phase][0]);

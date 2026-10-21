@@ -54,7 +54,7 @@ setInterval(() => { const now = performance.now(), g = sc.getContext('2d'); g.se
 requestAnimationFrame(() => { scroller.scrollLeft = 0; });
 UL([
   '<b>De izquierda a derecha:</b> la casa en su colina; el laboratorio en el altozano, con el hueco reservado de FORBIDDEN GENETICS a su izquierda; y el mercado: tienda, despensa y castillete. El pozo del castillete baja por el borde inferior hacia Cheddar: es la unión con el bloque 2.',
-  '<b>Subsuelo:</b> la madriguera bajo la casa, una habitación acogedora (revoco cálido, zócalo de madera, cuadro, balda con libros, aplique con luz y alfombra) con la cama y la secuencia aprobada tal cual; el ratón entra y sale andando por un túnel en el extremo de la habitación, que se pierde en la oscuridad; la bodega bajo la despensa, con las cajas por color de recurso; y el pozo.',
+  '<b>Subsuelo:</b> la madriguera bajo la casa, una habitación acogedora (revoco cálido, zócalo de madera, cuadro, balda con libros, aplique con luz y alfombra) con la cama y la secuencia aprobada tal cual; el ratón aparece en el hueco de la puerta saliendo de la oscuridad y se va por él del mismo modo (el marco queda siempre detrás); la bodega bajo la despensa, con las cajas por color de recurso; y el pozo.',
   '<b>Ratones:</b> el tendero tras el mostrador, el investigador en la puerta del laboratorio con su libro y el ratón sin puesto en la cama. Solo poses aprobadas.',
   '<b>Cada edificio crece sin moverse:</b> la casa conserva su cuerpo en el mismo sitio de la fase I a la III (la torre se añade a la izquierda), y la tienda añade piezas sobre la misma base.',
 ]);

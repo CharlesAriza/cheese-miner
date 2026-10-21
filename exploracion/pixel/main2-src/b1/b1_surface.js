@@ -163,27 +163,20 @@ function roomWall(g, x0, x1) {
   for (let y = ry + 3; y < F - 10; y++) for (let x = x0; x < x1; x++) if (hh2(x, y, 5) < 0.035) R2(x, y, 1, 1, P.pla[2]); else if (hh2(x, y, 6) < 0.015) R2(x, y, 1, 1, P.pla[4]);
   for (let x = x0; x < x1; x++) { R2(x, ry + 3, 1, 1, P.pla[4]); if (x % 2) R2(x, ry + 4, 1, 1, P.pla[4]); }
   R2(x0, ry, x1 - x0, 3, P.woo[2]); R2(x0, ry, x1 - x0, 1, P.woo[1]); R2(x0, ry + 2, x1 - x0, 1, P.woo[3]);
-  for (const x of [ROOM.x + 40, ROOM.x + 100]) if (x >= x0 && x < x1) { R2(x, ry + 3, 4, 2, P.woo[2]); R2(x + 1, ry + 5, 2, 1, P.woo[3]); }
+  for (const x of [ROOM.x + 4, ROOM.x + 100]) if (x >= x0 && x < x1) { R2(x, ry + 3, 4, 2, P.woo[2]); R2(x + 1, ry + 5, 2, 1, P.woo[3]); }
   R2(x0, F - 10, x1 - x0, 10, P.woo[2]); R2(x0, F - 10, x1 - x0, 1, P.woo[1]); R2(x0, F - 9, x1 - x0, 1, P.woo[3]); for (let x = x0 + 2; x < x1; x += 4) R2(x, F - 8, 1, 8, P.woo[3]);
 }
-// Túnel de salida, en corte, en el extremo izquierdo de la madriguera (de x a x+35): tierra encima, el pasillo a oscuras y su
-// suelo de tablas; la viga del dintel marca dónde acaba la habitación. En una vista lateral el ratón sale andando por el
-// extremo de la habitación: nunca pasa por delante de un marco.
-const TUN = 36;
-function roomTunnel(g, rx, ry, by, F) {
+// Puerta de la madriguera en la pared del fondo: arco de madera con su clave (por fuera de x+12 a x+39) y un hueco de 24 px a
+// oscuras (de x+14 a x+37), donde cabe el ratón entero. El marco va siempre detrás del ratón: el ratón entra y sale
+// fundiéndose con la oscuridad del hueco, nunca pasa por detrás del marco.
+const DOOR = { x0: 14, x1: 37 };
+function doorHole(g, rx, by, F, col) { g.fillStyle = col; g.fillRect(rx + 14, by + 1, 24, F - by - 1); g.fillRect(rx + 16, by, 20, 1); g.fillRect(rx + 18, by - 1, 16, 1); g.fillRect(rx + 21, by - 2, 10, 1); }
+function roomDoor(g, rx, by, F) {
   const P = SPL, R2 = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
-  R2(rx, ry, TUN, by - 2 - ry, P.soi[2]); for (let i = 0; i < 26; i++) { const x = rx + Math.floor(hh2(i, 41) * TUN), y = ry + Math.floor(hh2(i, 42) * (by - 3 - ry)); R2(x, y, 2, 1, i % 3 ? P.soi[3] : P.soi[1]); }
-  R2(rx, by - 2, TUN, F - by + 2, '#1a100a'); for (let x = rx + TUN - 8; x < rx + TUN; x++) R2(x, by - 2, 1, F - by + 2, mixc('#1a100a', '#3a2a1e', (x - rx - TUN + 8) / 10));
-  R2(rx, F, TUN, 1, P.woo[3]); for (let x = rx + 2; x < rx + TUN; x += 7) R2(x, F, 1, 1, P.woo[4]);
-  for (const x of [rx + 8, rx + 22]) { R2(x, by - 3, 3, 2, P.woo[3]); R2(x, by - 3, 3, 1, P.woo[2]); }
-  R2(rx + TUN - 3, by - 5, 7, 3, P.woo[2]); R2(rx + TUN - 3, by - 5, 7, 1, P.woo[1]); R2(rx + TUN - 3, by - 3, 7, 1, P.woo[3]);
-}
-// Delante del ratón, solo dentro del túnel: oscuridad que crece hacia el fondo; al empezar y al acabar el bucle, el túnel
-// entero se oscurece y aclara para que el ratón no aparezca ni desaparezca de golpe.
-function tunnelVeil(g, rx, by, F, t) {
-  const fade = t < 400 ? 1 - t / 400 : t > BT.walkOut - 400 ? Math.min(1, (t - BT.walkOut + 400) / 400) : 0;
-  for (let x = rx; x < rx + TUN; x++) { const a = Math.max(fade, 0.97 - ((x - rx) / TUN) * 0.85); g.globalAlpha = a; g.fillStyle = '#1a100a'; g.fillRect(x, by - 2, 1, F - by + 2); }
-  g.globalAlpha = 1;
+  doorHole(g, rx, by, F, '#1a100a');
+  R2(rx + 12, by + 1, 2, F - by - 1, P.woo[2]); R2(rx + 12, by + 1, 1, F - by - 1, P.woo[1]); R2(rx + 38, by + 1, 2, F - by - 1, P.woo[2]); R2(rx + 39, by + 1, 1, F - by - 1, P.woo[3]);
+  R2(rx + 14, by, 2, 1, P.woo[2]); R2(rx + 36, by, 2, 1, P.woo[2]); R2(rx + 16, by - 1, 2, 1, P.woo[2]); R2(rx + 34, by - 1, 2, 1, P.woo[2]); R2(rx + 18, by - 2, 3, 1, P.woo[2]); R2(rx + 31, by - 2, 3, 1, P.woo[2]); R2(rx + 21, by - 3, 10, 1, P.woo[1]);
+  R2(rx + 24, by - 5, 4, 3, P.woo[1]); R2(rx + 25, by - 5, 2, 1, P.woo[0]);
 }
 function paintSurface(g) {
   const P = SPL, R2 = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
@@ -205,13 +198,13 @@ function paintSurface(g) {
   // Madriguera bajo la casa: pared de tierra apisonada con vigas, suelo de tablas y la boca del túnel a la izquierda.
   const { x: rx, y: ry, w: rw, h: rh } = ROOM;
   R2(rx - 1, ry - 1, rw + 2, rh + 2, P.soi[4]);
-  roomWall(g, rx + TUN, rx + rw);
+  roomWall(g, rx, rx + rw);
   const F = BED1.by + 22, bx = BED1.bx, by = BED1.by;
-  roomTunnel(g, rx, ry, by, F);
+  roomDoor(g, rx, by, F);
   // Suelo de tablas y alfombra roja con remates dorados delante de la cama.
-  R2(rx + TUN, F, rw - TUN, ry + rh - F, P.woo[3]); R2(rx + TUN, F, rw - TUN, 1, P.woo[1]); R2(rx, F + 1, TUN, ry + rh - F - 1, P.woo[4]); for (let x = rx + TUN + 3; x < rx + rw; x += 7) R2(x, F + 1, 1, ry + rh - F - 1, P.woo[4]);
+  R2(rx, F, rw, ry + rh - F, P.woo[3]); R2(rx, F, rw, 1, P.woo[1]); for (let x = rx + 3; x < rx + rw; x += 7) R2(x, F + 1, 1, ry + rh - F - 1, P.woo[4]);
   R2(rx + 40, F, 22, 2, P.red[2]); R2(rx + 40, F, 22, 1, P.red[1]); for (let x = rx + 42; x < rx + 60; x += 4) R2(x, F + 1, 2, 1, P.red[3]); R2(rx + 39, F, 1, 2, P.gld[2]); R2(rx + 62, F, 1, 2, P.gld[2]);
-  // Cuadro con una cuña de queso, entre el túnel y la cama.
+  // Cuadro con una cuña de queso, entre la puerta y la cama.
   R2(rx + 43, ry + 9, 11, 9, P.woo[1]); R2(rx + 44, ry + 10, 9, 7, '#5a7ab8'); R2(rx + 44, ry + 14, 9, 3, '#6a9a58'); g.fillStyle = P.chz[1]; g.beginPath(); g.moveTo(rx + 45, ry + 16); g.lineTo(rx + 52, ry + 16); g.lineTo(rx + 52, ry + 12); g.fill(); R2(rx + 51, ry + 13, 1, 1, P.chz[3]); R2(rx + 43, ry + 17, 11, 1, P.woo[3]);
   // Balda con libros y un tarro, encima de la cama.
   R2(bx + 12, by - 4, 20, 1, P.woo[1]); R2(bx + 12, by - 3, 20, 1, P.woo[3]); R2(bx + 14, by - 2, 1, 2, P.woo[3]); R2(bx + 29, by - 2, 1, 2, P.woo[3]);
@@ -255,8 +248,9 @@ function drawSurface(g, now, o = {}) {
   if (o.sci !== null) { const m = o.sci || CREW.town.sci, cv = mF(m, Math.floor((now + m.name.length * 431) / 650) % 2, false, { book: Math.floor(now / 900) % 2 ? 2 : 1 }); g.save(); g.translate(SPOS.lab + 10 + 22, GL1 - 20); g.scale(-1, 1); g.drawImage(cv, 0, 0); g.restore(); }
   // Madriguera: la cama y su secuencia aprobada; la pared de la izquierda tapa la boca del túnel por delante.
   if (o.sleeper !== null) {
-    drawBedFrame(g, now % BT.end, o.sleeper || CREW.town.idle, BED1.bx, BED1.by);
-    tunnelVeil(g, ROOM.x, BED1.by, BED1.by + 22, now % BT.end);
+    // La puerta: el ratón aparece en su hueco y se va por él fundiéndose con la oscuridad (solo se oscurece el hueco).
+    const fr = drawBedFrame(g, now % BT.end, o.sleeper || CREW.town.idle, BED1.bx, BED1.by, { door: ROOM.x + DOOR.x0 - BED1.bx });
+    if (fr.fade > 0) { g.globalAlpha = fr.fade; doorHole(g, ROOM.x, BED1.by, BED1.by + 22, '#1a100a'); g.globalAlpha = 1; }
     vfxGlow(g, ROOM.x + 64, ROOM.y + 11, 11, now, '#ffd890');
   }
 }
