@@ -1,0 +1,367 @@
+{
+  "version": "2026-10-21",
+  "unit": "1 px de arte = 1 px del archivo",
+  "anchor": "abajo a la izquierda; la fila de abajo apoya en el suelo",
+  "files": [
+    {
+      "file": "house_1.png",
+      "w": 64,
+      "h": 58,
+      "source": "houseStage(1)",
+      "replaces": "scene.js · Mouse House",
+      "state": "congelado",
+      "note": "Fase I; se coloca 22 px a la derecha del origen de la fase III para que la casa no se mueva al evolucionar."
+    },
+    {
+      "file": "house_2.png",
+      "w": 80,
+      "h": 76,
+      "source": "houseV3(2)",
+      "replaces": "scene.js · Mouse House",
+      "state": "congelado",
+      "note": "Fase II; 24 px a la derecha del origen de la fase III."
+    },
+    {
+      "file": "house_3.png",
+      "w": 110,
+      "h": 76,
+      "source": "houseV3(3)",
+      "replaces": "scene.js · Mouse House",
+      "state": "congelado",
+      "note": "Fase III (con la torre del álbum)."
+    },
+    {
+      "file": "lab_1.png",
+      "w": 86,
+      "h": 80,
+      "source": "labV2(1)",
+      "replaces": "scene.js · Cheese Lab",
+      "state": "congelado",
+      "note": "3 recetas"
+    },
+    {
+      "file": "lab_2.png",
+      "w": 86,
+      "h": 80,
+      "source": "labV2(2)",
+      "replaces": "scene.js · Cheese Lab",
+      "state": "congelado",
+      "note": "Research Assistant"
+    },
+    {
+      "file": "lab_3.png",
+      "w": 86,
+      "h": 80,
+      "source": "labV2(3)",
+      "replaces": "scene.js · Cheese Lab",
+      "state": "congelado",
+      "note": "Advanced Research"
+    },
+    {
+      "file": "lab_4.png",
+      "w": 86,
+      "h": 80,
+      "source": "labV2(4)",
+      "replaces": "scene.js · Cheese Lab",
+      "state": "congelado",
+      "note": "Strain Research"
+    },
+    {
+      "file": "shop_back_t0.png",
+      "w": 74,
+      "h": 58,
+      "source": "shopBack(0)",
+      "replaces": "scene.js · Cheese Shop",
+      "state": "nuevo",
+      "note": "Aspecto 0 (visualTier de Trading). Detrás del tendero."
+    },
+    {
+      "file": "shop_front_t0.png",
+      "w": 74,
+      "h": 58,
+      "source": "shopFront(0)",
+      "replaces": "scene.js · Cheese Shop",
+      "state": "nuevo",
+      "note": "Mostrador del aspecto 0. Delante del tendero."
+    },
+    {
+      "file": "shop_back_t1.png",
+      "w": 74,
+      "h": 58,
+      "source": "shopBack(1)",
+      "replaces": "scene.js · Cheese Shop",
+      "state": "nuevo",
+      "note": "Aspecto 1 (visualTier de Trading). Detrás del tendero."
+    },
+    {
+      "file": "shop_front_t1.png",
+      "w": 74,
+      "h": 58,
+      "source": "shopFront(1)",
+      "replaces": "scene.js · Cheese Shop",
+      "state": "nuevo",
+      "note": "Mostrador del aspecto 1. Delante del tendero."
+    },
+    {
+      "file": "shop_back_t2.png",
+      "w": 74,
+      "h": 58,
+      "source": "shopBack(2)",
+      "replaces": "scene.js · Cheese Shop",
+      "state": "nuevo",
+      "note": "Aspecto 2 (visualTier de Trading). Detrás del tendero."
+    },
+    {
+      "file": "shop_front_t2.png",
+      "w": 74,
+      "h": 58,
+      "source": "shopFront(2)",
+      "replaces": "scene.js · Cheese Shop",
+      "state": "nuevo",
+      "note": "Mostrador del aspecto 2. Delante del tendero."
+    },
+    {
+      "file": "shop_back_t3.png",
+      "w": 74,
+      "h": 58,
+      "source": "shopBack(3)",
+      "replaces": "scene.js · Cheese Shop",
+      "state": "nuevo",
+      "note": "Aspecto 3 (visualTier de Trading). Detrás del tendero."
+    },
+    {
+      "file": "shop_front_t3.png",
+      "w": 74,
+      "h": 58,
+      "source": "shopFront(3)",
+      "replaces": "scene.js · Cheese Shop",
+      "state": "nuevo",
+      "note": "Mostrador del aspecto 3. Delante del tendero."
+    },
+    {
+      "file": "shop_back_t4.png",
+      "w": 74,
+      "h": 58,
+      "source": "shopBack(4)",
+      "replaces": "scene.js · Cheese Shop",
+      "state": "nuevo",
+      "note": "Aspecto 4 (visualTier de Trading). Detrás del tendero."
+    },
+    {
+      "file": "shop_front_t4.png",
+      "w": 74,
+      "h": 58,
+      "source": "shopFront(4)",
+      "replaces": "scene.js · Cheese Shop",
+      "state": "nuevo",
+      "note": "Mostrador del aspecto 4. Delante del tendero."
+    },
+    {
+      "file": "shop_back_t5.png",
+      "w": 74,
+      "h": 58,
+      "source": "shopBack(5)",
+      "replaces": "scene.js · Cheese Shop",
+      "state": "nuevo",
+      "note": "Aspecto 5 (visualTier de Trading). Detrás del tendero."
+    },
+    {
+      "file": "shop_front_t5.png",
+      "w": 74,
+      "h": 58,
+      "source": "shopFront(5)",
+      "replaces": "scene.js · Cheese Shop",
+      "state": "nuevo",
+      "note": "Mostrador del aspecto 5. Delante del tendero."
+    },
+    {
+      "file": "shop_lot.png",
+      "w": 7,
+      "h": 6,
+      "source": "lotSprite()",
+      "replaces": "scene.js · Cheese Shop",
+      "state": "nuevo",
+      "note": "Lote en venta; hasta 4, en los huecos x = 4, 12, 40 y 48 del mostrador (y = 36)."
+    },
+    {
+      "file": "pantry.png",
+      "w": 64,
+      "h": 58,
+      "source": "pantrySprite2()",
+      "replaces": "scene.js · Storage",
+      "state": "nuevo",
+      "note": "Un solo aspecto."
+    },
+    {
+      "file": "headframe.png",
+      "w": 30,
+      "h": 74,
+      "source": "headframe2()",
+      "replaces": "nuevo (MAIN 2.0: cabeza del montacargas)",
+      "state": "nuevo",
+      "note": "La polea va aparte, centrada en x 15, y 14."
+    },
+    {
+      "file": "pulley_f0.png",
+      "w": 13,
+      "h": 13,
+      "source": "pulleySprite(0)",
+      "replaces": "nuevo",
+      "state": "nuevo",
+      "note": "Gira solo con el montacargas en marcha (120 ms por fotograma)."
+    },
+    {
+      "file": "pulley_f1.png",
+      "w": 13,
+      "h": 13,
+      "source": "pulleySprite(1)",
+      "replaces": "nuevo",
+      "state": "nuevo",
+      "note": "Gira solo con el montacargas en marcha (120 ms por fotograma)."
+    },
+    {
+      "file": "pulley_f2.png",
+      "w": 13,
+      "h": 13,
+      "source": "pulleySprite(2)",
+      "replaces": "nuevo",
+      "state": "nuevo",
+      "note": "Gira solo con el montacargas en marcha (120 ms por fotograma)."
+    },
+    {
+      "file": "bed.png",
+      "w": 46,
+      "h": 22,
+      "source": "bed3()",
+      "replaces": "icons.js · cama de la Mouse House",
+      "state": "congelado",
+      "note": "Secuencia aprobada: drawBedFrame (ev4)."
+    },
+    {
+      "file": "pillow.png",
+      "w": 12,
+      "h": 6,
+      "source": "pillow3()",
+      "replaces": "icons.js · cama",
+      "state": "congelado",
+      "note": ""
+    },
+    {
+      "file": "tree_big.png",
+      "w": 34,
+      "h": 46,
+      "source": "tree(1)",
+      "replaces": "fondo",
+      "state": "congelado",
+      "note": ""
+    },
+    {
+      "file": "tree_small.png",
+      "w": 22,
+      "h": 30,
+      "source": "tree(0)",
+      "replaces": "fondo",
+      "state": "congelado",
+      "note": ""
+    },
+    {
+      "file": "bush_0.png",
+      "w": 14,
+      "h": 8,
+      "source": "bush(0)",
+      "replaces": "fondo",
+      "state": "congelado",
+      "note": ""
+    },
+    {
+      "file": "bush_1.png",
+      "w": 14,
+      "h": 8,
+      "source": "bush(1)",
+      "replaces": "fondo",
+      "state": "congelado",
+      "note": ""
+    },
+    {
+      "file": "bush_2.png",
+      "w": 14,
+      "h": 8,
+      "source": "bush(2)",
+      "replaces": "fondo",
+      "state": "congelado",
+      "note": ""
+    },
+    {
+      "file": "fence.png",
+      "w": 20,
+      "h": 9,
+      "source": "fence(3)",
+      "replaces": "fondo",
+      "state": "congelado",
+      "note": ""
+    },
+    {
+      "file": "bench.png",
+      "w": 16,
+      "h": 8,
+      "source": "bench()",
+      "replaces": "fondo",
+      "state": "congelado",
+      "note": ""
+    },
+    {
+      "file": "lamp.png",
+      "w": 7,
+      "h": 24,
+      "source": "lampPost()",
+      "replaces": "fondo",
+      "state": "congelado",
+      "note": "Su luz es VFX (vfxGlow)."
+    },
+    {
+      "file": "sign.png",
+      "w": 16,
+      "h": 18,
+      "source": "signPost2()",
+      "replaces": "fondo",
+      "state": "adaptado",
+      "note": "Rehecho sin tinta dentro."
+    },
+    {
+      "file": "crate_raw.png",
+      "w": 8,
+      "h": 7,
+      "source": "crateSprite('#e08a2e')",
+      "replaces": "bodega",
+      "state": "nuevo",
+      "note": ""
+    },
+    {
+      "file": "crate_base.png",
+      "w": 8,
+      "h": 7,
+      "source": "crateSprite('#efe6c4')",
+      "replaces": "bodega",
+      "state": "nuevo",
+      "note": ""
+    },
+    {
+      "file": "crate_cheese.png",
+      "w": 8,
+      "h": 7,
+      "source": "crateSprite(chz)",
+      "replaces": "bodega",
+      "state": "nuevo",
+      "note": ""
+    },
+    {
+      "file": "surface_bg.png",
+      "w": 432,
+      "h": 164,
+      "source": "paintSurface()",
+      "replaces": "fondo",
+      "state": "nuevo",
+      "note": "Cielo, colinas, terreno, caminos, madriguera, bodega y pozo: 432 × 164. Suelo en y = 84 (casa), 92 (laboratorio) y 100 (mercado)."
+    }
+  ]
+}
