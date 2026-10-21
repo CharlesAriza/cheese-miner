@@ -1,0 +1,190 @@
+{
+ "frames": {
+  "pdrill_1_0": {
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 50
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 50
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 50
+   },
+   "duration": 100
+  },
+  "pdrill_1_1": {
+   "frame": {
+    "x": 44,
+    "y": 0,
+    "w": 44,
+    "h": 50
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 50
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 50
+   },
+   "duration": 100
+  },
+  "pdrill_1_2": {
+   "frame": {
+    "x": 88,
+    "y": 0,
+    "w": 44,
+    "h": 50
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 50
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 50
+   },
+   "duration": 100
+  },
+  "pdrill_1_3": {
+   "frame": {
+    "x": 132,
+    "y": 0,
+    "w": 44,
+    "h": 50
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 50
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 50
+   },
+   "duration": 100
+  },
+  "pdrill_1_4": {
+   "frame": {
+    "x": 176,
+    "y": 0,
+    "w": 44,
+    "h": 50
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 50
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 50
+   },
+   "duration": 100
+  },
+  "pdrill_1_5": {
+   "frame": {
+    "x": 220,
+    "y": 0,
+    "w": 44,
+    "h": 50
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 50
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 50
+   },
+   "duration": 100
+  },
+  "pdrill_1_6": {
+   "frame": {
+    "x": 264,
+    "y": 0,
+    "w": 44,
+    "h": 50
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 50
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 50
+   },
+   "duration": 100
+  },
+  "pdrill_1_7": {
+   "frame": {
+    "x": 308,
+    "y": 0,
+    "w": 44,
+    "h": 50
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 50
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 50
+   },
+   "duration": 100
+  }
+ },
+ "meta": {
+  "app": "pxl",
+  "image": "pdrill_1.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 352,
+   "h": 50
+  },
+  "scale": "1",
+  "frameTags": [
+   {
+    "name": "pdrill_1",
+    "from": 0,
+    "to": 7,
+    "direction": "forward"
+   }
+  ]
+ }
+}

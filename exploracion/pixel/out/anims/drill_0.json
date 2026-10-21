@@ -1,0 +1,190 @@
+{
+ "frames": {
+  "drill_0_0": {
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 44
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 44
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 44
+   },
+   "duration": 100
+  },
+  "drill_0_1": {
+   "frame": {
+    "x": 44,
+    "y": 0,
+    "w": 44,
+    "h": 44
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 44
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 44
+   },
+   "duration": 100
+  },
+  "drill_0_2": {
+   "frame": {
+    "x": 88,
+    "y": 0,
+    "w": 44,
+    "h": 44
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 44
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 44
+   },
+   "duration": 100
+  },
+  "drill_0_3": {
+   "frame": {
+    "x": 132,
+    "y": 0,
+    "w": 44,
+    "h": 44
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 44
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 44
+   },
+   "duration": 100
+  },
+  "drill_0_4": {
+   "frame": {
+    "x": 176,
+    "y": 0,
+    "w": 44,
+    "h": 44
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 44
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 44
+   },
+   "duration": 100
+  },
+  "drill_0_5": {
+   "frame": {
+    "x": 220,
+    "y": 0,
+    "w": 44,
+    "h": 44
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 44
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 44
+   },
+   "duration": 100
+  },
+  "drill_0_6": {
+   "frame": {
+    "x": 264,
+    "y": 0,
+    "w": 44,
+    "h": 44
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 44
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 44
+   },
+   "duration": 100
+  },
+  "drill_0_7": {
+   "frame": {
+    "x": 308,
+    "y": 0,
+    "w": 44,
+    "h": 44
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 44,
+    "h": 44
+   },
+   "sourceSize": {
+    "w": 44,
+    "h": 44
+   },
+   "duration": 100
+  }
+ },
+ "meta": {
+  "app": "pxl",
+  "image": "drill_0.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 352,
+   "h": 44
+  },
+  "scale": "1",
+  "frameTags": [
+   {
+    "name": "drill_0",
+    "from": 0,
+    "to": 7,
+    "direction": "forward"
+   }
+  ]
+ }
+}

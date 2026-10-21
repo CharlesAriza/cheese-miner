@@ -1,0 +1,399 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Main Screen Mockup</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+<style>
+/* Mockup de una sola pantalla con aspecto propio (oscuro) y fijo: no sigue el tema del visor. */
+:root {
+  color-scheme: dark;
+  --bg: #120f18; --text: #ffffff; --soft: #d6d0e6; --muted: #9f97b8;
+  /* Color con función: oro = selección, monedas y recompensa; naranja = acción principal;
+     verde = algo nuevo; azul = experiencia. Lo demás, neutro. */
+  --gold: #ffcf2e; --new: #62d36e; --xp: #6aa8f0; --rate: #a9cfb0;
+  /* Kit de interfaz: luz, base, sombra, contorno. */
+  --p1: #3d3352; --p2: #2a2338; --p3: #1d1828; --p4: #0c0910;
+  --o0: #ffe0a0; --o1: #ffb347; --o2: #ff8a2e; --o3: #d9581f; --o4: #7a2a10;
+  --pixel: 'Press Start 2P', ui-monospace, Menlo, monospace;
+  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Ritmo: 6 px entre bloques de la pantalla, 8 px de margen dentro de cada caja. */
+  --gap: 6px; --pad: 8px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding: 20px 16px 40px; background: var(--bg); color: var(--text); font-family: var(--sans); }
+.wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.lead { margin: 0; max-width: 60ch; text-align: center; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.lead b { color: var(--gold); font-family: var(--pixel); font-size: 12px; font-weight: 400; }
+.fit { width: 375px; max-width: 100%; }
+.phone { width: 375px; height: 812px; position: relative; overflow: hidden; background: #1b1622; border-radius: 26px;
+  box-shadow: 0 0 0 6px #2a2338, 0 0 0 8px #0c0910, 0 24px 60px #000a; transform-origin: top left; }
+.pix { image-rendering: pixelated; display: block; }
+.row { position: absolute; left: var(--gap); width: calc(375px - 2 * var(--gap)); }
+
+/* ---- Una sola caja para todo: borde de tinta de 2 px, luz de 2 px arriba, sombra de 3 px abajo,
+   esquinas a píxel. Variantes solo de relleno; la selección es siempre el borde oro. ---- */
+.box { background: var(--p2); border: 2px solid var(--p4); box-shadow: inset 0 2px 0 var(--p1), inset 0 -3px 0 var(--p3);
+  clip-path: polygon(2px 0, calc(100% - 2px) 0, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 0 calc(100% - 2px), 0 2px); }
+.box.sel { border-color: var(--gold); background: #322a2c; }
+.box.sunk { background: var(--p3); box-shadow: inset 0 2px 0 var(--p2), inset 0 -3px 0 var(--p4); }
+.box.main { background: var(--o2); border-color: #2b1d12; box-shadow: inset 0 2px 0 var(--o0), inset 0 4px 0 var(--o1), inset 0 -4px 0 var(--o3); }
+
+/* ---- Cuatro niveles de texto ----
+   1. valor clave: píxel 16 blanco · 2. valor de sección: píxel 12 blanco
+   3. nombre: píxel 8 o sans 12–14 en gris claro · 4. meta: sans 9–10, mayúsculas, gris. */
+.v1 { font-family: var(--pixel); font-size: 16px; line-height: 16px; color: var(--text); }
+.v2 { font-family: var(--pixel); font-size: 12px; line-height: 12px; color: var(--text); }
+.nm { font-family: var(--pixel); font-size: 8px; line-height: 8px; color: var(--soft); }
+.meta { font-size: 10px; line-height: 12px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--muted); }
+.rate { font-size: 11px; line-height: 12px; font-weight: 600; color: var(--rate); white-space: nowrap; }
+.bar { height: 6px; background: var(--p4); position: relative; }
+.bar > i { position: absolute; inset: 0 auto 0 0; }
+.bar.xp > i { background: linear-gradient(#b8dcff 0 1px, var(--xp) 1px 4px, #3f6fb8 4px); }
+.bar.gold > i { background: linear-gradient(#fff3a0 0 1px, var(--gold) 1px 3px, #c98a08 3px); }
+.bar.quiet > i { background: #8a7fb0; }
+
+/* HUD: las dos tarjetas con la misma estructura (etiqueta y ritmo, valor) y la misma altura. */
+.hud { top: 6px; height: 58px; display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
+.hud .box { position: relative; display: grid; grid-template-columns: 30px 1fr; align-items: center; column-gap: 8px; padding: 0 var(--pad) 1px; }
+.hud img { justify-self: center; }
+.pix[data-k] { width: auto; }
+.hud .txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.hud .meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hud .hbar { position: absolute; left: 2px; right: 2px; bottom: 3px; height: 2px; background: transparent; }
+
+/* Objetivo: dos renglones cortos; el texto entero, sin cortes. */
+.goal { top: 70px; height: 36px; display: grid; grid-template-columns: 1fr 10px; align-items: center; column-gap: 8px; padding: 0 var(--pad) 1px; }
+.goal .txt { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.goal .top { display: flex; align-items: center; gap: 8px; }
+.goal .top .meta { color: var(--gold); }
+.goal .top .bar { flex: 1; height: 4px; }
+.goal p { margin: 0; font-size: 12px; line-height: 14px; font-weight: 600; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+
+/* Escena */
+.stage { position: absolute; left: 0; top: 112px; width: 375px; height: 316px; overflow: hidden; }
+#scene { width: 375px; height: 316.4px; image-rendering: pixelated; cursor: pointer; }
+.rocktag { position: absolute; left: 8px; top: 8px; padding: 4px 6px 5px; background: #1b1622cc; color: var(--soft); }
+.floater { position: absolute; display: flex; align-items: center; gap: 4px; font-family: var(--pixel); font-size: 12px; color: #fff;
+  text-shadow: 2px 2px 0 var(--p4); pointer-events: none; opacity: 0; animation: float 2.6s steps(26) infinite; }
+.floater img { width: 20px; height: 17px; }
+@keyframes float { 0% { transform: translateY(0); opacity: 0 } 8% { opacity: 1 } 55% { opacity: 1 } 70% { transform: translateY(-26px); opacity: 0 } 100% { transform: translateY(-26px); opacity: 0 } }
+.flow { left: var(--gap); top: auto; bottom: var(--gap); height: 48px; display: grid; grid-template-columns: 1fr 4px 1fr 4px 1fr; align-items: center; gap: 2px; }
+.flow .box { display: grid; grid-template-columns: 22px 1fr; align-items: center; column-gap: 5px; padding: 0 5px 1px; height: 48px; min-width: 0; background: #1d1828f2; }
+.flow img { justify-self: center; }
+.flow .txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.flow .ar { justify-self: center; opacity: .6; }
+
+/* Cadena: misma rejilla en las seis casillas: icono, nombre y una línea de estado (nivel y AUTO/NEW). */
+.chain { top: 434px; height: 68px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.tile { position: relative; display: grid; grid-template-rows: 24px 8px 10px; justify-items: center; align-items: center; row-gap: 2px; padding: 14px 3px 0; }
+.tile img { align-self: end; }
+.tile .lv { position: absolute; left: 0; right: 0; top: 2px; text-align: center; font-size: 9px; line-height: 11px; font-weight: 700; color: var(--muted); }
+.tile .st { font-size: 9px; line-height: 10px; font-weight: 800; letter-spacing: .5px; color: var(--muted); }
+.tile .st.new { color: var(--new); }
+.tile .bar { position: absolute; left: 4px; right: 4px; bottom: 2px; height: 2px; }
+.tile.sel .nm { color: var(--text); }
+.tile.sel .lv, .tile.sel .st:not(.new) { color: var(--soft); }
+.tile.lab { background: #1f2a2a; }
+
+/* Panel de la etapa: tres grupos separados por el mismo aire. */
+.dock { top: 508px; height: 262px; padding: 7px var(--pad) var(--pad); display: flex; flex-direction: column; gap: 9px; }
+.rocks { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; height: 36px; flex: none; }
+.rk { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding-bottom: 1px; }
+
+.rk span { font-size: 10px; line-height: 11px; font-weight: 600; color: var(--muted); }
+.rk.sel span { color: var(--text); }
+.dhead { flex: none; display: flex; flex-direction: column; gap: 6px; }
+.dtitle { display: flex; justify-content: space-between; align-items: center; }
+.dtitle .meta { text-transform: none; letter-spacing: 0; font-size: 11px; font-weight: 600; }
+.dinfo { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
+.dinfo small { font-size: 12px; line-height: 15px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dinfo small b { color: var(--soft); font-weight: 600; }
+.drow { flex: none; height: 76px; display: grid; grid-template-columns: 1.25fr 1fr; gap: var(--gap); }
+.act { cursor: pointer; user-select: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; color: #fff; text-shadow: 2px 2px 0 var(--o4); }
+.act b { font-family: var(--pixel); font-size: 16px; font-weight: 400; letter-spacing: 1px; }
+.act small { font-size: 11px; font-weight: 700; color: #fff4e0; text-shadow: 1px 1px 0 var(--o4); }
+.worker { display: grid; grid-template-columns: 52px 1fr; align-items: center; column-gap: 8px; padding: 0 var(--pad) 1px; }
+.worker .face { width: 52px; height: 52px; display: grid; place-items: center; background: #120e18; border: 2px solid #8a7fb0; box-shadow: inset 0 -3px 0 #000; }
+.worker .face img { width: 44px; }
+.worker .who { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.worker b { font-size: 14px; line-height: 16px; font-weight: 800; color: var(--text); }
+.worker .meta em { font-style: normal; color: var(--gold); }
+.dups { flex: none; height: 40px; display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: var(--gap); }
+.dup { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 4px 2px; min-width: 0; }
+.dup b { font-size: 12px; line-height: 14px; font-weight: 600; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.dup u { display: flex; align-items: center; gap: 4px; font-family: var(--pixel); font-size: 8px; line-height: 8px; text-decoration: none; color: var(--gold); }
+.dup u.off { font-family: var(--sans); font-size: 10px; line-height: 12px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--muted); }
+
+
+/* Barra de herramientas */
+.tools { top: 776px; height: 30px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.tools .box { position: relative; display: flex; align-items: center; justify-content: center; gap: 5px; padding-bottom: 1px; }
+.tools .nm { color: var(--text); }
+.tools .badge { display: grid; place-items: center; min-width: 14px; height: 14px; padding: 0 3px 1px; font-family: var(--pixel); font-size: 8px; line-height: 8px; color: #2b1d12;
+  background: var(--gold); border: 1px solid var(--p4); box-shadow: inset 0 1px 0 #fff3a0, inset 0 -2px 0 #c98a08; }
+.tools .box.alert { border-color: #8a6a1a; }
+.phase { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.phase button { font: 600 13px var(--sans); color: var(--text); background: #2a2338; border: 2px solid #0c0910; padding: 7px 12px; cursor: pointer; }
+.phase button[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); }
+.notes { max-width: 64ch; margin: 6px 0 0; padding-left: 18px; color: #dcd6ea; font-size: 13px; line-height: 1.55; }
+</style>
+<div class="wrap">
+  <p class="lead"><b>CHEESE MINER · PULIDO+</b><br>Pantalla principal, versión 6: las dos fases de la roca (buscar la veta picando y veta abierta con el taladro), probables con el ratón. Nada de esto está en el juego.</p>
+  <div class="phase"><button id="ph-search">Buscar veta (picar)</button><button id="ph-vein">Veta abierta (taladro)</button><span>Toca la roca o el botón MINE para picar.</span></div>
+  <div class="fit" id="fit">
+    <div class="phone" id="phone">
+      <header class="row hud">
+        <div class="box"><img class="pix" data-k="2" src="out/sprites/ic_coin.png" alt=""><div class="txt"><span class="meta">Coins</span><b class="v1">3.9Qa</b><span class="rate">+1.2Qa/s</span></div></div>
+        <div class="box"><img class="pix" data-k="2" src="out/sprites/ic_lot.png" alt=""><div class="txt"><span class="meta">Shop · all rocks</span><b class="v1">396K</b><span class="rate">4.8K/min</span></div><div class="bar quiet hbar"><i style="width:62%"></i></div></div>
+      </header>
+      <section class="row box goal"><div class="txt"><div class="top"><span class="meta">Goal</span><div class="bar gold"><i style="width:74%"></i></div></div><p>New milestone in CHEESE upgrades: Grand Wheel</p></div><img class="pix" data-k="1.5" src="out/sprites/ic_arrow.png" alt=""></section>
+      <main class="stage">
+        <canvas id="scene" width="160" height="135"></canvas>
+        <div class="rocktag nm" id="rocktag">CHEDDAR · DEPTH 80</div>
+        <div class="floater" style="left:168px;top:36px"><img class="pix" src="out/sprites/ic_raw_cheddar.png" alt="">+6,035</div>
+        <div class="row flow">
+          <div class="box"><img class="pix" data-k="1.5" src="out/sprites/ic_raw_cheddar.png" alt=""><div class="txt"><span class="meta">Raw</span><b class="v2">1.6M</b><span class="rate">+12.4K/s</span></div></div>
+          <img class="pix ar" data-k="1" src="out/sprites/ic_arrow.png" alt="">
+          <div class="box"><img class="pix" data-k="1.5" src="out/sprites/ic_base_cheddar.png" alt=""><div class="txt"><span class="meta">Base</span><b class="v2">25.6M</b><span class="rate">+3.1K/s</span></div></div>
+          <img class="pix ar" data-k="1" src="out/sprites/ic_arrow.png" alt="">
+          <div class="box"><img class="pix" data-k="1.5" src="out/sprites/ic_lot_cheddar.png" alt=""><div class="txt"><span class="meta">Cheese</span><b class="v2">1.2K</b><span class="rate">+40/s</span></div></div>
+        </div>
+      </main>
+      <nav class="row chain" id="chain"></nav>
+      <section class="row box dock">
+        <div class="rocks" id="rocks"></div>
+        <div class="dhead">
+          <div class="dtitle"><b class="v2">Mining</b><span class="meta">LV 62 · 111K / 126K xp</span></div>
+          <div class="bar xp"><i style="width:88%"></i></div>
+          <div class="dinfo"><small id="info1"><b>Vein exposed:</b> 9.4M Raw Cheese inside</small><small id="info2">Cheddar · depth 80 · Running</small></div>
+        </div>
+        <div class="drow">
+          <div class="box main act" id="act"><b id="actb">DRILL</b><small id="acts">Auto · hold to boost</small></div>
+          <div class="box worker"><span class="face"><img class="pix" src="out/sprites/new_brown_helmet.png" alt=""></span><span class="who"><b>Biscuit</b><span class="meta">LV 30 · <em>Master</em></span></span></div>
+        </div>
+        <div class="dups">
+          <div class="box dup"><b>Blasting Charges</b><u><img class="pix" data-k="1" src="out/sprites/ic_coin.png" alt="">19.1Qa</u></div>
+          <div class="box dup"><b>Upgrades</b><u class="off">Tree</u></div>
+          <div class="box dup"><b>Buy all</b><u><img class="pix" data-k="1" src="out/sprites/ic_coin.png" alt="">10.3Qa</u></div>
+        </div>
+      </section>
+      <nav class="row tools">
+        <div class="box"><span class="nm">COLONY</span></div>
+        <div class="box"><span class="nm">MICE</span><span class="meta">26/26</span></div>
+        <div class="box alert"><span class="nm">BOOSTS</span><span class="badge">1</span></div>
+        <div class="box"><span class="nm">MENU</span></div>
+      </nav>
+    </div>
+  </div>
+  <ul class="notes">
+    <li><b>Picar con cada toque:</b> el impacto se ve al instante (80 ms), luego el rebote (90 ms) y vuelve a la guardia con el pico en alto. Cada toque nuevo reinicia en el impacto, así que tocar rápido nunca se queda esperando a la animación. La roca destella, tiembla 1 px y suelta esquirlas; a veces, golpe fuerte con más esquirlas. Los golpes automáticos del minero destellan suave y no hacen temblar la roca, para no cansar la vista.</li>
+    <li><b>El minero de arriba:</b> pica en bucle mientras se busca la veta (levanta, baja, impacto, rebote). Está por detrás de la cresta, así que la punta del pico se hunde en la superficie y la roca la tapa. Cada impacto suyo cuenta como golpe.</li>
+    <li><b>Las grietas crecen</b> con los golpes; a los 30 la veta se abre con un destello, el taladro arranca y el minero se apoya en el pico.</li>
+    <li><b>Mismos cinco fotogramas para cualquier ratón</b> (guardia ×2, bajando, impacto, rebote): el principal y el minero solo cambian pelaje y gorro. Con el pico dorado del juego basta cambiar los dos tonos del hierro.</li>
+    <li><b>Parado frente a trabajando:</b> mientras se busca la veta, el taladro no echa humo ni chispas, el conductor está quieto y el montacargas no se mueve.</li>
+  </ul>
+</div>
+<script>
+// Ajusta el teléfono al ancho disponible sin deformar el píxel.
+const fit = document.getElementById('fit'), phone = document.getElementById('phone');
+function rescale() {
+  const k = Math.min(1, fit.clientWidth / 375);
+  phone.style.transform = k < 1 ? `scale(${k})` : '';
+  fit.style.height = 812 * k + 'px';
+}
+addEventListener('resize', rescale); rescale();
+
+const TILES = [
+  ['ic_pick', 'MINE', 62, 'AUTO', 88], ['ic_raw_cheddar', 'DRILL', 91, 'AUTO', 40], ['ic_base_cheddar', 'REFINE', 85, 'AUTO', 63],
+  ['ic_lot_cheddar', 'CHEESE', 93, 'NEW', 22], ['ic_coin', 'SELL', 86, 'AUTO', 51], ['ic_flask', 'LAB', 52, 'NEW', 70],
+];
+document.getElementById('chain').innerHTML = TILES.map(([ic, name, lv, st, p], i) =>
+  `<div class="box tile${i === 0 ? ' sel' : ''}${name === 'LAB' ? ' lab' : ''}"><span class="lv">LV ${lv}</span><img class="pix" data-k="1.5" src="out/sprites/${ic}.png" alt=""><span class="nm">${name}</span><span class="st${st === 'NEW' ? ' new' : ''}">${st}</span><i class="bar quiet"><i style="width:${p}%"></i></i></div>`).join('');
+const zones = ['cheddar', 'gouda', 'brie', 'emmental', 'parmesan', 'blue'];
+// Escala única por contexto: cada icono a su tamaño natural por k (múltiplos de 0,5 → píxel entero en retina).
+function sizeIcons() {
+  document.querySelectorAll('img.pix[data-k]').forEach((im) => {
+    const set = () => { im.style.width = im.naturalWidth * im.dataset.k + 'px'; im.style.height = im.naturalHeight * im.dataset.k + 'px'; };
+    im.complete && im.naturalWidth ? set() : im.addEventListener('load', set);
+  });
+}
+document.getElementById('rocks').innerHTML = zones.map((z, i) => `<div class="box ${i ? 'sunk' : 'sel'} rk"><img class="pix" data-k="1.5" src="out/sprites/ic_raw_${z}.png" alt=""><span>${z[0].toUpperCase() + z.slice(1)}</span></div>`).join('');
+
+// Escena: 160 × 135 píxeles de arte, suelo en 78, cámara en la roca.
+const S = {
+  bg: 'out/sprites/bg_cheddar.png', ca: 'out/sprites/cloud_a.png', cb: 'out/sprites/cloud_b.png', ground: 'out/sprites/ground.png',
+  under: 'out/sprites/under.png', shaft: 'out/anims/shaft.png', lift: 'out/sprites/lift.png', house: 'out/anims/phouse.png',
+  lab: 'out/anims/plab.png', drill: 'out/anims/pdrill_3.png', drillIdle: 'out/sprites/pdrill_3_idle.png', scaffold: 'out/anims/scaffold.png',
+  arrow: 'out/sprites/sel_arrow.png', idle: 'out/anims/idle.png',
+  miner: 'out/anims/job_miner.png', driller: 'out/anims/job_driller.png', carry: 'out/anims/job_carry.png', back: 'out/anims/job_return.png',
+  researcher: 'out/anims/job_researcher.png', swingP: 'out/anims/swing_player.png', swingM: 'out/anims/swing_miner.png',
+  c0: 'out/sprites/big_cheddar_c0.png', c1: 'out/sprites/big_cheddar_c1.png', c2: 'out/sprites/big_cheddar_c2.png',
+  c3: 'out/sprites/big_cheddar_c3.png', c4: 'out/sprites/big_cheddar_c4.png', v6: 'out/sprites/big_cheddar_v6.png',
+};
+const img = {};
+let pending = Object.keys(S).length;
+for (const [k, src] of Object.entries(S)) { const i = new Image(); i.onload = i.onerror = () => { if (--pending === 0) requestAnimationFrame(loop); }; i.src = src; img[k] = i; }
+const cv = document.getElementById('scene'), ctx = cv.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+const GY = 78;
+const strip = (k, w, h, f, x, y, flip) => {
+  ctx.save();
+  if (flip) { ctx.translate(Math.round(x) + w, Math.round(y)); ctx.scale(-1, 1); ctx.drawImage(img[k], f * w, 0, w, h, 0, 0, w, h); }
+  else ctx.drawImage(img[k], f * w, 0, w, h, Math.round(x), Math.round(y), w, h);
+  ctx.restore();
+};
+function shadow(x, y, w) {
+  ctx.fillStyle = '#2a5a24';
+  ctx.fillRect(Math.round(x) + 2, y, w - 4, 1);
+  for (let i = 0; i < w; i += 2) ctx.fillRect(Math.round(x) + i, y + 1, 1, 1);
+}
+function footing(x0, x1) {
+  ctx.fillStyle = '#3a9a2a'; ctx.fillRect(x0, GY, x1 - x0, 1);
+  ctx.fillStyle = '#2f7a2a';
+  for (let x = x0 - 2; x < x1 + 2; x += 2) ctx.fillRect(x, GY + 1, 1, 1);
+}
+const IDLE = [700, 700, 700, 120, 700, 700, 100, 100, 100];
+const frameAt = (t, ms) => { const T = ms.reduce((a, b) => a + b, 0); let m = t % T; for (let i = 0; i < ms.length; i++) { if (m < ms[i]) return i; m -= ms[i]; } return 0; };
+const beat = (t, ms) => Math.floor(t / ms) % 2;
+
+// ---- Fases: buscar la veta (picar) y veta abierta (taladro). ----
+const NEED = 30;
+let phase = 'search', hits = 12, tapAt = -1e9, rockHitAt = -1e9, hitGlow = 0.5, revealAt = -1e9, minerCycle = -1, flash = 0;
+const parts = [], crumbs = [];
+const GREYS = ['#d4d9e4', '#b4bacb', '#8a90a3'];
+function burst(x, y, n, colors, speed, up) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.PI + (Math.random() - 0.5) * 2.4, v = speed * (0.5 + Math.random() * 0.7);
+    parts.push({ x, y, vx: Math.cos(a) * v * (Math.random() < 0.3 ? -1 : 1), vy: Math.sin(a) * v - up, life: 0, max: 22 + Math.random() * 18, c: colors[(Math.random() * colors.length) | 0], s: Math.random() < 0.35 ? 2 : 1 });
+  }
+}
+// Toque del jugador: destello fuerte. Golpe automático del minero: destello suave (pica cada 1,2 s).
+function hit(t, x, y, crit, auto) {
+  if (phase !== 'search') return;
+  hits = Math.min(NEED, hits + (crit ? 2 : 1));
+  rockHitAt = t; hitGlow = auto ? 0.18 : 0.5;
+  burst(x, y, crit ? 10 : 5, crit ? GREYS.concat(['#ffffff', '#ffd43a']) : GREYS, crit ? 1.6 : 1.1, 0.6);
+  if (hits >= NEED) { phase = 'vein'; revealAt = t; flash = 1; burst(127, 66, 34, ['#ffe55c', '#ffcf2e', '#ffffff'].concat(GREYS), 2, 1); }
+  ui();
+}
+function tap() {
+  if (phase !== 'search') return;
+  const t = performance.now();
+  tapAt = t;
+  hit(t, 101, 74, Math.random() < 0.12);
+}
+cv.addEventListener('pointerdown', tap);
+document.getElementById('act').addEventListener('pointerdown', tap);
+function setPhase(p) { phase = p; hits = p === 'search' ? 12 : NEED; flash = 0; ui(); }
+document.getElementById('ph-search').onclick = () => setPhase('search');
+document.getElementById('ph-vein').onclick = () => setPhase('vein');
+function ui() {
+  const s = phase === 'search';
+  document.getElementById('rocktag').textContent = 'CHEDDAR · DEPTH 81';
+  document.getElementById('info1').innerHTML = s ? `<b>Searching:</b> ${hits}/${NEED} hits to expose the vein` : '<b>Vein exposed:</b> 9.4M Raw Cheese inside';
+  document.getElementById('info2').textContent = s ? 'Cheddar · depth 81 · Searching' : 'Cheddar · depth 81 · Running';
+  document.getElementById('actb').textContent = s ? 'MINE' : 'DRILL';
+  document.getElementById('acts').textContent = s ? `Search ${hits}/${NEED}` : 'Auto · hold to boost';
+  document.getElementById('ph-search').setAttribute('aria-pressed', String(s));
+  document.getElementById('ph-vein').setAttribute('aria-pressed', String(!s));
+}
+ui();
+
+function loop(t) {
+  const f8 = Math.floor(t / 100) % 8, search = phase === 'search';
+  ctx.drawImage(img.bg, 0, 0);
+  ctx.drawImage(img.ca, Math.round(((t * 0.004 + 20) % 210) - 32), 9);
+  ctx.drawImage(img.cb, Math.round(((t * 0.006 + 130) % 200) - 24), 24);
+  ctx.drawImage(img.ground, 0, GY - 3);
+  ctx.drawImage(img.under, 0, GY + 6);
+  strip('shaft', 32, 36, f8, 117, 82);
+  // Montacargas: solo se mueve mientras el taladro trabaja.
+  const p = (t / 1400) % 2, ly = search ? 84 : 84 + 16 * (p < 1 ? p : 2 - p);
+  ctx.fillStyle = '#aab0c0'; ctx.fillRect(126, 82, 1, Math.round(ly) - 82);
+  ctx.drawImage(img.lift, 123, Math.round(ly));
+  footing(-16, 22); footing(28, 61); footing(70, 96); footing(101, 153);
+  strip('house', 40, 46, f8, -16, GY - 46);
+  strip('lab', 36, 46, f8, 27, GY - 46);
+
+  // Minero en la cima, por detrás de la cresta. Buscando: pica en bucle (cada impacto es un golpe);
+  // con la veta abierta: descansa apoyado en el pico.
+  if (search) {
+    const PERIOD = 1200, m = t % PERIOD, cyc = Math.floor(t / PERIOD);
+    const f = m < 760 ? beat(t, 600) : m < 850 ? 2 : m < 970 ? 3 : m < 1130 ? 4 : 0;
+    if (m >= 850 && cyc !== minerCycle) { minerCycle = cyc; hit(t, 134, 42, false, true); }
+    strip('swingM', 32, 20, f, 110, 28);
+  } else strip('miner', 29, 20, frameAt(t, IDLE), 114, 26);
+
+  // La roca: grietas que crecen con los golpes, o la veta abierta. Tiembla y destella al recibir un golpe.
+  const crack = Math.min(4, Math.floor((5 * hits) / NEED));
+  const rk = search ? img['c' + crack] : img.v6;
+  const ht = (t - rockHitAt) / 120;
+  const rx = 100 + (ht < 1 && hitGlow > 0.3 ? Math.round((1 - ht) * 2) : 0);
+  ctx.drawImage(rk, rx, GY - 40);
+  if (ht < 0.6) {
+    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = hitGlow * (1 - ht / 0.6);
+    ctx.drawImage(rk, rx, GY - 40);
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  }
+  if (!search) {
+    const n = Math.floor(t / 260), sx = 116 + (n * 37) % 24, sy = 62 + (n * 53) % 12;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(sx, sy, 1, 1);
+    if (t % 260 < 130) { ctx.fillRect(sx - 1, sy, 3, 1); ctx.fillRect(sx, sy - 1, 1, 3); }
+  }
+  strip('scaffold', 14, 28, f8, 139, GY - 28);
+
+  // Taladro: parado mientras se busca la veta; trabajando con ella abierta.
+  if (search) ctx.drawImage(img.drillIdle, 68, GY - 50);
+  else strip('drill', 44, 50, f8, 68, GY - 50);
+  if (!search) {
+    if (crumbs.length < 4 && Math.random() < 0.06) crumbs.push({ x: 104, y: 62, vx: -0.25 - Math.random() * 0.35, vy: -0.6, life: 0 });
+  }
+  for (let i = crumbs.length - 1; i >= 0; i--) {
+    const c = crumbs[i]; c.vy += 0.08; c.x += c.vx; c.y += c.vy; c.life++;
+    if (c.y >= GY - 1) { c.y = GY - 1; c.vx = 0; c.vy = 0; }
+    if (c.life > 70) { crumbs.splice(i, 1); continue; }
+    ctx.fillStyle = '#2b1d12'; ctx.fillRect(Math.round(c.x) - 1, Math.round(c.y) - 1, 3, 3);
+    ctx.fillStyle = '#ffcf2e'; ctx.fillRect(Math.round(c.x), Math.round(c.y), 1, 1);
+  }
+
+  // El del taladro: sentado (quieto si el taladro está parado); con la veta abierta, a ratos acarrea.
+  const ct = t % 9000;
+  const driverY = GY - 50 + 29 - 21;
+  if (search) strip('driller', 23, 21, 0, 69, driverY);
+  else if (ct < 3500) strip('driller', 23, 21, f8, 69, driverY);
+  else if (ct < 6500) {
+    const x = 62 - ((ct - 3500) / 3000) * 92, wf = Math.floor(t / 125) % 4;
+    shadow(x + 3, GY, 16); strip('carry', 24, 20, wf, x, GY - 18, true);
+  } else {
+    const x = -24 + ((ct - 6500) / 2500) * 88, wf = Math.floor(t / 125) % 4;
+    shadow(x + 3, GY, 16); strip('back', 22, 20, wf, x, GY - 18);
+  }
+  shadow(23, GY, 18);
+  strip('researcher', 24, 20, Math.floor(t / 140) % 8, 20, GY - 18);
+
+  // Tu ratón. Buscando: junto a la roca, en guardia; cada toque es un golpe al instante
+  // (impacto 80 ms → rebote 90 ms → guardia). Con la veta abierta: junto al taladro.
+  if (search) {
+    const dt = t - tapAt;
+    const f = dt < 80 ? 3 : dt < 170 ? 4 : beat(t, 600);
+    shadow(80, GY, 18);
+    strip('swingP', 32, 20, f, 76, GY - 18);
+  } else {
+    shadow(48, GY, 18);
+    strip('idle', 22, 20, frameAt(t, IDLE), 46, GY - 18 + beat(t, 160));
+  }
+
+  // Esquirlas.
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const q = parts[i]; q.vy += 0.12; q.x += q.vx; q.y += q.vy; q.life++;
+    if (q.y > GY) { q.y = GY; q.vy *= -0.3; q.vx *= 0.5; }
+    if (q.life > q.max) { parts.splice(i, 1); continue; }
+    ctx.fillStyle = '#2b1d12'; ctx.fillRect(Math.round(q.x) + 1, Math.round(q.y) + 1, q.s, q.s);
+    ctx.fillStyle = q.c; ctx.fillRect(Math.round(q.x), Math.round(q.y), q.s, q.s);
+  }
+  ctx.drawImage(img.arrow, 122, 3 + Math.round(Math.sin(t / 180) * 1.5));
+  if (flash > 0) { ctx.fillStyle = `rgba(255,255,255,${flash.toFixed(2)})`; ctx.fillRect(0, 0, 160, 135); flash = Math.max(0, flash - 0.04); }
+  requestAnimationFrame(loop);
+}
+sizeIcons();
+</script>

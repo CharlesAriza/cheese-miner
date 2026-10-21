@@ -1,0 +1,109 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Building Tiers Test</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;700&display=swap">
+<style>
+:root { color-scheme: dark; --bg: #120f18; --panel: #2a2338; --line: #3b3350; --text: #f1edf8; --muted: #a9a1c2; --gold: #ffcf2e; --new: #46ef6c; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 0 16px 48px; background: var(--bg); color: var(--text); font-family: Inter, system-ui, sans-serif; }
+main { max-width: 1040px; margin: 0 auto; }
+.px { image-rendering: pixelated; display: block; }
+h1 { margin: 24px 0 6px; font-family: 'Press Start 2P', monospace; font-size: 15px; line-height: 1.5; color: var(--gold); }
+.lead { margin: 0 0 8px; max-width: 72ch; color: var(--muted); font-size: 14px; line-height: 1.55; }
+h2 { margin: 32px 0 10px; font-size: 17px; }
+.tiers { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.tiers button { font: 600 13px Inter, system-ui, sans-serif; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+.tiers button[aria-pressed="true"] { background: var(--gold); color: #2b1d12; border-color: var(--gold); }
+/* La escena en unidades lógicas: 300 × 96 px de pixel art, escalada al ancho disponible. */
+.scene { position: relative; width: 100%; aspect-ratio: 300 / 96; overflow: hidden; border-radius: 8px;
+  background: linear-gradient(#78c8f0 0 40%, #a3d8f4 40% 62%, #8fcf6a 62% 79%, #4fc234 79% 81%, #c9a56a 81% 83%, #4fc234 83% 85%, #7a4a2a 85%); }
+.scene .hill { position: absolute; bottom: 21%; border-radius: 50% 50% 0 0; background: #6fbf4f; }
+.scene img { position: absolute; bottom: calc(15% + 2px); }
+.rows { display: grid; gap: 12px; }
+.brow { padding: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.brow h3 { margin: 0 0 10px; font-size: 14px; }
+.tgrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.tcell { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.tbox { display: flex; align-items: flex-end; justify-content: center; aspect-ratio: 1; padding: 6px 4px 0; background: #120e18; border-radius: 8px; border-bottom: 3px solid #4fc234; }
+.tbox img { width: 100%; height: auto; max-height: 100%; object-fit: contain; }
+.tcell b { font-size: 11px; color: var(--gold); letter-spacing: .4px; }
+.tcell span { font-size: 12px; line-height: 1.4; color: var(--muted); }
+@media (max-width: 700px) { .tgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.rgrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.rcell { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.rcell .tbox { aspect-ratio: 54 / 46; padding: 4px 4px 0; }
+.rcell .tbox.cur { opacity: .95; }
+.rcell .lbl { font-size: 10px; color: var(--muted); letter-spacing: .4px; text-transform: uppercase; }
+.rcell .lbl.new { color: var(--new); }
+@media (max-width: 700px) { .rgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.verdict { margin-top: 28px; padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--gold); border-radius: 8px; font-size: 14px; line-height: 1.6; max-width: 90ch; }
+.verdict p { margin: 0 0 8px; } .verdict p:last-child { margin: 0; }
+code { font-size: 12px; background: #120e18; padding: 1px 5px; border-radius: 4px; }
+</style>
+<main>
+  <h1>Edificios · test de mejoras animadas</h1>
+  <p class="lead">Los cuatro edificios de la cadena redibujados con pxl, con los seis aspectos que da el juego según las mejoras de potencia (tier 0 a 5) y animados trabajando. Mismas piezas por tier que hoy; cambia el dibujo y la animación. Nada de esto está en el juego.</p>
+
+  <h2>La escena por nivel</h2>
+  <div class="tiers" id="tiers"></div>
+  <div class="scene" id="scene">
+    <div class="hill" style="left:-6%;width:40%;height:16%"></div>
+    <div class="hill" style="left:52%;width:52%;height:13%"></div>
+  </div>
+
+  <h2>Cada edificio, nivel a nivel</h2>
+  <div class="rows" id="rows"></div>
+
+  <h2>La roca de queso</h2>
+  <p class="lead">Mismo tamaño que en el juego (54 × 42) y mismos estados: sin abrir con grietas que crecen (desde el grado 3 asoma queso), veta abierta y veta que se vacía de arriba abajo. Arriba la actual, copiada tal cual de su generador; abajo la nueva, por planos como el tutorial.</p>
+  <div class="brow"><h3>Estados (Cheddar)</h3><div class="rgrid" id="rstates"></div></div>
+  <div class="brow" style="margin-top:12px"><h3>Las seis zonas, con su paleta</h3><div class="rgrid" id="rzones"></div></div>
+
+  <div class="verdict">
+    <p><b>Efectos:</b> el humo son bocanadas redondas con luz y sombra que nacen pequeñas, suben, crecen, derivan y se deshacen en trama; el taladro echa humo de motor más gris. Las chispas de la broca nacen como estrella, se estiran y se apagan. El fuego del horno va en lenguas que suben y bajan, con núcleo claro. La moneda de la tienda salta girando y destella al caer. Ciclos de 8 fotogramas a 10 por segundo.</p>
+    <p><b>Sin adornos sueltos:</b> fuera las banderas. Cada tier enseña solo piezas que dicen algo (chimeneas, depósito, torre, ruedas de queso, cartel, farol, segundo puesto, cabina, oro).</p>
+    <p><b>La roca:</b> cinco bloques en vez de una elipse, cada uno con cara de arriba con luz, de frente a media luz y lado en sombra; grietas oscuras entre bloques, transiciones en trama y apoyo oscuro en el suelo. Las grietas crecen desde el centro con un canto de luz, y la veta es una cavidad encajada en el bloque central, con sombra arriba a la izquierda y labio con luz abajo. Mismas paletas de zona del juego, más un brillo y una sombra profunda sacados de ellas.</p>
+    <p><b>Para llevarlo al juego</b> habría que pasar de dibujar con código en cada fotograma a pintar imágenes ya hechas (24 tiras de 8 fotogramas), y animarlas solo cuando el edificio trabaja, para respetar «solo se mueve lo que el jugador puede explicar». Es exploración; nada se toca sin tu aprobación.</p>
+    <p>Fuente: <code>exploracion/pixel/buildings.px.js</code>. Regenerar: <code>node ../../.claude/skills/pxl-pixel-art/bin/pxl.js build buildings.px.js</code>.</p>
+  </div>
+</main>
+<script>
+const B = [
+  { id: 'shop', name: 'Cheese Shop', w: 50, x: 4, tiers: ['Toldo, mostrador y quesos', 'Cartel con queso', 'Segundo toldo, cartel más alto', 'Farol', 'Segundo puesto detrás', 'Mostrador de oro'] },
+  { id: 'cheesery', name: 'Cheesery', w: 60, x: 60, tiers: ['Casa con chimenea y caldero', 'Segunda chimenea', 'Una rueda de queso fuera', 'Torre de maduración, dos ruedas', 'Tres ruedas', 'Tejado de oro'] },
+  { id: 'refinery', name: 'Refinery', w: 56, x: 128, tiers: ['Una chimenea y horno', 'Segunda chimenea', 'Depósito lateral', 'Chimeneas altas y válvulas', 'Tercera chimenea', 'Oro'] },
+  { id: 'drill', name: 'Cheese Drill', w: 44, x: 192, tiers: ['Ruedas, un escape', 'Segundo escape', 'Más alto, broca larga', 'Orugas', 'Cabina', 'Oro'] },
+];
+const scene = document.getElementById('scene');
+const imgs = {};
+for (const b of B) {
+  const i = document.createElement('img');
+  i.className = 'px'; i.alt = b.name;
+  i.style.left = (b.x / 300 * 100) + '%'; i.style.width = (b.w / 300 * 100) + '%';
+  scene.appendChild(i); imgs[b.id] = i;
+}
+const rock = document.createElement('img');
+rock.className = 'px'; rock.src = 'out/sprites/rock_cheddar_crack2.png'; rock.alt = 'Cheese rock';
+rock.style.left = (240 / 300 * 100) + '%'; rock.style.width = (54 / 300 * 100) + '%';
+scene.appendChild(rock);
+const bar = document.getElementById('tiers');
+function setTier(t) {
+  for (const b of B) imgs[b.id].src = `out/anims/${b.id}_${t}.gif`;
+  bar.querySelectorAll('button').forEach((x, k) => x.setAttribute('aria-pressed', String(k === t)));
+}
+for (let t = 0; t <= 5; t++) {
+  const btn = document.createElement('button');
+  btn.textContent = 'Tier ' + t; btn.onclick = () => setTier(t);
+  bar.appendChild(btn);
+}
+setTier(3);
+const rows = document.getElementById('rows');
+for (const b of B) {
+  const cells = b.tiers.map((txt, t) => `<div class="tcell"><div class="tbox"><img class="px" src="out/anims/${b.id}_${t}.gif" alt=""></div><b>TIER ${t}</b><span>${txt}</span></div>`).join('');
+  rows.insertAdjacentHTML('beforeend', `<section class="brow"><h3>${b.name}</h3><div class="tgrid">${cells}</div></section>`);
+}
+const RST = [['intact', 'Sin abrir'], ['crack2', 'Grietas 2'], ['crack4', 'Grietas 4'], ['vein', 'Veta abierta'], ['half', 'A medias'], ['low', 'Casi vacía']];
+const rcell = (zone, st, label) => `<div class="rcell"><b style="font-size:11px;color:var(--gold)">${label}</b><span class="lbl">Actual</span><div class="tbox cur"><img class="px" src="out/sprites/rockcur_${zone}_${st}.png" alt=""></div><span class="lbl new">Nueva</span><div class="tbox"><img class="px" src="out/sprites/rock_${zone}_${st}.png" alt=""></div></div>`;
+document.getElementById('rstates').innerHTML = RST.map(([st, l]) => rcell('cheddar', st, l)).join('');
+document.getElementById('rzones').innerHTML = ['cheddar', 'gouda', 'brie', 'emmental', 'parmesan', 'blue'].map((z) => rcell(z, 'vein', z[0].toUpperCase() + z.slice(1))).join('');
+</script>

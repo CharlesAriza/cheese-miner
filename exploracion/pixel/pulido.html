@@ -1,0 +1,108 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Polished Plus Buildings</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;700&display=swap">
+<style>
+:root { color-scheme: dark; --bg: #120f18; --panel: #2a2338; --line: #3b3350; --text: #f1edf8; --muted: #a9a1c2; --gold: #ffcf2e; --new: #46ef6c; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 0 16px 48px; background: var(--bg); color: var(--text); font-family: Inter, system-ui, sans-serif; }
+main { max-width: 1040px; margin: 0 auto; }
+.px { image-rendering: pixelated; display: block; }
+h1 { margin: 24px 0 6px; font-family: 'Press Start 2P', monospace; font-size: 15px; line-height: 1.5; color: var(--gold); }
+.lead { margin: 0 0 8px; max-width: 72ch; color: var(--muted); font-size: 14px; line-height: 1.55; }
+h2 { margin: 32px 0 10px; font-size: 17px; }
+.bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.bar button { font: 600 13px Inter, system-ui, sans-serif; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+.bar button[aria-pressed="true"] { background: var(--gold); color: #2b1d12; border-color: var(--gold); }
+.bar .sep { width: 10px; }
+.scene { position: relative; width: 100%; aspect-ratio: 300 / 100; overflow: hidden; border-radius: 8px;
+  background: linear-gradient(#78c8f0 0 40%, #a3d8f4 40% 62%, #8fcf6a 62% 79%, #4fc234 79% 81%, #c9a56a 81% 83%, #4fc234 83% 85%, #7a4a2a 85%); }
+.scene .hill { position: absolute; bottom: 21%; border-radius: 50% 50% 0 0; background: #6fbf4f; }
+.scene img { position: absolute; bottom: calc(15% + 2px); }
+.pairs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 700px) { .pairs { grid-template-columns: minmax(0, 1fr); } }
+.pair { padding: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.pair h3 { margin: 0 0 10px; font-size: 14px; }
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.duo figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 4px 8px; background: #120e18; border-radius: 8px; min-width: 0; }
+.duo .box { display: flex; align-items: flex-end; justify-content: center; height: 230px; width: 100%; }
+.duo img { width: auto; height: auto; max-width: 100%; max-height: 100%; }
+.duo figcaption { font-size: 11px; color: var(--muted); letter-spacing: .4px; text-transform: uppercase; }
+.duo figure.new figcaption { color: var(--new); }
+@media (max-width: 420px) { .duo .box { height: 150px; } }
+.rows { display: grid; gap: 12px; }
+.brow { padding: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.brow h3 { margin: 0 0 10px; font-size: 14px; }
+.tgrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 700px) { .tgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.tbox { display: flex; align-items: flex-end; justify-content: center; aspect-ratio: 1; padding: 6px 4px 0; background: #120e18; border-radius: 8px; border-bottom: 3px solid #4fc234; }
+.tbox img { width: 100%; height: auto; max-height: 100%; object-fit: contain; }
+.tcell b { display: block; margin-top: 4px; font-size: 11px; color: var(--gold); letter-spacing: .4px; }
+.verdict { margin-top: 28px; padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--gold); border-radius: 8px; font-size: 14px; line-height: 1.6; max-width: 90ch; }
+.verdict p { margin: 0 0 8px; } .verdict p:last-child { margin: 0; }
+code { font-size: 12px; background: #120e18; padding: 1px 5px; border-radius: 4px; }
+</style>
+<main>
+  <h1>Pulido+ · edificios con el mimo de la roca</h1>
+  <p class="lead">El estilo pulido, a la misma resolución, con el tratamiento de la roca: cinco tonos por material, luz arriba a la izquierda, lado derecho en sombra con trama, apoyo oscuro en el suelo, sombra del alero sobre la pared y huecos hundidos. Nada de esto está en el juego.</p>
+
+  <h2>La escena</h2>
+  <div class="bar" id="bar"></div>
+  <div class="scene" id="scene">
+    <div class="hill" style="left:-6%;width:40%;height:16%"></div>
+    <div class="hill" style="left:52%;width:52%;height:13%"></div>
+  </div>
+
+  <h2>Antes y después (tier 3)</h2>
+  <div class="pairs" id="pairs"></div>
+
+  <h2>Pulido+, nivel a nivel</h2>
+  <div class="rows" id="rows"></div>
+
+  <div class="verdict">
+    <p><b>Qué se ha hecho:</b> paredes y cuerpos con volumen (borde con luz, lado derecho en sombra en trama, base oscura); el alero proyecta sombra sobre la pared; ventanas, puertas, horno y manómetro van hundidos, con sombra dentro y labio con luz; chimeneas, postes y depósito son cilindros con su brillo; tejas en hileras que se oscurecen hacia la derecha; zócalo de piedra al tresbolillo; ladrillo en las chimeneas; toldo con pliegue en sombra; broca con mitad en luz y mitad en sombra; cristal de la cabina con reflejo.</p>
+    <p><b>Qué no cambia:</b> tamaño, piezas por tier, colores de material por tier y animaciones. Encaja con la roca nueva.</p>
+    <p>Fuente: <code>exploracion/pixel/buildings.px.js</code> (funciones <code>…P</code>, sección PULIDO+).</p>
+  </div>
+</main>
+<script>
+const B = [
+  { id: 'shop', name: 'Cheese Shop', w: 50, x: 4 },
+  { id: 'cheesery', name: 'Cheesery', w: 60, x: 60 },
+  { id: 'refinery', name: 'Refinery', w: 56, x: 128 },
+  { id: 'drill', name: 'Cheese Drill', w: 44, x: 192 },
+];
+let tier = 3, plus = true;
+const scene = document.getElementById('scene');
+const imgs = {};
+for (const b of B) {
+  const i = document.createElement('img');
+  i.className = 'px'; i.alt = b.name;
+  i.style.left = (b.x / 300 * 100) + '%'; i.style.width = (b.w / 300 * 100) + '%';
+  scene.appendChild(i); imgs[b.id] = i;
+}
+const rock = document.createElement('img');
+rock.className = 'px'; rock.src = 'out/sprites/rock_cheddar_vein.png'; rock.alt = 'Cheese rock';
+rock.style.left = (240 / 300 * 100) + '%'; rock.style.width = (54 / 300 * 100) + '%';
+scene.appendChild(rock);
+const bar = document.getElementById('bar');
+const btns = [];
+function paint() {
+  for (const b of B) imgs[b.id].src = `out/anims/${plus ? 'p' : ''}${b.id}_${tier}.gif`;
+  btns.forEach((x) => x.el.setAttribute('aria-pressed', String(x.on())));
+}
+function add(label, on, act) {
+  const el = document.createElement('button');
+  el.textContent = label; el.onclick = () => { act(); paint(); };
+  bar.appendChild(el); btns.push({ el, on });
+}
+add('Pulido', () => !plus, () => { plus = false; });
+add('Pulido+', () => plus, () => { plus = true; });
+bar.appendChild(Object.assign(document.createElement('span'), { className: 'sep' }));
+for (let t = 0; t <= 5; t++) add('Tier ' + t, () => tier === t, () => { tier = t; });
+paint();
+document.getElementById('pairs').innerHTML = B.map((b) => `<section class="pair"><h3>${b.name}</h3><div class="duo">
+  <figure><div class="box"><img class="px" style="width:${b.w * 3}px" src="out/anims/${b.id}_3.gif" alt=""></div><figcaption>Pulido</figcaption></figure>
+  <figure class="new"><div class="box"><img class="px" style="width:${b.w * 3}px" src="out/anims/p${b.id}_3.gif" alt=""></div><figcaption>Pulido+</figcaption></figure></div></section>`).join('');
+document.getElementById('rows').innerHTML = B.map((b) => `<section class="brow"><h3>${b.name}</h3><div class="tgrid">${[0, 1, 2, 3, 4, 5].map((t) => `<div class="tcell"><div class="tbox"><img class="px" src="out/anims/p${b.id}_${t}.gif" alt=""></div><b>TIER ${t}</b></div>`).join('')}</div></section>`).join('');
+</script>

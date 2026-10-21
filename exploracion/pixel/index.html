@@ -1,0 +1,63 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cheese Miner Mice Pixel Art</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;700&display=swap">
+<style>
+:root { color-scheme: dark; --bg: #1b1622; --panel: #2a2338; --line: #3b3350; --text: #f1edf8; --muted: #a9a1c2; --gold: #ffcf2e; --new: #46ef6c; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 0 16px 48px; background: #120f18; color: var(--text); font-family: Inter, system-ui, sans-serif; }
+.px { image-rendering: pixelated; display: block; }
+main { max-width: 1040px; margin: 0 auto; }
+h1 { margin: 24px 0 6px; font-family: 'Press Start 2P', monospace; font-size: 15px; line-height: 1.5; color: var(--gold); }
+.lead { margin: 0 0 8px; max-width: 72ch; color: var(--muted); font-size: 14px; line-height: 1.55; }
+h2 { margin: 32px 0 10px; font-size: 17px; }
+h3 { margin: 0 0 10px; font-size: 13px; color: var(--muted); font-weight: 600; letter-spacing: .4px; text-transform: uppercase; }
+.notes { margin: 0; padding-left: 18px; max-width: 80ch; font-size: 14px; line-height: 1.6; color: #dcd6ea; }
+.hatrow { margin-top: 18px; }
+.pairs { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 10px; }
+.pair { position: relative; display: flex; gap: 8px; justify-content: center; padding: 12px 8px 26px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+.pair figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.pair figcaption { font-size: 11px; color: var(--muted); }
+.pair figure.new figcaption { color: var(--new); }
+.pair small { position: absolute; left: 0; right: 0; bottom: 7px; text-align: center; font-size: 11px; color: var(--muted); }
+.x4 { width: 88px; height: 76px; }
+.ctx { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.ctx > div { padding: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.ctx h4 { margin: 0 0 10px; font-size: 13px; }
+.faces { display: flex; flex-wrap: wrap; gap: 8px; }
+.face { display: grid; place-items: center; width: 44px; height: 44px; background: #120e18; border: 2px solid #5b546d; border-radius: 9px; }
+.face.gold { border-color: var(--gold); }
+.card { width: 33px; }
+.stage { display: flex; align-items: flex-end; justify-content: space-around; height: 92px; margin-top: 12px; padding-bottom: 10px; overflow: hidden; border-radius: 8px;
+  background: linear-gradient(#78c8f0 0 58%, #6fcf4f 58% 66%, #8b5a2b 66%); }
+.onstage { width: 49.5px; }
+.verdict { margin-top: 28px; padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--gold); border-radius: 8px; font-size: 14px; line-height: 1.6; max-width: 90ch; }
+.verdict p { margin: 0 0 8px; } .verdict p:last-child { margin: 0; }
+code { font-size: 12px; background: #120e18; padding: 1px 5px; border-radius: 4px; }
+</style>
+<main>
+  <h1>Ratones · pixel art con pxl</h1>
+  <p class="lead">Mismo tamaño que en el juego (22 × 19 px con contorno), mismos gorros y pelajes. «Actual» es una copia exacta del sprite del juego; «Propuesta» es una mejora dibujada con pxl. Nada de esto está en el juego.</p>
+  <ul class="notes">
+    <li>Una sola dirección de luz (arriba a la izquierda): tres tonos por pelaje en lugar de dos.</li>
+    <li>Ojo de 2 × 2 con brillo, nariz con sombra, oreja con fondo.</li>
+    <li>Mochila con luz, cuerpo y sombra; gorros con reflejo; la lámpara del casco, encendida.</li>
+    <li>La silueta no cambia: se reconoce el mismo ratón.</li>
+  </ul>
+
+  <h2>En el juego, a su tamaño</h2>
+  <div class="ctx">
+  <div><h4>Actual</h4><div class="faces"><span class="face"><img class="px card" src="out/sprites/cur_white_helmet.png" alt=""></span><span class="face"><img class="px card" src="out/sprites/cur_grey_cap.png" alt=""></span><span class="face"><img class="px card" src="out/sprites/cur_brown_beanie.png" alt=""></span><span class="face"><img class="px card" src="out/sprites/cur_dark_tophat.png" alt=""></span><span class="face gold"><img class="px card" src="out/sprites/cur_white_crown.png" alt=""></span></div><div class="stage"><img class="px onstage" src="out/sprites/cur_white_helmet.png" alt=""><img class="px onstage" src="out/sprites/cur_grey_cap.png" alt=""><img class="px onstage" src="out/sprites/cur_brown_beanie.png" alt=""><img class="px onstage" src="out/sprites/cur_dark_tophat.png" alt=""><img class="px onstage" src="out/sprites/cur_white_crown.png" alt=""></div></div>
+  <div><h4>Propuesta</h4><div class="faces"><span class="face"><img class="px card" src="out/sprites/new_white_helmet.png" alt=""></span><span class="face"><img class="px card" src="out/sprites/new_grey_cap.png" alt=""></span><span class="face"><img class="px card" src="out/sprites/new_brown_beanie.png" alt=""></span><span class="face"><img class="px card" src="out/sprites/new_dark_tophat.png" alt=""></span><span class="face gold"><img class="px card" src="out/sprites/new_white_crown.png" alt=""></span></div><div class="stage"><img class="px onstage" src="out/sprites/new_white_helmet.png" alt=""><img class="px onstage" src="out/sprites/new_grey_cap.png" alt=""><img class="px onstage" src="out/sprites/new_brown_beanie.png" alt=""><img class="px onstage" src="out/sprites/new_dark_tophat.png" alt=""><img class="px onstage" src="out/sprites/new_white_crown.png" alt=""></div></div>
+</div>
+
+  <h2>Lado a lado, ampliados ×4</h2>
+  <section class="hatrow"><h3>Casco</h3><div class="pairs"><div class="pair"><figure><img class="px x4" src="out/sprites/cur_white_helmet.png" alt=""><figcaption>Actual</figcaption></figure><figure class="new"><img class="px x4" src="out/sprites/new_white_helmet.png" alt=""><figcaption>Propuesta</figcaption></figure><small>Blanco</small></div><div class="pair"><figure><img class="px x4" src="out/sprites/cur_grey_helmet.png" alt=""><figcaption>Actual</figcaption></figure><figure class="new"><img class="px x4" src="out/sprites/new_grey_helmet.png" alt=""><figcaption>Propuesta</figcaption></figure><small>Gris</small></div><div class="pair"><figure><img class="px x4" src="out/sprites/cur_brown_helmet.png" alt=""><figcaption>Actual</figcaption></figure><figure class="new"><img class="px x4" src="out/sprites/new_brown_helmet.png" alt=""><figcaption>Propuesta</figcaption></figure><small>Marrón</small></div><div class="pair"><figure><img class="px x4" src="out/sprites/cur_dark_helmet.png" alt=""><figcaption>Actual</figcaption></figure><figure class="new"><img class="px x4" src="out/sprites/new_dark_helmet.png" alt=""><figcaption>Propuesta</figcaption></figure><small>Oscuro</small></div></div></section><section class="hatrow"><h3>Gorra</h3><div class="pairs"><div class="pair"><figure><img class="px x4" src="out/sprites/cur_white_cap.png" alt=""><figcaption>Actual</figcaption></figure><figure class="new"><img class="px x4" src="out/sprites/new_white_cap.png" alt=""><figcaption>Propuesta</figcaption></figure><small>Blanco</small></div><div class="pair"><figure><img class="px x4" src="out/sprites/cur_grey_cap.png" alt=""><figcaption>Actual</figcaption></figure><figure class="new"><img class="px x4" src="out/sprites/new_grey_cap.png" alt=""><figcaption>Propuesta</figcaption></figure><small>Gris</small></div><div class="pair"><figure><img class="px x4" src="out/sprites/cur_brown_cap.png" alt=""><figcaption>Actual</figcaption></figure><figure class="new"><img class="px x4" src="out/sprites/new_brown_cap.png" alt=""><figcaption>Propuesta</figcaption></figure><small>Marrón</small></div><div class="pair"><figure><img class="px x4" src="out/sprites/cur_dark_cap.png" alt=""><figcaption>Actual</figcaption></figure><figure class="new"><img class="px x4" src="out/sprites/new_dark_cap.png" alt=""><figcaption>Propuesta</figcaption></figure><small>Oscuro</small></div></div></section><section class="hatrow"><h3>Gorro de lana</h3><div class="pairs"><div class="pair"><figure><img class="px x4" src="out/sprites/cur_white_beanie.png" alt=""><figcaption>Actual</figcaption></figure><figure class="new"><img class="px x4" src="out/sprites/new_white_beanie.png" alt=""><figcaption>Propuesta</figcaption></figure><small>Blanco</small></div><div class="pair"><figure><img class="px x4" src="out/sprites/cur_grey_beanie.png" alt=""><figcaption>Actual</figcaption></figure><figure class="new"><img class="px x4" src="out/sprites/new_grey_beanie.png" alt=""><figcaption>Propuesta</figcaption></figure><small>Gris</small></div><div class="pair"><figure><img class="px x4" src="out/sprites/cur_brown_beanie.png" alt=""><figcaption>Actual</figcaption></figure><figure class="new"><img class="px x4" src="out/sprites/new_brown_beanie.png" alt=""><figcaption>Propuesta</figcaption></figure><small>Marrón</small></div><div class="pair"><figure><img class="px x4" src="out/sprites/cur_dark_beanie.png" alt=""><figcaption>Actual</figcaption></figure><figure class="new"><img class="px x4" src="out/sprites/new_dark_beanie.png" alt=""><figcaption>Propuesta</figcaption></figure><small>Oscuro</small></div></div></section><section class="hatrow"><h3>Chistera</h3><div class="pairs"><div class="pair"><figure><img class="px x4" src="out/sprites/cur_white_tophat.png" alt=""><figcaption>Actual</figcaption></figure><figure class="new"><img class="px x4" src="out/sprites/new_white_tophat.png" alt=""><figcaption>Propuesta</figcaption></figure><small>Blanco</small></div><div class="pair"><figure><img class="px x4" src="out/sprites/cur_grey_tophat.png" alt=""><figcaption>Actual</figcaption></figure><figure class="new"><img class="px x4" src="out/sprites/new_grey_tophat.png" alt=""><figcaption>Propuesta</figcaption></figure><small>Gris</small></div><div class="pair"><figure><img class="px x4" src="out/sprites/cur_brown_tophat.png" alt=""><figcaption>Actual</figcaption></figure><figure class="new"><img class="px x4" src="out/sprites/new_brown_tophat.png" alt=""><figcaption>Propuesta</figcaption></figure><small>Marrón</small></div><div class="pair"><figure><img class="px x4" src="out/sprites/cur_dark_tophat.png" alt=""><figcaption>Actual</figcaption></figure><figure class="new"><img class="px x4" src="out/sprites/new_dark_tophat.png" alt=""><figcaption>Propuesta</figcaption></figure><small>Oscuro</small></div></div></section><section class="hatrow"><h3>Corona (legendario)</h3><div class="pairs"><div class="pair"><figure><img class="px x4" src="out/sprites/cur_white_crown.png" alt=""><figcaption>Actual</figcaption></figure><figure class="new"><img class="px x4" src="out/sprites/new_white_crown.png" alt=""><figcaption>Propuesta</figcaption></figure><small>Blanco</small></div><div class="pair"><figure><img class="px x4" src="out/sprites/cur_grey_crown.png" alt=""><figcaption>Actual</figcaption></figure><figure class="new"><img class="px x4" src="out/sprites/new_grey_crown.png" alt=""><figcaption>Propuesta</figcaption></figure><small>Gris</small></div><div class="pair"><figure><img class="px x4" src="out/sprites/cur_brown_crown.png" alt=""><figcaption>Actual</figcaption></figure><figure class="new"><img class="px x4" src="out/sprites/new_brown_crown.png" alt=""><figcaption>Propuesta</figcaption></figure><small>Marrón</small></div><div class="pair"><figure><img class="px x4" src="out/sprites/cur_dark_crown.png" alt=""><figcaption>Actual</figcaption></figure><figure class="new"><img class="px x4" src="out/sprites/new_dark_crown.png" alt=""><figcaption>Propuesta</figcaption></figure><small>Oscuro</small></div></div></section>
+
+  <div class="verdict">
+    <p><b>Qué gana:</b> volumen y expresión (sobre todo el ojo) sin cambiar la silueta ni el tamaño, así que encajaría sin tocar el resto del juego: retratos, escena, uniformes y rasgos visibles siguen usando las mismas posiciones.</p>
+    <p><b>Qué no resuelve:</b> sigue siendo la misma plantilla de 20 × 17. Si el objetivo es acercarse a tu arte de referencia, el siguiente paso sería un ratón nuevo (otro tamaño o pose), y eso ya cambia escena y retratos.</p>
+    <p>Fuente: <code>exploracion/pixel/mice.px.js</code>. Para regenerar: <code>node .claude/skills/pxl-pixel-art/bin/pxl.js build mice.px.js</code> y <code>python3 build.py</code>.</p>
+  </div>
+</main>

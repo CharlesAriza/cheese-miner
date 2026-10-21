@@ -1,2 +1,4 @@
 .claude/
 .DS_Store
+# Archivos de comprobación que genera el montaje de los prototipos de MAIN 2.0
+exploracion/pixel/main2-src/*/.chk.js

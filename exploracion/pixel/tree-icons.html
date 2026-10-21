@@ -1,0 +1,300 @@
+<meta charset="utf-8">
+<title>Tree Icons</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+<style>
+/* Una sola estética, la del juego (oscura, Pulido+): fichas de la caja del kit, iconos en píxel duro. */
+:root {
+  color-scheme: dark;
+  --bg: #120f18; --text: #ffffff; --soft: #d6d0e6; --muted: #9f97b8; --gold: #ffcf2e; --gold-d: #b8860b;
+  --p1: #3d3352; --p2: #2a2338; --p3: #1d1828; --p4: #0c0910; --ok: #62d36e;
+  --pixel: 'Press Start 2P', ui-monospace, Menlo, monospace; --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); }
+.page { max-width: 1080px; margin: 0 auto; padding-block: 28px 48px; padding-inline: 16px; display: flex; flex-direction: column; gap: 22px; }
+h1 { margin: 0; font-family: var(--pixel); font-size: 16px; font-weight: 400; color: var(--gold); text-wrap: balance; }
+h2 { margin: 6px 0 0; font-family: var(--pixel); font-size: 11px; font-weight: 400; color: var(--gold); }
+p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; max-width: 70ch; }
+p b { color: var(--soft); }
+.pix { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+canvas { image-rendering: pixelated; }
+.box { background: var(--p2); border: 2px solid var(--p4); box-shadow: inset 0 2px 0 var(--p1), inset 0 -3px 0 var(--p3);
+  clip-path: polygon(2px 0, calc(100% - 2px) 0, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 0 calc(100% - 2px), 0 2px); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.card { display: flex; flex-direction: column; gap: 12px; padding: 12px 12px 14px; min-width: 0; }
+.card .k { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.card .k b { font-family: var(--pixel); font-size: 10px; font-weight: 400; color: var(--text); }
+.card .k span { font-size: 11px; font-weight: 800; letter-spacing: .5px; color: var(--muted); text-transform: uppercase; }
+/* Cabecera de la hoja, a tamaño real (como en el juego: icono + título). */
+.shead { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 10px; background: var(--p3); border: 2px solid var(--p4); }
+.shead b { font-family: var(--pixel); font-size: 14px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shead .slot { width: 30px; height: 28px; display: grid; place-items: center; flex: none; }
+.opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.opt { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 10px 6px 9px; background: var(--p3); border: 2px solid var(--p1); }
+.opt.rec { border-color: var(--gold); background: #241e10; }
+.opt .big { height: 84px; display: grid; place-items: center; }
+.opt .tag { font-family: var(--pixel); font-size: 7px; color: var(--muted); }
+.opt .note { font-size: 11.5px; line-height: 1.45; color: var(--muted); text-align: center; }
+.opt.old { opacity: .55; border-style: dashed; }
+.cmp { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 6px; }
+.cmp .shead em { margin-left: auto; font-style: normal; font-size: 11px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.cmp .shead.old { opacity: .55; }
+.opts.n1 { grid-template-columns: 1fr; }
+.opts.n4 { grid-template-columns: 1fr 1fr; }
+.card.done .why { display: none; }
+.grid .card:nth-child(-n+3) { grid-column: 1 / -1; }
+.grid .card:nth-child(1) .opts { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.opt.rec .tag { color: var(--gold); }
+.opt small { font-size: 12px; font-weight: 700; color: var(--soft); text-align: center; }
+.why { font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.why b { color: var(--soft); }
+.ctx { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.phone { width: 343px; max-width: 100%; display: flex; flex-direction: column; gap: 6px; padding: 10px; background: #1b1622; border: 2px solid var(--p4); }
+.phone .cap { font-size: 10px; font-weight: 800; letter-spacing: .5px; color: var(--muted); text-transform: uppercase; margin-bottom: 2px; }
+.list { margin: 0; padding-left: 18px; color: #dcd6ea; font-size: 13.5px; line-height: 1.6; max-width: 70ch; }
+.list b { color: var(--text); }
+@media (prefers-reduced-motion: no-preference) { .opt.rec .big canvas, .opt.rec .big img { animation: bob 1.6s steps(2) infinite; } }
+@keyframes bob { 50% { transform: translateY(-3px); } }
+</style>
+<div class="page">
+  <h1>ICONOS DE LOS ÁRBOLES</h1>
+  <p>Hoy los siete árboles llevan el mismo icono del ratón en el título. La propuesta da a cada árbol un símbolo de su oficio, con el criterio de CHEESERY: <b>si ya hay un icono temático aprobado, se reutiliza</b> (pico, queso, matraz); <b>si el de la etapa es solo el producto o algo genérico</b> (Raw, Base, moneda), <b>un emblema nuevo del oficio</b>, que es de lo que tratan sus mejoras. Mismo tamaño que el queso de CHEESERY (unos 14 × 13 píxeles, a ×2), contorno oscuro, luz arriba a la izquierda y la paleta del juego.</p>
+  <h2>RONDA 3 · DRILLING</h2>
+  <p>El cabezal recomendado no convivía bien con la cabecera. Medido, se salía del hueco del icono: por eso se sentía pesado y pegado a «DRILL». Las dos nuevas versiones están dibujadas dentro del hueco, como el resto. COLONY y TRADING siguen como en la ronda 2.</p>
+  <h2>RONDA 2</h2>
+  <p><b>DRILLING rehecho desde cero</b> en las tres vías (cabezal, mini perforadora, broca), <b>COLONY afinada</b> y <b>TRADING simplificado</b> para que aguante en pequeño. Los aprobados, abajo, sin cambios. En dorado, la recomendada; en gris punteado, la de la ronda 1.</p>
+  <div class="grid" id="grid"></div>
+  <h2>EN CONTEXTO</h2>
+  <p>Las siete cabeceras seguidas, a tamaño de móvil: cada árbol se reconoce por su icono sin leer el nombre, y ninguno repite el de otro.</p>
+  <div class="ctx"><div class="phone" id="now"><div class="cap">Hoy</div></div><div class="phone" id="rec"><div class="cap">Propuesta</div></div></div>
+  <h2>QUÉ CAMBIA Y QUÉ NO</h2>
+  <ul class="list">
+    <li><b>Solo el icono del título de cada árbol.</b> Estructura, nudos, textos, lógica y economía, igual.</li>
+    <li><b>Los iconos de las mejoras se quedan.</b> Quick Paws conserva sus huellas: habla de las patas de los ratones, así que ahí el ratón sí es el tema.</li>
+    <li><b>El ratón queda para lo que es de ratones:</b> MICE, la ficha, reclutar.</li>
+    <li><b>Los mismos iconos pueden servir después</b> en otros sitios que abren un árbol (el botón UPGRADES, la fila LAB UPGRADES) si quieres; no es parte de esta propuesta.</li>
+  </ul>
+</div>
+<script>
+// Icono de píxel con contorno automático (el mismo método que los del juego).
+function icon(rows, pal, outline = '#1b1220') {
+  const H = rows.length, W = Math.max(...rows.map((r) => r.length));
+  const c = document.createElement('canvas'); c.width = W + 2; c.height = H + 2; const x = c.getContext('2d');
+  const at = (i, j) => rows[j] && rows[j][i] && rows[j][i] !== '.';
+  for (let j = -1; j <= H; j++) for (let i = -1; i <= W; i++) {
+    if (at(i, j)) { x.fillStyle = pal[rows[j][i]]; x.fillRect(i + 1, j + 1, 1, 1); }
+    else if (at(i - 1, j) || at(i + 1, j) || at(i, j - 1) || at(i, j + 1)) { x.fillStyle = outline; x.fillRect(i + 1, j + 1, 1, 1); }
+  }
+  return c;
+}
+const MET = { W: '#ffffff', L: '#dfe4ee', s: '#b9c1d1', S: '#8a92a4', D: '#5a6070' };
+// SPRITE: broca de taladro (Drilling): motor con franjas de aviso, portabrocas y la espiral que baja hasta una esquirla de queso.
+const DRILL = () => icon([
+  '..yyyyyyy..',
+  '.yWyyyyyyY.',
+  '.ykyykyykY.',
+  '.YYYYYYYYY.',
+  '...LsssS...',
+  '....LsS....',
+  '...LsS.....',
+  '....Lss....',
+  '.....sS....',
+  '....LsS....',
+  '...Lss.....',
+  '....sS.....',
+  '.....S.c...',
+  '......cCc..'], { ...MET, y: '#ffcf2e', Y: '#e0a020', k: '#2a1d2e', c: '#ffcf2e', C: '#f5ab12' });
+// SPRITE: crisol al fuego (Refining): el Raw se funde en Base dorada; asas, borde de hierro y llamas.
+const CRUCIBLE = () => icon([
+  '.............',
+  '..W.W..W.....',
+  'S.SSSSSSSSS.S',
+  'SLyyyWyyyyySS',
+  '.LyYyyyyYyyS.',
+  '.LsssssssssS.',
+  '.LssSssssSsS.',
+  '..SSSSSSSSS..',
+  '...D.....D...',
+  '..o.oy.yo.o..',
+  '.oyo.oYo.oyo.',
+  '..OoOoOoOoO..'], { ...MET, y: '#ffcf2e', Y: '#f5ab12', o: '#ff8a2e', O: '#e2462f' });
+// SPRITE: puesto de mercado (Trading): toldo a rayas, el queso a la venta y la moneda sobre el mostrador.
+const STALL = () => icon([
+  'rrWWrrWWrrWWr',
+  'rrWWrrWWrrWWr',
+  '.r.W.r.W.r.W.',
+  '.b.........b.',
+  '.b..cc..yy.b.',
+  '.b.cCCcyYyYb.',
+  'BBBBBBBBBBBBB',
+  'bbbbbbbbbbbbb',
+  'bBbbbBbbbBbbb',
+  'BBBBBBBBBBBBB'], { r: '#e2462f', W: '#fffbe0', b: '#b07a40', B: '#5c3a1b', c: '#ffcf2e', C: '#f5ab12', y: '#ffe55c', Y: '#c98a08' });
+// SPRITE: bandera de la colonia (Colony) clavada en una roca con su veta de queso.
+const FLAG = () => icon([
+  'k...........',
+  'krrrrrr.....',
+  'krWrrrrrr...',
+  'krrrrrrR....',
+  'krrRR.......',
+  'k...........',
+  'k...........',
+  'k...........',
+  'kLss........',
+  'Lsssys......',
+  'ssysyyS.....',
+  'sssSSSSS....'], { k: '#8e6234', r: '#ffcf2e', W: '#fffbe0', R: '#e0a020', L: '#c8c8d4', s: '#9a9aa8', S: '#6a6a78', y: '#ffcf2e' });
+// SPRITE: farol (alternativa de Colony: el Night Lamp, las horas sin estar).
+const LANTERN = () => icon([
+  '....kk....',
+  '...k..k...',
+  '..kkkkkk..',
+  '.kyyyyyyk.',
+  '.kyWWWyyk.',
+  '.kyWWyyyk.',
+  '.kyyyyyyk.',
+  '..kkkkkk..',
+  '...kkkk...'], { k: '#5a4a3a', y: '#ffcf2e', W: '#fffbe0' });
+// ---------- Ronda 2: DRILLING desde cero, COLONY afinada, TRADING simplificado ----------
+function gridP(w, h) { const g = Array.from({ length: h }, () => Array(w).fill('.')); g.set = (x, y, c) => { if (y >= 0 && y < h && x >= 0 && x < w) g[y][x] = c; }; g.rows = () => g.map((r) => r.join('')); return g; }
+const STEEL = { W: '#ffffff', L: '#e4e8f0', s: '#b9c1d1', S: '#8a92a4', D: '#5a6070', y: '#ffcf2e', Y: '#e0a020', c: '#ffcf2e', C: '#f5ab12' };
+// SPRITE: A · broca en su portabrocas: mordazas estriadas arriba, espiral con surcos oscuros y punta afilada.
+const DRILL_A = () => {
+  const g = gridP(11, 16);
+  for (let x = 2; x <= 8; x++) { g.set(x, 0, x === 2 ? 'L' : x === 8 ? 'D' : 's'); g.set(x, 1, x % 2 ? 'S' : 'D'); g.set(x, 2, x === 2 ? 's' : x === 8 ? 'D' : 'S'); }
+  for (let x = 3; x <= 7; x++) g.set(x, 3, x === 3 ? 'L' : x === 7 ? 'D' : 'S');
+  for (let y = 4; y <= 12; y++) for (let x = 3; x <= 7; x++) { const k = (x - y + 40) % 4; g.set(x, y, k === 0 ? 'D' : k === 1 ? 'W' : k === 2 ? 'L' : 's'); }
+  for (let x = 4; x <= 6; x++) { const k = (x - 13 + 40) % 4; g.set(x, 13, k === 0 ? 'D' : k === 1 ? 'W' : 'L'); }
+  g.set(5, 14, 'S'); g.set(5, 15, 'D');
+  g.set(8, 14, 'c'); g.set(2, 13, 'C'); g.set(9, 12, 'c');
+  return icon(g.rows(), STEEL);
+};
+// SPRITE: B · cabezal de perforación: collar con franjas de aviso y cono con surcos en espiral bien marcados.
+const DRILL_B = () => {
+  const g = gridP(16, 13), cy = 6;
+  for (let y = 0; y <= 12; y++) { g.set(0, y, (y >> 1) % 2 ? 'k' : 'y'); g.set(1, y, (y >> 1) % 2 ? 'k' : 'y'); g.set(2, y, 'D'); }
+  for (let x = 3; x <= 14; x++) {
+    const hh = Math.round(6 * (1 - (x - 3) / 12));
+    for (let y = cy - hh; y <= cy + hh; y++) {
+      const k = (x + (y - cy) + 60) % 4;
+      let c = k === 0 ? 'D' : k === 1 ? 'S' : k === 2 ? 's' : 'L';
+      if (y === cy - hh && c !== 'D') c = 'W';
+      g.set(x, y, c);
+    }
+  }
+  g.set(15, cy, 'S');
+  return icon(g.rows(), { ...STEEL, k: '#2a1d2e' });
+};
+// SPRITE: C · mini perforadora: la máquina de MAIN en pequeño (cuerpo violeta sobre orugas, chimenea y el cono de perforar delante).
+const DRILL_C = () => {
+  const g = gridP(18, 14);
+  for (let y = 0; y <= 3; y++) { g.set(2, y, 'r'); g.set(3, y, 'R'); }
+  g.set(6, 2, 'S'); g.set(6, 3, 'S'); g.set(6, 1, 'r');
+  for (let x = 1; x <= 9; x++) for (let y = 4; y <= 9; y++) g.set(x, y, y === 4 ? 'P' : y === 9 ? 'Q' : x === 1 ? 'P' : x === 9 ? 'Q' : 'p');
+  for (let x = 2; x <= 8; x++) g.set(x, 6, (x % 2) ? 'Q' : 'p');
+  g.set(6, 7, 'k'); g.set(7, 7, 'W');
+  for (let x = 10; x <= 17; x++) { const hh = Math.round(4 * (1 - (x - 10) / 8)); for (let y = 7 - hh; y <= 7 + hh; y++) { const k = (x + y + 60) % 3; g.set(x, y, y === 7 - hh ? 'W' : k === 0 ? 'D' : k === 1 ? 's' : 'L'); } }
+  for (let x = 0; x <= 10; x++) { g.set(x, 10, 'D'); g.set(x, 11, x % 3 === 1 ? 's' : 'D'); g.set(x, 12, 'D'); }
+  return icon(g.rows(), { ...STEEL, P: '#9c94e8', p: '#6a62c8', Q: '#443c90', r: '#ff8a5a', R: '#c9502a', k: '#24204a', D: '#3a3d4a' });
+};
+// Ronda 3: dentro del hueco del título (como el queso de CHEESERY: 15 × 13 con contorno, 30 × 26 a ×2).
+// SPRITE: B2 · cabezal ligero: brida fina de acero con un remache dorado y un cono más corto, con aire arriba y abajo.
+const DRILL_B2 = () => {
+  const g = gridP(13, 11), cy = 5;
+  for (let y = 1; y <= 9; y++) { g.set(0, y, y === 1 ? 'L' : y === 9 ? 'D' : 'S'); g.set(1, y, y === 1 ? 's' : y === 9 ? 'D' : y === 5 ? 'y' : 'D'); }
+  for (let x = 2; x <= 11; x++) {
+    const hh = Math.round(4 * (1 - (x - 2) / 10));
+    for (let y = cy - hh; y <= cy + hh; y++) {
+      const k = (x + (y - cy) + 60) % 4;
+      let c = k === 0 ? 'D' : k === 1 ? 'S' : k === 2 ? 's' : 'L';
+      if (y === cy - hh && c !== 'D') c = 'W';
+      g.set(x, y, c);
+    }
+  }
+  g.set(12, cy, 'S');
+  return icon(g.rows(), STEEL);
+};
+// SPRITE: C2 · perforadora compacta: la máquina de MAIN reducida a lo esencial (cuerpo, chimenea, orugas y el cono).
+const DRILL_C2 = () => {
+  const g = gridP(13, 11);
+  g.set(1, 0, 'r'); g.set(1, 1, 'R'); g.set(1, 2, 'R');
+  for (let x = 0; x <= 5; x++) for (let y = 3; y <= 6; y++) g.set(x, y, y === 3 ? 'P' : y === 6 ? 'Q' : x === 0 ? 'P' : x === 5 ? 'Q' : 'p');
+  g.set(3, 4, 'k'); g.set(4, 4, 'W');
+  for (let x = 6; x <= 12; x++) { const hh = Math.round(3 * (1 - (x - 6) / 6)); for (let y = 5 - hh; y <= 5 + hh; y++) { const k = (x + y + 60) % 3; g.set(x, y, y === 5 - hh ? 'W' : k === 0 ? 'D' : k === 1 ? 's' : 'L'); } }
+  for (let x = 0; x <= 6; x++) { g.set(x, 7, 'D'); g.set(x, 8, x % 2 ? 's' : 'D'); g.set(x, 9, 'D'); }
+  return icon(g.rows(), { ...STEEL, P: '#9c94e8', p: '#6a62c8', Q: '#443c90', r: '#ff8a5a', R: '#c9502a', k: '#24204a', D: '#3a3d4a' });
+};
+// SPRITE: COLONY afinada: estandarte de la colonia (cola de golondrina, rueda de queso bordada) con remate dorado, sobre la roca.
+const FLAG2 = () => icon([
+  '.y...........',
+  'yYy..........',
+  '.krrrrrrrrr..',
+  '.krRyyyrrrr..',
+  '.krryWyyrr...',
+  '.krryyyYrr...',
+  '.krrrYYrrrr..',
+  '.krrrrrrrrrr.',
+  '.k...........',
+  '.k...........',
+  '.kLs.........',
+  'Lssyss.......',
+  'ssyysSS......',
+  'sssSSSSS.....'], { k: '#8e6234', y: '#ffcf2e', Y: '#e0a020', W: '#fffbe0', r: '#e2462f', R: '#ff7a5a', L: '#c8c8d4', s: '#9a9aa8', S: '#6a6a78' });
+// SPRITE: TRADING simplificado: toldo de tres franjas anchas, borde festoneado y una sola rueda de queso en el mostrador.
+const STALL2 = () => icon([
+  'rrrWWWrrrWWWr',
+  'rrrWWWrrrWWWr',
+  'rr.WW.rr.WW.r',
+  '.b.........b.',
+  '.b.ccc.....b.',
+  '.bcWccC..y.b.',
+  '.bcccCC.yYyb.',
+  'BBBBBBBBBBBBB',
+  'bbbbbbbbbbbbb',
+  'BBBBBBBBBBBBB'], { r: '#e2462f', W: '#fffbe0', b: '#b07a40', B: '#5c3a1b', c: '#ffcf2e', C: '#f5ab12', y: '#ffe55c', Y: '#c98a08' });
+const PNG = (n) => { const i = new Image(); i.src = 'out/sprites/' + n + '.png'; i.className = 'pix'; return i; };
+// Icono del ratón que se usa hoy en todos los títulos.
+const HEAD = () => icon(['.gGD.....gGD.', 'gqpGD...gqpGD', 'gppPGgggGppPD', '.gPGAAgggGPD.', '..gAAggggGGD.', '.gggkwggkwGGD', '.gggkkggkkGGD', '.ggcggnnggcGD', '..gGgNNggGGD.', '...GGGGGGDD..', '....DDDDD....'],
+  { A: '#ffffff', g: '#f3ecf2', G: '#dccfdc', D: '#a897b2', q: '#ffc4d6', p: '#f58fb0', P: '#c9557f', k: '#1b1622', w: '#ffffff', n: '#ff7a9c', N: '#b8406a', c: '#ffb3c6' }, '#2a1d2e');
+// Escala entera: el icono ocupa como el queso de CHEESERY (30 × 26 a ×2).
+const sized = (el, k) => { const img = el.tagName === 'IMG'; const set = () => { el.style.width = (img ? el.naturalWidth : el.width) * k + 'px'; el.style.height = (img ? el.naturalHeight : el.height) * k + 'px'; }; if (img && !el.complete) { el.style.width = '0px'; el.addEventListener('load', set); } else set(); return el; };
+// Ronda 2 (16-10-2026): aprobados Mining, Refining, Cheesemaking, Lab y Trading; DRILLING rehecho desde cero en tres vías;
+// COLONY afinada; TRADING con un pulido fino para que se lea mejor en pequeño.
+const TREES = [
+  { name: 'Drilling', title: 'DRILL', round: 'RONDA 3 · EN EL HUECO DEL TÍTULO', compare: true, opts: [
+    ['RECOMENDADA', 'C2 · Perforadora compacta', DRILL_C2, 'La máquina de MAIN reducida a lo esencial: cuerpo violeta, chimenea, orugas y el cono. Cabe en el mismo hueco que el queso y su violeta la separa del pico, que también es metal gris.'],
+    ['ALTERNATIVA', 'B2 · Cabezal ligero', DRILL_B2, 'El cabezal con menos masa: cono más corto, brida fina de acero con un solo remache dorado (sin el bloque amarillo) y aire arriba y abajo.'],
+    ['ANTES', 'B · Ronda 2', DRILL_B, 'Se salía del hueco (36 × 30 px) y quedaba pegado al texto.'],
+    ['ANTES', 'C · Ronda 2', DRILL_C, 'Igual: 40 × 32 px, más grande que el resto del set.']],
+    why: '<b>El fallo de la ronda 2 era de tamaño:</b> el hueco del icono en la cabecera es de 30 × 28 px (el queso de CHEESERY ocupa 30 × 26), y el cabezal medía 36 × 30. Las dos versiones nuevas están dibujadas dentro de ese hueco, como el resto del set; arriba, cómo convive cada una con «DRILL».' },
+  { name: 'Colony', title: 'COLONY', round: 'AFINADO', opts: [
+    ['RECOMENDADA', 'Estandarte de la colonia', FLAG2, 'Cola de golondrina en rojo con una rueda de queso bordada, remate dorado en el mástil y la roca con su veta: la colonia planta su bandera en cada roca nueva.'],
+    ['ANTES', 'Ronda 1', FLAG, 'Bandera lisa: se entendía, pero era poco memorable.']],
+    why: '<b>Más fuerza, misma idea:</b> el rojo la separa del resto del set (el oro ya lo usan el queso y el crisol) y el emblema del queso la hace propia del juego.' },
+  { name: 'Trading', title: 'SELL', round: 'PULIDO FINO', opts: [
+    ['RECOMENDADA', 'Puesto simplificado', STALL2, 'Franjas anchas con su festón, el queso a un lado y la moneda al otro: menos piezas y más grandes, así que aguanta mejor a tamaño pequeño.'],
+    ['ANTES', 'Ronda 1', STALL, 'Funcionaba, pero con detalle que se perdía a ×2.']],
+    why: '<b>Mismo puesto, menos ruido.</b> Ahora pesa como el matraz o el pico.' },
+  { name: 'Mining', title: 'MINE', round: 'APROBADO', opts: [['APROBADO', 'Pico', () => PNG('ic_pick'), 'El de MAIN.']] },
+  { name: 'Refining', title: 'REFINE', round: 'APROBADO', opts: [['APROBADO', 'Crisol', CRUCIBLE, 'Tina, fuego y la Base fundida.']] },
+  { name: 'Cheesemaking', title: 'CHEESE', round: 'APROBADO', opts: [['APROBADO', 'Queso', () => PNG('ic_lot_cheddar'), 'El de CHEESERY. El dorado queda para hitos.']] },
+  { name: 'Lab', title: 'LAB', round: 'APROBADO', opts: [['APROBADO', 'Matraz', () => PNG('ic_flask'), 'El de LAB.']] },
+];
+const grid = document.getElementById('grid');
+for (const t of TREES) {
+  const card = document.createElement('div'); card.className = 'box card' + (t.round === 'APROBADO' ? ' done' : '');
+  const main = t.opts[0];
+  card.innerHTML = `<div class="k"><b>${t.name.toUpperCase()}</b><span>${t.round}</span></div><div class="shead"><span class="slot"></span><b>${t.title}</b></div><div class="opts n${Math.min(t.opts.length, 4)}"></div>${t.why ? `<div class="why">${t.why}</div>` : ''}`;
+  card.querySelector('.slot').appendChild(sized(main[2](), 2));
+  if (t.compare) { const box = document.createElement('div'); box.className = 'cmp'; for (const [tag, label, fn] of t.opts) { const h = document.createElement('div'); h.className = 'shead' + (tag === 'ANTES' ? ' old' : ''); h.innerHTML = `<span class="slot"></span><b>${t.title}</b><em>${label}</em>`; h.querySelector('.slot').appendChild(sized(fn(), 2)); box.appendChild(h); } card.querySelector('.shead').replaceWith(box); }
+  const opts = card.querySelector('.opts');
+  for (const [tag, label, fn, note] of t.opts) {
+    const e = document.createElement('div'); e.className = 'opt' + (tag === 'RECOMENDADA' || tag === 'APROBADO' ? ' rec' : tag === 'ANTES' ? ' old' : '');
+    e.innerHTML = `<span class="big"></span><span class="tag">${tag}</span><small>${label}</small><span class="note">${note}</span>`;
+    e.querySelector('.big').appendChild(sized(fn(), t.opts.length > 2 ? 4 : 5)); opts.appendChild(e);
+  }
+  grid.appendChild(card);
+}
+const row = (host, ic, title) => { const h = document.createElement('div'); h.className = 'shead'; h.innerHTML = `<span class="slot"></span><b>${title}</b>`; h.querySelector('.slot').appendChild(sized(ic, 2)); document.getElementById(host).appendChild(h); };
+const ORDER = ['Mining', 'Drilling', 'Refining', 'Cheesemaking', 'Trading', 'Lab', 'Colony'];
+for (const n of ORDER) { const t = TREES.find((x) => x.name === n); row('now', HEAD(), t.title); row('rec', t.opts[0][2](), t.title); }
+</script>

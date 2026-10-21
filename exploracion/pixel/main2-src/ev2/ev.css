@@ -1,0 +1,9 @@
+/* ---- MAIN 2.0 · EVOLUCIÓN Y BOOST (clases ev-) ---- */
+.ev-cards { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.ev-card { margin: 0; display: flex; flex-direction: column; gap: 6px; max-width: 100%; }
+.ev-card canvas { image-rendering: pixelated; border: 2px solid #0c0910; display: block; max-width: 100%; height: auto; }
+.ev-card figcaption { font-size: 12px; line-height: 1.45; color: #d6d0e6; max-width: 260px; }
+.ev-ct { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ev-ct b { font: 400 8px var(--pixel); color: #fff; }
+.ev-chip { font-style: normal; font: 400 8px var(--pixel); color: #9fe6ff; background: #1d5f86; border: 2px solid #0c0910; padding: 3px 5px; }
+.ev-tag { font-style: normal; font: 800 10px var(--sans); color: #ffcf7a; background: #3a2410; border: 2px solid #ffb347; padding: 2px 5px; }

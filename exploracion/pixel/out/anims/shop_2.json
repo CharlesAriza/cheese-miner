@@ -1,0 +1,190 @@
+{
+ "frames": {
+  "shop_2_0": {
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 50,
+    "h": 54
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 50,
+    "h": 54
+   },
+   "sourceSize": {
+    "w": 50,
+    "h": 54
+   },
+   "duration": 100
+  },
+  "shop_2_1": {
+   "frame": {
+    "x": 50,
+    "y": 0,
+    "w": 50,
+    "h": 54
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 50,
+    "h": 54
+   },
+   "sourceSize": {
+    "w": 50,
+    "h": 54
+   },
+   "duration": 100
+  },
+  "shop_2_2": {
+   "frame": {
+    "x": 100,
+    "y": 0,
+    "w": 50,
+    "h": 54
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 50,
+    "h": 54
+   },
+   "sourceSize": {
+    "w": 50,
+    "h": 54
+   },
+   "duration": 100
+  },
+  "shop_2_3": {
+   "frame": {
+    "x": 150,
+    "y": 0,
+    "w": 50,
+    "h": 54
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 50,
+    "h": 54
+   },
+   "sourceSize": {
+    "w": 50,
+    "h": 54
+   },
+   "duration": 100
+  },
+  "shop_2_4": {
+   "frame": {
+    "x": 200,
+    "y": 0,
+    "w": 50,
+    "h": 54
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 50,
+    "h": 54
+   },
+   "sourceSize": {
+    "w": 50,
+    "h": 54
+   },
+   "duration": 100
+  },
+  "shop_2_5": {
+   "frame": {
+    "x": 250,
+    "y": 0,
+    "w": 50,
+    "h": 54
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 50,
+    "h": 54
+   },
+   "sourceSize": {
+    "w": 50,
+    "h": 54
+   },
+   "duration": 100
+  },
+  "shop_2_6": {
+   "frame": {
+    "x": 300,
+    "y": 0,
+    "w": 50,
+    "h": 54
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 50,
+    "h": 54
+   },
+   "sourceSize": {
+    "w": 50,
+    "h": 54
+   },
+   "duration": 100
+  },
+  "shop_2_7": {
+   "frame": {
+    "x": 350,
+    "y": 0,
+    "w": 50,
+    "h": 54
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 50,
+    "h": 54
+   },
+   "sourceSize": {
+    "w": 50,
+    "h": 54
+   },
+   "duration": 100
+  }
+ },
+ "meta": {
+  "app": "pxl",
+  "image": "shop_2.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 400,
+   "h": 54
+  },
+  "scale": "1",
+  "frameTags": [
+   {
+    "name": "shop_2",
+    "from": 0,
+    "to": 7,
+    "direction": "forward"
+   }
+  ]
+ }
+}

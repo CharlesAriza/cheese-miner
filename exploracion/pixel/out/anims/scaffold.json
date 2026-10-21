@@ -1,0 +1,190 @@
+{
+ "frames": {
+  "scaffold_0": {
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 14,
+    "h": 28
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 14,
+    "h": 28
+   },
+   "sourceSize": {
+    "w": 14,
+    "h": 28
+   },
+   "duration": 100
+  },
+  "scaffold_1": {
+   "frame": {
+    "x": 14,
+    "y": 0,
+    "w": 14,
+    "h": 28
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 14,
+    "h": 28
+   },
+   "sourceSize": {
+    "w": 14,
+    "h": 28
+   },
+   "duration": 100
+  },
+  "scaffold_2": {
+   "frame": {
+    "x": 28,
+    "y": 0,
+    "w": 14,
+    "h": 28
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 14,
+    "h": 28
+   },
+   "sourceSize": {
+    "w": 14,
+    "h": 28
+   },
+   "duration": 100
+  },
+  "scaffold_3": {
+   "frame": {
+    "x": 42,
+    "y": 0,
+    "w": 14,
+    "h": 28
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 14,
+    "h": 28
+   },
+   "sourceSize": {
+    "w": 14,
+    "h": 28
+   },
+   "duration": 100
+  },
+  "scaffold_4": {
+   "frame": {
+    "x": 56,
+    "y": 0,
+    "w": 14,
+    "h": 28
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 14,
+    "h": 28
+   },
+   "sourceSize": {
+    "w": 14,
+    "h": 28
+   },
+   "duration": 100
+  },
+  "scaffold_5": {
+   "frame": {
+    "x": 70,
+    "y": 0,
+    "w": 14,
+    "h": 28
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 14,
+    "h": 28
+   },
+   "sourceSize": {
+    "w": 14,
+    "h": 28
+   },
+   "duration": 100
+  },
+  "scaffold_6": {
+   "frame": {
+    "x": 84,
+    "y": 0,
+    "w": 14,
+    "h": 28
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 14,
+    "h": 28
+   },
+   "sourceSize": {
+    "w": 14,
+    "h": 28
+   },
+   "duration": 100
+  },
+  "scaffold_7": {
+   "frame": {
+    "x": 98,
+    "y": 0,
+    "w": 14,
+    "h": 28
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 14,
+    "h": 28
+   },
+   "sourceSize": {
+    "w": 14,
+    "h": 28
+   },
+   "duration": 100
+  }
+ },
+ "meta": {
+  "app": "pxl",
+  "image": "scaffold.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 112,
+   "h": 28
+  },
+  "scale": "1",
+  "frameTags": [
+   {
+    "name": "scaffold",
+    "from": 0,
+    "to": 7,
+    "direction": "forward"
+   }
+  ]
+ }
+}

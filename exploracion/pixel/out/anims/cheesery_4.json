@@ -1,0 +1,190 @@
+{
+ "frames": {
+  "cheesery_4_0": {
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 60,
+    "h": 68
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 60,
+    "h": 68
+   },
+   "sourceSize": {
+    "w": 60,
+    "h": 68
+   },
+   "duration": 100
+  },
+  "cheesery_4_1": {
+   "frame": {
+    "x": 60,
+    "y": 0,
+    "w": 60,
+    "h": 68
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 60,
+    "h": 68
+   },
+   "sourceSize": {
+    "w": 60,
+    "h": 68
+   },
+   "duration": 100
+  },
+  "cheesery_4_2": {
+   "frame": {
+    "x": 120,
+    "y": 0,
+    "w": 60,
+    "h": 68
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 60,
+    "h": 68
+   },
+   "sourceSize": {
+    "w": 60,
+    "h": 68
+   },
+   "duration": 100
+  },
+  "cheesery_4_3": {
+   "frame": {
+    "x": 180,
+    "y": 0,
+    "w": 60,
+    "h": 68
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 60,
+    "h": 68
+   },
+   "sourceSize": {
+    "w": 60,
+    "h": 68
+   },
+   "duration": 100
+  },
+  "cheesery_4_4": {
+   "frame": {
+    "x": 240,
+    "y": 0,
+    "w": 60,
+    "h": 68
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 60,
+    "h": 68
+   },
+   "sourceSize": {
+    "w": 60,
+    "h": 68
+   },
+   "duration": 100
+  },
+  "cheesery_4_5": {
+   "frame": {
+    "x": 300,
+    "y": 0,
+    "w": 60,
+    "h": 68
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 60,
+    "h": 68
+   },
+   "sourceSize": {
+    "w": 60,
+    "h": 68
+   },
+   "duration": 100
+  },
+  "cheesery_4_6": {
+   "frame": {
+    "x": 360,
+    "y": 0,
+    "w": 60,
+    "h": 68
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 60,
+    "h": 68
+   },
+   "sourceSize": {
+    "w": 60,
+    "h": 68
+   },
+   "duration": 100
+  },
+  "cheesery_4_7": {
+   "frame": {
+    "x": 420,
+    "y": 0,
+    "w": 60,
+    "h": 68
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 60,
+    "h": 68
+   },
+   "sourceSize": {
+    "w": 60,
+    "h": 68
+   },
+   "duration": 100
+  }
+ },
+ "meta": {
+  "app": "pxl",
+  "image": "cheesery_4.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 480,
+   "h": 68
+  },
+  "scale": "1",
+  "frameTags": [
+   {
+    "name": "cheesery_4",
+    "from": 0,
+    "to": 7,
+    "direction": "forward"
+   }
+  ]
+ }
+}

@@ -1,0 +1,190 @@
+{
+ "frames": {
+  "phouse_0": {
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 40,
+    "h": 46
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 40,
+    "h": 46
+   },
+   "sourceSize": {
+    "w": 40,
+    "h": 46
+   },
+   "duration": 100
+  },
+  "phouse_1": {
+   "frame": {
+    "x": 40,
+    "y": 0,
+    "w": 40,
+    "h": 46
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 40,
+    "h": 46
+   },
+   "sourceSize": {
+    "w": 40,
+    "h": 46
+   },
+   "duration": 100
+  },
+  "phouse_2": {
+   "frame": {
+    "x": 80,
+    "y": 0,
+    "w": 40,
+    "h": 46
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 40,
+    "h": 46
+   },
+   "sourceSize": {
+    "w": 40,
+    "h": 46
+   },
+   "duration": 100
+  },
+  "phouse_3": {
+   "frame": {
+    "x": 120,
+    "y": 0,
+    "w": 40,
+    "h": 46
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 40,
+    "h": 46
+   },
+   "sourceSize": {
+    "w": 40,
+    "h": 46
+   },
+   "duration": 100
+  },
+  "phouse_4": {
+   "frame": {
+    "x": 160,
+    "y": 0,
+    "w": 40,
+    "h": 46
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 40,
+    "h": 46
+   },
+   "sourceSize": {
+    "w": 40,
+    "h": 46
+   },
+   "duration": 100
+  },
+  "phouse_5": {
+   "frame": {
+    "x": 200,
+    "y": 0,
+    "w": 40,
+    "h": 46
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 40,
+    "h": 46
+   },
+   "sourceSize": {
+    "w": 40,
+    "h": 46
+   },
+   "duration": 100
+  },
+  "phouse_6": {
+   "frame": {
+    "x": 240,
+    "y": 0,
+    "w": 40,
+    "h": 46
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 40,
+    "h": 46
+   },
+   "sourceSize": {
+    "w": 40,
+    "h": 46
+   },
+   "duration": 100
+  },
+  "phouse_7": {
+   "frame": {
+    "x": 280,
+    "y": 0,
+    "w": 40,
+    "h": 46
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 40,
+    "h": 46
+   },
+   "sourceSize": {
+    "w": 40,
+    "h": 46
+   },
+   "duration": 100
+  }
+ },
+ "meta": {
+  "app": "pxl",
+  "image": "phouse.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 320,
+   "h": 46
+  },
+  "scale": "1",
+  "frameTags": [
+   {
+    "name": "phouse",
+    "from": 0,
+    "to": 7,
+    "direction": "forward"
+   }
+  ]
+ }
+}

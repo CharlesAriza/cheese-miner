@@ -1,0 +1,190 @@
+{
+ "frames": {
+  "style1_cheesery_0": {
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 114,
+    "h": 126
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 114,
+    "h": 126
+   },
+   "sourceSize": {
+    "w": 114,
+    "h": 126
+   },
+   "duration": 100
+  },
+  "style1_cheesery_1": {
+   "frame": {
+    "x": 114,
+    "y": 0,
+    "w": 114,
+    "h": 126
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 114,
+    "h": 126
+   },
+   "sourceSize": {
+    "w": 114,
+    "h": 126
+   },
+   "duration": 100
+  },
+  "style1_cheesery_2": {
+   "frame": {
+    "x": 228,
+    "y": 0,
+    "w": 114,
+    "h": 126
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 114,
+    "h": 126
+   },
+   "sourceSize": {
+    "w": 114,
+    "h": 126
+   },
+   "duration": 100
+  },
+  "style1_cheesery_3": {
+   "frame": {
+    "x": 342,
+    "y": 0,
+    "w": 114,
+    "h": 126
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 114,
+    "h": 126
+   },
+   "sourceSize": {
+    "w": 114,
+    "h": 126
+   },
+   "duration": 100
+  },
+  "style1_cheesery_4": {
+   "frame": {
+    "x": 456,
+    "y": 0,
+    "w": 114,
+    "h": 126
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 114,
+    "h": 126
+   },
+   "sourceSize": {
+    "w": 114,
+    "h": 126
+   },
+   "duration": 100
+  },
+  "style1_cheesery_5": {
+   "frame": {
+    "x": 570,
+    "y": 0,
+    "w": 114,
+    "h": 126
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 114,
+    "h": 126
+   },
+   "sourceSize": {
+    "w": 114,
+    "h": 126
+   },
+   "duration": 100
+  },
+  "style1_cheesery_6": {
+   "frame": {
+    "x": 684,
+    "y": 0,
+    "w": 114,
+    "h": 126
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 114,
+    "h": 126
+   },
+   "sourceSize": {
+    "w": 114,
+    "h": 126
+   },
+   "duration": 100
+  },
+  "style1_cheesery_7": {
+   "frame": {
+    "x": 798,
+    "y": 0,
+    "w": 114,
+    "h": 126
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 114,
+    "h": 126
+   },
+   "sourceSize": {
+    "w": 114,
+    "h": 126
+   },
+   "duration": 100
+  }
+ },
+ "meta": {
+  "app": "pxl",
+  "image": "style1_cheesery.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 912,
+   "h": 126
+  },
+  "scale": "1",
+  "frameTags": [
+   {
+    "name": "style1_cheesery",
+    "from": 0,
+    "to": 7,
+    "direction": "forward"
+   }
+  ]
+ }
+}
