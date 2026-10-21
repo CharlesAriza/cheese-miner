@@ -1,0 +1,74 @@
+{
+  "version": "2026-10-21",
+  "unit": "1 px de arte = 1 px del archivo",
+  "anchor": "como en Cheddar (o = SC.ox = 17)",
+  "files": [
+    {
+      "file": "chapter_bg.png",
+      "w": 161,
+      "h": 160,
+      "source": "brieBG()",
+      "replaces": "fondo del capítulo de Brie",
+      "state": "nuevo",
+      "note": "El común con la profundidad de Brie, en caliza y roble. 161 × 160, con SC.ox = 17."
+    },
+    {
+      "file": "cheese_base.png",
+      "w": 42,
+      "h": 46,
+      "source": "cheeseStaticBrie(1)",
+      "replaces": "scene.js · Cheesery",
+      "state": "adaptado",
+      "note": "El taller común con los quesos curados en corteza blanca."
+    },
+    {
+      "file": "cheese_2.png",
+      "w": 42,
+      "h": 46,
+      "source": "cheeseStaticBrie(2)",
+      "replaces": "scene.js · Cheesery",
+      "state": "adaptado",
+      "note": "Fase II."
+    },
+    {
+      "file": "cheese_3.png",
+      "w": 42,
+      "h": 46,
+      "source": "cheeseStaticBrie(3)",
+      "replaces": "scene.js · Cheesery",
+      "state": "adaptado",
+      "note": "Fase III."
+    }
+  ],
+  "crew": {
+    "miner": {
+      "name": "Fondue",
+      "lv": 30,
+      "rank": 2,
+      "rar": 0,
+      "skill": "mining"
+    },
+    "driller": {
+      "name": "Comte",
+      "lv": 44,
+      "rank": 1,
+      "rar": 0,
+      "skill": "drilling"
+    },
+    "refiner": {
+      "name": "Brioche",
+      "lv": 38,
+      "rank": 1,
+      "rar": 1,
+      "skill": "refining"
+    },
+    "cook": {
+      "name": "Pip",
+      "lv": 52,
+      "rank": 3,
+      "rar": 0,
+      "skill": "cheesemaking"
+    }
+  },
+  "depth": 9
+}
