@@ -1,0 +1,214 @@
+{
+  "version": "2026-10-21",
+  "unit": "1 px de arte = 1 px del archivo",
+  "anchor": "arriba a la izquierda, en las coordenadas del capítulo que indica cada nota (o = SC.ox = 17)",
+  "files": [
+    {
+      "file": "chapter_bg.png",
+      "w": 161,
+      "h": 160,
+      "source": "paintCheddar()",
+      "replaces": "fondo del capítulo",
+      "state": "adaptado",
+      "note": "Caverna, terrazas, entibado, escaleras, corta, elevador y pozo del montacargas. 161 × 160, con SC.ox = 17."
+    },
+    {
+      "file": "refine_1.png",
+      "w": 72,
+      "h": 56,
+      "source": "refineB(1)",
+      "replaces": "scene.js · Refinery",
+      "state": "congelado",
+      "note": "REFINE B aprobada. Origen del lienzo en (o − 20, TL − 42). Fuego, manómetro, barras, goteo y vapor: drawRefineB."
+    },
+    {
+      "file": "refine_2.png",
+      "w": 72,
+      "h": 56,
+      "source": "refineB(2)",
+      "replaces": "scene.js · Refinery",
+      "state": "congelado",
+      "note": "REFINE B aprobada. Origen del lienzo en (o − 20, TL − 42). Fuego, manómetro, barras, goteo y vapor: drawRefineB."
+    },
+    {
+      "file": "refine_3.png",
+      "w": 72,
+      "h": 56,
+      "source": "refineB(3)",
+      "replaces": "scene.js · Refinery",
+      "state": "congelado",
+      "note": "REFINE B aprobada. Origen del lienzo en (o − 20, TL − 42). Fuego, manómetro, barras, goteo y vapor: drawRefineB."
+    },
+    {
+      "file": "cheese_base.png",
+      "w": 42,
+      "h": 46,
+      "source": "cheeseBase()",
+      "replaces": "scene.js · Cheesery",
+      "state": "adaptado",
+      "note": "Taller de V4.1 en un sprite, con el contorno completado. Origen en (o + 96, TR − 39)."
+    },
+    {
+      "file": "cheese_2.png",
+      "w": 42,
+      "h": 46,
+      "source": "cheeseStatic(2)",
+      "replaces": "scene.js · Cheesery",
+      "state": "nuevo",
+      "note": "Fase II completa (sustituye a cheese_base)."
+    },
+    {
+      "file": "cheese_3.png",
+      "w": 42,
+      "h": 46,
+      "source": "cheeseStatic(3)",
+      "replaces": "scene.js · Cheesery",
+      "state": "nuevo",
+      "note": "Fase III completa (sustituye a cheese_base)."
+    },
+    {
+      "file": "cheese_paddle_f0.png",
+      "w": 8,
+      "h": 10,
+      "source": "artPaddle(0)",
+      "replaces": "scene.js · Cheesery",
+      "state": "congelado",
+      "note": "En (+13, +21) del taller."
+    },
+    {
+      "file": "cheese_paddle_f1.png",
+      "w": 8,
+      "h": 10,
+      "source": "artPaddle(1)",
+      "replaces": "scene.js · Cheesery",
+      "state": "congelado",
+      "note": "En (+13, +21) del taller."
+    },
+    {
+      "file": "cheese_press_f0.png",
+      "w": 16,
+      "h": 22,
+      "source": "artPress(0)",
+      "replaces": "scene.js · Cheesery",
+      "state": "congelado",
+      "note": "En (+22, +23) del taller."
+    },
+    {
+      "file": "cheese_press_f1.png",
+      "w": 16,
+      "h": 22,
+      "source": "artPress(1)",
+      "replaces": "scene.js · Cheesery",
+      "state": "congelado",
+      "note": "En (+22, +23) del taller."
+    },
+    {
+      "file": "drill_gantry.png",
+      "w": 52,
+      "h": 14,
+      "source": "artGantry(52)",
+      "replaces": "scene.js · Cheese Drill",
+      "state": "congelado",
+      "note": "En (o + 48, DK)."
+    },
+    {
+      "file": "drill_body.png",
+      "w": 30,
+      "h": 32,
+      "source": "artDrill()",
+      "replaces": "scene.js · Cheese Drill",
+      "state": "congelado",
+      "note": "En (o + 58, DK − 29); vibra 1 px en marcha."
+    },
+    {
+      "file": "drill_wheel_f0.png",
+      "w": 11,
+      "h": 11,
+      "source": "artWheel(0)",
+      "replaces": "scene.js · Cheese Drill",
+      "state": "congelado",
+      "note": "Volante (y polea del elevador). En (o + 66, DK − 44)."
+    },
+    {
+      "file": "drill_wheel_f1.png",
+      "w": 11,
+      "h": 11,
+      "source": "artWheel(1)",
+      "replaces": "scene.js · Cheese Drill",
+      "state": "congelado",
+      "note": "Volante (y polea del elevador). En (o + 66, DK − 44)."
+    },
+    {
+      "file": "drill_wheel_f2.png",
+      "w": 11,
+      "h": 11,
+      "source": "artWheel(2)",
+      "replaces": "scene.js · Cheese Drill",
+      "state": "congelado",
+      "note": "Volante (y polea del elevador). En (o + 66, DK − 44)."
+    },
+    {
+      "file": "drill_panel.png",
+      "w": 10,
+      "h": 15,
+      "source": "artPanel()",
+      "replaces": "scene.js · Cheese Drill",
+      "state": "congelado",
+      "note": "En (o + 98, DK − 12)."
+    },
+    {
+      "file": "drill_bit_f0.png",
+      "w": 9,
+      "h": 9,
+      "source": "artBit(0)",
+      "replaces": "scene.js · Cheese Drill",
+      "state": "congelado",
+      "note": "Broca al final de la barra."
+    },
+    {
+      "file": "drill_bit_f1.png",
+      "w": 9,
+      "h": 9,
+      "source": "artBit(1)",
+      "replaces": "scene.js · Cheese Drill",
+      "state": "congelado",
+      "note": "Broca al final de la barra."
+    },
+    {
+      "file": "drill_stage2.png",
+      "w": 62,
+      "h": 70,
+      "source": "drillModules (fase 2)",
+      "replaces": "scene.js · Cheese Drill",
+      "state": "nuevo",
+      "note": "Capa de la fase II encima de la perforadora; origen en (o + 48, DK − 44). La luz del piloto es VFX."
+    },
+    {
+      "file": "drill_stage3.png",
+      "w": 62,
+      "h": 70,
+      "source": "drillModules (fase 3)",
+      "replaces": "scene.js · Cheese Drill",
+      "state": "nuevo",
+      "note": "Capa de la fase III encima de la perforadora; origen en (o + 48, DK − 44). La luz del piloto es VFX."
+    },
+    {
+      "file": "boost_gem_on.png",
+      "w": 11,
+      "h": 9,
+      "source": "gemSocket(on)",
+      "replaces": "icons.js · gema de refuerzo",
+      "state": "congelado",
+      "note": "La gema del panel BOOSTS en su engaste. Destello: gemGlint."
+    },
+    {
+      "file": "boost_gem_off.png",
+      "w": 11,
+      "h": 9,
+      "source": "gemSocket(off)",
+      "replaces": "icons.js · gema de refuerzo",
+      "state": "congelado",
+      "note": "Puesto sin ratón: no hace nada."
+    }
+  ]
+}
