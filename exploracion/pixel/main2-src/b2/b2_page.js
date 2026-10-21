@@ -41,7 +41,7 @@ const off = document.createElement('canvas'); // las partículas (trozos, polvo,
 for (let i = 0; i < 300; i++) step41(16);
 setInterval(() => { step41(33); const now = performance.now(); renderStopTo(1, now, off); { const og = off.getContext('2d'), was = ctx; og.setTransform(1, 0, 0, 1, 0, -ST1.top); ctx = og; try { drawParticles(now, 33); } finally { ctx = was; } } const g = sc.getContext('2d'); g.setTransform(MK, 0, 0, MK, 0, 0); g.imageSmoothingEnabled = false; g.drawImage(off, 0, 0); }, 33);
 UL([
-  '<b>Composición de V4.1, sin tocar:</b> terraza alta con la refinería y su horno; en medio, la perforadora sobre su pórtico y la corta con la roca; a la derecha, la quesería en su cueva y el pozo del montacargas. Los ratones trabajan con sus poses aprobadas y el jugador pica desde el andamio con el pico aprobado.',
+  '<b>Composición de V4.1, sin tocar:</b> terraza alta con la refinería y su horno; en medio, la perforadora sobre su pórtico y la corta con la roca; a la derecha, la quesería en su cueva y el pozo del montacargas. Los ratones trabajan con sus poses aprobadas. El jugador (un ratón oficial) pica desde el andamio y el minero contratado sobre la roca, los dos con el pico aprobado de la revisión de arte (recortado de swing_player, 5 fotogramas) por delante del ratón; el pico de V4.1 y el trabajador genérico quedan fuera.',
   '<b>Arreglo 1 · el horno entero:</b> en V4.1 la refinería quedaba cortada por el borde izquierdo (el horno empezaba en x = −6). El capítulo se desplaza 9 px: el horno entra entero y el pozo del montacargas sigue dentro de la pantalla.',
   '<b>Arreglo 2 · el refuerzo de REFINE:</b> la columna de extracción de la refinería suelta caía justo encima del elevador de cangilones y se confundía con él. En el capítulo, el propio serpentín hace de columna: una mirilla de vidrio por la que sube la Base, un segundo caño sobre el molde y las gemas. Misma idea aprobada (más Base del mismo Raw, más barras por ciclo), sin chocar con nada.',
 ]);
@@ -82,6 +82,7 @@ H2('V', 'VFX SIN CONTORNO', 'Revisados los del capítulo y hechos los nuevos con
 UL([
   '<b>Los de V4.1 ya cumplían:</b> trozos de roca, polvo, humo de la chimenea, chispas de la broca, destellos de la veta, fuego y resplandor del horno. Ninguno lleva tinta.',
   '<b>Nuevos, sin contorno:</b> el piloto ámbar de la perforadora, el farol de la quesería, el golpe de vapor de la prensa, los farolillos y las monedas de la tienda reforzada.',
+  '<b>Anotado para revisar más adelante:</b> las fases de las máquinas se notan poco; se retoman después de la integración.',
   '<b>Anotado para QA:</b> las fichas de recurso que viajan (Raw, Base, rueda) llevan contorno porque son iconos de recurso, no efectos; si se quiere, se aclaran en el bloque 5 con el resto de sistemas compartidos.',
 ]);
 

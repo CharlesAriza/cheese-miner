@@ -151,3 +151,38 @@ function drawCheddar(st, now) {
   drawPlayer(g, now);
   plaque(o + 2, FF - 30, DEP.cheddar, TH.cheddar);
 }
+
+// ================= El pico aprobado (el de la revisión de arte) =================
+// El pico se recorta de la animación aprobada swing_player (approvedPick, 5 fotogramas) y va por delante del ratón oficial.
+// Sustituye al pico de V4.1 del minero contratado (descartado) y al trabajador genérico del jugador. Fotogramas: 0–1 en
+// reposo, 2 levanta, 3 golpe, 4 recoge. drawWorkers es el de V4.1 con solo la línea del pico cambiada.
+const PLAYER_MOUSE = { name: 'Player', lv: 1, rank: 0, rar: 0, skill: 'mining' };
+function drawWorkers(st, g, now) { // V4.1, con el pico aprobado
+  const dt = Math.min(64, now - (LASTT || now)); LASTT = now;
+  for (const who of ['refiner', 'cook', 'driller', 'miner']) {
+    if (!P41[who]) continue;
+    const b = brain(who, g);
+    // Si cambia la geometría (otro ancho de pantalla u otra densidad), el ratón se queda en el mismo sitio de su suelo.
+    if (b.o !== g.o) { const d = g.o - b.o; b.x += d; if (b.tx != null) b.tx += d; b.o = g.o; }
+    if (now >= b.until || (b.on && !stillValid(b, now))) {
+      if (!b.gap) b.gap = now + 140;
+      if (now >= b.gap) { b.gap = 0; const p = planOf(b, g), W = g.walk[who]; if (p.act === 'wait' && b.act !== 'wait') { b.episode = (b.episode || 0) + 1; b.waitFrom = now; } Object.assign(b, { act: p.act, tx: Math.max(W[0], Math.min(W[1], p.tx)), face: p.face, dur: p.dur, on: false, until: Infinity }); b.log.push([p.act, now]); }
+    }
+    const strike = who === 'miner' && now - b.hitAt < 170, p = strike ? { x: b.x, flip: false, o: { face: 'grump' }, dy: 1, pick: 2 } : b.gap ? { x: b.x, flip: b.flip, o: {}, dy: 0, pick: who === 'miner' && !Z41.veinRevealed ? 1 : undefined } : poseOf(b, now, dt, g);
+    const x = Math.round(p.x), feet = who === 'miner' ? minerFeet(g, x) : g.who[who][1];
+    if (!b.blinkAt || now > b.blinkAt + 120) b.blinkAt = now + 2200 + rnd(b) * 2400;
+    const blink = now > b.blinkAt && now < b.blinkAt + 110, breath = Math.floor((now + (b.seed % 1300)) / (620 + (b.seed % 200))) % 2;
+    const c = mF(b.m, p.o.legs ? 0 : breath, blink, p.o);
+    if (p.flip) { ctx.save(); ctx.translate(x + 22, feet - 20 + p.dy); ctx.scale(-1, 1); ctx.drawImage(c, 0, 0); ctx.restore(); } else ctx.drawImage(c, x, feet - 20 + p.dy);
+    if (p.pick !== undefined && p.pick >= 0) { const pk = approvedPick(p.pick === 2 ? 3 : p.pick === 0 ? 2 : Math.floor(now / 600) % 2); if (pk) ctx.drawImage(pk, x + PICKDX, feet - 20 + PICKDY + p.dy); }
+    if (p.carry) ctx.drawImage(artCarry(p.carry), p.flip ? x - 1 : x + 15, feet - 13 + p.dy);
+    b.px = x; b.py = feet; b.pose = p;
+    HITS.push({ k: 'm', stop: STOPS.indexOf(st), st: g.who[who][2], who, name: b.m.name, x, y: feet - 20, w: 22, h: 20, crest: who === 'miner' });
+  }
+}
+function drawPlayer(g, now) {
+  const dt = now - AV.swing, f = Z41.veinRevealed ? 0 : dt < 70 ? 3 : dt < 170 ? 4 : Math.floor(now / 600) % 2, p = PLAYER(g), y = p.feet + 1 - 20;
+  ctx.drawImage(mF(PLAYER_MOUSE, f < 2 ? Math.floor(now / 650) % 2 : 0, false, f === 3 ? { face: 'grump' } : {}), p.x, y);
+  const pk = approvedPick(f); if (pk) ctx.drawImage(pk, p.x + PICKDX, y + PICKDY);
+  HITS.push({ k: 'm', stop: 1, st: 'rock', who: 'player', name: 'You', x: p.x + 1, y: p.feet - 19, w: 22, h: 20, player: true });
+}

@@ -4121,6 +4121,41 @@ function drawCheddar(st, now) {
   plaque(o + 2, FF - 30, DEP.cheddar, TH.cheddar);
 }
 
+// ================= El pico aprobado (el de la revisión de arte) =================
+// El pico se recorta de la animación aprobada swing_player (approvedPick, 5 fotogramas) y va por delante del ratón oficial.
+// Sustituye al pico de V4.1 del minero contratado (descartado) y al trabajador genérico del jugador. Fotogramas: 0–1 en
+// reposo, 2 levanta, 3 golpe, 4 recoge. drawWorkers es el de V4.1 con solo la línea del pico cambiada.
+const PLAYER_MOUSE = { name: 'Player', lv: 1, rank: 0, rar: 0, skill: 'mining' };
+function drawWorkers(st, g, now) { // V4.1, con el pico aprobado
+  const dt = Math.min(64, now - (LASTT || now)); LASTT = now;
+  for (const who of ['refiner', 'cook', 'driller', 'miner']) {
+    if (!P41[who]) continue;
+    const b = brain(who, g);
+    // Si cambia la geometría (otro ancho de pantalla u otra densidad), el ratón se queda en el mismo sitio de su suelo.
+    if (b.o !== g.o) { const d = g.o - b.o; b.x += d; if (b.tx != null) b.tx += d; b.o = g.o; }
+    if (now >= b.until || (b.on && !stillValid(b, now))) {
+      if (!b.gap) b.gap = now + 140;
+      if (now >= b.gap) { b.gap = 0; const p = planOf(b, g), W = g.walk[who]; if (p.act === 'wait' && b.act !== 'wait') { b.episode = (b.episode || 0) + 1; b.waitFrom = now; } Object.assign(b, { act: p.act, tx: Math.max(W[0], Math.min(W[1], p.tx)), face: p.face, dur: p.dur, on: false, until: Infinity }); b.log.push([p.act, now]); }
+    }
+    const strike = who === 'miner' && now - b.hitAt < 170, p = strike ? { x: b.x, flip: false, o: { face: 'grump' }, dy: 1, pick: 2 } : b.gap ? { x: b.x, flip: b.flip, o: {}, dy: 0, pick: who === 'miner' && !Z41.veinRevealed ? 1 : undefined } : poseOf(b, now, dt, g);
+    const x = Math.round(p.x), feet = who === 'miner' ? minerFeet(g, x) : g.who[who][1];
+    if (!b.blinkAt || now > b.blinkAt + 120) b.blinkAt = now + 2200 + rnd(b) * 2400;
+    const blink = now > b.blinkAt && now < b.blinkAt + 110, breath = Math.floor((now + (b.seed % 1300)) / (620 + (b.seed % 200))) % 2;
+    const c = mF(b.m, p.o.legs ? 0 : breath, blink, p.o);
+    if (p.flip) { ctx.save(); ctx.translate(x + 22, feet - 20 + p.dy); ctx.scale(-1, 1); ctx.drawImage(c, 0, 0); ctx.restore(); } else ctx.drawImage(c, x, feet - 20 + p.dy);
+    if (p.pick !== undefined && p.pick >= 0) { const pk = approvedPick(p.pick === 2 ? 3 : p.pick === 0 ? 2 : Math.floor(now / 600) % 2); if (pk) ctx.drawImage(pk, x + PICKDX, feet - 20 + PICKDY + p.dy); }
+    if (p.carry) ctx.drawImage(artCarry(p.carry), p.flip ? x - 1 : x + 15, feet - 13 + p.dy);
+    b.px = x; b.py = feet; b.pose = p;
+    HITS.push({ k: 'm', stop: STOPS.indexOf(st), st: g.who[who][2], who, name: b.m.name, x, y: feet - 20, w: 22, h: 20, crest: who === 'miner' });
+  }
+}
+function drawPlayer(g, now) {
+  const dt = now - AV.swing, f = Z41.veinRevealed ? 0 : dt < 70 ? 3 : dt < 170 ? 4 : Math.floor(now / 600) % 2, p = PLAYER(g), y = p.feet + 1 - 20;
+  ctx.drawImage(mF(PLAYER_MOUSE, f < 2 ? Math.floor(now / 650) % 2 : 0, false, f === 3 ? { face: 'grump' } : {}), p.x, y);
+  const pk = approvedPick(f); if (pk) ctx.drawImage(pk, p.x + PICKDX, y + PICKDY);
+  HITS.push({ k: 'm', stop: 1, st: 'rock', who: 'player', name: 'You', x: p.x + 1, y: p.feet - 19, w: 22, h: 20, player: true });
+}
+
 adReady(() => {
 const COL = $c('ad-col');
 const H2 = (id, t, p) => { const h = document.createElement('h2'); h.id = id; h.textContent = t; COL.appendChild(h); const a = document.createElement('a'); a.href = '#' + id; a.textContent = t.split(' · ')[0]; $c('ad-toc').appendChild(a); if (p) PP(p); return h; };
@@ -4178,7 +4213,7 @@ const off = document.createElement('canvas'); // las partículas (trozos, polvo,
 for (let i = 0; i < 300; i++) step41(16);
 setInterval(() => { step41(33); const now = performance.now(); renderStopTo(1, now, off); { const og = off.getContext('2d'), was = ctx; og.setTransform(1, 0, 0, 1, 0, -ST1.top); ctx = og; try { drawParticles(now, 33); } finally { ctx = was; } } const g = sc.getContext('2d'); g.setTransform(MK, 0, 0, MK, 0, 0); g.imageSmoothingEnabled = false; g.drawImage(off, 0, 0); }, 33);
 UL([
-  '<b>Composición de V4.1, sin tocar:</b> terraza alta con la refinería y su horno; en medio, la perforadora sobre su pórtico y la corta con la roca; a la derecha, la quesería en su cueva y el pozo del montacargas. Los ratones trabajan con sus poses aprobadas y el jugador pica desde el andamio con el pico aprobado.',
+  '<b>Composición de V4.1, sin tocar:</b> terraza alta con la refinería y su horno; en medio, la perforadora sobre su pórtico y la corta con la roca; a la derecha, la quesería en su cueva y el pozo del montacargas. Los ratones trabajan con sus poses aprobadas. El jugador (un ratón oficial) pica desde el andamio y el minero contratado sobre la roca, los dos con el pico aprobado de la revisión de arte (recortado de swing_player, 5 fotogramas) por delante del ratón; el pico de V4.1 y el trabajador genérico quedan fuera.',
   '<b>Arreglo 1 · el horno entero:</b> en V4.1 la refinería quedaba cortada por el borde izquierdo (el horno empezaba en x = −6). El capítulo se desplaza 9 px: el horno entra entero y el pozo del montacargas sigue dentro de la pantalla.',
   '<b>Arreglo 2 · el refuerzo de REFINE:</b> la columna de extracción de la refinería suelta caía justo encima del elevador de cangilones y se confundía con él. En el capítulo, el propio serpentín hace de columna: una mirilla de vidrio por la que sube la Base, un segundo caño sobre el molde y las gemas. Misma idea aprobada (más Base del mismo Raw, más barras por ciclo), sin chocar con nada.',
 ]);
@@ -4219,6 +4254,7 @@ H2('V', 'VFX SIN CONTORNO', 'Revisados los del capítulo y hechos los nuevos con
 UL([
   '<b>Los de V4.1 ya cumplían:</b> trozos de roca, polvo, humo de la chimenea, chispas de la broca, destellos de la veta, fuego y resplandor del horno. Ninguno lleva tinta.',
   '<b>Nuevos, sin contorno:</b> el piloto ámbar de la perforadora, el farol de la quesería, el golpe de vapor de la prensa, los farolillos y las monedas de la tienda reforzada.',
+  '<b>Anotado para revisar más adelante:</b> las fases de las máquinas se notan poco; se retoman después de la integración.',
   '<b>Anotado para QA:</b> las fichas de recurso que viajan (Raw, Base, rueda) llevan contorno porque son iconos de recurso, no efectos; si se quiere, se aclaran en el bloque 5 con el resto de sistemas compartidos.',
 ]);
 
