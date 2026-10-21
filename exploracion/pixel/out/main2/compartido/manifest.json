@@ -64,10 +64,20 @@
       "ms": 1500
     }
   ],
-  "nineSlice": {
-    "bubble": 3,
-    "plate": 3,
-    "cssScale": 2
+  "labels": {
+    "css": "main2-ad: .ad-bub (bocadillo), .ad-warn (placa), .ad-warn.lb-red (placa roja, b5.css)",
+    "engine": "main2-src/b5/b5_ui.js · labelLayer",
+    "priority": [
+      "red",
+      "say",
+      "amber"
+    ],
+    "platesWithText": 3,
+    "bubbleWidths": [
+      150,
+      110,
+      90
+    ]
   },
   "files": [
     {
@@ -89,76 +99,31 @@
       "note": "Barrotes delante de la carga."
     },
     {
-      "file": "bubble_9slice.png",
+      "file": "badge_alert.png",
+      "w": 13,
+      "h": 12,
+      "source": "gameIcon('alert')",
+      "for": "icons.js · alert (ya aprobado en el juego)",
+      "state": "congelado",
+      "note": "Aviso de máquina (ámbar). A 1:1; en escena, ×2."
+    },
+    {
+      "file": "badge_alertr.png",
+      "w": 13,
+      "h": 12,
+      "source": "gameIcon('alertr')",
+      "for": "icons.js · alertr (ya aprobado en el juego)",
+      "state": "congelado",
+      "note": "Máquina parada (rojo). A 1:1; en escena, ×2."
+    },
+    {
+      "file": "badge_done.png",
       "w": 9,
-      "h": 9,
-      "source": "bubble9()",
-      "for": "bocadillo de diálogo",
-      "state": "nuevo",
-      "note": "9 cortes: 3 px por lado (border-image-slice: 3)."
-    },
-    {
-      "file": "bubble_tail.png",
-      "w": 7,
-      "h": 6,
-      "source": "bubbleTail()",
-      "for": "bocadillo de diálogo",
-      "state": "nuevo",
-      "note": "Punta hacia abajo; se gira 90° para los lados."
-    },
-    {
-      "file": "plate_amber_9slice.png",
-      "w": 11,
-      "h": 11,
-      "source": "plate9(ámbar)",
-      "for": "placa de máquina",
-      "state": "nuevo",
-      "note": "9 cortes: 3 px por lado. Avisos de máquina."
-    },
-    {
-      "file": "plate_red_9slice.png",
-      "w": 11,
-      "h": 11,
-      "source": "plate9(roja)",
-      "for": "placa de máquina",
-      "state": "nuevo",
-      "note": "Máquina parada."
-    },
-    {
-      "file": "plate_chain.png",
-      "w": 3,
-      "h": 8,
-      "source": "chainSprite()",
-      "for": "placa de máquina",
-      "state": "nuevo",
-      "note": "Se repite en vertical hasta el punto que señala."
-    },
-    {
-      "file": "badge_warn.png",
-      "w": 9,
-      "h": 9,
-      "source": "badge('warn')",
-      "for": "icons.js · aviso de roca",
-      "state": "nuevo",
-      "note": "Necesita algo (ámbar)."
-    },
-    {
-      "file": "badge_stop.png",
-      "w": 9,
-      "h": 9,
-      "source": "badge('stop')",
-      "for": "icons.js · aviso de roca",
-      "state": "nuevo",
-      "note": "Parado (rojo)."
-    },
-    {
-      "file": "badge_ok.png",
-      "w": 9,
-      "h": 9,
-      "source": "badge('ok')",
-      "for": "icons.js · aviso de roca",
-      "state": "nuevo",
-      "note": "Listo (verde)."
+      "h": 7,
+      "source": "gameIcon('done')",
+      "for": "icons.js · done (ya aprobado en el juego)",
+      "state": "congelado",
+      "note": "Hecho (verde). A 1:1; en escena, ×2."
     }
   ]
 }

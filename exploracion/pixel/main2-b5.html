@@ -690,6 +690,17 @@ body { background: #120f18; }
 .b5-stack { position: relative; width: max-content; }
 .b5-stack canvas { display: block; image-rendering: pixelated; }
 .b5-code { overflow-x: auto; max-width: 100%; padding: 10px 12px; border-radius: 6px; background: #1c1410; color: #e8dcb0; font: 12px/1.5 ui-monospace, Menlo, monospace; }
+.ad-warn.lb-red { background: #2a1014; border-color: #ff5a7a; box-shadow: 0 0 0 2px #1b1220, inset 0 2px 0 #4a1c24; }
+.ad-warn.lb-red b { color: #ffc2cc; }
+.ad-warn.lb-red .ad-chain { background: repeating-linear-gradient(#ff5a7a 0 2px, transparent 2px 4px); }
+.ad-warn, .ad-bub, .lb-badge { position: absolute; }
+.lb-badge { image-rendering: pixelated; z-index: 2; }
+.lb-scene { position: relative; display: inline-block; }
+.lb-scene canvas { display: block; image-rendering: pixelated; }
+.lb-host { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.lb-bar { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.lb-bar button { font: 400 8px var(--pixel); color: #fff; background: #2a2338; border: 2px solid #0c0910; box-shadow: inset 0 2px 0 #4a3e60; padding: 7px 9px; cursor: pointer; }
+.lb-stat { font: 13px system-ui, sans-serif; color: #e8dcb0; font-variant-numeric: tabular-nums; }
 
 </style>
 <div class="ad-wrap">
@@ -3982,6 +3993,8 @@ function drawSurface(g, now, o = {}) {
 // Arreglo de composición: en V4.1 el horno quedaba cortado por el borde izquierdo (SC.ox = 8 lo ponía en x = −6). Con 17 el
 // horno entra entero y el pozo del montacargas sigue dentro de la pantalla (x 152–159 de 161).
 SC.ox = 17;
+// Las dos cajas con una cuña que el fondo de V4.1 ponía en el suelo de cada capítulo no son nada del juego: fuera.
+SPR.crate = (() => { const c = document.createElement('canvas'); c.width = c.height = 1; return c.toDataURL(); })();
 const B2 = { ref: { stage: 1, boost: 0, on: true }, drill: { stage: 1, boost: 0, on: true }, cheese: { stage: 1, boost: 0, on: true }, mine: { boost: 0, on: true } };
 const TIER_STAGE = [1, 1, 2, 2, 3, 3];
 const mkc = (w, h, f) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; const was = ctx; ctx = g; try { f(g); } finally { ctx = was; } return c; };
@@ -4329,6 +4342,84 @@ const plate9 = (red) => art('plate9' + red, () => { const c = PB(11, 11), M = re
 const chainSprite = () => art('chain', () => { const c = PB(3, 8); for (let y = 0; y < 8; y += 3) { c.px(1, y, PAL.irn[1]); c.px(0, y + 1, PAL.irn[2]); c.px(2, y + 1, PAL.irn[2]); c.px(1, y + 2, PAL.irn[3]); } return c.canvas(); });
 const badge = (kind) => art('badge' + kind, () => { const c = PB(9, 9), M = { warn: PNT, stop: ['#ffb0a0', '#e8523a', '#b8341f', '#7e2018', '#4a1210'], ok: ['#c8f0b0', '#62d36e', '#3aa048', '#26702e', '#164a1a'] }[kind]; c.ell(4.5, 4.5, 4.2, 4.2, (x, y) => (x + y < 7 ? M[0] : x + y < 10 ? M[1] : M[2])); if (kind === 'warn') { c.vline(4, 2, 3, M[4]); c.px(4, 6, M[4]); } else if (kind === 'stop') { c.rect(3, 3, 3, 3, '#fffdf2'); } else { c.px(2, 4, '#fffdf2').px(3, 5, '#fffdf2').px(4, 6, '#fffdf2').px(5, 5, '#fffdf2').px(6, 4, '#fffdf2').px(7, 3, '#fffdf2'); } c.outline(); return c.canvas(); });
 
+// ---------- BLOQUE 5 · BOCADILLOS, PLACAS E INSIGNIAS: la dirección validada y su colocación (21-10-2026) ----------
+// Vuelve a lo aprobado en la revisión de arte (main2-ad): el bocadillo .ad-bub (crema, 2 px de tinta, esquinas recortadas,
+// letra Press Start 2P y la punta escalonada TAILSVG) y la placa .ad-warn (chapa oscura con borde ámbar, el icono del recurso
+// aprobado y la cadena hasta la máquina). La versión roja de la placa usa los colores del aviso rojo del juego. Las insignias
+// son los iconos de aviso que el juego ya usa y están aprobados (icons.js: alert, alertr y done), a 1:1 o ×2.
+// Reglas de colocación (una capa por escena, recalculada en cada fotograma):
+// 1 · Jerarquía: placa roja (máquina parada) > bocadillo > placa ámbar (aviso de máquina). Lo crítico va siempre; después, lo
+//     que dura poco (un ratón hablando, unos segundos) antes que lo que dura mucho (un aviso, que mientras tanto puede quedarse
+//     en insignia y vuelve a su placa en cuanto hay sitio). Lo de más prioridad se coloca primero; lo demás se adapta.
+// 2 · Cada pieza prueba sus posiciones en orden (la placa: encima de la máquina con la cadena más o menos larga y corrida a
+//     los lados sin dejar de colgar de su punto; el bocadillo: encima de la cabeza, corrido, o a un lado) y se queda con la
+//     primera que no pisa nada ni se sale de la vista. Si la que tenía sigue valiendo, no cambia (no salta de un sitio a otro).
+// 3 · Límites: un bocadillo a la vez (los demás esperan su turno) y como mucho 3 placas con texto; las demás, y las que no
+//     caben, se quedan en su insignia sobre la máquina. Si tampoco cabe la insignia, no se pinta (el aviso sigue activo).
+// 4 · Si un bocadillo no cabe con su ancho, se estrecha (más líneas) antes de rendirse.
+// 5 · El bocadillo va anclado al ratón que habla: sigue su cabeza en cada fotograma y su punta lo señala. Si el ratón sale de
+//     la vista o no hay sitio durante más de 0,4 s, el bocadillo se cierra; nunca se queda flotando.
+const GAME_ICON = {
+  alert: [['......K......', '.....KLK.....', '.....KYK.....', '....KYYYK....', '....KYKYK....', '...KYYKYYK...', '...KYYKYYK...', '..KYYYKYYYK..', '..KYYYYYYYK..', '.KYYYYKYYYYK.', '.KDDDDDDDDDK.', 'KKKKKKKKKKKKK'], { Y: '#ffd43a', L: '#fff3a0', D: '#d9a514', K: '#1b1622' }],
+  alertr: [['......K......', '.....KLK.....', '.....KYK.....', '....KYYYK....', '....KYKYK....', '...KYYKYYK...', '...KYYKYYK...', '..KYYYKYYYK..', '..KYYYYYYYK..', '.KYYYYKYYYYK.', '.KDDDDDDDDDK.', 'KKKKKKKKKKKKK'], { Y: '#ff5a7a', L: '#ffc2cc', D: '#c43a58', K: '#1b1622' }],
+  done: [['.......KK', '......KGK', 'K....KGK.', 'KGK.KGK..', '.KGKGK...', '..KGK....', '...K.....'], { G: '#3fa860', K: '#1b1622' }],
+};
+const gameIcon = (name) => art('gi' + name, () => { const [rows, pal] = GAME_ICON[name], c = document.createElement('canvas'); c.width = rows[0].length; c.height = rows.length; const g = c.getContext('2d'); rows.forEach((r, y) => [...r].forEach((ch, x) => { if (ch !== '.') { g.fillStyle = pal[ch]; g.fillRect(x, y, 1, 1); } })); return c; });
+const PLATE_MAX = 3, PRIO = { red: 3, say: 2, amber: 1 };
+// host: un div posicionado del tamaño de la escena; k: px de pantalla por px de arte; view(): [x, y, w, h] visible en px del
+// host; keepOut(): rectángulos prohibidos (la interfaz); icons: ruta del icono de cada recurso.
+function labelLayer(host, { k, view, keepOut = () => [] }) {
+  const L = { plates: new Map(), q: [], cur: null, gapUntil: 0, stats: { bubble: 0, plates: 0, badges: 0, hidden: 0, overlaps: 0, closed: 0 } };
+  const mkPlate = (it) => { const el = document.createElement('div'); el.className = 'ad-warn' + (it.tone === 'red' ? ' lb-red' : ''); el.innerHTML = `<img class="pix" src="${it.icon}" alt=""><b>${it.text}</b><i class="ad-chain"></i>`; host.appendChild(el); const bd = document.createElement('img'); bd.className = 'lb-badge'; bd.src = gameIcon(it.tone === 'red' ? 'alertr' : 'alert').toDataURL(); bd.alt = ''; host.appendChild(bd); it.el = el; it.bd = bd; it.w = el.offsetWidth; it.h = el.offsetHeight; it.ci = -1; it.t = performance.now(); };
+  L.warn = (id, o) => { const old = L.plates.get(id); if (old && old.text === o.text && old.tone === o.tone) { old.anchor = o.anchor; return; } if (old) L.unwarn(id); const it = { id, kind: o.tone, ...o }; mkPlate(it); L.plates.set(id, it); };
+  L.unwarn = (id) => { const it = L.plates.get(id); if (!it) return; it.el.remove(); it.bd.remove(); L.plates.delete(id); };
+  L.say = (who, text, head) => { if (L.cur && L.cur.who === who) return; if (L.q.some((s) => s.who === who)) return; if (L.q.length >= 2) L.q.shift(); L.q.push({ who, text, head }); };
+  const startBubble = (s) => { const b = document.createElement('div'); b.className = 'ad-bub'; b.innerHTML = `<span>${s.text}</span>${TAILSVG('down')}`; host.appendChild(b); b.animate([{ transform: 'scale(.6)', opacity: 0 }, { transform: 'scale(1.08)', opacity: 1, offset: 0.6 }, { transform: 'none', opacity: 1 }], { duration: 150, easing: 'steps(3)' }); L.cur = { ...s, kind: 'say', el: b, w: b.offsetWidth, h: b.offsetHeight, ci: -1, until: performance.now() + readMs(s.text), lostAt: 0, t: performance.now() }; };
+  const closeBubble = (now, why) => { const b = L.cur.el; b.classList.remove('side-l', 'side-r'); const a = b.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, easing: 'steps(2)', fill: 'forwards' }); a.onfinish = () => b.remove(); if (why) L.stats.closed++; L.cur = null; L.gapUntil = now + 600; };
+  const hit = (r, list) => list.some((o) => !(r[0] + r[2] <= o[0] || o[0] + o[2] <= r[0] || r[1] + r[3] <= o[1] || o[1] + o[3] <= r[1]));
+  const inside = (r, V) => r[0] >= V[0] + 2 && r[1] >= V[1] + 2 && r[0] + r[2] <= V[0] + V[2] - 2 && r[1] + r[3] <= V[1] + V[3] - 2;
+  // Posiciones posibles de una placa: colgando de su punto, con la cadena de 8, 20 o 32 px, centrada o corrida a un lado.
+  // Si es roja y no cabe encima, cuelga por debajo de su punto (la cadena sube): lo crítico no se queda sin texto.
+  const plateCands = (it) => { const [ax, ay] = [it.anchor[0] * k, it.anchor[1] * k], out = []; for (const ch of [8, 20, 32]) for (const dx of [0.5, 0.82, 0.18]) { const left = Math.round(ax - it.w * dx), top = Math.round(ay - ch - it.h); out.push({ r: [left, top, it.w, it.h + ch], left, top, ch, ax }); } if (it.tone === 'red') for (const ch of [8, 20]) for (const dx of [0.5, 0.82, 0.18]) { const left = Math.round(ax - it.w * dx), top = Math.round(ay + ch); out.push({ r: [left, Math.round(ay), it.w, it.h + ch], left, top, ch, ax, below: true }); } return out; };
+  // Posiciones posibles de un bocadillo: encima de la cabeza (centrado o corrido, la punta siempre bajo el bocadillo), o a un lado.
+  const bubCands = (it, hx, hy) => { const out = [], top = Math.round(hy - it.h - 10); for (const dx of [0.5, 0.75, 0.25, 0.9, 0.1, 0.97, 0.03]) { const left = Math.round(hx - it.w * dx); out.push({ r: [left, top, it.w, it.h + 10], left, top, side: 0, hx, hy }); } const st = Math.round(hy - it.h / 2 - 6); out.push({ r: [Math.round(hx - it.w - 16), st, it.w + 10, it.h], left: Math.round(hx - it.w - 16), top: st, side: -1, hx, hy }); out.push({ r: [Math.round(hx + 6), st, it.w + 10, it.h], left: Math.round(hx + 16), top: st, side: 1, hx, hy }); return out; };
+  L.tick = (now) => {
+    if (L.cur && now > L.cur.until) closeBubble(now, false);
+    if (!L.cur && L.q.length && now > L.gapUntil) startBubble(L.q.shift());
+    const V = view(), placed = [...keepOut()], st = { bubble: 0, plates: 0, badges: 0, hidden: 0, overlaps: 0, closed: L.stats.closed };
+    const items = [...L.plates.values()]; if (L.cur) items.push(L.cur);
+    items.sort((a, b) => PRIO[b.kind] - PRIO[a.kind] || a.t - b.t);
+    for (const it of items) {
+      if (it.kind === 'say') {
+        const h = it.head(); if (!h) { closeBubble(now, true); continue; }
+        const [hx, hy] = [h[0] * k, h[1] * k]; if (hx < V[0] || hx > V[0] + V[2] || hy < V[1] || hy > V[1] + V[3]) { closeBubble(now, true); continue; }
+        // Si no cabe con su ancho (150 px), prueba a estrecharse (110 y 90 px, el texto en más líneas) antes de rendirse.
+        const ok = (c) => inside(c.r, V) && !hit(c.r, placed); let cs = null, ci = -1;
+        for (const mw of [150, 110, 90]) { if (it.mw !== mw) { it.el.style.maxWidth = mw + 'px'; it.w = it.el.offsetWidth; it.h = it.el.offsetHeight; if (it.mw != null) it.ci = -1; it.mw = mw; } cs = bubCands(it, hx, hy); ci = it.ci >= 0 && ok(cs[it.ci]) ? it.ci : cs.findIndex(ok); if (ci >= 0) break; }
+        if (ci < 0) { it.el.style.visibility = 'hidden'; it.lostAt ||= now; if (now - it.lostAt > 400) closeBubble(now, true); st.hidden++; continue; }
+        it.lostAt = 0; it.ci = ci; const c = cs[ci], b = it.el, tail = b.querySelector('.ad-tail'); b.style.visibility = ''; b.style.left = c.left + 'px'; b.style.top = c.top + 'px';
+        b.classList.toggle('side-r', c.side < 0); b.classList.toggle('side-l', c.side > 0);
+        if (!c.side) { tail.style.top = ''; tail.style.left = Math.max(4, Math.min(it.w - 14, Math.round(hx - c.left - 5))) + 'px'; } else { tail.style.left = ''; tail.style.top = Math.max(4, Math.min(it.h - 14, Math.round(hy - c.top - 8))) + 'px'; }
+        placed.push(c.r); st.bubble++; continue;
+      }
+      // Placa: con texto si quedan huecos (como mucho PLATE_MAX); si no, su insignia; si tampoco cabe, nada.
+      const cs = plateCands(it), ok = (c) => inside(c.r, V) && !hit(c.r, placed); let ci = st.plates < PLATE_MAX ? (it.ci >= 0 && ok(cs[it.ci]) ? it.ci : cs.findIndex(ok)) : -1;
+      if (ci >= 0) { it.ci = ci; const c = cs[ci]; Object.assign(it.el.style, { visibility: '', left: c.left + 'px', top: c.top + 'px' }); const ch = it.el.querySelector('.ad-chain'); ch.style.left = Math.round(c.ax - c.left - 1) + 'px'; ch.style.height = c.ch + 'px'; if (c.below) { ch.style.bottom = ''; ch.style.top = -c.ch - 2 + 'px'; } else { ch.style.top = ''; ch.style.bottom = -c.ch - 2 + 'px'; } it.bd.style.visibility = 'hidden'; placed.push(c.r); st.plates++; continue; }
+      // Insignia: sobre su punto, o corrida a un lado o un poco más arriba si ahí ya hay algo.
+      it.ci = -1; it.el.style.visibility = 'hidden'; const s = 2 * Math.max(1, Math.round(k / 2.33)), bw = 13 * s, bh = 12 * s, ax = Math.round(it.anchor[0] * k), ay = Math.round(it.anchor[1] * k);
+      const br = [[0, 0], [-bw, 0], [bw, 0], [0, -bh], [-bw, -bh], [bw, -bh]].map(([dx, dy]) => [ax - bw / 2 + dx, ay - bh - 2 + dy, bw, bh]).find((r) => inside(r, V) && !hit(r, placed));
+      if (br) { Object.assign(it.bd.style, { visibility: '', left: br[0] + 'px', top: br[1] + 'px', width: bw + 'px', height: bh + 'px' }); placed.push(br); st.badges++; } else { it.bd.style.visibility = 'hidden'; st.hidden++; }
+    }
+    // Comprobación: ninguna pieza visible pisa a otra.
+    const vis = [...host.children].filter((e) => e.style.visibility !== 'hidden' && (e.classList.contains('ad-bub') || e.classList.contains('ad-warn') || e.classList.contains('lb-badge')) && e.style.left).map((e) => [parseFloat(e.style.left), parseFloat(e.style.top), e.offsetWidth, e.offsetHeight]);
+    for (let i = 0; i < vis.length; i++) for (let j = i + 1; j < vis.length; j++) if (hit(vis[i], [vis[j]])) st.overlaps++;
+    L.stats = st; return st;
+  };
+  return L;
+}
+// La cabeza de un ratón del capítulo, en px de arte del capítulo (su posición de este fotograma).
+const headOfB = (who) => () => { const b = BR[who]; return b && b.px != null ? [b.px + 11, b.py - 18] : null; };
+
 adReady(() => {
 const COL = $c('ad-col');
 const H2 = (id, t, p) => { const h = document.createElement('h2'); h.id = id; h.textContent = t; COL.appendChild(h); const a = document.createElement('a'); a.href = '#' + id; a.textContent = t.split(' · ')[0]; $c('ad-toc').appendChild(a); if (p) PP(p); return h; };
@@ -4348,17 +4439,12 @@ const MK = 7;
 const EXPORT5 = [
   { file: 'cage_back.png', cv: cageBack, src: 'cageBack()', marker: 'nuevo · montacargas', note: 'Marco, techo con argolla, fondo y suelo de la jaula. Las ruedas van entre las dos capas.', state: 'nuevo' },
   { file: 'cage_front.png', cv: cageFront, src: 'cageFront()', marker: 'nuevo · montacargas', note: 'Barrotes delante de la carga.', state: 'nuevo' },
-  { file: 'bubble_9slice.png', cv: bubble9, src: 'bubble9()', marker: 'bocadillo de diálogo', note: '9 cortes: 3 px por lado (border-image-slice: 3).', state: 'nuevo' },
-  { file: 'bubble_tail.png', cv: bubbleTail, src: 'bubbleTail()', marker: 'bocadillo de diálogo', note: 'Punta hacia abajo; se gira 90° para los lados.', state: 'nuevo' },
-  { file: 'plate_amber_9slice.png', cv: () => plate9(false), src: 'plate9(ámbar)', marker: 'placa de máquina', note: '9 cortes: 3 px por lado. Avisos de máquina.', state: 'nuevo' },
-  { file: 'plate_red_9slice.png', cv: () => plate9(true), src: 'plate9(roja)', marker: 'placa de máquina', note: 'Máquina parada.', state: 'nuevo' },
-  { file: 'plate_chain.png', cv: chainSprite, src: 'chainSprite()', marker: 'placa de máquina', note: 'Se repite en vertical hasta el punto que señala.', state: 'nuevo' },
-  ...['warn', 'stop', 'ok'].map((k) => ({ file: `badge_${k}.png`, cv: () => badge(k), src: `badge('${k}')`, marker: 'icons.js · aviso de roca', note: { warn: 'Necesita algo (ámbar).', stop: 'Parado (rojo).', ok: 'Listo (verde).' }[k], state: 'nuevo' })),
+  ...[['alert', 'Aviso de máquina (ámbar).'], ['alertr', 'Máquina parada (rojo).'], ['done', 'Hecho (verde).']].map(([n, note]) => ({ file: `badge_${n}.png`, cv: () => gameIcon(n), src: `gameIcon('${n}')`, marker: `icons.js · ${n} (ya aprobado en el juego)`, note: note + ' A 1:1; en escena, ×2.', state: 'congelado' })),
 ];
 window.B5_EXPORT = EXPORT5;
 const urlOf = (cv) => cv.toDataURL('image/png');
 
-PP(`<b>Bloque 5 de producción.</b> La columna del MVP montada de verdad: superficie, Cheddar, Gouda y Brie, una debajo de otra, unidas por el montacargas. Y el kit de bocadillos, placas e insignias en pixel art para la interfaz. ${EXPORT5.length} PNG nuevos con su manifiesto.`);
+PP(`<b>Bloque 5 de producción.</b> La columna del MVP montada de verdad: superficie, Cheddar, Gouda y Brie, una debajo de otra, unidas por el montacargas. Y los bocadillos, placas e insignias de vuelta a la dirección validada en la revisión de arte, con un sistema de colocación sin solapes y su demostración. ${EXPORT5.length} PNG con su manifiesto.`);
 
 // ================= LA COLUMNA =================
 H2('C', 'LA COLUMNA DEL MVP', 'A tamaño real de móvil: desliza hacia abajo, de la superficie a Brie. La jaula baja hasta Brie y sube recogiendo el queso de cada roca.');
@@ -4366,21 +4452,6 @@ const wrap = DIV('b5-col'); const col = document.createElement('div'); col.class
 const sc = document.createElement('canvas'); sc.width = STACK.w * MK; sc.height = STACK.h * MK; sc.style.width = Math.round(STACK.w * KPX) + 'px'; sc.style.height = Math.round(STACK.h * KPX) + 'px'; col.appendChild(sc);
 const mk = () => document.createElement('canvas'), cv3 = { surf: Object.assign(mk(), { width: SW1, height: SH1 }), ched: mk(), gouda: mk(), brie: mk() }, buf = Object.assign(mk(), { width: STACK.w, height: STACK.h });
 for (let i = 0; i < 300; i++) step41(16);
-// Interfaz encima (HTML, como en el juego): un bocadillo del quesero de Cheddar, una placa en la perforadora de Gouda y las
-// insignias de estado de cada capítulo. Se colocan en coordenadas de arte × 7/3.
-const css = document.createElement('style');
-css.textContent = `.b5-bub{position:absolute;padding:3px 6px;font:700 10px/1.25 system-ui,sans-serif;color:#1b1220;border-style:solid;border-width:6px;border-image:url(${urlOf(bubble9())}) 3 fill / 6px stretch;image-rendering:pixelated;white-space:nowrap}
-.b5-bub::after{content:'';position:absolute;left:10px;bottom:-15px;width:14px;height:12px;background:url(${urlOf(bubbleTail())}) 0 0/14px 12px;image-rendering:pixelated}
-.b5-plate{position:absolute;padding:2px 6px;font:700 9px/1.2 system-ui,sans-serif;color:#3a1c06;letter-spacing:.04em;border-style:solid;border-width:6px;border-image:url(${urlOf(plate9(false))}) 3 fill / 6px stretch;image-rendering:pixelated;white-space:nowrap}
-.b5-plate.red{color:#fff2ee;border-image-source:url(${urlOf(plate9(true))})}
-.b5-plate::before{content:'';position:absolute;left:50%;top:-22px;width:6px;height:16px;margin-left:-3px;background:url(${urlOf(chainSprite())}) 0 0/6px 16px repeat-y;image-rendering:pixelated}
-.b5-badge{position:absolute;width:21px;height:21px;image-rendering:pixelated}`;
-document.head.appendChild(css);
-const at = (el, x, y) => { el.style.left = Math.round(x * KPX) + 'px'; el.style.top = Math.round(y * KPX) + 'px'; col.appendChild(el); return el; };
-{ const b = document.createElement('div'); b.className = 'b5-bub'; b.textContent = 'Batch ready!'; at(b, 104, STACK.y.cheddar + 28); }
-{ const p = document.createElement('div'); p.className = 'b5-plate'; p.textContent = 'NO VEIN'; at(p, 52, STACK.y.gouda + 66); }
-{ const p = document.createElement('div'); p.className = 'b5-plate red'; p.textContent = 'STOPPED'; at(p, 4, STACK.y.brie + 4); }
-for (const [z, k] of [['cheddar', 'ok'], ['gouda', 'warn'], ['brie', 'stop']]) { const i = document.createElement('img'); i.className = 'b5-badge'; i.src = urlOf(badge(k)); i.alt = ''; at(i, 2, STACK.y[z] + 2); }
 let lastT = 0;
 setInterval(() => { const now = performance.now(); step41(50); const g = buf.getContext('2d'); g.imageSmoothingEnabled = false; drawStack(g, now, cv3); const o = sc.getContext('2d'); o.setTransform(MK, 0, 0, MK, 0, 0); o.imageSmoothingEnabled = false; o.drawImage(buf, 0, 0); }, 50);
 UL([
@@ -4391,26 +4462,47 @@ UL([
 ]);
 TB(['TRAMO', 'DESDE → HASTA', 'DURACIÓN'], LIFT_T.map(([k, a, b, ms]) => [{ down: 'Baja', up: 'Sube', load: 'Carga', unload: 'Descarga' }[k], a === b ? a : `${a} → ${b}`, (ms / 1000).toFixed(1) + ' s']));
 
-// ================= KIT DE INTERFAZ =================
-H2('K', 'BOCADILLOS, PLACAS E INSIGNIAS', 'La dirección aprobada en la revisión de arte, cerrada como piezas de 9 cortes en pixel art.');
-function kitSheet() { const k = 6, [c, g] = SHEET(980, 150); g.fillStyle = '#3a2a1e'; g.fillRect(0, 0, c.width, c.height); g.font = '700 12px system-ui, sans-serif'; g.fillStyle = '#f4ead8'; let x = 10; for (const [n, cv] of [['Bocadillo (9 cortes)', bubble9()], ['Punta', bubbleTail()], ['Placa ámbar', plate9(false)], ['Placa roja', plate9(true)], ['Cadena', chainSprite()], ['Aviso', badge('warn')], ['Parado', badge('stop')], ['Listo', badge('ok')]]) { g.fillText(n, x, 18); g.drawImage(cv, x, 30, cv.width * k, cv.height * k); x += Math.max(cv.width * k, 70) + 22; } }
-kitSheet();
+// ================= BOCADILLOS, PLACAS E INSIGNIAS =================
+H2('K', 'BOCADILLOS, PLACAS E INSIGNIAS', 'De vuelta a la dirección validada en la revisión de arte, con un sistema de colocación sin solapes. Pruébalo con los botones.');
+const G1 = geoC(STOPS[1]), T0 = STOPS[1].top, DW = Math.ceil(SC.worldW), DH = STOPS[1].h;
+const scene = document.createElement('div'); scene.className = 'lb-scene'; const dc = document.createElement('canvas'); dc.width = DW * MK; dc.height = DH * MK; dc.style.width = Math.round(DW * KPX) + 'px'; dc.style.height = Math.round(DH * KPX) + 'px'; scene.appendChild(dc); const host = document.createElement('div'); host.className = 'lb-host'; scene.appendChild(host);
+const bar = DIV('lb-bar'); COL.appendChild(scene); const stat = DIV('lb-stat');
+const LB = labelLayer(host, { k: KPX, view: () => [0, 0, DW * KPX, DH * KPX] }); window.LB5 = LB;
+const headIn = (who) => () => { const b = BR[who]; return b && b.px != null ? [b.px + 11, b.py - 18 - T0] : null; };
+// La placa de la perforadora cuelga de su cuadro de mandos (donde está su piloto), no de lo alto de la máquina.
+const ANCH = { refinery: [G1.o + 12, G1.TL - 30 - T0], drill: [G1.o + 100, G1.DK - 13 - T0], cheesery: [G1.o + 116, G1.TR - 36 - T0], rock: [G1.rx + 27, G1.rb - 42 - T0] };
+const IC = { raw: 'out/sprites/ic_raw_cheddar.png', base: 'out/sprites/ic_base_cheddar.png', lot: 'out/sprites/ic_lot_cheddar.png', pick: 'out/sprites/ic_pick.png' };
+const LAST = {}; let wantMover = 0;
+const button = (label, fn) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.onclick = fn; bar.appendChild(b); };
+const clearAll = () => { for (const id of [...LB.plates.keys()]) LB.unwarn(id); LB.q.length = 0; };
+button('HABLA QUIETO', () => LB.say('driller', "Drill's warm.", headIn('driller')));
+button('HABLA ANDANDO', () => { wantMover = performance.now() + 6000; });
+button('AVISOS DE MÁQUINA', () => { clearAll(); LB.warn('ref', { tone: 'amber', icon: IC.raw, text: 'NO RAW', anchor: ANCH.refinery }); LB.warn('chz', { tone: 'amber', icon: IC.base, text: 'NO BASE', anchor: ANCH.cheesery }); LB.warn('drl', { tone: 'red', icon: IC.pick, text: 'STOPPED', anchor: ANCH.drill }); });
+button('CONFLICTOS', () => { clearAll(); LB.warn('ref', { tone: 'amber', icon: IC.raw, text: 'NO RAW', anchor: ANCH.refinery }); LB.warn('drl', { tone: 'red', icon: IC.pick, text: 'STOPPED', anchor: ANCH.drill }); LB.warn('drl2', { tone: 'amber', icon: IC.raw, text: 'NO VEIN', anchor: [ANCH.drill[0] + 6, ANCH.drill[1] + 4] }); LB.warn('chz', { tone: 'amber', icon: IC.base, text: 'NO BASE', anchor: ANCH.cheesery }); LB.warn('lift', { tone: 'amber', icon: IC.lot, text: 'LIFT FULL', anchor: [ANCH.cheesery[0] + 14, ANCH.cheesery[1] + 10] }); LB.warn('rock', { tone: 'amber', icon: IC.pick, text: 'PICK ME', anchor: ANCH.rock }); LB.say('miner', 'Found a vein!', headIn('miner')); LB.say('refiner', 'Fire needs Raw.', headIn('refiner')); });
+button('SIN SITIO', () => { clearAll(); LB.warn('drl', { tone: 'red', icon: IC.pick, text: 'STOPPED', anchor: ANCH.drill }); LB.say('cook', 'One more batch, then tea.', headIn('cook')); });
+button('LIMPIAR', clearAll);
+COL.appendChild(stat);
+setInterval(() => {
+  const now = performance.now(), off2 = document.createElement('canvas'); renderStopTo(1, now, off2); const g = dc.getContext('2d'); g.setTransform(MK, 0, 0, MK, 0, 0); g.imageSmoothingEnabled = false; g.drawImage(off2, 0, 0);
+  // «Habla andando»: espera a que un ratón se esté moviendo de verdad y es ese el que habla.
+  const moving = Object.keys(BR).filter((w) => BR[w].px != null && LAST[w] != null && Math.abs(BR[w].px - LAST[w]) >= 1 && w !== 'miner'); for (const w of Object.keys(BR)) LAST[w] = BR[w].px;
+  if (wantMover && now < wantMover && moving.length) { LB.say(moving[0], moving[0] === 'cook' ? 'Wheel coming through!' : 'On my way!', headIn(moving[0])); wantMover = 0; }
+  const s = LB.tick(now); stat.textContent = `Bocadillo: ${s.bubble} · placas con texto: ${s.plates} · insignias: ${s.badges} · sin sitio: ${s.hidden} · bocadillos cerrados (sin sitio o sin ratón): ${s.closed} · solapes: ${s.overlaps}`;
+}, 50);
+COL.insertBefore(bar, scene);
 UL([
-  '<b>Bocadillo:</b> crema con 1 px de tinta, esquinas recortadas y una línea de sombra clara abajo; la punta va aparte (abajo, o girada para los lados). Para lo que dicen los ratones.',
-  '<b>Placa de máquina:</b> chapa ámbar remachada colgada de una cadena; la roja es para «parada». Para lo que le pasa a una máquina (sin veta, falta Base, parada). Se distingue del bocadillo a primera vista: no habla nadie.',
-  '<b>Insignia:</b> el estado pequeño de un capítulo o un puesto: ámbar necesita algo, rojo parado, verde listo.',
-  '<b>Cómo se usan:</b> el juego ya pinta su interfaz en HTML; las piezas se estiran con <code>border-image</code> a escala entera (6 px por cada 3 de arte en esta página), como en la columna de arriba. El texto es el del juego, en inglés.',
+  '<b>Bocadillo:</b> el validado en la revisión de arte, sin cambios: crema con 2 px de tinta y esquinas recortadas, letra pixel y la punta escalonada. Ahora va anclado al ratón: se recoloca en cada fotograma sobre su cabeza y la punta lo sigue señalando. Si no cabe encima, se corre o se pone a un lado; si el ratón sale de la vista o no hay sitio durante más de 0,4 s, se cierra. Habla uno a la vez; el siguiente espera su turno.',
+  '<b>Placa de aviso:</b> la validada: chapa oscura con borde ámbar, el icono del recurso aprobado, el texto del juego y la cadena hasta la máquina. La roja (máquina parada) usa los colores del aviso rojo que ya tiene el juego.',
+  '<b>Insignias:</b> los iconos de aviso aprobados que ya usa el juego (el triángulo ámbar, el rojo y la marca verde), no unos nuevos. Son lo que queda de una placa cuando no cabe con texto.',
+  '<b>Reglas de colocación:</b> primero lo rojo (máquina parada), luego el bocadillo (dura unos segundos) y al final lo ámbar (un aviso que puede esperar en su insignia); la placa roja, si no cabe encima, cuelga por debajo de su punto; cada pieza prueba sus posiciones en orden (la placa: cadena de 8, 20 o 32 px y corrida a los lados sin dejar de colgar de su punto) y se queda con la primera que no pisa nada; si la que tenía sigue valiendo, no se mueve. Como mucho 3 placas con texto a la vez; las demás pasan a insignia; si ni eso cabe, no se pinta, y el aviso sigue activo. La línea de debajo de la escena cuenta en directo lo que se ve y los solapes, que deben ser 0.',
+  '<b>Los botones:</b> HABLA QUIETO (el perforador, en su puesto) · HABLA ANDANDO (espera a que un ratón se esté moviendo y es ese el que habla: el bocadillo lo sigue) · AVISOS DE MÁQUINA (dos ámbar y una roja) · CONFLICTOS (seis avisos y dos ratones a la vez: lo rojo sale con texto, hablan los dos por turnos, tres ámbar con texto y el resto en insignia o fuera) · SIN SITIO (el quesero, junto al borde y con la placa roja donde iría su bocadillo: no se tapa lo crítico, así que su bocadillo se cierra y el contador lo apunta).',
 ]);
-H3('CSS de ejemplo');
-{ const pre = document.createElement('pre'); pre.className = 'b5-code'; pre.textContent = `.bubble { border: 6px solid; border-image: url(bubble_9slice.png) 3 fill / 6px stretch; image-rendering: pixelated; }
-.bubble::after { /* bubble_tail.png, 14 × 12 px, bajo el bocadillo */ }
-.plate { border: 6px solid; border-image: url(plate_amber_9slice.png) 3 fill / 6px stretch; image-rendering: pixelated; }
-.plate.stopped { border-image-source: url(plate_red_9slice.png); }`; COL.appendChild(pre); }
 
 // ================= ENTREGA =================
 H2('E', 'ENTREGA PARA INTEGRAR', 'En exploracion/pixel/out/main2/compartido, con su manifest.json (incluye el guion del montacargas y la alineación).');
 TB(['ARCHIVO', 'TAMAÑO', 'SALE DE', 'PARA', 'NOTA'], EXPORT5.map((e) => { const cv = e.cv(); return [`<code>${e.file}</code>`, `${cv.width} × ${cv.height}`, `<code>${e.src}</code>`, e.marker, e.note]; }));
 UL([
+  '<b>Bocadillos y placas</b> no son PNG: son el CSS validado (.ad-bub, .ad-warn) y la capa de colocación <code>labelLayer</code> de <code>main2-src/b5/b5_ui.js</code>, que el juego puede usar tal cual sobre su escena.',
   '<b>Revisado y anotado para QA:</b> las fichas de recurso que viajan (Raw, Base, ruedas) llevan contorno porque son objetos, no efectos; la columna recorta el castillete 9 px; el pico dorado del jugador (Sharper Pick 16) está pendiente; las fases de las máquinas se notan poco.',
 ]);
 H2('→', 'SIGUIENTE', 'Bloque 6 · QA y entrega: coherencia visual, escalas, animaciones, piezas editables y compatibilidad con el móvil, antes de integrar sobre el juego real.');

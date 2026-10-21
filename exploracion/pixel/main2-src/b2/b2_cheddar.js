@@ -9,6 +9,8 @@
 // Arreglo de composición: en V4.1 el horno quedaba cortado por el borde izquierdo (SC.ox = 8 lo ponía en x = −6). Con 17 el
 // horno entra entero y el pozo del montacargas sigue dentro de la pantalla (x 152–159 de 161).
 SC.ox = 17;
+// Las dos cajas con una cuña que el fondo de V4.1 ponía en el suelo de cada capítulo no son nada del juego: fuera.
+SPR.crate = (() => { const c = document.createElement('canvas'); c.width = c.height = 1; return c.toDataURL(); })();
 const B2 = { ref: { stage: 1, boost: 0, on: true }, drill: { stage: 1, boost: 0, on: true }, cheese: { stage: 1, boost: 0, on: true }, mine: { boost: 0, on: true } };
 const TIER_STAGE = [1, 1, 2, 2, 3, 3];
 const mkc = (w, h, f) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; const was = ctx; ctx = g; try { f(g); } finally { ctx = was; } return c; };
