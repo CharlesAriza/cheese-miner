@@ -1,0 +1,164 @@
+{
+  "version": "2026-10-21",
+  "unit": "1 px de arte = 1 px del archivo",
+  "column": {
+    "chapterX0InSurface": 254,
+    "chapterWidth": 161,
+    "surfaceHeight": 164,
+    "chapterHeight": 160,
+    "landings": {
+      "surface": 101,
+      "cheddar": 226,
+      "gouda": 386,
+      "brie": 546
+    },
+    "cageX": 150
+  },
+  "liftScript": [
+    {
+      "kind": "down",
+      "from": "surface",
+      "to": "brie",
+      "ms": 2600
+    },
+    {
+      "kind": "load",
+      "from": "brie",
+      "to": "brie",
+      "ms": 1100
+    },
+    {
+      "kind": "up",
+      "from": "brie",
+      "to": "gouda",
+      "ms": 1000
+    },
+    {
+      "kind": "load",
+      "from": "gouda",
+      "to": "gouda",
+      "ms": 1100
+    },
+    {
+      "kind": "up",
+      "from": "gouda",
+      "to": "cheddar",
+      "ms": 1000
+    },
+    {
+      "kind": "load",
+      "from": "cheddar",
+      "to": "cheddar",
+      "ms": 1100
+    },
+    {
+      "kind": "up",
+      "from": "cheddar",
+      "to": "surface",
+      "ms": 1300
+    },
+    {
+      "kind": "unload",
+      "from": "surface",
+      "to": "surface",
+      "ms": 1500
+    }
+  ],
+  "nineSlice": {
+    "bubble": 3,
+    "plate": 3,
+    "cssScale": 2
+  },
+  "files": [
+    {
+      "file": "cage_back.png",
+      "w": 12,
+      "h": 15,
+      "source": "cageBack()",
+      "for": "nuevo · montacargas",
+      "state": "nuevo",
+      "note": "Marco, techo con argolla, fondo y suelo de la jaula. Las ruedas van entre las dos capas."
+    },
+    {
+      "file": "cage_front.png",
+      "w": 12,
+      "h": 15,
+      "source": "cageFront()",
+      "for": "nuevo · montacargas",
+      "state": "nuevo",
+      "note": "Barrotes delante de la carga."
+    },
+    {
+      "file": "bubble_9slice.png",
+      "w": 9,
+      "h": 9,
+      "source": "bubble9()",
+      "for": "bocadillo de diálogo",
+      "state": "nuevo",
+      "note": "9 cortes: 3 px por lado (border-image-slice: 3)."
+    },
+    {
+      "file": "bubble_tail.png",
+      "w": 7,
+      "h": 6,
+      "source": "bubbleTail()",
+      "for": "bocadillo de diálogo",
+      "state": "nuevo",
+      "note": "Punta hacia abajo; se gira 90° para los lados."
+    },
+    {
+      "file": "plate_amber_9slice.png",
+      "w": 11,
+      "h": 11,
+      "source": "plate9(ámbar)",
+      "for": "placa de máquina",
+      "state": "nuevo",
+      "note": "9 cortes: 3 px por lado. Avisos de máquina."
+    },
+    {
+      "file": "plate_red_9slice.png",
+      "w": 11,
+      "h": 11,
+      "source": "plate9(roja)",
+      "for": "placa de máquina",
+      "state": "nuevo",
+      "note": "Máquina parada."
+    },
+    {
+      "file": "plate_chain.png",
+      "w": 3,
+      "h": 8,
+      "source": "chainSprite()",
+      "for": "placa de máquina",
+      "state": "nuevo",
+      "note": "Se repite en vertical hasta el punto que señala."
+    },
+    {
+      "file": "badge_warn.png",
+      "w": 9,
+      "h": 9,
+      "source": "badge('warn')",
+      "for": "icons.js · aviso de roca",
+      "state": "nuevo",
+      "note": "Necesita algo (ámbar)."
+    },
+    {
+      "file": "badge_stop.png",
+      "w": 9,
+      "h": 9,
+      "source": "badge('stop')",
+      "for": "icons.js · aviso de roca",
+      "state": "nuevo",
+      "note": "Parado (rojo)."
+    },
+    {
+      "file": "badge_ok.png",
+      "w": 9,
+      "h": 9,
+      "source": "badge('ok')",
+      "for": "icons.js · aviso de roca",
+      "state": "nuevo",
+      "note": "Listo (verde)."
+    }
+  ]
+}
