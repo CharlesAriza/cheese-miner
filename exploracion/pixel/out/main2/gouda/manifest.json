@@ -1,0 +1,43 @@
+{
+  "version": "2026-10-21",
+  "unit": "1 px de arte = 1 px del archivo",
+  "anchor": "como en Cheddar (o = SC.ox = 17)",
+  "files": [
+    {
+      "file": "chapter_bg.png",
+      "w": 161,
+      "h": 160,
+      "source": "goudaBG()",
+      "replaces": "fondo del capítulo de Gouda",
+      "state": "nuevo",
+      "note": "El de Cheddar con la profundidad de Gouda, en piedra gris y latón. 161 × 160, con SC.ox = 17."
+    },
+    {
+      "file": "cheese_base.png",
+      "w": 42,
+      "h": 46,
+      "source": "cheeseStaticGouda(1)",
+      "replaces": "scene.js · Cheesery",
+      "state": "adaptado",
+      "note": "El taller de Cheddar con los quesos curados en cera roja."
+    },
+    {
+      "file": "cheese_2.png",
+      "w": 42,
+      "h": 46,
+      "source": "cheeseStaticGouda(2)",
+      "replaces": "scene.js · Cheesery",
+      "state": "adaptado",
+      "note": "Fase II."
+    },
+    {
+      "file": "cheese_3.png",
+      "w": 42,
+      "h": 46,
+      "source": "cheeseStaticGouda(3)",
+      "replaces": "scene.js · Cheesery",
+      "state": "adaptado",
+      "note": "Fase III."
+    }
+  ]
+}
