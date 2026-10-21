@@ -11,11 +11,13 @@
 .b5-stack { position: relative; width: max-content; }
 .b5-stack canvas { display: block; image-rendering: pixelated; }
 .b5-code { overflow-x: auto; max-width: 100%; padding: 10px 12px; border-radius: 6px; background: #1c1410; color: #e8dcb0; font: 12px/1.5 ui-monospace, Menlo, monospace; }
-.ad-warn.lb-red { background: #2a1014; border-color: #ff5a7a; box-shadow: 0 0 0 2px #1b1220, inset 0 2px 0 #4a1c24; }
-.ad-warn.lb-red b { color: #ffc2cc; }
+.ad-warn.lb-red { background: #7e1626; border-color: #ff5a7a; box-shadow: 0 0 0 2px #1b1220, inset 0 2px 0 #b8344a; animation: lb-pulse 1s steps(1) infinite; }
+.ad-warn.lb-red b { color: #ffffff; }
+.ad-warn.lb-red img { filter: none; }
 .ad-warn.lb-red .ad-chain { background: repeating-linear-gradient(#ff5a7a 0 2px, transparent 2px 4px); }
+@keyframes lb-pulse { 0%, 60% { border-color: #ff5a7a; } 61%, 100% { border-color: #ffc2cc; } }
+.ad-warn.lb-mini { padding: 3px; gap: 0; }
 .ad-warn, .ad-bub, .lb-badge { position: absolute; }
-.lb-badge { image-rendering: pixelated; z-index: 2; }
 .lb-scene { position: relative; display: inline-block; }
 .lb-scene canvas { display: block; image-rendering: pixelated; }
 .lb-host { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }

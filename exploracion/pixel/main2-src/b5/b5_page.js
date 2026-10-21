@@ -31,10 +31,12 @@ H2('K', 'BOCADILLOS, PLACAS E INSIGNIAS', 'De vuelta a la dirección validada en
 const G1 = geoC(STOPS[1]), T0 = STOPS[1].top, DW = Math.ceil(SC.worldW), DH = STOPS[1].h;
 const scene = document.createElement('div'); scene.className = 'lb-scene'; const dc = document.createElement('canvas'); dc.width = DW * MK; dc.height = DH * MK; dc.style.width = Math.round(DW * KPX) + 'px'; dc.style.height = Math.round(DH * KPX) + 'px'; scene.appendChild(dc); const host = document.createElement('div'); host.className = 'lb-host'; scene.appendChild(host);
 const bar = DIV('lb-bar'); COL.appendChild(scene); const stat = DIV('lb-stat');
-const LB = labelLayer(host, { k: KPX, view: () => [0, 0, DW * KPX, DH * KPX] }); window.LB5 = LB;
+// Los ratones de la escena (los cuatro del capítulo y el jugador): ninguna placa los tapa.
+const miceRects = () => { const out = []; for (const w of Object.keys(BR)) { const b = BR[w]; if (b && b.px != null) out.push([w, b.px, b.py - 20 - T0, 22, 20]); } const p = PLAYER(G1); out.push(['player', p.x, p.feet - 19 - T0, 32, 20]); return out; };
+const LB = labelLayer(host, { k: KPX, view: () => [0, 0, DW * KPX, DH * KPX], mice: miceRects }); window.LB5 = LB;
 const headIn = (who) => () => { const b = BR[who]; return b && b.px != null ? [b.px + 11, b.py - 18 - T0] : null; };
 // La placa de la perforadora cuelga de su cuadro de mandos (donde está su piloto), no de lo alto de la máquina.
-const ANCH = { refinery: [G1.o + 12, G1.TL - 30 - T0], drill: [G1.o + 100, G1.DK - 13 - T0], cheesery: [G1.o + 116, G1.TR - 36 - T0], rock: [G1.rx + 27, G1.rb - 42 - T0] };
+const ANCH = { refinery: [G1.o + 12, G1.TL - 30 - T0], drill: [G1.o + 100, G1.DK - 13 - T0], cheesery: [G1.o + 116, G1.TR - 36 - T0], rock: [G1.rx + 46, G1.rb - 30 - T0] }; // la roca avisa desde su hombro derecho: encima se pone el minero
 const IC = { raw: 'out/sprites/ic_raw_cheddar.png', base: 'out/sprites/ic_base_cheddar.png', lot: 'out/sprites/ic_lot_cheddar.png', pick: 'out/sprites/ic_pick.png' };
 const LAST = {}; let wantMover = 0;
 const button = (label, fn) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.onclick = fn; bar.appendChild(b); };
@@ -51,15 +53,15 @@ setInterval(() => {
   // «Habla andando»: espera a que un ratón se esté moviendo de verdad y es ese el que habla.
   const moving = Object.keys(BR).filter((w) => BR[w].px != null && LAST[w] != null && Math.abs(BR[w].px - LAST[w]) >= 1 && w !== 'miner'); for (const w of Object.keys(BR)) LAST[w] = BR[w].px;
   if (wantMover && now < wantMover && moving.length) { LB.say(moving[0], moving[0] === 'cook' ? 'Wheel coming through!' : 'On my way!', headIn(moving[0])); wantMover = 0; }
-  const s = LB.tick(now); stat.textContent = `Bocadillo: ${s.bubble} · placas con texto: ${s.plates} · insignias: ${s.badges} · sin sitio: ${s.hidden} · bocadillos cerrados (sin sitio o sin ratón): ${s.closed} · solapes: ${s.overlaps}`;
+  const s = LB.tick(now); stat.textContent = `Bocadillo: ${s.bubble} · placas con texto: ${s.plates} · placas pequeñas: ${s.badges} · sin sitio: ${s.hidden} · bocadillos cerrados (sin sitio o sin ratón): ${s.closed} · solapes: ${s.overlaps}`;
 }, 50);
 COL.insertBefore(bar, scene);
 UL([
   '<b>Bocadillo:</b> el validado en la revisión de arte, sin cambios: crema con 2 px de tinta y esquinas recortadas, letra pixel y la punta escalonada. Ahora va anclado al ratón: se recoloca en cada fotograma sobre su cabeza y la punta lo sigue señalando. Si no cabe encima, se corre o se pone a un lado; si el ratón sale de la vista o no hay sitio durante más de 0,4 s, se cierra. Habla uno a la vez; el siguiente espera su turno.',
-  '<b>Placa de aviso:</b> la validada: chapa oscura con borde ámbar, el icono del recurso aprobado, el texto del juego y la cadena hasta la máquina. La roja (máquina parada) usa los colores del aviso rojo que ya tiene el juego.',
-  '<b>Insignias:</b> los iconos de aviso aprobados que ya usa el juego (el triángulo ámbar, el rojo y la marca verde), no unos nuevos. Son lo que queda de una placa cuando no cabe con texto.',
-  '<b>Reglas de colocación:</b> primero lo rojo (máquina parada), luego el bocadillo (dura unos segundos) y al final lo ámbar (un aviso que puede esperar en su insignia); la placa roja, si no cabe encima, cuelga por debajo de su punto; cada pieza prueba sus posiciones en orden (la placa: cadena de 8, 20 o 32 px y corrida a los lados sin dejar de colgar de su punto) y se queda con la primera que no pisa nada; si la que tenía sigue valiendo, no se mueve. Como mucho 3 placas con texto a la vez; las demás pasan a insignia; si ni eso cabe, no se pinta, y el aviso sigue activo. La línea de debajo de la escena cuenta en directo lo que se ve y los solapes, que deben ser 0.',
-  '<b>Los botones:</b> HABLA QUIETO (el perforador, en su puesto) · HABLA ANDANDO (espera a que un ratón se esté moviendo y es ese el que habla: el bocadillo lo sigue) · AVISOS DE MÁQUINA (dos ámbar y una roja) · CONFLICTOS (seis avisos y dos ratones a la vez: lo rojo sale con texto, hablan los dos por turnos, tres ámbar con texto y el resto en insignia o fuera) · SIN SITIO (el quesero, junto al borde y con la placa roja donde iría su bocadillo: no se tapa lo crítico, así que su bocadillo se cierra y el contador lo apunta).',
+  '<b>Placa de aviso:</b> la validada: chapa oscura con borde ámbar, el icono del recurso que falta, el texto del juego y la cadena hasta la máquina. <b>La de máquina parada</b> se distingue al primer vistazo: chapa roja, texto en blanco, el triángulo rojo de aviso del juego en lugar de un recurso y un borde que late despacio.',
+  '<b>Placa pequeña:</b> cuando una placa no cabe con texto, queda la misma placa con solo su icono y su cadena: se lee igual, está a la escala de la escena y nunca tapa a un ratón (las placas evitan a todos los ratones; el bocadillo, a todos menos al que habla).',
+  '<b>Reglas de colocación:</b> primero lo rojo (máquina parada), luego el bocadillo (dura unos segundos) y al final lo ámbar (un aviso que puede esperar en placa pequeña); la placa roja, si no cabe encima, cuelga por debajo de su punto; cada pieza prueba sus posiciones en orden (la placa: cadena de 8, 20 o 32 px y corrida a los lados sin dejar de colgar de su punto) y se queda con la primera que no pisa nada; si la que tenía sigue valiendo, no se mueve. Como mucho 3 placas con texto a la vez; las demás pasan a placa pequeña; si ni eso cabe, no se pinta, y el aviso sigue activo. La línea de debajo de la escena cuenta en directo lo que se ve y los solapes, que deben ser 0.',
+  '<b>Los botones:</b> HABLA QUIETO (el perforador, en su puesto) · HABLA ANDANDO (espera a que un ratón se esté moviendo y es ese el que habla: el bocadillo lo sigue) · AVISOS DE MÁQUINA (dos ámbar y una roja) · CONFLICTOS (seis avisos y dos ratones a la vez: lo rojo sale con texto, hablan los dos por turnos, tres ámbar con texto y el resto en placa pequeña o fuera) · SIN SITIO (el quesero, junto al borde y con la placa roja donde iría su bocadillo: no se tapa lo crítico, así que su bocadillo se cierra y el contador lo apunta).',
 ]);
 
 // ================= ENTREGA =================

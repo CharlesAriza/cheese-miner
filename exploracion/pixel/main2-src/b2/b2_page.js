@@ -81,6 +81,7 @@ TB(['PUESTO', 'QUÉ DA EN EL JUEGO', 'CÓMO SE VE', 'ESTADO'], [
 H2('V', 'VFX SIN CONTORNO', 'Revisados los del capítulo y hechos los nuevos con la misma regla.');
 UL([
   '<b>Los de V4.1 ya cumplían:</b> trozos de roca, polvo, humo de la chimenea, chispas de la broca, destellos de la veta, fuego y resplandor del horno. Ninguno lleva tinta.',
+  '<b>El golpe de minar:</b> el pico ya no trae las chispas pintadas de la animación aprobada (al recortarlas les tocaba contorno de tinta); el ciclo es golpe (70 ms), acompaña (120 ms), se recupera (110 ms) y reposo, y el minero contratado prepara el golpe levantando el pico justo antes. En el impacto: un destello, un aro de polvo que se abre y los trozos de roca, todo sin contorno. En estas demostraciones el jugador pica solo, un toque cada 1,1 s.',
   '<b>Nuevos, sin contorno:</b> el piloto ámbar de la perforadora, el farol de la quesería, el golpe de vapor de la prensa, los farolillos y las monedas de la tienda reforzada.',
   '<b>Anotado para revisar más adelante:</b> las fases de las máquinas se notan poco; se retoman después de la integración.',
   '<b>Anotado para QA:</b> las fichas de recurso que viajan (Raw, Base, rueda) llevan contorno porque son iconos de recurso, no efectos; si se quiere, se aclaran en el bloque 5 con el resto de sistemas compartidos.',

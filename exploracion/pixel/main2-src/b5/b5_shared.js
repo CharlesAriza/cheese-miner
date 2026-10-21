@@ -38,9 +38,9 @@ function wheelSmall(g, x, y, zone) { const [d, m, l] = WHEEL_COL[zone]; g.fillSt
 // columna; la superficie empieza en x = 0 de la columna, que es x = 254 del pueblo.)
 function drawLift5(g, t) {
   const L = liftAt(t), x = CAGE_X, y = L.y - 15;
-  // Ruedas esperando en el rellano de cada capítulo (antes de que pase la jaula a recogerlas).
-  for (const z of ['brie', 'gouda', 'cheddar']) if (!L.cargo.includes(z) && L.loading !== z && L.kind !== 'unload') wheelSmall(g, x - 9, LANDING[z] - 3, z);
-  if (L.loading) { const k = Math.min(1, L.k / 0.45); if (k < 1) wheelSmall(g, Math.round(x - 9 + k * 12), LANDING[L.loading] - 3 - Math.round(Math.sin(k * Math.PI) * 4), L.loading); }
+  // Las ruedas que esperan en cada rellano las pinta el capítulo (la cola de V4.1, por detrás de los ratones); aquí solo el
+  // último saltito de la rueda al entrar en la jaula, desde su borde, para no pasar por delante del quesero.
+  if (L.loading) { const k = Math.min(1, L.k / 0.45); if (k < 1) wheelSmall(g, Math.round(x - 1 + k * 4), LANDING[L.loading] - 3 - Math.round(Math.sin(k * Math.PI) * 3), L.loading); }
   // Cable desde la polea del castillete hasta la argolla de la jaula.
   g.fillStyle = '#c8c2d4'; g.fillRect(x + 5, 46, 1, Math.max(0, y - 46)); g.fillStyle = '#8a8496'; g.fillRect(x + 6, 46, 1, Math.max(0, y - 46));
   g.drawImage(cageBack(), x, y);

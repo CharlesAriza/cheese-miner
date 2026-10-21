@@ -690,11 +690,13 @@ body { background: #120f18; }
 .b5-stack { position: relative; width: max-content; }
 .b5-stack canvas { display: block; image-rendering: pixelated; }
 .b5-code { overflow-x: auto; max-width: 100%; padding: 10px 12px; border-radius: 6px; background: #1c1410; color: #e8dcb0; font: 12px/1.5 ui-monospace, Menlo, monospace; }
-.ad-warn.lb-red { background: #2a1014; border-color: #ff5a7a; box-shadow: 0 0 0 2px #1b1220, inset 0 2px 0 #4a1c24; }
-.ad-warn.lb-red b { color: #ffc2cc; }
+.ad-warn.lb-red { background: #7e1626; border-color: #ff5a7a; box-shadow: 0 0 0 2px #1b1220, inset 0 2px 0 #b8344a; animation: lb-pulse 1s steps(1) infinite; }
+.ad-warn.lb-red b { color: #ffffff; }
+.ad-warn.lb-red img { filter: none; }
 .ad-warn.lb-red .ad-chain { background: repeating-linear-gradient(#ff5a7a 0 2px, transparent 2px 4px); }
+@keyframes lb-pulse { 0%, 60% { border-color: #ff5a7a; } 61%, 100% { border-color: #ffc2cc; } }
+.ad-warn.lb-mini { padding: 3px; gap: 0; }
 .ad-warn, .ad-bub, .lb-badge { position: absolute; }
-.lb-badge { image-rendering: pixelated; z-index: 2; }
 .lb-scene { position: relative; display: inline-block; }
 .lb-scene canvas { display: block; image-rendering: pixelated; }
 .lb-host { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
@@ -3995,7 +3997,9 @@ function drawSurface(g, now, o = {}) {
 SC.ox = 17;
 // Las dos cajas con una cuña que el fondo de V4.1 ponía en el suelo de cada capítulo no son nada del juego: fuera.
 SPR.crate = (() => { const c = document.createElement('canvas'); c.width = c.height = 1; return c.toDataURL(); })();
-const B2 = { ref: { stage: 1, boost: 0, on: true }, drill: { stage: 1, boost: 0, on: true }, cheese: { stage: 1, boost: 0, on: true }, mine: { boost: 0, on: true } };
+// En las demostraciones el jugador pica solo: un toque cada 1,1 s, con la misma regla que un toque de verdad (SIM41.hit).
+setInterval(() => { if (B2.autoTap && SIM41.mineStatus() === 'ready') SIM41.hit('manual'); }, 1100);
+const B2 = { autoTap: true, ref: { stage: 1, boost: 0, on: true }, drill: { stage: 1, boost: 0, on: true }, cheese: { stage: 1, boost: 0, on: true }, mine: { boost: 0, on: true } };
 const TIER_STAGE = [1, 1, 2, 2, 3, 3];
 const mkc = (w, h, f) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; const was = ctx; ctx = g; try { f(g); } finally { ctx = was; } return c; };
 // Contorno completado: un píxel vacío gana tinta si toca un píxel que no es tinta (la misma regla que REFINE B).
@@ -4135,6 +4139,7 @@ function drawCheddar(st, now) {
   if (S.focus && STOPS[S.stop] === st) for (const r of g.st[S.focus] || []) sel(r);
   drawWorkers(st, g, now);
   drawPlayer(g, now);
+  vfxImpact(ctx, g.rx + 6, g.rb - 21, now - AV.swing, Z41.combo % RULE.critEvery === 0); if (BR.miner) vfxImpact(ctx, g.rx + 30, g.rb - 34, now - BR.miner.hitAt, false);
   plaque(o + 2, FF - 30, DEP.cheddar, TH.cheddar);
 }
 
@@ -4143,6 +4148,20 @@ function drawCheddar(st, now) {
 // Sustituye al pico de V4.1 del minero contratado (descartado) y al trabajador genérico del jugador. Fotogramas: 0–1 en
 // reposo, 2 levanta, 3 golpe, 4 recoge. drawWorkers es el de V4.1 con solo la línea del pico cambiada.
 const PLAYER_MOUSE = { name: 'Player', lv: 1, rank: 0, rar: 0, skill: 'mining' };
+// El recorte del pico deja fuera las chispas amarillas que la animación aprobada trae pintadas en el golpe: al recortarlas
+// les tocaba contorno de tinta y la regla de VFX lo prohíbe. El impacto lo hacen ahora los VFX del golpe (sin contorno).
+delete PICKC['#fffbe0']; delete PICKC['#ffe55c']; PICKF.length = 0;
+// Fotogramas del golpe (los 5 aprobados), con el tiempo desde el impacto: 3 golpe (0–70 ms), 4 acompaña (70–190), 2 vuelve a
+// subir a media altura (190–300, la recuperación) y 0 en reposo; antes del golpe, 2 (preparación).
+const swingFrame = (since, windup) => (since >= 0 && since < 70 ? 3 : since >= 0 && since < 190 ? 4 : since >= 0 && since < 300 ? 1 : windup ? 2 : 0);
+// Impacto sin contorno: un destello en el punto del golpe (60 ms), un aro de polvo que se abre y se apaga y unas motas de roca.
+function vfxImpact(g, x, y, since, big) {
+  if (since < 0 || since > 260) return; const R2 = (a, b, w, h, c) => { g.fillStyle = c; g.fillRect(a, b, w, h); };
+  if (since < 60) { R2(x - 1, y - 1, 3, 3, '#fffbe8'); R2(x - 3, y, 7, 1, '#ffe9a8'); R2(x, y - 3, 1, 7, '#ffe9a8'); if (big) { R2(x - 4, y - 4, 1, 1, '#fff6c8'); R2(x + 4, y - 4, 1, 1, '#fff6c8'); R2(x - 4, y + 4, 1, 1, '#fff6c8'); R2(x + 4, y + 4, 1, 1, '#fff6c8'); } }
+  const k = Math.min(1, since / 260), r = Math.round(2 + k * (big ? 6 : 4)); g.globalAlpha = 0.55 * (1 - k); g.fillStyle = '#e8dcc4';
+  for (let a = 0; a < 16; a++) { const t = (a / 16) * Math.PI * 2; g.fillRect(Math.round(x + Math.cos(t) * r), Math.round(y + Math.sin(t) * r * 0.7), 1, 1); }
+  g.globalAlpha = 1;
+}
 // Dónde va el pico sobre el ratón oficial: su cabeza es más ancha que la del trabajador genérico de la animación, así que el
 // pico se coloca 3 px más adelante y 2 más abajo que en la revisión de arte (PICKDX/PICKDY). El mango nace en la pata, a la
 // altura del pecho, y la cabeza del pico queda delante del hocico: la cara se ve entera en los 5 fotogramas.
@@ -4164,15 +4183,15 @@ function drawWorkers(st, g, now) { // V4.1, con el pico aprobado
     const blink = now > b.blinkAt && now < b.blinkAt + 110, breath = Math.floor((now + (b.seed % 1300)) / (620 + (b.seed % 200))) % 2;
     const c = mF(b.m, p.o.legs ? 0 : breath, blink, p.o);
     if (p.flip) { ctx.save(); ctx.translate(x + 22, feet - 20 + p.dy); ctx.scale(-1, 1); ctx.drawImage(c, 0, 0); ctx.restore(); } else ctx.drawImage(c, x, feet - 20 + p.dy);
-    if (p.pick !== undefined && p.pick >= 0) { const pk = approvedPick(p.pick === 2 ? 3 : p.pick === 0 ? 2 : Math.floor(now / 600) % 2); if (pk) ctx.drawImage(pk, x + PICK_OX, feet - 20 + PICK_OY + p.dy); }
-    if (p.carry) ctx.drawImage(artCarry(p.carry), p.flip ? x - 1 : x + 15, feet - 13 + p.dy);
+    if (p.pick !== undefined && p.pick >= 0) { const since = now - b.hitAt, left = EX.minerMs - Z41.minerAcc, pk = approvedPick(swingFrame(since < 300 ? since : -1, left < 200 && !Z41.veinRevealed)); if (pk) ctx.drawImage(pk, x + PICK_OX, feet - 20 + PICK_OY + p.dy); }
+    if (p.carry) ctx.drawImage(artCarry(p.carry), p.flip ? x : x + 14, feet - 10 + p.dy); // la rueda en las patas, a la altura de la barriga (antes tapaba el hocico)
     b.px = x; b.py = feet; b.pose = p;
     HITS.push({ k: 'm', stop: STOPS.indexOf(st), st: g.who[who][2], who, name: b.m.name, x, y: feet - 20, w: 22, h: 20, crest: who === 'miner' });
   }
 }
 function drawPlayer(g, now) {
-  const dt = now - AV.swing, f = Z41.veinRevealed ? 0 : dt < 70 ? 3 : dt < 170 ? 4 : Math.floor(now / 600) % 2, p = PLAYER(g), y = p.feet + 1 - 20;
-  const mc = mF(PLAYER_MOUSE, f < 2 ? Math.floor(now / 650) % 2 : 0, false, f === 3 ? { face: 'grump' } : {}), pk = approvedPick(f); ctx.drawImage(mc, p.x, y); if (pk) ctx.drawImage(pk, p.x + PICK_OX, y + PICK_OY);
+  const dt = now - AV.swing, f = Z41.veinRevealed ? 0 : swingFrame(dt < 300 ? dt : -1, false), p = PLAYER(g), y = p.feet + 1 - 20;
+  const mc = mF(PLAYER_MOUSE, f === 0 ? Math.floor(now / 650) % 2 : 0, false, f === 3 || f === 4 ? { face: 'grump' } : {}), pk = approvedPick(f); ctx.drawImage(mc, p.x, y); if (pk) ctx.drawImage(pk, p.x + PICK_OX, y + PICK_OY);
   HITS.push({ k: 'm', stop: 1, st: 'rock', who: 'player', name: 'You', x: p.x + 1, y: p.feet - 19, w: 22, h: 20, player: true });
 }
 
@@ -4307,9 +4326,9 @@ function wheelSmall(g, x, y, zone) { const [d, m, l] = WHEEL_COL[zone]; g.fillSt
 // columna; la superficie empieza en x = 0 de la columna, que es x = 254 del pueblo.)
 function drawLift5(g, t) {
   const L = liftAt(t), x = CAGE_X, y = L.y - 15;
-  // Ruedas esperando en el rellano de cada capítulo (antes de que pase la jaula a recogerlas).
-  for (const z of ['brie', 'gouda', 'cheddar']) if (!L.cargo.includes(z) && L.loading !== z && L.kind !== 'unload') wheelSmall(g, x - 9, LANDING[z] - 3, z);
-  if (L.loading) { const k = Math.min(1, L.k / 0.45); if (k < 1) wheelSmall(g, Math.round(x - 9 + k * 12), LANDING[L.loading] - 3 - Math.round(Math.sin(k * Math.PI) * 4), L.loading); }
+  // Las ruedas que esperan en cada rellano las pinta el capítulo (la cola de V4.1, por detrás de los ratones); aquí solo el
+  // último saltito de la rueda al entrar en la jaula, desde su borde, para no pasar por delante del quesero.
+  if (L.loading) { const k = Math.min(1, L.k / 0.45); if (k < 1) wheelSmall(g, Math.round(x - 1 + k * 4), LANDING[L.loading] - 3 - Math.round(Math.sin(k * Math.PI) * 3), L.loading); }
   // Cable desde la polea del castillete hasta la argolla de la jaula.
   g.fillStyle = '#c8c2d4'; g.fillRect(x + 5, 46, 1, Math.max(0, y - 46)); g.fillStyle = '#8a8496'; g.fillRect(x + 6, 46, 1, Math.max(0, y - 46));
   g.drawImage(cageBack(), x, y);
@@ -4355,9 +4374,10 @@ const badge = (kind) => art('badge' + kind, () => { const c = PB(9, 9), M = { wa
 //     los lados sin dejar de colgar de su punto; el bocadillo: encima de la cabeza, corrido, o a un lado) y se queda con la
 //     primera que no pisa nada ni se sale de la vista. Si la que tenía sigue valiendo, no cambia (no salta de un sitio a otro).
 // 3 · Límites: un bocadillo a la vez (los demás esperan su turno) y como mucho 3 placas con texto; las demás, y las que no
-//     caben, se quedan en su insignia sobre la máquina. Si tampoco cabe la insignia, no se pinta (el aviso sigue activo).
-// 4 · Si un bocadillo no cabe con su ancho, se estrecha (más líneas) antes de rendirse.
-// 5 · El bocadillo va anclado al ratón que habla: sigue su cabeza en cada fotograma y su punta lo señala. Si el ratón sale de
+//     caben, pasan a placa pequeña (la misma placa con solo su icono). Si tampoco cabe, no se pinta (el aviso sigue activo).
+// 4 · Ninguna placa tapa a un ratón, y ningún bocadillo tapa a otro ratón que no sea el que habla.
+// 5 · Si un bocadillo no cabe con su ancho, se estrecha (más líneas) antes de rendirse.
+// 6 · El bocadillo va anclado al ratón que habla: sigue su cabeza en cada fotograma y su punta lo señala. Si el ratón sale de
 //     la vista o no hay sitio durante más de 0,4 s, el bocadillo se cierra; nunca se queda flotando.
 const GAME_ICON = {
   alert: [['......K......', '.....KLK.....', '.....KYK.....', '....KYYYK....', '....KYKYK....', '...KYYKYYK...', '...KYYKYYK...', '..KYYYKYYYK..', '..KYYYYYYYK..', '.KYYYYKYYYYK.', '.KDDDDDDDDDK.', 'KKKKKKKKKKKKK'], { Y: '#ffd43a', L: '#fff3a0', D: '#d9a514', K: '#1b1622' }],
@@ -4367,10 +4387,13 @@ const GAME_ICON = {
 const gameIcon = (name) => art('gi' + name, () => { const [rows, pal] = GAME_ICON[name], c = document.createElement('canvas'); c.width = rows[0].length; c.height = rows.length; const g = c.getContext('2d'); rows.forEach((r, y) => [...r].forEach((ch, x) => { if (ch !== '.') { g.fillStyle = pal[ch]; g.fillRect(x, y, 1, 1); } })); return c; });
 const PLATE_MAX = 3, PRIO = { red: 3, say: 2, amber: 1 };
 // host: un div posicionado del tamaño de la escena; k: px de pantalla por px de arte; view(): [x, y, w, h] visible en px del
-// host; keepOut(): rectángulos prohibidos (la interfaz); icons: ruta del icono de cada recurso.
-function labelLayer(host, { k, view, keepOut = () => [] }) {
+// host; keepOut(): rectángulos prohibidos (la interfaz); mice(): los ratones de la escena [quién, x, y, w, h] en px de arte,
+// que ninguna placa puede tapar (el bocadillo tampoco tapa a otro ratón que no sea el que habla).
+function labelLayer(host, { k, view, keepOut = () => [], mice = () => [] }) {
   const L = { plates: new Map(), q: [], cur: null, gapUntil: 0, stats: { bubble: 0, plates: 0, badges: 0, hidden: 0, overlaps: 0, closed: 0 } };
-  const mkPlate = (it) => { const el = document.createElement('div'); el.className = 'ad-warn' + (it.tone === 'red' ? ' lb-red' : ''); el.innerHTML = `<img class="pix" src="${it.icon}" alt=""><b>${it.text}</b><i class="ad-chain"></i>`; host.appendChild(el); const bd = document.createElement('img'); bd.className = 'lb-badge'; bd.src = gameIcon(it.tone === 'red' ? 'alertr' : 'alert').toDataURL(); bd.alt = ''; host.appendChild(bd); it.el = el; it.bd = bd; it.w = el.offsetWidth; it.h = el.offsetHeight; it.ci = -1; it.t = performance.now(); };
+  // La placa roja lleva el triángulo rojo del juego (no un icono de recurso) y el texto en blanco. La versión pequeña es la
+  // misma placa con solo su icono y su cadena: se lee igual que la grande y está a la escala de la escena.
+  const mkPlate = (it) => { const red = it.tone === 'red', ic = red ? gameIcon('alertr').toDataURL() : it.icon, el = document.createElement('div'); el.className = 'ad-warn' + (red ? ' lb-red' : ''); el.innerHTML = `<img class="pix" src="${ic}" alt=""><b>${it.text}</b><i class="ad-chain"></i>`; host.appendChild(el); const bd = document.createElement('div'); bd.className = 'ad-warn lb-mini' + (red ? ' lb-red' : ''); bd.innerHTML = `<img class="pix" src="${ic}" alt=""><i class="ad-chain"></i>`; host.appendChild(bd); it.el = el; it.bd = bd; it.w = el.offsetWidth; it.h = el.offsetHeight; it.bw = bd.offsetWidth; it.bh = bd.offsetHeight; it.ci = -1; it.t = performance.now(); };
   L.warn = (id, o) => { const old = L.plates.get(id); if (old && old.text === o.text && old.tone === o.tone) { old.anchor = o.anchor; return; } if (old) L.unwarn(id); const it = { id, kind: o.tone, ...o }; mkPlate(it); L.plates.set(id, it); };
   L.unwarn = (id) => { const it = L.plates.get(id); if (!it) return; it.el.remove(); it.bd.remove(); L.plates.delete(id); };
   L.say = (who, text, head) => { if (L.cur && L.cur.who === who) return; if (L.q.some((s) => s.who === who)) return; if (L.q.length >= 2) L.q.shift(); L.q.push({ who, text, head }); };
@@ -4380,13 +4403,13 @@ function labelLayer(host, { k, view, keepOut = () => [] }) {
   const inside = (r, V) => r[0] >= V[0] + 2 && r[1] >= V[1] + 2 && r[0] + r[2] <= V[0] + V[2] - 2 && r[1] + r[3] <= V[1] + V[3] - 2;
   // Posiciones posibles de una placa: colgando de su punto, con la cadena de 8, 20 o 32 px, centrada o corrida a un lado.
   // Si es roja y no cabe encima, cuelga por debajo de su punto (la cadena sube): lo crítico no se queda sin texto.
-  const plateCands = (it) => { const [ax, ay] = [it.anchor[0] * k, it.anchor[1] * k], out = []; for (const ch of [8, 20, 32]) for (const dx of [0.5, 0.82, 0.18]) { const left = Math.round(ax - it.w * dx), top = Math.round(ay - ch - it.h); out.push({ r: [left, top, it.w, it.h + ch], left, top, ch, ax }); } if (it.tone === 'red') for (const ch of [8, 20]) for (const dx of [0.5, 0.82, 0.18]) { const left = Math.round(ax - it.w * dx), top = Math.round(ay + ch); out.push({ r: [left, Math.round(ay), it.w, it.h + ch], left, top, ch, ax, below: true }); } return out; };
+  const plateCands = (it) => { const [ax, ay] = [it.anchor[0] * k, it.anchor[1] * k], out = []; for (const ch of it.mini ? [8, 20, 32, 48, 64] : [8, 20, 32]) for (const dx of [0.5, 0.82, 0.18]) { const left = Math.round(ax - it.w * dx), top = Math.round(ay - ch - it.h); out.push({ r: [left, top, it.w, it.h + ch], left, top, ch, ax }); } if (it.tone === 'red') for (const ch of [8, 20]) for (const dx of [0.5, 0.82, 0.18]) { const left = Math.round(ax - it.w * dx), top = Math.round(ay + ch); out.push({ r: [left, Math.round(ay), it.w, it.h + ch], left, top, ch, ax, below: true }); } return out; };
   // Posiciones posibles de un bocadillo: encima de la cabeza (centrado o corrido, la punta siempre bajo el bocadillo), o a un lado.
   const bubCands = (it, hx, hy) => { const out = [], top = Math.round(hy - it.h - 10); for (const dx of [0.5, 0.75, 0.25, 0.9, 0.1, 0.97, 0.03]) { const left = Math.round(hx - it.w * dx); out.push({ r: [left, top, it.w, it.h + 10], left, top, side: 0, hx, hy }); } const st = Math.round(hy - it.h / 2 - 6); out.push({ r: [Math.round(hx - it.w - 16), st, it.w + 10, it.h], left: Math.round(hx - it.w - 16), top: st, side: -1, hx, hy }); out.push({ r: [Math.round(hx + 6), st, it.w + 10, it.h], left: Math.round(hx + 16), top: st, side: 1, hx, hy }); return out; };
   L.tick = (now) => {
     if (L.cur && now > L.cur.until) closeBubble(now, false);
     if (!L.cur && L.q.length && now > L.gapUntil) startBubble(L.q.shift());
-    const V = view(), placed = [...keepOut()], st = { bubble: 0, plates: 0, badges: 0, hidden: 0, overlaps: 0, closed: L.stats.closed };
+    const V = view(), M = mice().map(([w, x, y, ww, hh]) => [w, [x * k, y * k, ww * k, hh * k]]), placed = [...keepOut(), ...M.map((m) => m[1])], st = { bubble: 0, plates: 0, badges: 0, hidden: 0, overlaps: 0, closed: L.stats.closed };
     const items = [...L.plates.values()]; if (L.cur) items.push(L.cur);
     items.sort((a, b) => PRIO[b.kind] - PRIO[a.kind] || a.t - b.t);
     for (const it of items) {
@@ -4394,7 +4417,7 @@ function labelLayer(host, { k, view, keepOut = () => [] }) {
         const h = it.head(); if (!h) { closeBubble(now, true); continue; }
         const [hx, hy] = [h[0] * k, h[1] * k]; if (hx < V[0] || hx > V[0] + V[2] || hy < V[1] || hy > V[1] + V[3]) { closeBubble(now, true); continue; }
         // Si no cabe con su ancho (150 px), prueba a estrecharse (110 y 90 px, el texto en más líneas) antes de rendirse.
-        const ok = (c) => inside(c.r, V) && !hit(c.r, placed); let cs = null, ci = -1;
+        const own = M.find((m) => m[0] === it.who), others = placed.filter((r) => !own || r !== own[1]), ok = (c) => inside(c.r, V) && !hit(c.r, others); let cs = null, ci = -1;
         for (const mw of [150, 110, 90]) { if (it.mw !== mw) { it.el.style.maxWidth = mw + 'px'; it.w = it.el.offsetWidth; it.h = it.el.offsetHeight; if (it.mw != null) it.ci = -1; it.mw = mw; } cs = bubCands(it, hx, hy); ci = it.ci >= 0 && ok(cs[it.ci]) ? it.ci : cs.findIndex(ok); if (ci >= 0) break; }
         if (ci < 0) { it.el.style.visibility = 'hidden'; it.lostAt ||= now; if (now - it.lostAt > 400) closeBubble(now, true); st.hidden++; continue; }
         it.lostAt = 0; it.ci = ci; const c = cs[ci], b = it.el, tail = b.querySelector('.ad-tail'); b.style.visibility = ''; b.style.left = c.left + 'px'; b.style.top = c.top + 'px';
@@ -4405,13 +4428,13 @@ function labelLayer(host, { k, view, keepOut = () => [] }) {
       // Placa: con texto si quedan huecos (como mucho PLATE_MAX); si no, su insignia; si tampoco cabe, nada.
       const cs = plateCands(it), ok = (c) => inside(c.r, V) && !hit(c.r, placed); let ci = st.plates < PLATE_MAX ? (it.ci >= 0 && ok(cs[it.ci]) ? it.ci : cs.findIndex(ok)) : -1;
       if (ci >= 0) { it.ci = ci; const c = cs[ci]; Object.assign(it.el.style, { visibility: '', left: c.left + 'px', top: c.top + 'px' }); const ch = it.el.querySelector('.ad-chain'); ch.style.left = Math.round(c.ax - c.left - 1) + 'px'; ch.style.height = c.ch + 'px'; if (c.below) { ch.style.bottom = ''; ch.style.top = -c.ch - 2 + 'px'; } else { ch.style.top = ''; ch.style.bottom = -c.ch - 2 + 'px'; } it.bd.style.visibility = 'hidden'; placed.push(c.r); st.plates++; continue; }
-      // Insignia: sobre su punto, o corrida a un lado o un poco más arriba si ahí ya hay algo.
-      it.ci = -1; it.el.style.visibility = 'hidden'; const s = 2 * Math.max(1, Math.round(k / 2.33)), bw = 13 * s, bh = 12 * s, ax = Math.round(it.anchor[0] * k), ay = Math.round(it.anchor[1] * k);
-      const br = [[0, 0], [-bw, 0], [bw, 0], [0, -bh], [-bw, -bh], [bw, -bh]].map(([dx, dy]) => [ax - bw / 2 + dx, ay - bh - 2 + dy, bw, bh]).find((r) => inside(r, V) && !hit(r, placed));
-      if (br) { Object.assign(it.bd.style, { visibility: '', left: br[0] + 'px', top: br[1] + 'px', width: bw + 'px', height: bh + 'px' }); placed.push(br); st.badges++; } else { it.bd.style.visibility = 'hidden'; st.hidden++; }
+      // Placa pequeña (solo el icono): colgando de su punto como la grande; su cadena puede alargarse hasta 64 px para pasar
+      // por encima de un ratón que esté debajo.
+      it.ci = -1; it.el.style.visibility = 'hidden'; const mini = { ...it, w: it.bw, h: it.bh, tone: 'amber', mini: true }, mc = plateCands(mini).find((c) => inside(c.r, V) && !hit(c.r, placed));
+      if (mc) { Object.assign(it.bd.style, { visibility: '', left: mc.left + 'px', top: mc.top + 'px' }); const ch = it.bd.querySelector('.ad-chain'); ch.style.left = Math.round(mc.ax - mc.left - 1) + 'px'; ch.style.height = mc.ch + 'px'; ch.style.top = ''; ch.style.bottom = -mc.ch - 2 + 'px'; placed.push(mc.r); st.badges++; } else { it.bd.style.visibility = 'hidden'; st.hidden++; }
     }
     // Comprobación: ninguna pieza visible pisa a otra.
-    const vis = [...host.children].filter((e) => e.style.visibility !== 'hidden' && (e.classList.contains('ad-bub') || e.classList.contains('ad-warn') || e.classList.contains('lb-badge')) && e.style.left).map((e) => [parseFloat(e.style.left), parseFloat(e.style.top), e.offsetWidth, e.offsetHeight]);
+    const vis = [...host.children].filter((e) => e.style.visibility !== 'hidden' && (e.classList.contains('ad-bub') || e.classList.contains('ad-warn')) && e.style.left).map((e) => [parseFloat(e.style.left), parseFloat(e.style.top), e.offsetWidth, e.offsetHeight]);
     for (let i = 0; i < vis.length; i++) for (let j = i + 1; j < vis.length; j++) if (hit(vis[i], [vis[j]])) st.overlaps++;
     L.stats = st; return st;
   };
@@ -4467,10 +4490,12 @@ H2('K', 'BOCADILLOS, PLACAS E INSIGNIAS', 'De vuelta a la dirección validada en
 const G1 = geoC(STOPS[1]), T0 = STOPS[1].top, DW = Math.ceil(SC.worldW), DH = STOPS[1].h;
 const scene = document.createElement('div'); scene.className = 'lb-scene'; const dc = document.createElement('canvas'); dc.width = DW * MK; dc.height = DH * MK; dc.style.width = Math.round(DW * KPX) + 'px'; dc.style.height = Math.round(DH * KPX) + 'px'; scene.appendChild(dc); const host = document.createElement('div'); host.className = 'lb-host'; scene.appendChild(host);
 const bar = DIV('lb-bar'); COL.appendChild(scene); const stat = DIV('lb-stat');
-const LB = labelLayer(host, { k: KPX, view: () => [0, 0, DW * KPX, DH * KPX] }); window.LB5 = LB;
+// Los ratones de la escena (los cuatro del capítulo y el jugador): ninguna placa los tapa.
+const miceRects = () => { const out = []; for (const w of Object.keys(BR)) { const b = BR[w]; if (b && b.px != null) out.push([w, b.px, b.py - 20 - T0, 22, 20]); } const p = PLAYER(G1); out.push(['player', p.x, p.feet - 19 - T0, 32, 20]); return out; };
+const LB = labelLayer(host, { k: KPX, view: () => [0, 0, DW * KPX, DH * KPX], mice: miceRects }); window.LB5 = LB;
 const headIn = (who) => () => { const b = BR[who]; return b && b.px != null ? [b.px + 11, b.py - 18 - T0] : null; };
 // La placa de la perforadora cuelga de su cuadro de mandos (donde está su piloto), no de lo alto de la máquina.
-const ANCH = { refinery: [G1.o + 12, G1.TL - 30 - T0], drill: [G1.o + 100, G1.DK - 13 - T0], cheesery: [G1.o + 116, G1.TR - 36 - T0], rock: [G1.rx + 27, G1.rb - 42 - T0] };
+const ANCH = { refinery: [G1.o + 12, G1.TL - 30 - T0], drill: [G1.o + 100, G1.DK - 13 - T0], cheesery: [G1.o + 116, G1.TR - 36 - T0], rock: [G1.rx + 46, G1.rb - 30 - T0] }; // la roca avisa desde su hombro derecho: encima se pone el minero
 const IC = { raw: 'out/sprites/ic_raw_cheddar.png', base: 'out/sprites/ic_base_cheddar.png', lot: 'out/sprites/ic_lot_cheddar.png', pick: 'out/sprites/ic_pick.png' };
 const LAST = {}; let wantMover = 0;
 const button = (label, fn) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.onclick = fn; bar.appendChild(b); };
@@ -4487,15 +4512,15 @@ setInterval(() => {
   // «Habla andando»: espera a que un ratón se esté moviendo de verdad y es ese el que habla.
   const moving = Object.keys(BR).filter((w) => BR[w].px != null && LAST[w] != null && Math.abs(BR[w].px - LAST[w]) >= 1 && w !== 'miner'); for (const w of Object.keys(BR)) LAST[w] = BR[w].px;
   if (wantMover && now < wantMover && moving.length) { LB.say(moving[0], moving[0] === 'cook' ? 'Wheel coming through!' : 'On my way!', headIn(moving[0])); wantMover = 0; }
-  const s = LB.tick(now); stat.textContent = `Bocadillo: ${s.bubble} · placas con texto: ${s.plates} · insignias: ${s.badges} · sin sitio: ${s.hidden} · bocadillos cerrados (sin sitio o sin ratón): ${s.closed} · solapes: ${s.overlaps}`;
+  const s = LB.tick(now); stat.textContent = `Bocadillo: ${s.bubble} · placas con texto: ${s.plates} · placas pequeñas: ${s.badges} · sin sitio: ${s.hidden} · bocadillos cerrados (sin sitio o sin ratón): ${s.closed} · solapes: ${s.overlaps}`;
 }, 50);
 COL.insertBefore(bar, scene);
 UL([
   '<b>Bocadillo:</b> el validado en la revisión de arte, sin cambios: crema con 2 px de tinta y esquinas recortadas, letra pixel y la punta escalonada. Ahora va anclado al ratón: se recoloca en cada fotograma sobre su cabeza y la punta lo sigue señalando. Si no cabe encima, se corre o se pone a un lado; si el ratón sale de la vista o no hay sitio durante más de 0,4 s, se cierra. Habla uno a la vez; el siguiente espera su turno.',
-  '<b>Placa de aviso:</b> la validada: chapa oscura con borde ámbar, el icono del recurso aprobado, el texto del juego y la cadena hasta la máquina. La roja (máquina parada) usa los colores del aviso rojo que ya tiene el juego.',
-  '<b>Insignias:</b> los iconos de aviso aprobados que ya usa el juego (el triángulo ámbar, el rojo y la marca verde), no unos nuevos. Son lo que queda de una placa cuando no cabe con texto.',
-  '<b>Reglas de colocación:</b> primero lo rojo (máquina parada), luego el bocadillo (dura unos segundos) y al final lo ámbar (un aviso que puede esperar en su insignia); la placa roja, si no cabe encima, cuelga por debajo de su punto; cada pieza prueba sus posiciones en orden (la placa: cadena de 8, 20 o 32 px y corrida a los lados sin dejar de colgar de su punto) y se queda con la primera que no pisa nada; si la que tenía sigue valiendo, no se mueve. Como mucho 3 placas con texto a la vez; las demás pasan a insignia; si ni eso cabe, no se pinta, y el aviso sigue activo. La línea de debajo de la escena cuenta en directo lo que se ve y los solapes, que deben ser 0.',
-  '<b>Los botones:</b> HABLA QUIETO (el perforador, en su puesto) · HABLA ANDANDO (espera a que un ratón se esté moviendo y es ese el que habla: el bocadillo lo sigue) · AVISOS DE MÁQUINA (dos ámbar y una roja) · CONFLICTOS (seis avisos y dos ratones a la vez: lo rojo sale con texto, hablan los dos por turnos, tres ámbar con texto y el resto en insignia o fuera) · SIN SITIO (el quesero, junto al borde y con la placa roja donde iría su bocadillo: no se tapa lo crítico, así que su bocadillo se cierra y el contador lo apunta).',
+  '<b>Placa de aviso:</b> la validada: chapa oscura con borde ámbar, el icono del recurso que falta, el texto del juego y la cadena hasta la máquina. <b>La de máquina parada</b> se distingue al primer vistazo: chapa roja, texto en blanco, el triángulo rojo de aviso del juego en lugar de un recurso y un borde que late despacio.',
+  '<b>Placa pequeña:</b> cuando una placa no cabe con texto, queda la misma placa con solo su icono y su cadena: se lee igual, está a la escala de la escena y nunca tapa a un ratón (las placas evitan a todos los ratones; el bocadillo, a todos menos al que habla).',
+  '<b>Reglas de colocación:</b> primero lo rojo (máquina parada), luego el bocadillo (dura unos segundos) y al final lo ámbar (un aviso que puede esperar en placa pequeña); la placa roja, si no cabe encima, cuelga por debajo de su punto; cada pieza prueba sus posiciones en orden (la placa: cadena de 8, 20 o 32 px y corrida a los lados sin dejar de colgar de su punto) y se queda con la primera que no pisa nada; si la que tenía sigue valiendo, no se mueve. Como mucho 3 placas con texto a la vez; las demás pasan a placa pequeña; si ni eso cabe, no se pinta, y el aviso sigue activo. La línea de debajo de la escena cuenta en directo lo que se ve y los solapes, que deben ser 0.',
+  '<b>Los botones:</b> HABLA QUIETO (el perforador, en su puesto) · HABLA ANDANDO (espera a que un ratón se esté moviendo y es ese el que habla: el bocadillo lo sigue) · AVISOS DE MÁQUINA (dos ámbar y una roja) · CONFLICTOS (seis avisos y dos ratones a la vez: lo rojo sale con texto, hablan los dos por turnos, tres ámbar con texto y el resto en placa pequeña o fuera) · SIN SITIO (el quesero, junto al borde y con la placa roja donde iría su bocadillo: no se tapa lo crítico, así que su bocadillo se cierra y el contador lo apunta).',
 ]);
 
 // ================= ENTREGA =================

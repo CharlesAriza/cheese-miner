@@ -11,7 +11,9 @@
 SC.ox = 17;
 // Las dos cajas con una cuña que el fondo de V4.1 ponía en el suelo de cada capítulo no son nada del juego: fuera.
 SPR.crate = (() => { const c = document.createElement('canvas'); c.width = c.height = 1; return c.toDataURL(); })();
-const B2 = { ref: { stage: 1, boost: 0, on: true }, drill: { stage: 1, boost: 0, on: true }, cheese: { stage: 1, boost: 0, on: true }, mine: { boost: 0, on: true } };
+// En las demostraciones el jugador pica solo: un toque cada 1,1 s, con la misma regla que un toque de verdad (SIM41.hit).
+setInterval(() => { if (B2.autoTap && SIM41.mineStatus() === 'ready') SIM41.hit('manual'); }, 1100);
+const B2 = { autoTap: true, ref: { stage: 1, boost: 0, on: true }, drill: { stage: 1, boost: 0, on: true }, cheese: { stage: 1, boost: 0, on: true }, mine: { boost: 0, on: true } };
 const TIER_STAGE = [1, 1, 2, 2, 3, 3];
 const mkc = (w, h, f) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; const was = ctx; ctx = g; try { f(g); } finally { ctx = was; } return c; };
 // Contorno completado: un píxel vacío gana tinta si toca un píxel que no es tinta (la misma regla que REFINE B).
@@ -151,6 +153,7 @@ function drawCheddar(st, now) {
   if (S.focus && STOPS[S.stop] === st) for (const r of g.st[S.focus] || []) sel(r);
   drawWorkers(st, g, now);
   drawPlayer(g, now);
+  vfxImpact(ctx, g.rx + 6, g.rb - 21, now - AV.swing, Z41.combo % RULE.critEvery === 0); if (BR.miner) vfxImpact(ctx, g.rx + 30, g.rb - 34, now - BR.miner.hitAt, false);
   plaque(o + 2, FF - 30, DEP.cheddar, TH.cheddar);
 }
 
@@ -159,6 +162,20 @@ function drawCheddar(st, now) {
 // Sustituye al pico de V4.1 del minero contratado (descartado) y al trabajador genérico del jugador. Fotogramas: 0–1 en
 // reposo, 2 levanta, 3 golpe, 4 recoge. drawWorkers es el de V4.1 con solo la línea del pico cambiada.
 const PLAYER_MOUSE = { name: 'Player', lv: 1, rank: 0, rar: 0, skill: 'mining' };
+// El recorte del pico deja fuera las chispas amarillas que la animación aprobada trae pintadas en el golpe: al recortarlas
+// les tocaba contorno de tinta y la regla de VFX lo prohíbe. El impacto lo hacen ahora los VFX del golpe (sin contorno).
+delete PICKC['#fffbe0']; delete PICKC['#ffe55c']; PICKF.length = 0;
+// Fotogramas del golpe (los 5 aprobados), con el tiempo desde el impacto: 3 golpe (0–70 ms), 4 acompaña (70–190), 2 vuelve a
+// subir a media altura (190–300, la recuperación) y 0 en reposo; antes del golpe, 2 (preparación).
+const swingFrame = (since, windup) => (since >= 0 && since < 70 ? 3 : since >= 0 && since < 190 ? 4 : since >= 0 && since < 300 ? 1 : windup ? 2 : 0);
+// Impacto sin contorno: un destello en el punto del golpe (60 ms), un aro de polvo que se abre y se apaga y unas motas de roca.
+function vfxImpact(g, x, y, since, big) {
+  if (since < 0 || since > 260) return; const R2 = (a, b, w, h, c) => { g.fillStyle = c; g.fillRect(a, b, w, h); };
+  if (since < 60) { R2(x - 1, y - 1, 3, 3, '#fffbe8'); R2(x - 3, y, 7, 1, '#ffe9a8'); R2(x, y - 3, 1, 7, '#ffe9a8'); if (big) { R2(x - 4, y - 4, 1, 1, '#fff6c8'); R2(x + 4, y - 4, 1, 1, '#fff6c8'); R2(x - 4, y + 4, 1, 1, '#fff6c8'); R2(x + 4, y + 4, 1, 1, '#fff6c8'); } }
+  const k = Math.min(1, since / 260), r = Math.round(2 + k * (big ? 6 : 4)); g.globalAlpha = 0.55 * (1 - k); g.fillStyle = '#e8dcc4';
+  for (let a = 0; a < 16; a++) { const t = (a / 16) * Math.PI * 2; g.fillRect(Math.round(x + Math.cos(t) * r), Math.round(y + Math.sin(t) * r * 0.7), 1, 1); }
+  g.globalAlpha = 1;
+}
 // Dónde va el pico sobre el ratón oficial: su cabeza es más ancha que la del trabajador genérico de la animación, así que el
 // pico se coloca 3 px más adelante y 2 más abajo que en la revisión de arte (PICKDX/PICKDY). El mango nace en la pata, a la
 // altura del pecho, y la cabeza del pico queda delante del hocico: la cara se ve entera en los 5 fotogramas.
@@ -180,14 +197,14 @@ function drawWorkers(st, g, now) { // V4.1, con el pico aprobado
     const blink = now > b.blinkAt && now < b.blinkAt + 110, breath = Math.floor((now + (b.seed % 1300)) / (620 + (b.seed % 200))) % 2;
     const c = mF(b.m, p.o.legs ? 0 : breath, blink, p.o);
     if (p.flip) { ctx.save(); ctx.translate(x + 22, feet - 20 + p.dy); ctx.scale(-1, 1); ctx.drawImage(c, 0, 0); ctx.restore(); } else ctx.drawImage(c, x, feet - 20 + p.dy);
-    if (p.pick !== undefined && p.pick >= 0) { const pk = approvedPick(p.pick === 2 ? 3 : p.pick === 0 ? 2 : Math.floor(now / 600) % 2); if (pk) ctx.drawImage(pk, x + PICK_OX, feet - 20 + PICK_OY + p.dy); }
-    if (p.carry) ctx.drawImage(artCarry(p.carry), p.flip ? x - 1 : x + 15, feet - 13 + p.dy);
+    if (p.pick !== undefined && p.pick >= 0) { const since = now - b.hitAt, left = EX.minerMs - Z41.minerAcc, pk = approvedPick(swingFrame(since < 300 ? since : -1, left < 200 && !Z41.veinRevealed)); if (pk) ctx.drawImage(pk, x + PICK_OX, feet - 20 + PICK_OY + p.dy); }
+    if (p.carry) ctx.drawImage(artCarry(p.carry), p.flip ? x : x + 14, feet - 10 + p.dy); // la rueda en las patas, a la altura de la barriga (antes tapaba el hocico)
     b.px = x; b.py = feet; b.pose = p;
     HITS.push({ k: 'm', stop: STOPS.indexOf(st), st: g.who[who][2], who, name: b.m.name, x, y: feet - 20, w: 22, h: 20, crest: who === 'miner' });
   }
 }
 function drawPlayer(g, now) {
-  const dt = now - AV.swing, f = Z41.veinRevealed ? 0 : dt < 70 ? 3 : dt < 170 ? 4 : Math.floor(now / 600) % 2, p = PLAYER(g), y = p.feet + 1 - 20;
-  const mc = mF(PLAYER_MOUSE, f < 2 ? Math.floor(now / 650) % 2 : 0, false, f === 3 ? { face: 'grump' } : {}), pk = approvedPick(f); ctx.drawImage(mc, p.x, y); if (pk) ctx.drawImage(pk, p.x + PICK_OX, y + PICK_OY);
+  const dt = now - AV.swing, f = Z41.veinRevealed ? 0 : swingFrame(dt < 300 ? dt : -1, false), p = PLAYER(g), y = p.feet + 1 - 20;
+  const mc = mF(PLAYER_MOUSE, f === 0 ? Math.floor(now / 650) % 2 : 0, false, f === 3 || f === 4 ? { face: 'grump' } : {}), pk = approvedPick(f); ctx.drawImage(mc, p.x, y); if (pk) ctx.drawImage(pk, p.x + PICK_OX, y + PICK_OY);
   HITS.push({ k: 'm', stop: 1, st: 'rock', who: 'player', name: 'You', x: p.x + 1, y: p.feet - 19, w: 22, h: 20, player: true });
 }
