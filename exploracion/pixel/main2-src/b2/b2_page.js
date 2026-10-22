@@ -20,6 +20,8 @@ const EXPORT2 = [
   { file: 'drill_panel.png', cv: artPanel, src: 'artPanel()', marker: 'scene.js · Cheese Drill', note: 'En (o + 98, DK − 12).', state: 'congelado' },
   ...[0, 1].map((f) => ({ file: `drill_bit_f${f}.png`, cv: () => artBit(f), src: `artBit(${f})`, marker: 'scene.js · Cheese Drill', note: 'Broca al final de la barra.', state: 'congelado' })),
   ...[2, 3].map((s) => ({ file: `drill_stage${s}.png`, cv: () => drillLayer(s), src: `drillModules (fase ${s})`, marker: 'scene.js · Cheese Drill', note: `Capa de la fase ${s === 2 ? 'II' : 'III'} encima de la perforadora; origen en (o + 48, DK − 44). La luz del piloto es VFX.`, state: 'nuevo' })),
+  ...[0, 1, 2, 3, 4].map((f) => ({ file: `pick_f${f}.png`, cv: () => approvedPick(f), src: `approvedPick(${f})`, marker: 'scene.js · ratón minero y jugador (pico)', note: `El pico aprobado (swing_player) sin las chispas pintadas. Se dibuja sobre el ratón oficial en (x + PICKDX + 3, y + PICKDY + 2) = (x ${PICKDX + 3 >= 0 ? '+' : '−'} ${Math.abs(PICKDX + 3)}, y + ${PICKDY + 2}); fotograma por swingFrame: 3 golpe (0–70 ms), 4 acompaña (70–190), 1 recupera (190–300), 2 preparación, 0 reposo.`, state: 'adaptado' })),
+  ...[0, 1, 2, 3, 4].map((f) => ({ file: `pick_gold_f${f}.png`, cv: () => approvedPickGold(f), src: `approvedPickGold(${f})`, marker: 'scene.js · drawPlayer (pico de oro: Mining visualTier ≥ 3)', note: 'El mismo pico con los tonos del oro de swing_gold; misma posición y mismos fotogramas que pick_f.', state: 'adaptado' })),
   { file: 'boost_gem_on.png', cv: () => gemPNG(true), src: 'gemSocket(on)', marker: 'icons.js · gema de refuerzo', note: 'La gema del panel BOOSTS en su engaste. Destello: gemGlint.', state: 'congelado' },
   { file: 'boost_gem_off.png', cv: () => gemPNG(false), src: 'gemSocket(off)', marker: 'icons.js · gema de refuerzo', note: 'Puesto sin ratón: no hace nada.', state: 'congelado' },
 ];
@@ -35,7 +37,7 @@ const ST3 = [[1, 'I'], [2, 'II'], [3, 'III']], BO = [[0, 'sin refuerzo'], [1, '+
 sel('REFINE', B2.ref, 'stage', ST3); sel('', B2.ref, 'boost', BO);
 sel('DRILL', B2.drill, 'stage', ST3); sel('', B2.drill, 'boost', BO);
 sel('CHEESE', B2.cheese, 'stage', ST3); sel('', B2.cheese, 'boost', BO);
-sel('MINE', B2.mine, 'boost', BO);
+sel('MINE', B2.mine, 'boost', BO); sel('', B2.mine, 'gold', [[0, 'PICO DE ACERO'], [1, 'PICO DE ORO']]);
 const scroller = DIV('b1-scroll'); const sc = document.createElement('canvas'), CW = Math.ceil(SC.worldW); sc.width = CW * MK; sc.height = ST1.h * MK; sc.style.width = Math.round(CW * KPX) + 'px'; sc.style.height = Math.round(ST1.h * KPX) + 'px'; scroller.appendChild(sc);
 const off = document.createElement('canvas'); // las partículas (trozos, polvo, humo, chispas) se pintan en este mismo lienzo
 for (let i = 0; i < 300; i++) step41(16);

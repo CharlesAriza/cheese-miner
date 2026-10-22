@@ -85,9 +85,9 @@
       "w": 9,
       "h": 9,
       "source": "gameIcon('stop')",
-      "for": "icons.js · stop (ya aprobado en el juego)",
+      "for": "icons.js · stop (nuevo: va en la placa roja STOPPED en lugar de alertr)",
       "state": "nuevo",
-      "note": "Icono de máquina parada, 9 × 9 (en escena, ×2). A 1:1; en escena, ×2."
+      "note": "Icono de máquina parada, 9 × 9. A 1:1; en escena, ×2."
     },
     {
       "file": "cage_back.png",
@@ -112,18 +112,27 @@
       "w": 13,
       "h": 12,
       "source": "gameIcon('alert')",
-      "for": "icons.js · alert (ya aprobado en el juego)",
-      "state": "congelado",
-      "note": "Aviso de máquina (ámbar). A 1:1; en escena, ×2."
+      "for": "icons.js · alert (sustituye al plano)",
+      "state": "adaptado",
+      "note": "Aviso (ámbar), 13 × 12, redibujado en Pulido+: luz, sombra y la exclamación en tono del material. A 1:1; en escena, ×2."
+    },
+    {
+      "file": "badge_alertr.png",
+      "w": 13,
+      "h": 12,
+      "source": "gameIcon('alertr')",
+      "for": "icons.js · alertr (sustituye al plano)",
+      "state": "adaptado",
+      "note": "Aviso de roca parada (rojo), 13 × 12: el mismo dibujo con la paleta del icono de parada y el signo en blanco. A 1:1; en escena, ×2."
     },
     {
       "file": "badge_done.png",
       "w": 9,
-      "h": 7,
+      "h": 9,
       "source": "gameIcon('done')",
-      "for": "icons.js · done (ya aprobado en el juego)",
-      "state": "congelado",
-      "note": "Hecho (verde). A 1:1; en escena, ×2."
+      "for": "icons.js · done (sustituye al plano; el hueco pasa de 9 × 7 a 9 × 9)",
+      "state": "adaptado",
+      "note": "Hecho: chapa redonda verde de 9 × 9, de la familia del icono de parada, con la marca blanca. A 1:1; en escena, ×2."
     }
   ]
 }

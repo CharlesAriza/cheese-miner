@@ -3,7 +3,8 @@ const MK = 7;
 const EXPORT5 = [
   { file: 'cage_back.png', cv: cageBack, src: 'cageBack()', marker: 'nuevo · montacargas', note: 'Marco, techo con argolla, fondo y suelo de la jaula. Las ruedas van entre las dos capas.', state: 'nuevo' },
   { file: 'cage_front.png', cv: cageFront, src: 'cageFront()', marker: 'nuevo · montacargas', note: 'Barrotes delante de la carga.', state: 'nuevo' },
-  ...[['stop', 'Icono de máquina parada, 9 × 9 (en escena, ×2).'], ['alert', 'Aviso de máquina (ámbar).'], ['done', 'Hecho (verde).']].map(([n, note]) => ({ file: `badge_${n}.png`, cv: () => gameIcon(n), src: `gameIcon('${n}')`, marker: `icons.js · ${n} (ya aprobado en el juego)`, note: note + ' A 1:1; en escena, ×2.', state: 'congelado' })),
+  { file: 'badge_stop.png', cv: () => gameIcon('stop'), src: "gameIcon('stop')", marker: 'icons.js · stop (nuevo: va en la placa roja STOPPED en lugar de alertr)', note: 'Icono de máquina parada, 9 × 9. A 1:1; en escena, ×2.', state: 'nuevo' },
+  ...[['alert', 'icons.js · alert (sustituye al plano)', 'Aviso (ámbar), 13 × 12, redibujado en Pulido+: luz, sombra y la exclamación en tono del material.'], ['alertr', 'icons.js · alertr (sustituye al plano)', 'Aviso de roca parada (rojo), 13 × 12: el mismo dibujo con la paleta del icono de parada y el signo en blanco.'], ['done', 'icons.js · done (sustituye al plano; el hueco pasa de 9 × 7 a 9 × 9)', 'Hecho: chapa redonda verde de 9 × 9, de la familia del icono de parada, con la marca blanca.']].map(([n, marker, note]) => ({ file: `badge_${n}.png`, cv: () => gameIcon(n), src: `gameIcon('${n}')`, marker, note: note + ' A 1:1; en escena, ×2.', state: 'adaptado' })),
 ];
 window.B5_EXPORT = EXPORT5;
 const urlOf = (cv) => cv.toDataURL('image/png');
@@ -72,3 +73,5 @@ UL([
   '<b>Revisado y anotado para QA:</b> las fichas de recurso que viajan (Raw, Base, ruedas) llevan contorno porque son objetos, no efectos; la columna recorta el castillete 9 px; el pico dorado del jugador (Sharper Pick 16) está pendiente; las fases de las máquinas se notan poco.',
 ]);
 H2('→', 'SIGUIENTE', 'Bloque 6 · QA y entrega: coherencia visual, escalas, animaciones, piezas editables y compatibilidad con el móvil, antes de integrar sobre el juego real.');
+// Gancho de QA (bloque 6): deja probar la capa de avisos a otras escalas y anchos de pantalla desde la consola.
+window.QA5 = { labelLayer, ANCH, IC, headIn, miceRects, DW, DH };

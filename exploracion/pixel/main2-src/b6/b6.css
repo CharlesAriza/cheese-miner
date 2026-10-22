@@ -1,0 +1,26 @@
+/* Bloque 6 · QA y entrega. Clases propias con prefijo b6-. */
+.b6-verdict { border: 2px solid #62d36e; background: #12251a; color: #dff5e2; padding: 12px 14px; border-radius: 6px; line-height: 1.5; }
+.b6-verdict b { color: #8ff09a; }
+.b6-ok { color: #62d36e; font-weight: 800; white-space: nowrap; }
+.b6-fix { color: var(--gold); font-weight: 800; white-space: nowrap; }
+.b6-no { color: #ff8a96; font-weight: 800; white-space: nowrap; }
+.b6-sim { display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: .04em; padding: 1px 6px; border-radius: 3px; background: #2a2338; color: #c9c0e0; white-space: nowrap; }
+.b6-sim.real { background: #4a1f28; color: #ffc2cc; }
+.b6-fig { display: grid; gap: 6px; margin: 10px 0 16px; }
+.b6-fig img { width: 100%; max-width: 100%; height: auto; image-rendering: pixelated; border: 1px solid #0c0910; background: #20202a; }
+.b6-fig figcaption { font-size: 12px; color: #9f97b8; }
+.b6-pair { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 900px) { .b6-pair { grid-template-columns: 1fr 1fr; } }
+.b6-phone { max-width: 320px; }
+.b6-inv { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 8px 0 18px; }
+.b6-card { background: #191424; border: 1px solid #2a2338; border-radius: 4px; padding: 6px; display: grid; gap: 4px; align-content: start; min-width: 0; }
+.b6-thumb { height: 72px; display: flex; align-items: center; justify-content: center; background: #2a1d14; border: 1px solid #0c0910; overflow: hidden; }
+.b6-thumb img { image-rendering: pixelated; max-width: 100%; max-height: 100%; }
+.b6-card code { font-size: 11px; color: #f4ead8; word-break: break-all; }
+.b6-card small { font-size: 10.5px; color: #9f97b8; line-height: 1.35; }
+.b6-st { font-size: 10px; font-weight: 800; letter-spacing: .04em; }
+.b6-st.nuevo { color: #8ff3ff; } .b6-st.adaptado { color: var(--gold); } .b6-st.congelado { color: #62d36e; }
+.b6-live { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.b6-live button { font: inherit; font-size: 12px; font-weight: 800; padding: 6px 10px; border-radius: 4px; border: 1px solid #5a4a7a; background: #2a2338; color: #f4ead8; cursor: pointer; }
+.b6-live output { font-size: 12px; color: #c9c0e0; }
+.b6-host { position: absolute; left: -9999px; top: 0; }

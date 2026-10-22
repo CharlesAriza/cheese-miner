@@ -193,6 +193,96 @@
       "note": "Capa de la fase III encima de la perforadora; origen en (o + 48, DK − 44). La luz del piloto es VFX."
     },
     {
+      "file": "pick_f0.png",
+      "w": 32,
+      "h": 20,
+      "source": "approvedPick(0)",
+      "replaces": "scene.js · ratón minero y jugador (pico)",
+      "state": "adaptado",
+      "note": "El pico aprobado (swing_player) sin las chispas pintadas. Se dibuja sobre el ratón oficial en (x + 0, y + 4) respecto a su lienzo; fotograma por swingFrame: 3 golpe (0–70 ms), 4 acompaña (70–190), 1 recupera (190–300), 2 preparación, 0 reposo."
+    },
+    {
+      "file": "pick_f1.png",
+      "w": 32,
+      "h": 20,
+      "source": "approvedPick(1)",
+      "replaces": "scene.js · ratón minero y jugador (pico)",
+      "state": "adaptado",
+      "note": "El pico aprobado (swing_player) sin las chispas pintadas. Se dibuja sobre el ratón oficial en (x + 0, y + 4) respecto a su lienzo; fotograma por swingFrame: 3 golpe (0–70 ms), 4 acompaña (70–190), 1 recupera (190–300), 2 preparación, 0 reposo."
+    },
+    {
+      "file": "pick_f2.png",
+      "w": 32,
+      "h": 20,
+      "source": "approvedPick(2)",
+      "replaces": "scene.js · ratón minero y jugador (pico)",
+      "state": "adaptado",
+      "note": "El pico aprobado (swing_player) sin las chispas pintadas. Se dibuja sobre el ratón oficial en (x + 0, y + 4) respecto a su lienzo; fotograma por swingFrame: 3 golpe (0–70 ms), 4 acompaña (70–190), 1 recupera (190–300), 2 preparación, 0 reposo."
+    },
+    {
+      "file": "pick_f3.png",
+      "w": 32,
+      "h": 20,
+      "source": "approvedPick(3)",
+      "replaces": "scene.js · ratón minero y jugador (pico)",
+      "state": "adaptado",
+      "note": "El pico aprobado (swing_player) sin las chispas pintadas. Se dibuja sobre el ratón oficial en (x + 0, y + 4) respecto a su lienzo; fotograma por swingFrame: 3 golpe (0–70 ms), 4 acompaña (70–190), 1 recupera (190–300), 2 preparación, 0 reposo."
+    },
+    {
+      "file": "pick_f4.png",
+      "w": 32,
+      "h": 20,
+      "source": "approvedPick(4)",
+      "replaces": "scene.js · ratón minero y jugador (pico)",
+      "state": "adaptado",
+      "note": "El pico aprobado (swing_player) sin las chispas pintadas. Se dibuja sobre el ratón oficial en (x + 0, y + 4) respecto a su lienzo; fotograma por swingFrame: 3 golpe (0–70 ms), 4 acompaña (70–190), 1 recupera (190–300), 2 preparación, 0 reposo."
+    },
+    {
+      "file": "pick_gold_f0.png",
+      "w": 32,
+      "h": 20,
+      "source": "approvedPickGold(0)",
+      "replaces": "scene.js · drawPlayer (pico de oro: Mining visualTier ≥ 3)",
+      "state": "adaptado",
+      "note": "El mismo pico con los tonos del oro de swing_gold; misma posición y mismos fotogramas que pick_f."
+    },
+    {
+      "file": "pick_gold_f1.png",
+      "w": 32,
+      "h": 20,
+      "source": "approvedPickGold(1)",
+      "replaces": "scene.js · drawPlayer (pico de oro: Mining visualTier ≥ 3)",
+      "state": "adaptado",
+      "note": "El mismo pico con los tonos del oro de swing_gold; misma posición y mismos fotogramas que pick_f."
+    },
+    {
+      "file": "pick_gold_f2.png",
+      "w": 32,
+      "h": 20,
+      "source": "approvedPickGold(2)",
+      "replaces": "scene.js · drawPlayer (pico de oro: Mining visualTier ≥ 3)",
+      "state": "adaptado",
+      "note": "El mismo pico con los tonos del oro de swing_gold; misma posición y mismos fotogramas que pick_f."
+    },
+    {
+      "file": "pick_gold_f3.png",
+      "w": 32,
+      "h": 20,
+      "source": "approvedPickGold(3)",
+      "replaces": "scene.js · drawPlayer (pico de oro: Mining visualTier ≥ 3)",
+      "state": "adaptado",
+      "note": "El mismo pico con los tonos del oro de swing_gold; misma posición y mismos fotogramas que pick_f."
+    },
+    {
+      "file": "pick_gold_f4.png",
+      "w": 32,
+      "h": 20,
+      "source": "approvedPickGold(4)",
+      "replaces": "scene.js · drawPlayer (pico de oro: Mining visualTier ≥ 3)",
+      "state": "adaptado",
+      "note": "El mismo pico con los tonos del oro de swing_gold; misma posición y mismos fotogramas que pick_f."
+    },
+    {
       "file": "boost_gem_on.png",
       "w": 11,
       "h": 9,

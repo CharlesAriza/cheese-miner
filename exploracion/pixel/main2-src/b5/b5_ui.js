@@ -24,6 +24,15 @@ const GAME_ICON = {
 // Icono de máquina parada (Pulido+): octógono rojo de 9 × 9 con contorno de tinta, luz arriba a la izquierda, sombra abajo a
 // la derecha, un brillo en la esquina y la barra blanca de «parar» con su sombra debajo. Se pinta a ×2 exacto (18 px), nunca a una escala que no sea entera.
 GAME_ICON.stop = [['..KKKKK..', '.KHLLLRK.', 'KLLRRRRDK', 'KLWWWWWDK', 'KLWWWWWDK', 'KRSSSSSDK', 'KRRRRRDDK', '.KRDDDDK.', '..KKKKK..'], { K: '#1b1622', H: '#ffd0da', L: '#ff8aa0', R: '#e8364e', D: '#9e1c32', S: '#b82640', W: '#fff4f4' }];
+// Aviso (Pulido+): el triángulo de 13 × 12 del juego con volumen. Luz en la punta y el lado izquierdo, sombra en el derecho y
+// una franja de sombra en la base; la exclamación en la parte ancha, en un tono oscuro del propio material (no en tinta), con su punto aparte.
+// La versión roja (alertr, roca parada) es el mismo dibujo con la paleta del icono de parada y el signo en blanco.
+const ALERT_ROWS = ['......K......', '.....KHK.....', '.....KLK.....', '....KLYDK....', '....KLYDK....', '...KLYGYDK...', '...KLYGYDK...', '..KLYYGYYDK..', '..KLYYYYYDK..', '.KLYYYGYYYDK.', '.KDDDDDDDDEK.', 'KKKKKKKKKKKKK'];
+GAME_ICON.alert = [ALERT_ROWS, { K: '#1b1622', H: '#fffbe0', L: '#ffe98a', Y: '#ffcf2e', D: '#d99a14', E: '#9a6a08', G: '#3a2008' }];
+GAME_ICON.alertr = [ALERT_ROWS, { K: '#1b1622', H: '#ffd0da', L: '#ff8aa0', Y: '#e8364e', D: '#9e1c32', E: '#6e1022', G: '#fff4f4' }];
+// Hecho (Pulido+): chapa redonda verde de 9 × 9, de la familia del icono de parada (misma luz y sombra), con la marca blanca
+// gruesa (2 px en el codo) y su sombra debajo. Es 9 × 9 en vez de los 9 × 7 del icono plano: el hueco de la franja del objetivo pasa a 9 × 9.
+GAME_ICON.done = [['..KKKKK..', '.KHLLLGK.', 'KLGGGGWDK', 'KLGGGWWDK', 'KLWGWWSDK', 'KGWWWSGDK', 'KGSWSGDDK', '.KGSDDDK.', '..KKKKK..'], { K: '#1b1622', H: '#d8ffd8', L: '#8ee89a', G: '#3fa860', D: '#1f6a3a', S: '#1d5a32', W: '#ffffff' }];
 const gameIcon = (name) => art('gi' + name, () => { const [rows, pal] = GAME_ICON[name], c = document.createElement('canvas'); c.width = rows[0].length; c.height = rows.length; const g = c.getContext('2d'); rows.forEach((r, y) => [...r].forEach((ch, x) => { if (ch !== '.') { g.fillStyle = pal[ch]; g.fillRect(x, y, 1, 1); } })); return c; });
 const PLATE_MAX = 3, PRIO = { red: 3, say: 2, amber: 1 };
 // host: un div posicionado del tamaño de la escena; k: px de pantalla por px de arte; view(): [x, y, w, h] visible en px del
@@ -42,8 +51,10 @@ function labelLayer(host, { k, view, keepOut = () => [], mice = () => [] }) {
   const hit = (r, list) => list.some((o) => !(r[0] + r[2] <= o[0] || o[0] + o[2] <= r[0] || r[1] + r[3] <= o[1] || o[1] + o[3] <= r[1]));
   const inside = (r, V) => r[0] >= V[0] + 2 && r[1] >= V[1] + 2 && r[0] + r[2] <= V[0] + V[2] - 2 && r[1] + r[3] <= V[1] + V[3] - 2;
   // Posiciones posibles de una placa: colgando de su punto, con la cadena de 8, 20 o 32 px, centrada o corrida a un lado.
+  // Cada posición reserva la chapa (r) y su cadena (rc, 3 px de ancho) por separado: reservar la caja entera hasta el punto
+  // dejaba sin texto la placa roja a escala 2 (móviles de 320 a 375 px) por rozar la cabeza del ratón que trabaja debajo.
   // Si es roja y no cabe encima, cuelga por debajo de su punto (la cadena sube): lo crítico no se queda sin texto.
-  const plateCands = (it) => { const [ax, ay] = [it.anchor[0] * k, it.anchor[1] * k], out = []; for (const ch of it.mini ? [8, 20, 32, 48, 64] : [8, 20, 32]) for (const dx of [0.5, 0.82, 0.18]) { const left = Math.round(ax - it.w * dx), top = Math.round(ay - ch - it.h); out.push({ r: [left, top, it.w, it.h + ch], left, top, ch, ax }); } if (it.tone === 'red') for (const ch of [8, 20]) for (const dx of [0.5, 0.82, 0.18]) { const left = Math.round(ax - it.w * dx), top = Math.round(ay + ch); out.push({ r: [left, Math.round(ay), it.w, it.h + ch], left, top, ch, ax, below: true }); } return out; };
+  const plateCands = (it) => { const [ax, ay] = [it.anchor[0] * k, it.anchor[1] * k], out = []; for (const ch of it.mini ? [8, 20, 32, 48, 64] : [8, 20, 32]) for (const dx of [0.5, 0.82, 0.18]) { const left = Math.round(ax - it.w * dx), top = Math.round(ay - ch - it.h); out.push({ r: [left, top, it.w, it.h], rc: [Math.round(ax) - 1, top + it.h, 3, ch], left, top, ch, ax }); } if (it.tone === 'red') for (const ch of [8, 20]) for (const dx of [0.5, 0.82, 0.18]) { const left = Math.round(ax - it.w * dx), top = Math.round(ay + ch); out.push({ r: [left, top, it.w, it.h], rc: [Math.round(ax) - 1, Math.round(ay), 3, ch], left, top, ch, ax, below: true }); } return out; };
   // Posiciones posibles de un bocadillo: encima de la cabeza (centrado o corrido, la punta siempre bajo el bocadillo), o a un lado.
   const bubCands = (it, hx, hy) => { const out = [], top = Math.round(hy - it.h - 10); for (const dx of [0.5, 0.75, 0.25, 0.9, 0.1, 0.97, 0.03]) { const left = Math.round(hx - it.w * dx); out.push({ r: [left, top, it.w, it.h + 10], left, top, side: 0, hx, hy }); } const st = Math.round(hy - it.h / 2 - 6); out.push({ r: [Math.round(hx - it.w - 16), st, it.w + 10, it.h], left: Math.round(hx - it.w - 16), top: st, side: -1, hx, hy }); out.push({ r: [Math.round(hx + 6), st, it.w + 10, it.h], left: Math.round(hx + 16), top: st, side: 1, hx, hy }); return out; };
   L.tick = (now) => {
@@ -52,13 +63,17 @@ function labelLayer(host, { k, view, keepOut = () => [], mice = () => [] }) {
     const V = view(), M = mice().map(([w, x, y, ww, hh]) => [w, [x * k, y * k, ww * k, hh * k]]), placed = [...keepOut(), ...M.map((m) => m[1])], st = { bubble: 0, plates: 0, badges: 0, hidden: 0, overlaps: 0, closed: L.stats.closed };
     const items = [...L.plates.values()]; if (L.cur) items.push(L.cur);
     items.sort((a, b) => PRIO[b.kind] - PRIO[a.kind] || a.t - b.t);
+    // Punto de cada aviso (donde nace su cadena): una pieza intenta no taparle el sitio a otro aviso; si no le queda otra,
+    // vale cualquier posición sin solapes, como antes.
+    const pts = new Map([...L.plates.values()].map((p) => [p, [Math.round(p.anchor[0] * k) - 4, Math.round(p.anchor[1] * k) - 14, 8, 14]]));
+    const free = (c, self) => { const o = [...pts].filter(([p]) => p !== self).map(([, r]) => r); return !hit(c.r, o) && !(c.rc && hit(c.rc, o)); };
     for (const it of items) {
       if (it.kind === 'say') {
         const h = it.head(); if (!h) { closeBubble(now, true); continue; }
         const [hx, hy] = [h[0] * k, h[1] * k]; if (hx < V[0] || hx > V[0] + V[2] || hy < V[1] || hy > V[1] + V[3]) { closeBubble(now, true); continue; }
         // Si no cabe con su ancho (150 px), prueba a estrecharse (110 y 90 px, el texto en más líneas) antes de rendirse.
         const own = M.find((m) => m[0] === it.who), others = placed.filter((r) => !own || r !== own[1]), ok = (c) => inside(c.r, V) && !hit(c.r, others); let cs = null, ci = -1;
-        for (const mw of [150, 110, 90]) { if (it.mw !== mw) { it.el.style.maxWidth = mw + 'px'; it.w = it.el.offsetWidth; it.h = it.el.offsetHeight; if (it.mw != null) it.ci = -1; it.mw = mw; } cs = bubCands(it, hx, hy); ci = it.ci >= 0 && ok(cs[it.ci]) ? it.ci : cs.findIndex(ok); if (ci >= 0) break; }
+        for (const mw of [150, 110, 90]) { if (it.mw !== mw) { it.el.style.maxWidth = mw + 'px'; it.w = it.el.offsetWidth; it.h = it.el.offsetHeight; if (it.mw != null) it.ci = -1; it.mw = mw; } cs = bubCands(it, hx, hy); const good = (c) => ok(c) && free(c, null); ci = it.ci >= 0 && good(cs[it.ci]) ? it.ci : cs.findIndex(good); if (ci < 0) ci = it.ci >= 0 && ok(cs[it.ci]) ? it.ci : cs.findIndex(ok); if (ci >= 0) break; }
         if (ci < 0) { it.el.style.visibility = 'hidden'; it.lostAt ||= now; if (now - it.lostAt > 400) closeBubble(now, true); st.hidden++; continue; }
         it.lostAt = 0; it.ci = ci; const c = cs[ci], b = it.el, tail = b.querySelector('.ad-tail'); b.style.visibility = ''; b.style.left = c.left + 'px'; b.style.top = c.top + 'px';
         b.classList.toggle('side-r', c.side < 0); b.classList.toggle('side-l', c.side > 0);
@@ -66,16 +81,19 @@ function labelLayer(host, { k, view, keepOut = () => [], mice = () => [] }) {
         placed.push(c.r); st.bubble++; continue;
       }
       // Placa: con texto si quedan huecos (como mucho PLATE_MAX); si no, su insignia; si tampoco cabe, nada.
-      const cs = plateCands(it), ok = (c) => inside(c.r, V) && !hit(c.r, placed); let ci = st.plates < PLATE_MAX ? (it.ci >= 0 && ok(cs[it.ci]) ? it.ci : cs.findIndex(ok)) : -1;
-      if (ci >= 0) { it.ci = ci; const c = cs[ci]; Object.assign(it.el.style, { visibility: '', left: c.left + 'px', top: c.top + 'px' }); const ch = it.el.querySelector('.ad-chain'); ch.style.left = Math.round(c.ax - c.left - 1) + 'px'; ch.style.height = c.ch + 'px'; if (c.below) { ch.style.bottom = ''; ch.style.top = -c.ch - 2 + 'px'; } else { ch.style.top = ''; ch.style.bottom = -c.ch - 2 + 'px'; } it.bd.style.visibility = 'hidden'; placed.push(c.r); st.plates++; continue; }
+      const cs = plateCands(it), ok = (c) => inside(c.r, V) && !hit(c.r, placed) && !hit(c.rc, placed); const good = (c) => ok(c) && free(c, it); let ci = st.plates < PLATE_MAX ? (it.ci >= 0 && good(cs[it.ci]) ? it.ci : cs.findIndex(good)) : -1; if (ci < 0 && st.plates < PLATE_MAX) ci = it.ci >= 0 && ok(cs[it.ci]) ? it.ci : cs.findIndex(ok);
+      if (ci >= 0) { it.ci = ci; const c = cs[ci]; Object.assign(it.el.style, { visibility: '', left: c.left + 'px', top: c.top + 'px' }); const ch = it.el.querySelector('.ad-chain'); ch.style.left = Math.round(c.ax - c.left - 1) + 'px'; ch.style.height = c.ch + 'px'; if (c.below) { ch.style.bottom = ''; ch.style.top = -c.ch - 2 + 'px'; } else { ch.style.top = ''; ch.style.bottom = -c.ch - 2 + 'px'; } it.bd.style.visibility = 'hidden'; placed.push(c.r, c.rc); st.plates++; continue; }
       // Placa pequeña (solo el icono): colgando de su punto como la grande; su cadena puede alargarse hasta 64 px para pasar
       // por encima de un ratón que esté debajo.
-      it.ci = -1; it.el.style.visibility = 'hidden'; const mini = { ...it, w: it.bw, h: it.bh, tone: 'amber', mini: true }, mc = plateCands(mini).find((c) => inside(c.r, V) && !hit(c.r, placed));
-      if (mc) { Object.assign(it.bd.style, { visibility: '', left: mc.left + 'px', top: mc.top + 'px' }); const ch = it.bd.querySelector('.ad-chain'); ch.style.left = Math.round(mc.ax - mc.left - 1) + 'px'; ch.style.height = mc.ch + 'px'; ch.style.top = ''; ch.style.bottom = -mc.ch - 2 + 'px'; placed.push(mc.r); st.badges++; } else { it.bd.style.visibility = 'hidden'; st.hidden++; }
+      it.ci = -1; it.el.style.visibility = 'hidden'; const mini = { ...it, w: it.bw, h: it.bh, tone: 'amber', mini: true }, mcs = plateCands(mini), okm = (c) => inside(c.r, V) && !hit(c.r, placed) && !hit(c.rc, placed), mc = mcs.find((c) => okm(c) && free(c, it)) || mcs.find(okm);
+      if (mc) { Object.assign(it.bd.style, { visibility: '', left: mc.left + 'px', top: mc.top + 'px' }); const ch = it.bd.querySelector('.ad-chain'); ch.style.left = Math.round(mc.ax - mc.left - 1) + 'px'; ch.style.height = mc.ch + 'px'; ch.style.top = ''; ch.style.bottom = -mc.ch - 2 + 'px'; placed.push(mc.r, mc.rc); st.badges++; } else { it.bd.style.visibility = 'hidden'; st.hidden++; }
     }
     // Comprobación: ninguna pieza visible pisa a otra.
     const vis = [...host.children].filter((e) => e.style.visibility !== 'hidden' && (e.classList.contains('ad-bub') || e.classList.contains('ad-warn')) && e.style.left).map((e) => [parseFloat(e.style.left), parseFloat(e.style.top), e.offsetWidth, e.offsetHeight]);
     for (let i = 0; i < vis.length; i++) for (let j = i + 1; j < vis.length; j++) if (hit(vis[i], [vis[j]])) st.overlaps++;
+    // Y las cadenas: ninguna cruza otra pieza visible ni a un ratón (la suya cuelga de su propia chapa).
+    const hb = host.getBoundingClientRect(), pieces = [...host.children].filter((e) => e.style.visibility !== 'hidden' && (e.classList.contains('ad-bub') || e.classList.contains('ad-warn')) && e.style.left);
+    for (const e of pieces) { const ch = e.querySelector('.ad-chain'); if (!ch || !ch.offsetHeight) continue; const q = ch.getBoundingClientRect(), r = [q.left - hb.left, q.top - hb.top, q.width, q.height]; for (const o of pieces) if (o !== e && hit(r, [[parseFloat(o.style.left), parseFloat(o.style.top), o.offsetWidth, o.offsetHeight]])) st.overlaps++; if (hit(r, M.map((m) => m[1]))) st.overlaps++; }
     L.stats = st; return st;
   };
   return L;

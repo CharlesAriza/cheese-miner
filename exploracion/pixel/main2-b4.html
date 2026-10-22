@@ -3982,7 +3982,7 @@ SC.ox = 17;
 SPR.crate = (() => { const c = document.createElement('canvas'); c.width = c.height = 1; return c.toDataURL(); })();
 // En las demostraciones el jugador pica solo: un toque cada 1,1 s, con la misma regla que un toque de verdad (SIM41.hit).
 setInterval(() => { if (B2.autoTap && SIM41.mineStatus() === 'ready') SIM41.hit('manual'); }, 1100);
-const B2 = { autoTap: true, ref: { stage: 1, boost: 0, on: true }, drill: { stage: 1, boost: 0, on: true }, cheese: { stage: 1, boost: 0, on: true }, mine: { boost: 0, on: true } };
+const B2 = { autoTap: true, ref: { stage: 1, boost: 0, on: true }, drill: { stage: 1, boost: 0, on: true }, cheese: { stage: 1, boost: 0, on: true }, mine: { boost: 0, on: true, gold: 0 } };
 const TIER_STAGE = [1, 1, 2, 2, 3, 3];
 const mkc = (w, h, f) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; const was = ctx; ctx = g; try { f(g); } finally { ctx = was; } return c; };
 // Contorno completado: un píxel vacío gana tinta si toca un píxel que no es tinta (la misma regla que REFINE B).
@@ -4172,9 +4172,19 @@ function drawWorkers(st, g, now) { // V4.1, con el pico aprobado
     HITS.push({ k: 'm', stop: STOPS.indexOf(st), st: g.who[who][2], who, name: b.m.name, x, y: feet - 20, w: 22, h: 20, crest: who === 'miner' });
   }
 }
+// Pico de oro del jugador (en el juego, con Mining en visualTier 3 o más): el mismo pico aprobado, píxel a píxel, con los cuatro
+// tonos del acero cambiados por los del oro de swing_gold. No se recorta de swing_gold porque allí el brillo del oro tiene el
+// color de las chispas que se quitaron.
+const GOLDPICK = { '#b9c1d1': '#ffd84a', '#f2f5fa': '#fffbe0', '#6c7488': '#c98a12', '#454a5a': '#8a5a0a' }, PICKG = [];
+function approvedPickGold(f) {
+  if (PICKG[f]) return PICKG[f]; const s = approvedPick(f); if (!s) return null;
+  const c = document.createElement('canvas'); c.width = s.width; c.height = s.height; const g = c.getContext('2d'); g.drawImage(s, 0, 0); const im = g.getImageData(0, 0, c.width, c.height), d = im.data;
+  for (let i = 0; i < d.length; i += 4) { if (!d[i + 3]) continue; const h = '#' + [d[i], d[i + 1], d[i + 2]].map((v) => v.toString(16).padStart(2, '0')).join(''), to = GOLDPICK[h]; if (to) { d[i] = parseInt(to.slice(1, 3), 16); d[i + 1] = parseInt(to.slice(3, 5), 16); d[i + 2] = parseInt(to.slice(5, 7), 16); } }
+  g.putImageData(im, 0, 0); return (PICKG[f] = c);
+}
 function drawPlayer(g, now) {
   const dt = now - AV.swing, f = Z41.veinRevealed ? 0 : swingFrame(dt < 300 ? dt : -1, false), p = PLAYER(g), y = p.feet + 1 - 20;
-  const mc = mF(PLAYER_MOUSE, f === 0 ? Math.floor(now / 650) % 2 : 0, false, f === 3 || f === 4 ? { face: 'grump' } : {}), pk = approvedPick(f); ctx.drawImage(mc, p.x, y); if (pk) ctx.drawImage(pk, p.x + PICK_OX, y + PICK_OY);
+  const mc = mF(PLAYER_MOUSE, f === 0 ? Math.floor(now / 650) % 2 : 0, false, f === 3 || f === 4 ? { face: 'grump' } : {}), pk = B2.mine.gold ? approvedPickGold(f) : approvedPick(f); ctx.drawImage(mc, p.x, y); if (pk) ctx.drawImage(pk, p.x + PICK_OX, y + PICK_OY);
   HITS.push({ k: 'm', stop: 1, st: 'rock', who: 'player', name: 'You', x: p.x + 1, y: p.feet - 19, w: 22, h: 20, player: true });
 }
 
