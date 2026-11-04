@@ -6,7 +6,7 @@
   const $ = (id) => document.getElementById(id);
   const Core = E2.game, Sv = E2.save, Pg = E2.progression, Inv = E2.inventory, Mo = E2.model, Ru = E2.rules, Cr = E2.crew, Lb = E2.lab;
   Core.setup();
-  const REAL = E2.REAL, ROOT = window.BETA_ROOT || '../';
+  const REAL = E2.REAL, ROOT = window.BETA_ROOT != null ? window.BETA_ROOT : '../';
   const NAME = { mine: 'MINE', drill: 'DRILL', refine: 'REFINE', cheese: 'CHEESE', sell: 'SELL', lift: 'LIFT', lab: 'LAB' };
   const ICON = { mine: 'ic_pick', drill: 'ic_raw_cheddar', refine: 'ic_base_cheddar', cheese: 'ic_lot_cheddar', sell: 'ic_coin' };
   const RANKS = REAL.mice.ranks.map((r) => r.name);
