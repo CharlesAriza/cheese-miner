@@ -134,6 +134,7 @@
         case 'unlock': { const tx = UNLOCK_TXT(e.id); if (tx) toast(tx); if (/^(phase|path|ms)/.test(e.id)) freshUp = true; break; }
         case 'specialty': case 'trait': { const m = G.roster.find((x) => x.id === e.id), tr = REAL.mice.traits[e.trait]; if (m && tr && tr.kind !== 'legend') toast(m.name + ' learned ' + tr.name); toSheets(e); break; }
         case 'recruited': toSheets(e); break;
+        case 'goal': if (e.reward) coinsGoal += e.reward; break;
         default: break;
       }
     }
@@ -156,33 +157,26 @@
     w.firstChild.addEventListener('click', () => goBuild(id));
     $('plates').appendChild(w); g.el = w;
   }
-  function goBuild(id) { if (id === 'sell') focusSt('sell'); else { scene.showSurface(); openPz(id === 'house' ? 'mice' : 'lab', id === 'house' && G.built.house ? 'house' : undefined); } if (!SIGNS[id].el.hidden) pulse(SIGNS[id].el.firstChild, 'bump', 320); if (scene.stationState(id) !== 'build') knowBuilding(id); }
-  // Un edificio ya construido lleva su nombre hasta que se ha tocado o se ha visto un rato: una pista inicial, quieta. Después, solo responde al toque.
-  const BUILDING_OF = { shop: 'sell', house: 'house', lab: 'lab' }, HINT_MS = 30000, hintSeen = {};
+  function goBuild(id) { if (id === 'sell') focusSt('sell'); else { scene.showSurface(); openPz(id === 'house' ? 'mice' : 'lab', id === 'house' && G.built.house ? 'house' : undefined); } if (!SIGNS[id].el.hidden) pulse(SIGNS[id].el.firstChild, 'bump', 320); }
+  const BUILDING_OF = { shop: 'sell', house: 'house', lab: 'lab' };
   const isBuilt = (id) => scene.stationState(id) === 'on' || (id === 'house' && G.built.house) || (id === 'lab' && G.lab.built) || (id === 'sell' && G.s.built.sell);
-  const knowBuilding = (id) => { if (G.seen['bld.' + id] == null) { Core.act(G, 'seen', { id: 'bld.' + id }); saveNow(); } };
   function tapBuilding(hid) {
     const id = BUILDING_OF[hid], r = scene.buildingRect(hid);
     if (r) { const sb = $('scene-box').getBoundingClientRect(), cr = $('cv').getBoundingClientRect(), [x0, y0] = scene.toScreen(r[0], r[1]), [x1, y1] = scene.toScreen(r[0] + r[2], r[1] + r[3]), el = document.createElement('i'); el.className = 'bd-press'; el.style.cssText = 'left:' + Math.round(cr.left - sb.left + x0) + 'px;top:' + Math.round(cr.top - sb.top + y0) + 'px;width:' + Math.round(x1 - x0) + 'px;height:' + Math.round(y1 - y0) + 'px'; $('scene-box').appendChild(el); setTimeout(() => el.remove(), 260); }
-    if (isBuilt(id)) knowBuilding(id);
     if (id === 'sell') return selected === 'sell' && isBuilt('sell') ? openPz('shopinfo') : focusSt('sell'); // la tienda es también una estación: el primer toque la elige
     if (id === 'lab') return openPz('lab');
     return openPz('mice', G.built.house ? 'house' : undefined);
   }
   function placeSigns() {
-    const hinted = (id) => isBuilt(id) && G.seen['bld.' + id] == null;
-    if (Object.keys(SIGNS).every((id) => SIGNS[id].el.hidden && scene.stationState(id) !== 'build' && !hinted(id))) return; // sin obras ni pistas pendientes no se mide nada en cada fotograma
+    if (Object.keys(SIGNS).every((id) => SIGNS[id].el.hidden && scene.stationState(id) !== 'build')) return; // sin obras pendientes no se mide nada en cada fotograma
     const sb = $('scene-box').getBoundingClientRect(), cr = $('cv').getBoundingClientRect(), ox = cr.left - sb.left, oy = cr.top - sb.top, W = sb.width, top = topInset(), used = [];
     for (const [id, g] of Object.entries(SIGNS)) {
-      const build = scene.stationState(id) === 'build', hint = !build && hinted(id), on = build || hint; if (g.el.hidden === on) g.el.hidden = !on;
+      const on = scene.stationState(id) === 'build'; if (g.el.hidden === on) g.el.hidden = !on;
       if (!on) continue;
-      g.el.firstChild.classList.toggle('build', build); g.el.classList.toggle('known', hint);
       const r = scene.buildingRect(g.at), [ax, ay] = scene.toScreen(r[0] + r[2] / 2, r[1]), by = oy + scene.toScreen(r[0], r[1] + r[3])[1], w = g.el.offsetWidth, up = by < top + 28;
       const x = up ? W - w - 6 : Math.max(6, Math.min(W - w - 6, Math.round(ox + ax - w / 2))); let y = up ? top : Math.max(top, Math.round(oy + ay) - 36);
       while (used.some((u) => x < u[0] + u[2] && u[0] < x + w && y < u[1] + 28 && u[1] < y + 28)) y += 28;
       used.push([x, y, w]); g.el.style.left = x + 'px'; g.el.style.top = y + 'px'; g.el.classList.toggle('up', up);
-      // La pista solo se enseña con el edificio a la vista, y deja de enseñarse tras un rato mirándolo.
-      if (hint) { g.el.style.visibility = up ? 'hidden' : ''; if (!up) { hintSeen[id] = (hintSeen[id] || 0) + 1; if (hintSeen[id] * 16 > HINT_MS) knowBuilding(id); } } else g.el.style.visibility = '';
     }
   }
   let plateSig = ''; const ghostAt = {};
@@ -355,11 +349,11 @@
   const boostPend = {};
   function boostFx(st, n, was) {
     if (n > was) { if (plates[st]) pulse(plates[st].querySelector('.bo-chip'), 'stamp', 420); if (st === selected) pulse($('pn-st').querySelector('.bo-chip'), 'stamp', 420); }
-    if (pzOpen()) boostPend[st] = n; else showBoost(n, st);
+    boostPend[st] = n;
   }
-  // Siempre con su animación: exigir media máquina a la vista la saltaba en un móvil, donde se ve menos escena, y el sprite cambiaba de golpe.
-  function showBoost(n, st) { scene.boostTo(st, n, true); }
-  function flushBoost() { for (const st of Object.keys(boostPend)) { const n = boostPend[st]; delete boostPend[st]; showBoost(n, st); } }
+  // Lo económico ya ha cambiado; la máquina cuenta el cambio cuando se la puede ver. Fuera de pantalla espera: si empezara allí, al volver ya estaría sin la pieza.
+  const stationSeen = (st) => { const q = scene.stationRect(st); if (!q) return true; const y0 = scene.toScreen(q[0], q[1])[1], y1 = scene.toScreen(q[0], q[1] + q[3])[1]; return Math.min(y1, $('scene-box').clientHeight) - Math.max(y0, topInset()) >= (y1 - y0) * 0.35; };
+  function flushBoost() { for (const st of Object.keys(boostPend)) if (stationSeen(st)) { const n = boostPend[st]; delete boostPend[st]; scene.boostTo(st, n, true); } }
   function boostLabel(st, n, x, y) {
     const el = document.createElement('div'); el.className = 'bo-float'; el.textContent = BO_LABEL[st][n] + (st === 'refine' ? ' BASE' : ' SPEED');
     $('scene-box').appendChild(el); const w = el.offsetWidth; el.style.left = Math.round(Math.max(6, Math.min($('scene-box').clientWidth - w - 6, x - w / 2))) + 'px'; el.style.top = Math.round(Math.max(topInset(), y - 14)) + 'px';
@@ -577,7 +571,7 @@
   }
   function goalTick(now) {
     if (paused) return;
-    if (gShown && G.goals[gShown.id] != null && now >= gDoneUntil && !gEl.classList.contains('done')) { gDoneUntil = now + 1300; gEl.classList.add('done'); gEl.classList.remove('min'); $('goal-t').textContent = '✓ ' + gShown.text; $('goal-n').textContent = ''; return; }
+    if (gShown && G.goals[gShown.id] != null && now >= gDoneUntil && !gEl.classList.contains('done')) { gDoneUntil = now + 1300; gEl.classList.add('done'); gEl.classList.remove('min'); $('goal-t').textContent = '✓ ' + gShown.text; { const rw = (REAL.goalRewards || {})[gShown.id]; $('goal-n').textContent = rw ? '+' + fmt(rw) + ' coins' : ''; } return; }
     if (now < gDoneUntil) return;
     const v = Core.view(G).goal;
     if (!v) { if (gShown) { gEl.classList.remove('in'); setTimeout(() => { if (!Core.view(G).goal) gEl.hidden = true; }, 220); gShown = null; } return; }
@@ -678,17 +672,22 @@
     for (const k of Object.keys(L.strainsOf || {})) { const n = L.strainsOf[k].length; if (n > (labSeen.strains[k] || 0)) { labSeen.strains[k] = n; if (PZ.ready) try { pzWin().SHEETS.strainFound(k, L.strainsOf[k][n - 1]); } catch (e) { console.warn(e); } toast('New strain found: compare it in LAB'); } }
   }
   let revAt = 0, lastDraw = 0, boostAfter = 0, boostCalm = 0, lastFrameAt = 0;
+  const boostSettled = (now) => { if (!boostAfter) return true; boostCalm = now - lastFrameAt < 40 ? boostCalm + 1 : 0; if (boostCalm >= 3 || performance.now() - boostAfter > 500) { boostAfter = 0; boostCalm = 0; return true; } return false; };
   // Las monedas se mueven de verdad a saltos: entran al cerrarse una venta y salen con cada hornada (el ingrediente), con los gerentes y con lo que compra el jugador.
-  // El marcador enseña siempre el saldo real; esto dice cuánto ha cambiado, como mucho una vez cada 1,2 s y con el total, igual que los demás efectos.
-  const coinTag = document.createElement('i'); coinTag.className = 'hud-delta'; $('scene-box').appendChild(coinTag);
-  let coinsPrev = null, coinsNet = 0, coinsAt = 0;
+  // El marcador enseña siempre el saldo real. Su segunda línea cuenta cada cambio de verdad, con el total de 1,2 s y en su sitio: no se apila ni tapa nada.
+  // Las recompensas de objetivo se nombran: entran monedas sin venta de por medio y, sin decirlo, parecía que el RAW se contaba como oro.
+  let coinsPrev = null, coinsNet = 0, coinsAt = 0, coinsGoal = 0, deltaUntil = 0;
   function coinsTick(now) {
     const c = G.s.coins; if (coinsPrev == null || off || pzOpen()) { coinsPrev = c; coinsNet = 0; return; }
     coinsNet += c - coinsPrev; coinsPrev = c;
     if (!coinsNet || now - coinsAt < 1200) return;
-    coinsAt = now; const up = coinsNet > 0; coinTag.textContent = (up ? '+' : '-') + fmt(Math.abs(coinsNet)); coinTag.classList.toggle('dn', !up); coinsNet = 0;
-    if (coinTag.animate && !RM()) coinTag.animate([{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none', offset: 0.15 }, { opacity: 1, transform: 'none', offset: 0.7 }, { opacity: 0, transform: 'translateY(-3px)' }], { duration: 1000, easing: 'steps(6)' });
+    coinsAt = now; deltaUntil = now + 1100; const up = coinsNet > 0, el = $('hud-rate'), goal = up && coinsGoal >= coinsNet;
+    el.textContent = (up ? '+' : '-') + fmt(Math.abs(coinsNet)) + (goal ? ' GOAL' : ''); el.classList.add('delta'); el.classList.toggle('dn', !up);
+    $('hud-coins').classList.toggle('dn', !up); $('hud-coins').classList.add('delta');
+    coinsNet = 0; coinsGoal = 0;
+    if (el.animate && !RM()) el.animate([{ transform: 'translateY(3px)' }, { transform: 'none' }], { duration: 120, easing: 'steps(2)' });
   }
+  function coinsLine(now) { const el = $('hud-rate'); if (now < deltaUntil) return; const t = '+' + fmt(income()) + '/min'; if (el.classList.contains('delta')) { el.classList.remove('delta', 'dn'); $('hud-coins').classList.remove('delta', 'dn'); el.textContent = t; } else if (el.textContent !== t) el.textContent = t; }
   const COVERED_MS = 66;
   // ---- Avisos de máquina: la placa aprobada (.ad-warn y su colocación, labelLayer) con lo que le falta de verdad ----
   // Ámbar si lo que falta ya viene de camino; roja si no viene. Sale al segundo y medio de faltar y se va a los 0,8 s de volver, para no parpadear.
@@ -739,7 +738,7 @@
     syncSim(); processEvents(); dragger.step(performance.now()); syncCrew(); dragger.settle(); syncWorld();
     coinsTick(now);
     // Lo pendiente de los refuerzos sale con la escena ya estable: justo al cerrar la hoja, el móvil pierde fotogramas y se comería la animación.
-    if (boostAfter && !pzOpen()) { const quiet = now - lastFrameAt < 40; boostCalm = quiet ? boostCalm + 1 : 0; if (boostCalm >= 3 || performance.now() - boostAfter > 500) { boostAfter = 0; boostCalm = 0; flushBoost(); } }
+    if (!pzOpen() && boostSettled(now)) flushBoost();
     lastFrameAt = now;
     rushTick(now); goalTick(now);
     // Con una hoja delante, la escena queda tapada y atenuada: se pinta menos para que la hoja vaya fluida en el móvil (mismo hilo).
@@ -751,11 +750,12 @@
     const s = G.s, t = tierNow(), sig = [fmt(s.coins), fmt(income()), s.depth, t, s.vein.open, Math.floor((100 * (s.vein.open ? s.vein.left / Math.max(1, s.vein.cap) : s.vein.found / Math.max(1e-9, s.vein.need))))].join('|');
     if (sig !== hudSig) {
       hudSig = sig;
-      $('hud-coins').textContent = fmt(s.coins); $('hud-rate').textContent = '+' + fmt(income()) + '/min';
+      $('hud-coins').textContent = fmt(s.coins);
       $('hud-depth').textContent = 'DEPTH ' + s.depth; $('hud-tier').textContent = t.toUpperCase(); $('hud-tieric').src = icd('ic_raw_' + t);
       $('hud-depthbar').style.width = Math.round(100 * (s.vein.open ? s.vein.left / Math.max(1, s.vein.cap) : s.vein.found / Math.max(1e-9, s.vein.need))) + '%';
       $('hud-depthbox').classList.toggle('vein', s.vein.open);
     }
+    coinsLine(now);
     homeTick();
     paintPanel(false); paintTag(now);
     if (now - slow > 400) {
@@ -784,5 +784,5 @@
   select('mine');
   if (paused) startCover();
   requestAnimationFrame(frame);
-  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.BETA = { get G() { return G; }, get dragger() { return dragger; }, sim, scene, pick: (id) => selectMouse(byId(id)), save: saveNow, sync: () => { syncSim(); syncCrew(); }, act: doAct, tick, focus: focusSt };
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.BETA = { get G() { return G; }, get dragger() { return dragger; }, sim, scene, stationSeen, boostPend, pick: (id) => selectMouse(byId(id)), save: saveNow, sync: () => { syncSim(); syncCrew(); }, act: doAct, tick, focus: focusSt };
 })();

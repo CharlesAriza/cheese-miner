@@ -807,7 +807,7 @@
     const L = G().lab, C = CM.cheesery, w = labW();
     if (!L.built) {
       const open = Pg.isOpen(G(), 'build.lab'), q = Pg.status(G(), 'build.lab').requires.filter((r) => !r.ok);
-      return lbHead(s) + '<div class="mx-box mx-lb-build' + (open ? ' mx-ready' : '') + '"><span class="mx-ic"><img class="pix" src="' + MXSP + 'ic_flask.png" alt="" style="width:26px;height:28px"></span><div class="mx-t">' + (open
+      return '<div class="mx-box mx-lb-build' + (open ? ' mx-ready' : '') + '"><span class="mx-ic"><img class="pix" src="' + MXSP + 'ic_flask.png" alt="" style="width:26px;height:28px"></span><div class="mx-t">' + (open
         ? '<b>THE CHEESE LAB IS READY TO BUILD</b><small>Its own building: discover new recipes there, and later give a mouse the research post.</small><span role="button" class="mx-lb-go mx-build" data-act="build:lab"><b>BUILD</b><small>It is free</small></span>'
         : '<b>CHEESE LAB</b><small>' + q.map((r) => r.text).join(' · ') + '</small>') + '</div></div>';
     }

@@ -3820,7 +3820,7 @@ const headOfB = (who) => () => { const b = BR[who]; return b && b.px != null ? [
 //     su sitio se decide al nacer y luego solo sigue a la cabeza, suavizado; ancho fijo; quien habla se para y mira al otro.
 //   · El remover de la cuba estaba roto (dos palas superpuestas): la cuba se dibuja sin la pala fija y la pala se anima sola.
 // Mismo motor y piezas aprobadas que MAIN 2.0; lo nuevo es PROVISIONAL y va en el registro PH (modo PH del prototipo).
-CM.art = { mouseCanvas, ghostCanvas, labelLayer };
+CM.art = { mouseCanvas, ghostCanvas, labelLayer, houseV3, houseStage, labV2, shopBack, shopFront };
 CM.createColonyScene = function (canvas, host, sim, hooks) {
   const g = canvas.getContext('2d');
   // ---- Geometría (píxeles de arte) ----
@@ -4993,8 +4993,9 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
   // La misma estructura que DRILL y SHOP: lo que se ve (shown) va detrás de lo que hay (sim.boosted); una activación a la vez
   // por estación, con cola del último cambio; la cámara no se mueve y la economía no se toca (nada de golpes ni hornadas de
   // más: la activación solo lo cuenta). Cada estación con su propia expresión (ver cada función).
+  const OUT_MS = 520;
   const ACT = { refine: { shown: 0, act: null, queue: null, d: [900, 1050] }, cheese: { shown: 0, act: null, queue: null, d: [900, 1100] }, mine: { shown: 0, act: null, queue: null, d: [900, 1050] } };
-  function stStart(st, n) { const S = ACT[st], up = n > S.shown; S.act = { from: S.shown, to: n, t0: performance.now(), dur: up ? S.d[n === 2 ? 1 : 0] : 350, fired: {} }; }
+  function stStart(st, n) { const S = ACT[st], up = n > S.shown; S.act = { from: S.shown, to: n, t0: performance.now(), dur: up ? S.d[n === 2 ? 1 : 0] : OUT_MS, fired: {} }; }
   function stTo(st, n, animate) {
     const S = ACT[st]; n = Math.max(0, Math.min(2, n | 0));
     if (!animate) { S.shown = n; S.act = null; S.queue = null; return; }
@@ -5006,7 +5007,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     const S = ACT[st];
     if (S.act && now - S.act.t0 >= S.act.dur) { S.shown = S.act.to; S.act = null; const q = S.queue; S.queue = null; if (q != null && q !== S.shown) { if (q === 2 && S.shown === 0) { stStart(st, 1); S.queue = 2; } else stStart(st, q); } }
     const A = S.act, t = A ? now - A.t0 : 0, up = !!A && A.to > A.from;
-    return { lvl: A ? Math.max(A.from, A.to) : S.shown, A, t, up, in1: up && A.to === 1, in2: up && A.to === 2, down: !!A && !up, dk: A && !up ? 1 - seg(t, 0, 330) : 1 };
+    return { lvl: A ? Math.max(A.from, A.to) : S.shown, A, t, up, in1: up && A.to === 1, in2: up && A.to === 2, down: !!A && !up, dk: A && !up ? 1 - seg(t, 0, OUT_MS - 40) : 1, lift: A && !up && A.to === 0 ? seg(t, OUT_MS - 170, OUT_MS) : 0 };
   }
   // Clímax común: el equipo de la estación lo celebra y sube la cifra (BASE en la refinería, SPEED en las demás).
   const stClimax = (st, L, at, wx, wy) => once(L.A, 'cheer', L.t, at, () => { nodes.filter((q) => q.st === st && q.crew && !q.inside).forEach((q, i) => react(q, 'wow', i * 60)); if (hooks.boostLabel) hooks.boostLabel(st, L.A.to, (wx - cam.x) * s, (wy - cam.y) * s); });
@@ -5024,7 +5025,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     let grow = two ? 2 : 0, dy = 0, fillK = 1, line1 = 1, line2 = two ? 1 : 0, rings1 = 1, rings2 = two ? 1 : 0, blue = 1, needle = 1, frost = 0, climax = 0;
     if (L.in1) { dy = dropIn(t); fillK = seg(t, 60, 260); line1 = seg(t, 200, 480); rings1 = seg(t, 420, 620); blue = t < 520 ? 0 : t < 560 ? 1 : t < 600 ? 0 : 1; frost = t > 420 && t < 760 ? 1 - seg(t, 600, 760) : 0; climax = t > 640 ? 1 - seg(t, 640, 900) : 0; I = Math.max(I, 0.8 * fillK); }
     if (L.in2) { grow = t < 80 ? 0 : t < 160 ? 1 : 2; needle = seg(t, 160, 520); line2 = seg(t, 250, 550); rings2 = seg(t, 450, 650); frost = t > 450 && t < 820 ? 1 - seg(t, 650, 820) : 0; climax = t > 700 ? 1 - seg(t, 700, 1000) : 0; I = 1; }
-    if (L.down) I *= L.dk;
+    if (L.down) { I *= L.dk; if (L.A.from === 2) { line2 = L.dk; rings2 = L.dk; needle = L.dk; grow = t > OUT_MS - 120 ? (L.A.to === 0 ? 0 : 1) : 2; } if (L.A.to === 0) { fillK = L.dk; line1 = L.dk; rings1 = L.dk; blue = L.dk > 0.5 ? 1 : 0; dy = -Math.round(4 * L.lift); } }
     const bigTwo = grow === 2;
     // Llama con núcleo azul (más temperatura) en la base del fuego.
     if (run && blue > 0) { const fl = Math.floor(vn / 90) % 3; R(RX + 11 - (bigTwo ? 1 : 0), REFY + 45, 8 + (bigTwo ? 2 : 0), 1, fl ? '#2f8fc0' : '#5ad1ff'); R(RX + 13, REFY + 44, 4, 1, bigTwo ? '#cff4ff' : '#9fe6ff'); if (bigTwo) R(RX + 12, REFY + 43, 6, 1, fl === 1 ? '#5ad1ff' : '#2f8fc0'); }
@@ -5071,7 +5072,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
       if (STGS.cheese > 1 && t > 400 && t < 680) { const vx = z.vat, vy = F - 24; for (let i = 0; i < 4; i++) { const k = ((t - 400) / 70 + i * 0.37) % 1; R(vx + 8 + i * 7, vy + 7 - Math.round(Math.sin(k * Math.PI) * 3), 1, 1, i % 2 ? '#fffbea' : '#efe6c4'); } }
       once(L.A, 'steam', t, 450, () => { const vx = STGS.cheese > 1 ? z.vat + 19 : z.station + 21, vy = STGS.cheese > 1 ? F - 24 : F - 22; for (let i = 0; i < 3; i++) rfx('steam', vx + (i - 1) * 6, vy, { vx: (i - 1) * 0.004, vy: -0.022, life: 900, c: '#fbf6e8', delay: i * 60 }); }); }
     if (L.in2) { grow = t < 150 ? 0 : 1; shaftK = seg(t, 150, 420); spinFast = t > 420 && t < 900; I = 1; }
-    if (L.down) I *= L.dk;
+    if (L.down) { I *= L.dk; if (L.A.from === 2) { shaftK = L.dk; grow = t > OUT_MS - 120 ? 0 : 1; } if (L.A.to === 0) { coilK = L.dk; dy = -Math.round(4 * L.lift); } }
     // El barrido de más de la pala al arrancar (solo lo que se ve).
     const sb = vis.stirBurst; if (sb) { const k = Math.min(1, (now - sb.t0) / sb.ms), v = sb.add * (1 - Math.pow(1 - k, 3)); vis.stir += v - sb.done; sb.done = v; if (k >= 1) vis.stirBurst = null; }
     const ax = STGS.cheese === 1 ? z.station + 21 : z.vat + 19, ay = STGS.cheese === 1 ? F - 46 : F - 24;
@@ -5116,7 +5117,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     let grow = two ? 1 : 0, lower = 0, swing = 0, cableK = 1, rodsShown = 99, upK = two ? 1 : 0, blast = 0;
     if (L.in1) { lower = 1 - seg(t, 0, 180); swing = t > 180 && t < 340 ? (Math.floor(t / 50) % 2 ? 1 : -1) : 0; cableK = seg(t, 150, 360); rodsShown = t < 300 ? 0 : Math.floor((t - 300) / 50) + 1; charge = seg(t, 420, 560); blast = t > 560 ? 1 - seg(t, 560, 820) : 0; I = Math.max(I, charge); }
     if (L.in2) { grow = t < 150 ? 0 : 1; upK = seg(t, 150, 400); rodsShown = t < 350 ? 3 : 3 + Math.floor((t - 350) / 50) + 1; charge = Math.max(0.3, seg(t, 380, 540)); blast = t > 550 ? 1 - seg(t, 550, 850) : 0; I = 1; }
-    if (L.down) I *= L.dk;
+    if (L.down) { I *= L.dk; charge *= L.dk; if (L.A.from === 2) { upK = L.dk; grow = t > OUT_MS - 120 ? 0 : 1; } if (L.A.to === 0) { cableK = L.dk; rodsShown = Math.ceil(L.dk * 3); lower = L.lift; } }
     const big = grow === 1, bx = 86 + swing, by = y0 + 26 - Math.round(8 * lower * lower), bw = big ? 13 : 10, bh = big ? 12 : 10;
     for (let y = y0 + 14; y < by; y++) R(bx + (bw >> 1), y, 1, 1, y % 2 ? MAT.iron[3] : INK4);
     const low = [F - 16, F - 12, F - 8], high = [F - 50, F - 45, F - 40], ex = (y) => edgeX(y) - 1;
@@ -6094,6 +6095,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
   const here = (n) => !['drill', 'refine', 'cheese'].includes(n.st) || builtSt(n.st); // sin construir, sus ratones no están
   let lastT = 0, frameDt = 16;
   function draw(now) {
+    const gapA = lastT ? now - lastT : 0; if (gapA > 64) for (const S of [BA, SA, ACT.refine, ACT.cheese, ACT.mine]) if (S.act) S.act.t0 += gapA - 64;
     const dt = Math.max(0, Math.min(64, lastT ? now - lastT : 16)); lastT = Math.max(lastT, now); frameDt = dt;
     { const b = canvas.parentElement.getBoundingClientRect(); if (Math.abs(b.width - Wc) > 0.5 || Math.abs(b.height - Hc) > 0.5 || (window.devicePixelRatio || 1) !== dpr) resize(); }
     // Primero se mueven los ratones y después la cámara: así la cámara enganchada usa la posición de este fotograma y no la
@@ -6307,6 +6309,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     stationState: (st) => stateSt(st),
     buildingRect: (id) => L.buildings[id],
     stationRect: (st) => stRect(st),
+    boostState: (st) => { const S = st === 'drill' ? BA : st === 'sell' ? SA : ACT[st]; return S ? { shown: S.shown, act: S.act ? { from: S.act.from, to: S.act.to } : null, queue: S.queue } : null; },
     get focusedStation() { return mode === 'station' ? focusSt : null; }, heat: (st) => heat(st),
     setSurface(k) { SURFK = Math.max(1, Math.min(4, k)); }, get surface() { return SURFK; }, setTown(b) { TOWN = !!b; }, get town() { return TOWN; },
     townLots: () => ({ ...LOT }), townSizes: () => { const S = surfStages(); return { house: townHouse(S.house).width, lab: townLab(S.lab).width, labH: townLab(S.lab).height, houseH: townHouse(S.house).height }; },

@@ -52,10 +52,11 @@
 .pn-act.manual:not(.off) { animation-iteration-count: 2; border-color: var(--gold); }
 .p0-plate.build { animation-iteration-count: 3; border-color: var(--new); }
 .bs-down, .bs-up { animation-iteration-count: 6; }
-/* Edificios: su nombre como pista inicial, quieto y sin flecha; y una respuesta al tocarlos. */
-.bs-sign.known .bs-down, .bs-sign.known .bs-up { display: none; }
+/* Edificios: responden al tocarlos. */
 .bd-press { position: absolute; z-index: 4; pointer-events: none; outline: 2px solid var(--gold); outline-offset: -2px; background: #ffcf2e22; animation: bd-press .26s steps(3) forwards; }
 @keyframes bd-press { to { opacity: 0; } }
-/* Lo que acaba de cambiar el saldo, junto al marcador. */
-.hud-delta { position: absolute; left: 12px; top: calc(env(safe-area-inset-top, 0px) + 50px); z-index: 7; opacity: 0; pointer-events: none; font: 400 8px/10px var(--pixel); font-style: normal; color: var(--rate); text-shadow: 1px 1px 0 #1b1220; }
-.hud-delta.dn { color: #ff9a8a; }
+/* Lo que acaba de cambiar el saldo, en la línea del marcador: verde lo que entra, rojo lo que sale. */
+#hud-rate.delta { font: 400 8px/12px var(--pixel); color: #8ff09a; text-shadow: 1px 1px 0 #10261a; white-space: nowrap; }
+#hud-rate.delta.dn { color: #ffa08f; text-shadow: 1px 1px 0 #3a1014; }
+#hud-coins.delta { color: #c8ffc0; }
+#hud-coins.delta.dn { color: #ffc0b4; }
