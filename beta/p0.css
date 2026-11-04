@@ -1,0 +1,340 @@
+/* PROTOTIPO P1 · Cheese Driller 3.0 (composición B pulida). Tokens, caja y niveles de texto de Pulido+ (los de pulido.css),
+   con la maquetación del mockup: marcador de tres cajas, panel con icono, estado, barra, obreros y acción, y barra de
+   navegación con iconos. Nada de esta hoja afecta al juego. */
+:root {
+  color-scheme: dark;
+  --bg: #120f18; --text: #ffffff; --soft: #d6d0e6; --muted: #9f97b8; --gold: #ffcf2e; --new: #62d36e; --rate: #a9cfb0; --xp: #6aa8f0; --stop: #ff5a7a;
+  --p1: #3d3352; --p2: #2a2338; --p3: #1d1828; --p4: #0c0910;
+  --o0: #ffe0a0; --o1: #ffb347; --o2: #ff8a2e; --o3: #d9581f; --o4: #7a2a10;
+  --pixel: 'Press Start 2P', ui-monospace, Menlo, monospace;
+  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --cut: polygon(2px 0, calc(100% - 2px) 0, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 0 calc(100% - 2px), 0 2px);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); overflow: hidden; overscroll-behavior: none; }
+body { font-family: var(--sans); -webkit-user-select: none; user-select: none; touch-action: none; -webkit-tap-highlight-color: transparent; } /* sin pellizco ni doble toque: el juego es una pantalla fija */
+#sheet-body { touch-action: pan-y; } /* las hojas largas sí se desplazan con un dedo */
+button { font: inherit; color: inherit; cursor: pointer; padding: 0; }
+.pix { image-rendering: pixelated; }
+#p0 { position: relative; display: flex; flex-direction: column; height: 100dvh; max-width: 480px; margin: 0 auto; background: var(--bg); overflow: hidden; }
+
+/* ---- Una sola caja (Pulido+): tinta de 2 px, luz de 2 px arriba, sombra de 3 px abajo, esquinas a píxel. Las variantes solo
+   cambian el relleno; la selección es siempre el borde oro. La sombra que la despega de la escena va en el contenedor. ---- */
+.bx { background: var(--p2); border: 2px solid var(--p4); border-radius: 0; box-shadow: inset 0 2px 0 var(--p1), inset 0 -3px 0 var(--p3); clip-path: var(--cut); color: var(--text); }
+.bx.sunk { background: var(--p3); box-shadow: inset 0 2px 0 #15111d, inset 0 -2px 0 var(--p2); }
+.bx:active { transform: translateY(1px); }
+.lift { filter: drop-shadow(0 2px 0 #0c0910b0); }
+
+/* ---- Escena: el lienzo ocupa todo; el marcador y las placas van encima ---- */
+.p0-scene { position: relative; flex: 1; min-height: 0; overflow: hidden; background: #3f8ddc; }
+#cv { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; touch-action: none; }
+
+/* Marcador: monedas (con su ritmo debajo), profundidad (con la barra de la búsqueda o de la veta) y menú. 40 px. */
+.hud { position: absolute; left: 6px; right: 6px; top: calc(6px + env(safe-area-inset-top, 0px)); z-index: 6; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 5px; pointer-events: none; filter: drop-shadow(0 2px 0 #0c0910a0); }
+.hud > .bx { pointer-events: auto; height: 40px; }
+.hud-coins { position: relative; display: flex; align-items: center; gap: 6px; min-width: 100px; padding: 0 22px 1px 6px; text-align: left; }
+.hud-coins[aria-expanded='true'] { border-color: var(--gold); }
+.hud-coins img { width: 24px; height: 24px; }
+.hud-coins span { display: flex; flex-direction: column; gap: 3px; }
+.hud-coins b { font: 400 12px/12px var(--pixel); color: var(--text); }
+.hud-coins small { font: 700 10px/11px var(--sans); color: var(--rate); white-space: nowrap; }
+.hud-depth { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; align-content: center; column-gap: 6px; row-gap: 5px; min-width: 0; padding: 0 8px 1px; text-align: left; }
+.hd-txt { grid-column: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font: 400 8px/9px var(--pixel); color: var(--text); }
+.hd-txt em { font-style: normal; color: var(--gold); }
+.hd-txt em::before { content: ' · '; color: var(--text); }
+.hd-bar { grid-column: 1; display: block; height: 6px; background: var(--p4); box-shadow: inset 0 1px 0 #000; }
+.hd-bar > i { display: block; height: 100%; width: 0; background: var(--xp); box-shadow: inset 0 1px 0 #9fcaf8, inset 0 -1px 0 #3f78c0; transition: width .3s steps(6); }
+.hud-depth.vein .hd-bar > i { background: var(--gold); box-shadow: inset 0 1px 0 #fff3a0, inset 0 -1px 0 #d9a514; }
+.hd-ic { grid-column: 2; grid-row: 1 / span 2; width: 21px; height: 18px; align-self: center; }
+@keyframes fresh { 0%, 55% { border-color: var(--gold); box-shadow: inset 0 2px 0 var(--p1), inset 0 -3px 0 var(--p3), 0 0 0 2px #ffe55c, 0 0 10px 2px #ffcf2e99; } 56%, 100% { border-color: #8a6a20; box-shadow: inset 0 2px 0 var(--p1), inset 0 -3px 0 var(--p3), 0 0 6px 1px #ffcf2e44; } }
+.nav > button.fresh { clip-path: none; animation: fresh 1.4s steps(1) infinite; } /* MENU: hay un aviso dentro */
+@media (prefers-reduced-motion: reduce) { .nav > button.fresh { animation: none; border-color: var(--gold); } }
+
+/* Herramienta del prototipo (no es interfaz del juego): PH, atajos de prueba y contador de solapes entre ratones. */
+.p0-dev { position: absolute; left: 6px; bottom: 6px; /* abajo a la izquierda: abajo a la derecha tapaba el botón MINE */ z-index: 7; display: flex; flex-wrap: wrap; align-items: center; gap: 3px; max-width: 170px; padding: 2px; background: #1b1622d9; border: 1px dashed #ff4fd8; }
+.p0-dev .p0-tag { height: 20px; padding: 0 4px; font: 700 8px/10px var(--sans); letter-spacing: .5px; color: #ff9fe9; background: none; border: 0; }
+.p0-devtools { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; width: 100%; }
+.p0-devtools[hidden] { display: none; }
+.p0-dev button:not(.p0-tag) { min-width: 26px; height: 22px; padding: 0 4px; font: 400 7px/7px var(--pixel); color: var(--soft); background: var(--p3); border: 1px solid var(--p4); }
+.p0-dev button.on { color: #2b1d12; background: var(--gold); }
+#dev-ov { font: 700 9px/10px var(--sans); color: var(--new); padding: 0 2px; }
+.p0-dev .dev-lbl { font: 700 8px/10px var(--sans); color: #ff9fe9; letter-spacing: .5px; }
+.p0-dev .p0-tag b { color: var(--gold); }
+#dev-ov.bad { color: var(--stop); }
+
+/* Placas de estación: arriba a la izquierda de su nivel; si el nivel queda bajo el marcador, bajan con él. */
+.p0-plate { position: absolute; z-index: 4; display: flex; align-items: center; gap: 5px; height: 24px; padding: 0 8px 1px 5px; font: 400 8px/8px var(--pixel); color: var(--text); white-space: nowrap; background: #1d1828e8; border: 2px solid var(--p4); box-shadow: inset 0 2px 0 var(--p1), inset 0 -3px 0 #120e18; clip-path: var(--cut); }
+.p0-plate::before { content: ''; position: absolute; inset: -4px -4px; } /* zona táctil algo mayor, sin comerse a los ratones de al lado */
+.p0-plate img { width: 14px; height: auto; }
+.p0-plate.on { border-color: var(--gold); color: var(--gold); }
+#plates { position: absolute; inset: 0; z-index: 4; pointer-events: none; filter: drop-shadow(0 2px 0 #0c0910a0); }
+#plates > * { pointer-events: auto; }
+#p0-toast { position: absolute; left: 50%; top: auto; bottom: 10px; z-index: 8; transform: translateX(-50%); max-width: calc(100% - 24px); padding: 7px 10px 8px; font: 700 12px/15px var(--sans); background: var(--p2); border: 2px solid var(--gold); clip-path: var(--cut); opacity: 0; pointer-events: none; transition: opacity .15s; }
+#p0-toast.show { opacity: 1; }
+
+/* ---- Panel de la estación (alto fijo): icono, nombre y nivel, estado, flujo y barra; obreros; la acción ---- */
+.panel { flex: none; position: relative; z-index: 5; display: grid; grid-template-columns: 50px 96px minmax(0, 1fr) 58px; gap: 6px; height: 80px; margin: 0; padding: 7px 7px 8px; background: #221c2e; border-left: 0; border-right: 0; clip-path: none; box-shadow: inset 0 2px 0 var(--p1), inset 0 -3px 0 var(--p3), 0 -2px 0 #0c0910; }
+.panel > button { height: 61px; min-width: 0; }
+.pn-st { display: flex; align-items: center; justify-content: center; }
+.pn-st img { width: 28px; height: auto; }
+.pn-info { display: flex; flex-direction: column; justify-content: center; gap: 3px; min-width: 0; }
+.pn-name { display: flex; align-items: baseline; gap: 6px; min-width: 0; white-space: nowrap; }
+.pn-name b { font: 400 12px/13px var(--pixel); color: var(--text); }
+.pn-name small { font: 400 8px/8px var(--pixel); color: var(--soft); }
+.pn-status { font: 700 12px/14px var(--sans); color: var(--o1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pn-flow .ri { width: 10px; height: 10px; margin: 0 2px -1px 0; vertical-align: baseline; }
+.pn-status.good { color: var(--rate); } .pn-status.stop { color: var(--stop); }
+.pn-flow { font: 600 11px/13px var(--sans); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pn-bar { display: block; height: 7px; margin-top: 1px; background: var(--p4); box-shadow: inset 0 1px 0 #000; }
+.pn-bar > i { display: block; height: 100%; width: 0; background: var(--gold); box-shadow: inset 0 1px 0 #fff3a0, inset 0 -2px 0 #d9a514; }
+.pn-crew { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding-top: 13px; }
+.pn-crew[aria-expanded='true'] { border-color: var(--gold); }
+/* Desplegables: el hueco de la flecha (patrón de caja desplegable de las interfaces pixel). Un pozo hundido separado por una
+   línea, con una flecha pixel de 5×3 a escala 2. Dice «esto se abre» y hacia dónde; al abrir, la flecha se da la vuelta y se
+   pone dorada como el borde de la caja. HUD: a la derecha, flecha abajo. WORKERS: arriba, flecha arriba (se abre hacia arriba). */
+.dd-well { position: absolute; right: 0; top: 0; bottom: 0; width: 16px; background: var(--p3); border-left: 2px solid var(--p4); box-shadow: inset 0 2px 0 #15111d, inset 0 -2px 0 var(--p2); pointer-events: none; }
+.bx.sunk > .dd-well { background: var(--p2); box-shadow: inset 0 2px 0 var(--p1), inset 0 -1px 0 var(--p3); } /* en una caja hundida, la pestaña va en relieve */
+.dd-well.up { left: 0; right: 0; bottom: auto; width: auto; height: 13px; border-left: 0; border-bottom: 2px solid var(--p4); }
+.dd-well::after { content: ''; position: absolute; left: 50%; top: 50%; width: 10px; height: 6px; margin: -3px 0 0 -5px; background: var(--soft); transition: transform .12s steps(2);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='5' height='3' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h5v1H0zM1 1h3v1H1zM2 2h1v1H2z'/%3E%3C/svg%3E") center / 10px 6px no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='5' height='3' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h5v1H0zM1 1h3v1H1zM2 2h1v1H2z'/%3E%3C/svg%3E") center / 10px 6px no-repeat; }
+.dd-well.up::after { margin-top: -2px; transform: scaleY(-1); }
+[aria-expanded='true'] > .dd-well { background: #3a2c12; border-color: var(--gold); }
+[aria-expanded='true'] > .dd-well::after { background: var(--gold); transform: scaleY(-1); }
+[aria-expanded='true'] > .dd-well.up::after { transform: none; }
+@media (prefers-reduced-motion: reduce) { .dd-well::after { transition: none; } }
+.pn-crew b { font: 400 12px/12px var(--pixel); }
+.pn-crew small { font: 700 8px/9px var(--sans); letter-spacing: .5px; color: var(--muted); }
+/* La acción: naranja solo para la acción principal. */
+.pn-act { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; color: #fff; background: var(--o2); border-color: #2b1d12; box-shadow: inset 0 2px 0 var(--o0), inset 0 4px 0 var(--o1), inset 0 -4px 0 var(--o3); text-shadow: 2px 2px 0 var(--o4); }
+.pn-act b { font: 400 12px/16px var(--pixel); letter-spacing: 1px; } /* todos los verbos al mismo tamaño (caben los de 5 letras con aire) */
+.pn-act small { font: 700 11px/12px var(--sans); color: #fff4e0; text-shadow: 1px 1px 0 var(--o4); white-space: nowrap; }
+.pn-act.dig { animation: dig 1.2s steps(2) infinite; }
+@keyframes dig { 50% { box-shadow: inset 0 2px 0 var(--o0), inset 0 4px 0 var(--o1), inset 0 -4px 0 var(--o3), inset 0 0 0 2px #ffe070; } }
+.pn-act:active { box-shadow: inset 0 2px 0 var(--o3), inset 0 -2px 0 var(--o1); transform: translateY(2px); }
+.pn-act.off { color: var(--muted); background: var(--p1); border-color: var(--p4); box-shadow: inset 0 2px 0 #54486c, inset 0 -3px 0 var(--p3); text-shadow: none; }
+.pn-act.off small { color: var(--muted); text-shadow: none; }
+@media (prefers-reduced-motion: reduce) { .pn-act.dig { animation: none; } }
+/* Acción activa: la carga del botón (cada toque suma acelerón; mantener lo llena; se vacía sola) y el estado acelerado.
+   Todo va pintado por dentro o en posiciones absolutas: el botón no cambia de tamaño. */
+.pn-act { position: relative; }
+.pn-act::before { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--q, 0) * 100%); background: #ffb347; box-shadow: inset 0 2px 0 #fff0c8; opacity: .6; pointer-events: none; }
+.pn-act > * { position: relative; }
+.pn-act.off::before { display: none; }
+.pn-act.rush { border-color: #ffe070; }
+.pn-act.rush b { animation: rush-b .2s steps(1) infinite; }
+@keyframes rush-b { 50% { transform: translate(1px, -1px); } }
+.pn-act.manual:not(.off) { animation: manual 1.4s steps(1) infinite; }
+@keyframes manual { 0%, 55% { border-color: var(--gold); } 56%, 100% { border-color: #2b1d12; } }
+.pn-bar.rush > i { background-image: repeating-linear-gradient(-45deg, #fff3a0 0 2px, transparent 2px 6px); background-size: 8.49px 8.49px; animation: bar-run .32s steps(4) infinite; }
+@keyframes bar-run { to { background-position: 8.49px 0; } }
+.p0-plate .rx { display: none; padding: 2px 3px 1px; margin-left: 1px; color: #2b1d12; background: var(--gold); font: 400 8px/8px var(--pixel); }
+.p0-plate.rush .rx { display: inline-block; }
+@media (prefers-reduced-motion: reduce) { .pn-act.rush b, .pn-bar.rush > i, .pn-act.manual { animation: none; } }
+
+/* ---- Barra global con iconos ---- */
+.nav { flex: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; padding: 5px 6px calc(6px + env(safe-area-inset-bottom, 0px)); background: #16121e; }
+.nav > button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 46px; min-width: 0; }
+.nav img { width: 20px; height: 20px; }
+.nav span { font: 400 8px/8px var(--pixel); color: var(--text); }
+.nav > button.on { border-color: var(--gold); }
+.nav > button.on span { color: var(--gold); }
+@media (min-width: 400px) { .nav > button { flex-direction: row; gap: 6px; } }
+@media (max-width: 359px) {
+  .hd-txt em { display: none; } /* a 320 no cabe: el icono de la veta ya dice qué queso es */
+  .nav span { font-size: 7px; }
+  .panel { grid-template-columns: 42px 84px minmax(0, 1fr) 48px; gap: 4px; padding: 7px 5px 8px; }
+  .pn-name b { font-size: 8px; line-height: 9px; }
+  .hud-coins { min-width: 84px; padding-right: 20px; } .hud-coins img { width: 16px; height: 16px; }
+}
+
+/* ---- Hojas (stubs de los paneles Pulido+ y ficha de ratón) ---- */
+.p0-sheet { position: absolute; inset: 0; z-index: 20; display: flex; align-items: flex-end; background: #0c0910b3; }
+.p0-sheet[hidden] { display: none; }
+.p0-sheetbox { width: 100%; max-height: 78%; display: flex; flex-direction: column; padding: 8px 8px calc(10px + env(safe-area-inset-bottom, 0px)); background: var(--p3); }
+.p0-sheetbox header { display: flex; align-items: center; justify-content: space-between; height: 34px; margin-bottom: 6px; }
+.p0-sheetbox header b { font: 400 12px var(--pixel); }
+#sheet-close { height: 30px; padding: 0 10px; font: 400 8px var(--pixel); }
+#sheet-body { overflow-y: auto; display: flex; flex-direction: column; gap: 4px; font-size: 12px; line-height: 16px; color: var(--soft); }
+#sheet-body h4 { margin: 8px 0 2px; font: 400 8px var(--pixel); color: var(--muted); }
+#sheet-body p { margin: 0 0 6px; }
+.p0-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 44px; padding: 2px 8px 3px 4px; text-align: left; color: var(--text); }
+.p0-row img { width: 33px; height: 30px; }
+.p0-row b { display: block; font: 800 13px/15px var(--sans); }
+.p0-row small { display: block; font: 600 11px/13px var(--sans); color: var(--muted); }
+.p0-row em { font: 400 7px var(--pixel); font-style: normal; color: var(--gold); }
+.p0-card { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 10px; align-items: center; }
+.p0-card img { width: 66px; height: 60px; padding: 4px; background: #120e18; border: 2px solid #8a7fb0; }
+
+/* Globos de diálogo y placas de aviso (los aprobados de la revisión de arte, copiados de pulido.css). */
+.lb-host { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; } /* encima de los carteles (4), debajo del marcador (6) */
+.ad-bub { position: absolute; z-index: 3; max-width: 150px; padding: 6px 8px 7px; background: #fffdf2; color: #1b1220; font: 400 8px/12px var(--pixel); border: 2px solid #1b1220; box-shadow: inset 0 -2px 0 #e2d4ac; transform-origin: 50% 100%; pointer-events: none; }
+.ad-bub .ad-tail { position: absolute; bottom: -10px; left: 12px; }
+.ad-bub.side-l .ad-tail { left: -10px; bottom: auto; transform: rotate(90deg); } .ad-bub.side-r .ad-tail { right: -10px; left: auto; bottom: auto; transform: rotate(-90deg); }
+.ad-warn { position: absolute; z-index: 2; display: flex; align-items: center; gap: 5px; padding: 4px 7px 5px 5px; background: #2a1d10; border: 2px solid #ffb347; box-shadow: 0 0 0 2px #1b1220, inset 0 2px 0 #4a3418; pointer-events: none; }
+.ad-warn img { width: 14px; height: 14px; image-rendering: pixelated; }
+.ad-warn b { font: 400 8px var(--pixel); color: #ffcf7a; white-space: nowrap; }
+.ad-warn .ad-chain { position: absolute; bottom: -10px; width: 2px; height: 8px; background: repeating-linear-gradient(#ffb347 0 2px, transparent 2px 4px); }
+
+/* ---- Desplegables: recursos (bajo las monedas) y obreros de la estación (encima del panel) ---- */
+.pop { position: absolute; z-index: 9; background: #1d1828f2; padding: 6px; }
+.pop[hidden] { display: none; }
+.pop h5 { display: flex; align-items: center; justify-content: space-between; margin: 0 2px 6px; font: 400 8px/10px var(--pixel); color: var(--soft); }
+.pop h5 small { font: 700 9px/10px var(--sans); color: var(--muted); letter-spacing: .4px; }
+.res-pop { left: 6px; top: calc(52px + env(safe-area-inset-top, 0px)); width: min(260px, calc(100% - 12px)); }
+.res-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 38px; padding: 3px 8px 4px 6px; margin-top: 4px; background: var(--p2); border: 2px solid var(--p4); box-shadow: inset 0 2px 0 var(--p1), inset 0 -3px 0 var(--p3); clip-path: var(--cut); }
+.res-row { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; grid-template-columns: 26px minmax(0, 1fr) auto 8px; }
+.res-row .rr-go { font: 400 8px/8px var(--pixel); font-style: normal; color: var(--muted); }
+.res-row:active { transform: translateY(1px); }
+.res-row img { width: 21px; height: auto; justify-self: center; }
+.res-row span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.res-row b { font: 400 8px/9px var(--pixel); color: var(--soft); }
+.res-row small { font: 600 10px/12px var(--sans); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.res-row em { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; font-style: normal; }
+.res-row em b { font: 400 12px/12px var(--pixel); color: var(--text); }
+.res-row em small { color: var(--rate); }
+.crew-pop { left: 0; right: 0; padding: 5px 6px 6px; clip-path: none; border-left: 0; border-right: 0; }
+/* La tira enseña a todo el equipo de una vez (como mucho 6): una fila de retratos con su nombre, sin deslizar. El oficio y
+   el estado del elegido van en la línea de debajo. */
+.crew-strip { display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 4px; padding-bottom: 1px; }
+.crew-row { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0; height: 52px; padding: 4px 1px 5px; background: var(--p2); border: 2px solid var(--p4); box-shadow: inset 0 2px 0 var(--p1), inset 0 -3px 0 var(--p3); clip-path: var(--cut); }
+.crew-row.on { border-color: var(--gold); background: #322a2c; }
+.crew-row img { width: 28px; height: 26px; }
+.crew-row b { max-width: 100%; font: 800 9px/11px var(--sans); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.crew-row.on b { color: var(--gold); }
+.crew-row small.busy { color: var(--rate); } .crew-row small.wait { color: var(--o1); }
+.crew-sel { margin-top: 5px; height: 30px; display: flex; align-items: center; gap: 6px; font: 600 11px/14px var(--sans); color: var(--soft); } /* alto fijo: la tira no cambia de alto */
+.crew-sel > span { flex: 1; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.crew-card { flex: none; height: 30px; padding: 0 10px; font: 400 8px/8px var(--pixel); color: var(--text); }
+.crew-sel b { color: var(--gold); font-weight: 800; }
+.p1-bub span { display: block; white-space: normal; word-break: keep-all; overflow-wrap: normal; }
+.crew-sel .busy { color: var(--rate); } .crew-sel .wait { color: var(--o1); }
+
+/* ---- Transiciones (rápidas y sin bloquear): desplegables, hoja, aviso, cambio de estación y respuestas al toque ---- */
+.pop { opacity: 0; transform: translateY(-6px); transition: opacity .16s ease-out, transform .18s cubic-bezier(.2, .8, .2, 1); }
+.crew-pop { transform: translateY(10px); }
+.pop.in { opacity: 1; transform: none; }
+/* Hojas (29-10-2026): el velo entra en 0,22 s; la hoja sube y frena al llegar (0,32 s, sin rebote); al cerrar baja en
+   0,2 s, algo más deprisa. Las hojas del juego (sheets-bridge.js) usan las mismas curvas. */
+.p0-sheet { background: #0c091000; transition: background .2s ease-in; }
+.p0-sheet.in { background: #0c0910b3; transition: background .22s ease-out; }
+.p0-sheet .p0-sheetbox { transform: translateY(102%); transition: transform .2s cubic-bezier(.4, 0, 1, 1); will-change: transform; } /* .p0-sheet delante: si no, la regla de .bx (0,06 s) pisaba la salida */
+.p0-sheet.in .p0-sheetbox { transform: none; transition: transform .32s cubic-bezier(.16, 1, .3, 1); }
+#p0-toast { transform: translate(-50%, 6px); transition: opacity .16s, transform .2s cubic-bezier(.2, .8, .2, 1); }
+#p0-toast.show { transform: translate(-50%, 0); }
+.bx { transition: transform .06s; }
+.p0-plate { transition: transform .06s, opacity .25s ease-out; } /* translúcido (.ghost) y de vuelta, con fundido */
+.panel.swap .pn-info, .panel.swap .pn-act, .panel.swap .pn-st img { animation: pn-swap .26s cubic-bezier(.2, .8, .2, 1); }
+@keyframes pn-swap { from { opacity: .2; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+/* El rebote de los carteles y del objetivo se llama .bump: con .pop (la clase de los desplegables, opacidad 0 hasta .in) el
+   cartel elegido se apagaba un instante al tocarlo. */
+.p0-plate.bump { animation: pl-pop .32s steps(4); }
+@keyframes pl-pop { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
+.pn-act.hit:not(.off) { animation: act-hit .18s steps(2); }
+@keyframes act-hit { 50% { background: #ffb347; box-shadow: inset 0 2px 0 #fff3c8, inset 0 -2px 0 var(--o2), 0 0 0 2px #ffe070; } }
+.nav > button { transition: transform .06s, border-color .15s; }
+@media (prefers-reduced-motion: reduce) { .pop, .p0-sheet, .p0-sheetbox, #p0-toast, .bx, .pz::before, .pz::after { transition: none !important; } .pz-load { animation: none; } .panel.swap .pn-info, .panel.swap .pn-act, .p0-plate.bump, .goal.bump, .pn-act.hit { animation: none; } }
+
+/* Placa del ratón seguido por la cámara: nombre y lo que hace, bajo sus patas. */
+.focus-tag { position: absolute; z-index: 5; transform: translate(-50%, 4px); display: flex; flex-direction: column; align-items: center; gap: 2px; max-width: 170px; padding: 3px 7px 4px; background: #1d1828ee; border: 2px solid var(--gold); clip-path: var(--cut); pointer-events: none; opacity: 0; transition: opacity .18s, transform .18s; }
+.focus-tag.in { opacity: 1; transform: translate(-50%, 0); }
+.focus-tag b { font: 400 8px/9px var(--pixel); color: var(--gold); white-space: nowrap; }
+.focus-tag small { font: 600 10px/12px var(--sans); color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+
+/* MENU · cielo: automático o una hora fija. */
+.sky-opts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; margin: 4px 0 6px; }
+.sky-opts button { height: 34px; min-width: 0; padding: 0 2px; font: 400 8px/10px var(--pixel); color: var(--text); }
+.sky-opts button.on { border-color: var(--gold); color: var(--gold); }
+.sky-info { font: 600 11px/15px var(--sans); color: var(--muted); }
+
+/* ---- Ratón seguido: su etiqueta es un botón (abre su ficha) ---- */
+.focus-tag { pointer-events: auto; cursor: pointer; }
+.focus-tag:not(.in) { pointer-events: none; }
+
+/* ---- Estaciones por construir: el cartel avisa (BUILD, verde de lo nuevo, con el brillo) o se apaga (bloqueada) ---- */
+.p0-plate .bd { display: none; padding: 2px 3px 1px; margin-left: 1px; color: #10261a; background: var(--new); font: 400 8px/8px var(--pixel); }
+.p0-plate.build .bd { display: inline-block; }
+.p0-plate.build { border-color: var(--new); animation: plate-new 1.4s steps(1) infinite; }
+@keyframes plate-new { 0%, 55% { border-color: var(--new); } 56%, 100% { border-color: #2f6a3a; } }
+.p0-plate.locked { opacity: .55; }
+@media (prefers-reduced-motion: reduce) { .p0-plate.build { animation: none; } }
+
+/* ---- Objetivo contextual: píldora bajo el marcador, a la derecha; alto fijo; se queda en icono si no hace falta ---- */
+.goal { position: absolute; z-index: 5; right: 6px; top: calc(52px + env(safe-area-inset-top, 0px)); display: flex; align-items: center; gap: 6px; height: 32px; max-width: calc(100% - 128px); padding: 0 8px 1px 5px; text-align: left; opacity: 0; transform: translateX(12px); transition: opacity .18s, transform .22s cubic-bezier(.2, .8, .2, 1), max-width .22s; }
+.goal.in { opacity: 1; transform: none; }
+.goal { transition: opacity .18s, transform .22s cubic-bezier(.2, .8, .2, 1), left .25s cubic-bezier(.2, .8, .2, 1), top .25s cubic-bezier(.2, .8, .2, 1); } /* al cambiar de hueco, se desliza */
+.goal img { flex: none; width: 18px; height: 18px; }
+.goal-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.goal-tx b { font: 700 11px/12px var(--sans); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.goal-bar { display: block; height: 3px; background: var(--p4); }
+.goal-bar > i { display: block; height: 100%; width: 0; background: var(--gold); transition: width .3s; }
+.goal em { flex: none; font: 400 8px/8px var(--pixel); font-style: normal; color: var(--gold); }
+.goal.min { max-width: 64px; }
+.goal.min .goal-tx { display: none; }
+.goal.done { border-color: var(--gold); }
+.goal.done .goal-tx b { color: var(--gold); }
+.goal.bump { animation: pl-pop .3s steps(3); }
+@media (prefers-reduced-motion: reduce) { .goal { transition: none; } }
+
+/* ---- Bloque A (feedback PM 2, 28-10-2026) ---- */
+/* Icono de estación sin hoja propia (MINE, DRILL, REFINE): no es un botón. */
+.pn-st.na { pointer-events: none; }
+/* Franjas A/B/C también en las hojas propias de P1 (las mismas que en las hojas reales). */
+.p1-band { margin: 0 0 6px; padding: 6px 8px 7px; font: 700 11px/14px var(--sans); color: #fff; border: 2px solid #1b1220; }
+.p1-band b { font: 400 8px/10px var(--pixel); margin-right: 6px; }
+.p1-band.b { background: #5a4214; } .p1-band.c { background: #5a1f2a; }
+/* Las hojas reales: cubren P1 entera (la escena no recibe toques) y la hoja queda dentro de las zonas seguras; las franjas
+   de fuera de la zona segura llevan el mismo velo (arriba) y el fondo de la hoja (abajo). */
+.pz { position: absolute; inset: 0; z-index: 30; }
+.pz.off { visibility: hidden; pointer-events: none; }
+.pz::before, .pz::after { content: ''; position: absolute; left: 0; right: 0; pointer-events: auto; opacity: 0; transition: opacity .2s ease-in; }
+.pz.in::before, .pz.in::after { opacity: 1; transition: opacity .22s ease-out; }
+.pz::before { top: 0; height: env(safe-area-inset-top, 0px); background: #0c0910b3; }
+.pz::after { bottom: 0; height: env(safe-area-inset-bottom, 0px); background: #2a2338; }
+.pz-frame { position: absolute; left: env(safe-area-inset-left, 0px); right: env(safe-area-inset-right, 0px); top: env(safe-area-inset-top, 0px); bottom: env(safe-area-inset-bottom, 0px); width: calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)); height: calc(100% - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); border: 0; background: transparent; color-scheme: normal; }
+.pz-load { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: #0c0910b3; }
+.pz-load[hidden] { display: none; }
+.pz-load:not([hidden]) { animation: pz-fade .22s ease-out; }
+@keyframes pz-fade { from { opacity: 0; } }
+.pz-load b { font: 400 10px/12px var(--pixel); color: var(--gold); animation: fresh 1.4s steps(1) infinite; }
+.pz-load small { font: 600 12px/14px var(--sans); color: var(--soft); }
+/* Volver a la mina: abajo a la derecha de la escena, encima de la tira del equipo cuando está abierta. */
+.home-btn { position: absolute; right: 8px; bottom: calc(8px + var(--ib, 0px)); z-index: 6; display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px 0 8px; font: 400 8px/8px var(--pixel); opacity: 0; transform: translateY(6px); transition: opacity .16s, transform .2s cubic-bezier(.2, .8, .2, 1), bottom .2s; }
+.home-btn.in { opacity: 1; transform: none; }
+.home-btn .hb-ar { width: 12px; height: 10px; } /* ↩ dibujado (NAV_IC.ret), a 1 px de pantalla por píxel como la letra */
+/* Tira del equipo: dos accesos (seguir y ficha). */
+.crew-sel .crew-card + .crew-card { margin-left: -2px; }
+.crew-card[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); }
+@media (max-width: 359px) { .crew-card { padding: 0 7px; } }
+@media (prefers-reduced-motion: reduce) { .home-btn { transition: none; } .pz-load b { animation: none; } }
+
+/* ---- Bloque B: refuerzos en DRILL (arte PROVISIONAL, pendiente de aprobación) ---- */
+/* La chapa del refuerzo: cian, un galón por refuerzo (como la chapa azul del juego). Va delante del ×2 dorado y nunca la tapa. */
+.bo-chip { display: none; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 2px 2px 1px; background: #0b2433; box-shadow: 0 0 0 1px #2f8fc0, 0 0 0 2px #1b1220; font-style: normal; }
+.bo-chip > i { display: block; position: relative; width: 7px; height: 4px; }
+.bo-chip > i::before { content: ''; position: absolute; left: 0; top: 0; width: 1px; height: 1px; box-shadow: 3px 0 #cff4ff, 2px 1px #5ad1ff, 3px 1px #cff4ff, 4px 1px #5ad1ff, 1px 2px #5ad1ff, 2px 2px #2f8fc0, 4px 2px #2f8fc0, 5px 2px #5ad1ff, 0 3px #5ad1ff, 1px 3px #2f8fc0, 5px 3px #2f8fc0, 6px 3px #5ad1ff; }
+[data-bo="1"] > .bo-chip, [data-bo="2"] > .bo-chip, .bo-chip[data-bo] { display: inline-flex; }
+[data-bo="1"] > .bo-chip > i + i, .bo-chip[data-bo="1"] > i + i { display: none; }
+.bo-chip[data-bo="0"] > i { opacity: .28; }
+.p0-plate > .bo-chip { margin-left: 5px; vertical-align: middle; }
+#pn-st { position: relative; }
+#pn-st > .bo-chip { position: absolute; right: 3px; top: 3px; }
+.pn-bot { margin-left: 5px; font: 400 8px/10px var(--pixel); color: #5ad1ff; white-space: nowrap; }
+.pn-bot:empty { display: none; }
+.bo-row em.bo-ctl { display: flex; align-items: center; gap: 6px; }
+.bo-ctl button { width: 30px; height: 30px; font: 400 10px/10px var(--pixel); }
+.bo-ctl button:disabled { opacity: .35; }
+.bo-row.off { opacity: .55; }
+/* A 320 no caben el nivel y la cifra del refuerzo: con refuerzo, el nivel se esconde (el refuerzo es el estado que se prueba). */
+@media (max-width: 359px) { .pn-name:has(.pn-bot:not(:empty)) #pn-lv { display: none; } }
+/* Activación de un refuerzo (provisional): la chapa se estampa y la cifra sube desde la máquina. */
+.bo-chip.stamp { animation: bo-stamp .42s steps(4); }
+@keyframes bo-stamp { 0% { transform: scale(1.9); box-shadow: 0 0 0 1px #cff4ff, 0 0 0 2px #1b1220, 0 0 8px 2px #5ad1ffaa; } 60% { transform: scale(.9); } 100% { transform: none; } }
+.bo-float { position: absolute; z-index: 5; pointer-events: none; padding: 2px 4px 3px; font: 400 8px/10px var(--pixel); color: #cff4ff; background: #0b2433e6; box-shadow: 0 0 0 1px #2f8fc0, 0 0 0 2px #1b1220; white-space: nowrap; animation: bo-float 1.3s cubic-bezier(.2, .8, .2, 1) forwards; }
+@keyframes bo-float { 0% { opacity: 0; transform: translateY(6px); } 14% { opacity: 1; transform: none; } 70% { opacity: 1; transform: translateY(-6px); } 100% { opacity: 0; transform: translateY(-10px); } }
+@media (prefers-reduced-motion: reduce) { .bo-chip.stamp, .bo-float { animation: none; } }
+/* Cartel fijo bajo el marcador que cae sobre un ratón de su nivel: translúcido y sin recoger toques (el toque es del ratón). */
+.p0-plate.ghost { opacity: .45; pointer-events: none; }
+/* PERF (P1 · TEST): lectura de rendimiento para medir en el teléfono real. */
+.perf-meter { width: 100%; padding: 2px 4px; font: 700 9px/11px var(--sans); color: #9fe6a0; white-space: normal; }
+.perf-meter[hidden] { display: none; }

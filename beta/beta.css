@@ -1,0 +1,24 @@
+/* Cheese Driller Beta: solo lo que MAIN 3.0 (p0.css, aprobado) no tenía: vistas provisionales del Hito 2 y la portada. */
+.p1-band { margin: 0 0 8px; padding: 6px 8px 7px; font: 700 11px/14px system-ui, sans-serif; color: #fff; border: 2px solid #1b1220; background: #2c2a44; }
+.p1-band b { font: 400 8px/10px "Press Start 2P", monospace; margin-right: 6px; }
+.crew-row.empty { border-style: dashed; color: var(--muted); }
+.crew-row.empty i { font: 400 12px/26px var(--pixel); font-style: normal; color: var(--gold); height: 26px; }
+.bt-act { min-width: 62px; min-height: 40px; padding: 2px 6px; font: 400 7px/11px var(--pixel); color: var(--text); text-align: center; }
+.bt-act small { display: block; font: 700 10px/12px var(--sans); color: var(--gold); margin-top: 2px; white-space: nowrap; }
+.bt-act:disabled { opacity: .5; }
+.bt-act:disabled small { color: var(--muted); }
+.bt-act.warn { color: #ff9a8a; }
+.bt-h { margin: 10px 0 4px; font: 400 8px/12px var(--pixel); color: var(--gold); }
+.bt-h:first-child { margin-top: 0; }
+.bt-rows { display: flex; flex-direction: column; gap: 4px; }
+.p0-row.bt-lock { opacity: .62; }
+.bt-cover { position: absolute; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 16px; background: #0c0910e6; }
+.bt-cover[hidden] { display: none; }
+.bt-card { width: 100%; max-width: 340px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.bt-card h1 { margin: 0; font: 400 13px/18px var(--pixel); color: var(--gold); }
+.bt-card p { margin: 0; font: 600 13px/18px var(--sans); color: var(--text); }
+.bt-card .bt-main { min-height: 48px; font: 400 10px/14px var(--pixel); color: var(--text); }
+.bt-load { height: 10px; background: #0c0910; border: 2px solid #1b1220; }
+.bt-load i { display: block; height: 100%; width: 0; background: var(--gold); }
+.bt-sky { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.bt-sky .bt-act { min-width: 52px; min-height: 34px; }
