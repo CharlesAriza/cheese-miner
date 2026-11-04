@@ -182,10 +182,14 @@
 
   // ---- Vista de la partida para los módulos de dibujo ----
   const zone = {};
+  // Siempre el mismo objeto para la misma hornada: pulido-cheesery.js decide que ha acabado una cuando deja de serlo.
+  let jobSrc = null, jobView = null;
   const job = () => {
-    const j = G().s.job.cheese; if (!j) return null;
-    const rem = Math.max(0, j.end - G().s.t);
-    return { remaining: rem, total: j.total, per: j.per, recipeId: j.key };
+    const j = G().s.job.cheese;
+    if (!j) { jobSrc = jobView = null; return null; }
+    if (j !== jobSrc) { jobSrc = j; jobView = { recipeId: j.key }; }
+    jobView.remaining = Math.max(0, j.end - G().s.t); jobView.total = j.total; jobView.per = j.per;
+    return jobView;
   };
   Object.defineProperty(zone, 'cookJob', { get: job });
   Object.defineProperty(zone, 'wheelMs', { get: () => G().s.wheelMs || 0 });

@@ -529,6 +529,9 @@
   const mxBaseIc = (b) => MXSP + 'ic_base_' + b + '.png';
   const CH_NEED = { base: ['NEEDS CHEESE BASE', (o) => mxBaseIc(o.base)], coins: ['NEEDS COINS', () => MXSP + 'ic_coin.png'] };
   const cookMouse = (s) => { const p = G().s.placed.find((q) => q.st === 'cheese' && q.fn === 'pr'); return p ? CM.mice.byId(s, p.m.id) : null; };
+  // Quedarse sin Base entre dos hornadas no se enseña hasta que dura: tocando deprisa, la tarjeta no parpadea ni se mueve el botón.
+  const CH_HOLD = 1000;
+  let chShown = '', chWaitAt = 0, chFlow = false;
   function chInfo(s) {
     const C = CM.cheesery, c = G().s, job = c.job.cheese, mouse = cookMouse(s);
     const key = job ? job.key : c.recipe, r = C.recipe(s, key), lane = C.recipe(s, c.recipe), base = r ? C.parseKey(r.key).base : tier(), name = B.bases[base].name, have = c.inv.base, reserve = c.labWant || 0;
@@ -537,41 +540,53 @@
     if (job) { o.st = 'cook'; o.text = (job.per > 1 ? CM.fmt(job.per) + ' cheeses' : '1 cheese') + ' every ' + secs(job.total); }
     else if (have - reserve < need) { o.st = 'base'; o.need = need + reserve; o.text = 'Waiting for Cheese Base: ' + CM.fmt(have) + '/' + CM.fmt(o.need) + (reserve ? ' (' + reserve + ' set aside for the lab)' : ''); }
     else if (c.coins < coin) { o.st = 'coins'; o.coins = coin; o.text = 'Needs ' + coin + ' coins for ' + B.ingredients[C.parseKey(r.key).ingredient].name; }
-    else if (!mouse) { o.st = 'ready'; o.text = 'Ready: nobody cooks here, make it by hand'; }
+    else if (!mouse) { o.st = 'ready'; o.text = 'Ready: make it by hand'; }
     else { o.st = 'start'; o.text = 'Starting'; }
+    const now = performance.now(), waiting = o.st === 'base' || o.st === 'coins';
+    if (!waiting) { chWaitAt = 0; chShown = o.st === 'start' ? 'cook' : o.st; }
+    else if (chShown === 'cook' && now - (chWaitAt || (chWaitAt = now)) < CH_HOLD) { o.held = true; o.st = 'cook'; }
+    else chShown = o.st;
     return o;
   }
   const chNeedN = (o) => (o.st === 'base' ? CM.fmt(Math.min(o.have, o.need)) + '/' + CM.fmt(o.need) : o.st === 'coins' ? CM.fmt(o.coins) : '?');
-  const chPlate = (o, wide) => (CH_NEED[o.st] ? '<div class="mx-ch-need mx-n-' + o.st + '"><img class="pix" src="' + CH_NEED[o.st][1](o) + '" alt=""><i>!</i>' + (wide ? '<b>' + chNeedN(o) + '</b>' : '') + '</div>' : '');
+  const chPlate = (o, wide) => (CH_NEED[o.st] ? '<div class="mx-ch-need mx-n-' + o.st + '"><img class="pix" src="' + CH_NEED[o.st][1](o) + '" alt=""><i>!</i>' + (wide ? '<b data-live="need"></b>' : '') + '</div>' : '');
   function chLine(s, ui, open) {
     const o = chInfo(s), c = CHZ[o.base] || CHZ.cheddar, MS = CM.milestones;
     const wheel = MS.has(s, 'wheel'), gm = o.mouse && MS.has(s, 'master') && s.master === o.mouse.id ? MS.masterGrade(o.mouse) : 0;
-    const flow = o.job && o.job.total < 700;
+    if (o.job) chFlow = o.job.total < 700;
+    const flow = chFlow;
     const bar = o.st === 'cook' ? (flow ? '<div class="mx-ch-bar mx-flow"><i></i></div>' : '<div class="mx-ch-bar"><i data-job="cook:line"></i></div>')
-      : o.st === 'base' ? '<div class="mx-ch-bar mx-wait"><i style="width:' + Math.round(Math.min(1, o.have / o.need) * 100) + '%"></i></div>' : '<div class="mx-ch-bar' + (o.st === 'coins' ? ' mx-bad' : '') + '"><i></i></div>';
+      : o.st === 'base' ? '<div class="mx-ch-bar mx-wait"><i data-live-w="base"></i></div>' : '<div class="mx-ch-bar' + (o.st === 'coins' ? ' mx-bad' : '') + '"><i></i></div>';
     const need = CH_NEED[o.st];
     let h = '<div class="mx-box mx-ch-line' + CH_TONE[o.st] + (open ? ' mx-on' : '') + '" data-line="line" data-base="' + o.base + '" data-st="' + (o.st === 'start' ? 'cook' : o.st) + '" data-cook="' + (o.mouse ? o.mouse.id : '') + '" data-gm="' + gm + '" style="--zc:' + c[1] + ';--zl:' + c[0] + ';--zd:' + c[2] + '">' +
       '<div class="mx-ch-scene"><canvas width="110" height="30"></canvas>' + chPlate(o, true) + '</div>' +
       '<div class="mx-ch-head" role="button" data-act="cline:line"><div class="mx-ch-st"><canvas width="40" height="26"></canvas>' + chPlate(o, false) + '</div><div class="mx-ch-t">' +
       '<div class="mx-ch-k"><b>' + o.name.toUpperCase() + '</b>·<span>' + (o.mouse ? 'AUTO' : 'BY HAND') + '</span>' + (o.mouse ? '·<span class="mx-who">' + esc(o.mouse.name) + '</span>' : '') + (gm ? '<span class="mx-gm">' + mxI('star', 1) + 'GM ' + romanN(gm) + '</span>' : '') + (wheel ? '<span class="mx-gw"><canvas width="13" height="13" data-gw="line"></canvas><span data-gwt></span></span>' : '') + '</div>' +
       '<div class="mx-ch-rn"><span>' + (o.r ? esc(o.r.name) : 'No recipe') + '</span></div>' +
-      '<div class="mx-ch-row">' + bar + '<em class="mx-ch-s">' + (need ? '<img class="pix mx-' + o.st + '" src="' + need[1](o) + '" alt="">' : '') + o.text + '</em></div></div></div>';
+      '<div class="mx-ch-row">' + bar + '<em class="mx-ch-s">' + (need ? '<img class="pix mx-' + o.st + '" src="' + need[1](o) + '" alt="">' : '') + '<span data-live="text"></span></em></div></div></div>';
     if (!open) return h + '</div>';
-    let b = '';
-    if (need) b += '<div class="mx-ch-needrow mx-n-' + o.st + '"><span class="mx-ic"><img class="pix" src="' + need[1](o) + '" alt=""><i>!</i></span><span class="mx-t"><b>' + need[0] + '</b><small>' + o.text + '</small>' + (o.st === 'base' ? '<span class="mx-m"><i style="width:' + Math.round(Math.min(1, o.have / o.need) * 100) + '%"></i></span>' : '') + '</span></div>';
-    if (o.r) {
+    // El aviso de lo que falta y la explicación comparten un hueco de alto fijo: la tarjeta no cambia de tamaño ni los botones de sitio.
+    let b = '<div class="st-ch-slot">';
+    if (need) b += '<div class="mx-ch-needrow mx-n-' + o.st + '"><span class="mx-ic"><img class="pix" src="' + need[1](o) + '" alt=""><i>!</i></span><span class="mx-t"><b>' + need[0] + '</b><small data-live="needtx"></small>' + (o.st === 'base' ? '<span class="mx-m"><i data-live-w="base"></i></span>' : '') + '</span></div>';
+    else if (o.r) {
       const C = CM.cheesery, combo = C.parseKey(o.r.key), coins = B.ingredients[combo.ingredient].coinCost;
       const why = !o.mouse ? 'You choose what to make here.' : o.pinned ? 'Pinned by you: ' + esc(o.mouse.name) + ' always cooks this one.' : esc(o.mouse.name) + ' cooks the recipe that pays best once mastered.';
       b += '<p class="mx-ch-why">' + (o.mouse ? '<i class="mx-ch-tag ' + (o.pinned ? 'mx-pin">PINNED' : 'mx-best">BEST') + '</i>' : '') + (o.r.strain ? '<i class="mx-ch-tag mx-strain">' + B.strains[o.r.strain].name + '</i>' : '') + why + '</p>';
       if (o.cooking && o.lane && o.lane.id !== o.cooking.id) b += '<div class="mx-ch-next">Next batch: <b>' + esc(o.lane.name) + '</b></div>';
+    }
+    b += '</div>';
+    if (o.r) {
+      const C = CM.cheesery, combo = C.parseKey(o.r.key), coins = B.ingredients[combo.ingredient].coinCost;
       b += '<div class="mx-ch-facts"><div class="mx-ch-fact"><b><img class="pix" src="' + mxBaseIc(o.base) + '" alt="">' + C.baseUse(o.r) + '</b><small>Base each' + (coins ? ' + ' + coins + 'c' : '') + '</small></div>' +
-        '<div class="mx-ch-fact"><b><img class="pix" src="' + mxBaseIc(o.base) + '" alt="">' + CM.fmt(o.have) + '</b><small>Base in stock</small></div>' +
+        '<div class="mx-ch-fact"><b><img class="pix" src="' + mxBaseIc(o.base) + '" alt=""><span data-live="have"></span></b><small>Base in stock</small></div>' +
         '<div class="mx-ch-fact' + (gm ? ' mx-gm' : '') + '"><b><img class="pix mx-cn" src="' + MXSP + 'ic_coin.png" alt="">' + CM.fmt(CM.shop.price(s, o.r)) + '</b><small>coins each</small>' + (gm ? '<small class="mx-ch-gmx"><span>' + mxI('star', 1) + '+' + Math.round(gm * B.milestones.master.per * 100) + '%</span><span>Grand Master</span></small>' : '') + '</div></div>';
     }
     if (wheel) b += '<div class="mx-ch-gwrow"><canvas width="22" height="22" data-gw="line"></canvas><div class="mx-t"><b>GRAND WHEEL</b><small>after ' + Math.round(B.milestones.wheel.everyMs / 60000) + ' min of cooking: +' + Math.round(B.milestones.wheel.worthMs / 60000) + ' min of this line</small></div><em data-gwt></em></div>';
     b += '<div class="mx-ch-acts">';
-    if (o.job) b += '<span role="button" class="mx-ch-btn mx-speed" data-act="cheeseTap">SPEED UP<small>each tap: ' + secs(B.cheesery.boostMs) + ' off this batch</small></span>';
-    else if (o.r && !o.mouse) b += '<span role="button" class="mx-ch-btn mx-make' + (o.st === 'ready' ? '' : ' mx-off') + '"' + (o.st === 'ready' ? ' data-act="cheeseTap"' : '') + '>MAKE<small>1</small></span>';
+    // El primer botón está siempre en el mismo sitio: tocar sin parar nunca cae en otro.
+    if (o.st === 'cook' || o.st === 'start') b += '<span role="button" class="mx-ch-btn mx-speed st-act1" data-act="cheeseTap">SPEED UP<small>each tap: -' + secs(B.cheesery.boostMs) + '</small></span>';
+    else if (!o.mouse) b += '<span role="button" class="mx-ch-btn mx-make st-act1' + (o.st === 'ready' ? '' : ' mx-off') + '"' + (o.st === 'ready' ? ' data-act="cheeseTap"' : '') + '>MAKE<small>1</small></span>';
+    else b += '<span class="mx-ch-btn mx-off st-act1">SPEED UP<small>not cooking</small></span>';
     b += '<span role="button" class="mx-ch-btn" data-act="bookbase:' + o.base + '">CHANGE<br>RECIPE</span>';
     if (!o.mouse) b += '<span role="button" class="mx-ch-btn" data-act="staffpost:cheesemaking:mixer">PUT A<br>MOUSE</span>';
     return h + '<div class="mx-ch-body">' + b + '</div></div></div>';
@@ -898,6 +913,11 @@
   const TITLES = { cheese: 'CHEESERY', lab: 'CHEESE LAB', stock: 'PANTRY', shopinfo: 'SHOP', coins: 'COINS', mice: 'MICE', boosts: 'BOOSTS', options: 'MENU', tree: 'UPGRADES' };
   CM.panels = {
     esc, mouseRate, itemCard,
+    // Las cifras de la tarjeta de CHEESE se ponen al día en su sitio, sin rehacer la tarjeta.
+    cheeseLive() {
+      const s = CM.viewState, o = chInfo(s), C = CM.cheesery, reserve = o.reserve ? ' · ' + o.reserve + ' set aside for the lab' : '';
+      return { held: !!o.held, have: CM.fmt(o.have), text: o.text, need: chNeedN(o), needtx: o.st === 'base' ? CM.fmt(Math.min(o.have, o.need)) + '/' + CM.fmt(o.need) + ' for the next batch' + reserve : o.text, pct: o.need ? Math.round(Math.min(1, o.have / o.need) * 100) : 0 };
+    },
     title: (name) => TITLES[name],
     render(name, s, ui) {
       GM = s.master && G().ms.master ? s.master : '';

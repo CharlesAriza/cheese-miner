@@ -106,3 +106,9 @@ body.p2 #sheet[data-panel='tree'] > .panel { height: calc(100vh - 88px); height:
 .mx-post .mx-job { min-width: 0; overflow: hidden; }
 .mx-post .mx-job .mx-meta { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mx-post .mx-job .mx-hearts { flex: none; }
+
+/* CHEESE: la tarjeta abierta no cambia de alto y sus botones no cambian de sitio, cocine o espere. */
+body.p2 #sheet-body .st-ch-slot { height: 66px; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+body.p2 #sheet-body .mx-ch-line.mx-on .mx-ch-s { white-space: nowrap; }
+body.p2 #sheet-body .mx-ch-needrow small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.p2 #sheet-body .mx-ch-btn.st-act1 { flex: 1.6; }

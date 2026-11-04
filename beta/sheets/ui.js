@@ -102,7 +102,7 @@
     bookrow(id) { ui.bookRow = ui.bookRow === id ? null : id; },
     cook(id) { act('recipePin', { key: id }); },
     uncook() { act('recipePin', {}); },
-    cheeseTap() { act('tap', { st: 'cheese' }); },
+    cheeseTap() { H.act('tap', { st: 'cheese' }); }, // tocar justo entre dos hornadas no hace nada ni avisa de nada
     staffpost(skill, zone) { openPanel('mice'); ui.pick = skill + ':' + zone; },
     researcher() { openPanel('mice'); if (G().lab.nodes.assistant) ui.pick = 'research:all'; },
     labtab(name) { ui.labTab = name; },
@@ -169,6 +169,12 @@
   // Las barras que corren solas (cocinado, investigación), sin repintar la hoja.
   function paintBars() {
     const j = G().s.job.cheese, bar = document.querySelector('#sheet-body [data-job="cook:line"]');
+    if (ui.panel === 'cheese' && document.querySelector('#sheet-body .mx-ch-line')) {
+      const v = P.cheeseLive();
+      for (const el of document.querySelectorAll('#sheet-body [data-live]')) { if (v.held && el.dataset.live === 'text' && el.textContent) continue; const t = v[el.dataset.live]; if (t != null && el.textContent !== t) el.textContent = t; }
+      for (const el of document.querySelectorAll('#sheet-body [data-live-w]')) el.style.width = v.pct + '%';
+      if (bar && v.held) bar.style.width = '100%';
+    }
     if (bar && j) bar.style.width = Math.min(100, (100 * (1 - (j.end - G().s.t) / j.total))).toFixed(1) + '%';
     const lb = document.querySelector('#sheet-body [data-labbar]'), L = G().lab.job;
     if (lb && L) lb.style.width = Math.round((1 - L.remaining / L.total) * 100) + '%';

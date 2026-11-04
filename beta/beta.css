@@ -34,3 +34,8 @@
 .dh-tag small.back { color: var(--soft); }
 /* Mantener el dedo sobre la escena: ni menú del navegador, ni lupa, ni selección de texto. */
 #cv { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+
+/* El icono de la estación, cuando abre una hoja (CHEESE y SELL), lleva la misma pestaña que WORKERS: se ve que se puede tocar. */
+.pn-st { position: relative; }
+.pn-st:not(.na) { padding-top: 13px; }
+.pn-st.na .dd-well { display: none; }
