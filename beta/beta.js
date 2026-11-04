@@ -144,6 +144,27 @@
     b.addEventListener('click', () => focusSt(id));
     $('plates').appendChild(b); plates[id] = b;
   }
+  // Carteles de obra: SHOP, HOUSE y LAB no tienen placa de estación. Mientras se pueden construir llevan la misma placa verde que las
+  // máquinas, encima de su silueta; si la superficie no se ve, el cartel se queda arriba con una flecha. Construidos, desaparecen.
+  const SIGNS = { sell: { at: 'shop', name: 'SHOP', ic: icd('ic_coin') }, house: { at: 'house', name: 'HOUSE', ic: NAV_IC.mouse }, lab: { at: 'lab', name: 'LAB', ic: icd('ic_base_cheddar') } };
+  for (const [id, g] of Object.entries(SIGNS)) {
+    const w = document.createElement('div'); w.className = 'bs-sign'; w.hidden = true;
+    w.innerHTML = '<button class="p0-plate build"><i class="bs-up"></i><img class="pix" src="' + g.ic + '" alt="">' + g.name + '<b class="bd">BUILD</b></button><i class="bs-down"></i>';
+    w.firstChild.addEventListener('click', () => goBuild(id));
+    $('plates').appendChild(w); g.el = w;
+  }
+  function goBuild(id) { if (id === 'sell') focusSt('sell'); else { scene.showSurface(); if (id === 'house') openMice(); else openLab(); } if (!SIGNS[id].el.hidden) pulse(SIGNS[id].el.firstChild, 'bump', 320); }
+  function placeSigns() {
+    const sb = $('scene-box').getBoundingClientRect(), cr = $('cv').getBoundingClientRect(), ox = cr.left - sb.left, oy = cr.top - sb.top, W = sb.width, top = topInset(), used = [];
+    for (const [id, g] of Object.entries(SIGNS)) {
+      const on = scene.stationState(id) === 'build'; if (g.el.hidden === on) g.el.hidden = !on;
+      if (!on) continue;
+      const r = scene.buildingRect(g.at), [ax, ay] = scene.toScreen(r[0] + r[2] / 2, r[1]), by = oy + scene.toScreen(r[0], r[1] + r[3])[1], w = g.el.offsetWidth, up = by < top + 28;
+      const x = up ? W - w - 6 : Math.max(6, Math.min(W - w - 6, Math.round(ox + ax - w / 2))); let y = up ? top : Math.max(top, Math.round(oy + ay) - 36);
+      while (used.some((u) => x < u[0] + u[2] && u[0] < x + w && y < u[1] + 28 && u[1] < y + 28)) y += 28;
+      used.push([x, y, w]); g.el.style.left = x + 'px'; g.el.style.top = y + 'px'; g.el.classList.toggle('up', up);
+    }
+  }
   let plateSig = ''; const ghostAt = {};
   function topInset() { const sb = $('scene-box').getBoundingClientRect(), gl = $('goal'); return Math.max($('hud-coinsbox').getBoundingClientRect().bottom - sb.top + 6, gl.hidden ? 0 : gl.getBoundingClientRect().bottom - sb.top + 4); }
   function placePlates() {
@@ -191,7 +212,7 @@
     if (st === 'cheese') { status = job ? 'Making wheels' : s.inv.base >= REAL.cheesery.lotBase ? 'Tap to make cheese' : 'Waiting for BASE'; tone = job ? 'good' : 'stop'; flow = ri('base') + fmt(s.inv.base) + ' → ' + ri('lot') + fmt(Mo.lotsTotal(s)); }
     if (st === 'sell') { const lots = Mo.lotsTotal(s); status = job ? 'Selling cheese' : lots > 0 ? 'Tap to sell' : 'No cheese to sell'; tone = job ? 'good' : 'stop'; flow = ri('lot') + fmt(lots) + ' → ' + ri('coin') + '+' + fmt(rate('coins')) + '/min'; }
     const ss = scene.stationState(st);
-    if (ss !== 'on') { const q = buildReq(st); tone = ss === 'build' ? 'good' : 'stop'; status = ss === 'build' ? 'Ready to build' : 'Not built yet'; flow = ss === 'build' ? BNAME[st] + ' · free' : q.text + ' (' + fmt(q.cur) + '/' + fmt(q.need) + ')'; act = 'BUILD'; acts = ss === 'build' ? 'Tap to build' : 'Locked'; off = ss !== 'build'; dig = false; bar = q.cur / q.need; }
+    if (ss !== 'on') { const q = buildReq(st); tone = ss === 'build' ? 'good' : 'stop'; status = ss === 'build' ? 'Ready to build' : 'Not built yet'; flow = ss === 'build' ? (st === 'sell' ? 'Sells your cheese · free' : BNAME[st] + ' · free') : q.text + ' (' + fmt(q.cur) + '/' + fmt(q.need) + ')'; act = 'BUILD'; acts = ss === 'build' ? 'Tap to build' : 'Locked'; off = ss !== 'build'; dig = false; bar = q.cur / q.need; }
     $('pn-bar').style.width = Math.round(Math.max(0, Math.min(1, bar)) * 100) + '%';
     const posts = Core.postsOf(G, st), staffed = posts.filter((p) => p.mouse).length;
     $('pn-act').classList.toggle('manual', !boss && !off);
@@ -406,6 +427,8 @@
   }
   // Acciones de navegación de las hojas.
   const LOCAL = {
+    // Construir desde la hoja: se cierra y la cámara va al edificio, para ver cómo se levanta.
+    build: (a) => { const r = doAct('build', a, (a.id === 'house' ? 'Mouse House' : 'Cheese Lab') + ' built!'); if (r.ok) { closeSheet(); scene.showSurface(); } },
     hire: () => hire(null),
     hirePost: (a) => hire({ st: a.st, role: a.role }),
     showCands: () => sheet('RECRUIT', candsHtml),
@@ -450,24 +473,26 @@
 
   // CHEESE, SHOP, LAB, PANTRY, COINS, DEPTH y MENU: lo justo para jugar y entender.
   const recipeName = (key) => { const [b, i, t, m] = key.split('+'), B = REAL; return B.ingredients[i].name + ' ' + B.treatments[t].name + ' ' + B.maturations[m].name + ' ' + B.bases[b].name; };
+  // El nivel de CHEESE que abre la siguiente receta: para decir qué falta en vez de un «no hay nada».
+  const nextRecipeLevel = () => { let best = Infinity; for (const st of Object.keys(G.lab.styles)) for (const k of Lb.combosOf(st)) { if (G.lab.isKnown[k]) continue; const [, i, t, m] = k.split('+'); best = Math.min(best, Math.max(REAL.ingredients[i].level, REAL.treatments[t].level, REAL.maturations[m].level)); } return best; };
   function researchRow() {
     const L = G.lab, job = L.job, cost = Lb.labCost(G), next = Lb.pick(G, 'value');
     if (job) return row(icd('ic_base_cheddar'), 'Researching…', Math.round(100 * (1 - job.remaining / job.total)) + '% · ' + (job.kind === 'recipe' ? 'a new recipe' : job.kind === 'study' ? 'a new cheese' : job.kind === 'strain' ? 'a strain' : 'a blueprint'), '');
     if (L.queue.length) return row(icd('ic_base_cheddar'), 'Research waiting', 'Needs ' + cost + ' Cheese Base', '');
-    if (!next) return row(icd('ic_base_cheddar'), 'No recipes to research now', 'Level up CHEESE or study a new cheese', '', 'bt-lock');
+    if (!next) { const lv = nextRecipeLevel(); return row(icd('ic_base_cheddar'), 'No recipes to research yet', lv > G.stLv.cheese && lv < Infinity ? 'Reach CHEESE level ' + lv + ' (now ' + G.stLv.cheese + ')' : 'Study a new cheese to find more', '', 'bt-lock'); }
     return row(icd('ic_base_cheddar'), 'Research a recipe', 'Uses ' + cost + ' Cheese Base', btn('RESEARCH', 'labResearch', {}));
   }
   function cheeseHtml() {
     const L = G.lab, built = G.s.built.cheese;
     if (!built) return BASIC + '<p>Build the Cheesery first.</p>';
     const f = Mo.formula(G.s.recipe);
-    return BASIC + '<div class="bt-rows">' + row(icd('ic_lot_' + f.combo.base), 'Cooking: ' + recipeName(G.s.recipe), 'Worth ' + fmt(Mo.price(G.s, G.s.recipe)) + ' each · the Cheesemaker picks the best you know', '') + researchRow() + row(icd('ic_base_cheddar'), L.known.length + ' recipes known', L.built ? 'See the Cheese Lab' : Pg.isOpen(G, 'build.lab') ? 'The Cheese Lab can be built' : 'At 3 recipes you can build the Cheese Lab', L.built || Pg.isOpen(G, 'build.lab') ? btn('LAB', 'showLab', {}) : '') + '</div>';
+    return BASIC + '<div class="bt-rows">' + row(icd('ic_lot_' + f.combo.base), 'Cooking: ' + recipeName(G.s.recipe), 'Worth ' + fmt(Mo.price(G.s, G.s.recipe)) + ' each · the Cheesemaker picks the best you know', '') + row(icd('ic_base_cheddar'), L.known.length + ' recipes known', L.built ? 'Discover more in the Cheese Lab' : Pg.isOpen(G, 'build.lab') ? 'Build the Cheese Lab to discover more' : 'The Cheese Lab will discover more', L.built || Pg.isOpen(G, 'build.lab') ? btn('LAB', 'showLab', {}) : '') + '</div>';
   }
   function openCheese() { sheet('CHEESERY', cheeseHtml); }
   function openShop() { const f = () => BASIC + '<div class="bt-rows">' + (G.s.built.sell ? row(icd('ic_coin'), 'Coins earned', fmt(G.s.m.coins) + ' in total · +' + fmt(rate('coins')) + '/min', '') + row(icd('ic_lot_' + tierNow()), 'Cheese sold', fmt(G.s.m.sold + G.s.m.whole) + ' in total · ' + fmt(Mo.lotsTotal(G.s)) + ' waiting', '') : row(icd('ic_coin'), 'Cheese Shop', 'Not built yet', '', 'bt-lock')) + '</div>'; sheet('SHOP', f); }
   function labHtml() {
     const L = G.lab; let h = BASIC;
-    if (!L.built) { const open = Pg.isOpen(G, 'build.lab'); return h + row(icd('ic_base_cheddar'), 'Cheese Lab', open ? 'Researches recipes for you' : 'Discover 3 recipes by hand first (' + L.known.length + '/3)', open ? btn('BUILD', 'build', { id: 'lab' }) : '', open ? '' : 'bt-lock'); }
+    if (!L.built) { const open = Pg.isOpen(G, 'build.lab'); return h + row(icd('ic_base_cheddar'), 'Cheese Lab', open ? 'Discover new recipes here' : 'Opens at CHEESE level 3, with a mouse at work', open ? btn('BUILD', 'build', { id: 'lab' }) : '', open ? '' : 'bt-lock'); }
     h += '<div class="bt-rows">' + researchRow();
     const w = L.workers[0] && byId(L.workers[0]);
     if (L.nodes.assistant) h += w ? row(portrait(w, 'mine'), esc(w.name) + ' · LV ' + levelOf(w), 'Your researcher · ' + L.known.length + ' recipes known', btn('CARD', 'showMouse', { id: w.id })) : row(NAV_IC.mouse, 'Research post is empty', 'Give a mouse from MICE this job', btn('MICE', 'showMice', {}));
@@ -607,9 +632,10 @@
     if (!gShown) return;
     if (gEl.classList.contains('min')) { gChange = performance.now(); gEl.classList.remove('min'); }
     const at = gShown.at;
+    if (gShown.id === 'shop' || gShown.id === 'house' || gShown.id === 'lab') return goBuild(gShown.id === 'shop' ? 'sell' : gShown.id);
     if (at === 'upgrades') return openUpgrades();
     if (at === 'mice') return openMice();
-    if (gShown.id === 'recipe' || gShown.id === 'recipes8') return openCheese();
+    if (/^recipe/.test(gShown.id)) return openLab();
     focusSt(at); if (plates[at]) pulse(plates[at], 'bump', 320);
   });
   // Avisos en cola: cada uno se lee; si llegan muchos a la vez, se quedan los primeros.
@@ -660,7 +686,7 @@
     syncSim(); processEvents(); syncCrew(); syncWorld();
     rushTick(now); goalTick(now);
     scene.draw(now);
-    placePlates();
+    placePlates(); placeSigns();
     const s = G.s, t = tierNow(), sig = [fmt(s.coins), fmt(rate('coins')), s.depth, t, s.vein.open, Math.floor((100 * (s.vein.open ? s.vein.left / Math.max(1, s.vein.cap) : s.vein.found / Math.max(1e-9, s.vein.need))))].join('|');
     if (sig !== hudSig) {
       hudSig = sig;
@@ -674,9 +700,9 @@
     if (now - slow > 400) {
       slow = now; goalPlace(now); perfPaint(); for (const k of Object.keys(madeLog)) rate(k);
       if (isOpen(pop)) paintCrew(false); if (isOpen(res)) paintRes(); refreshSheet();
-      $('nav-upgrades').classList.toggle('fresh', freshUp);
+      $('nav-upgrades').classList.toggle('fresh', freshUp || (gShown && gShown.id === 'node' && Core.options(G).some((o) => s.coins >= o.cost)));
       $('nav-boosts').classList.toggle('fresh', G.boosts.earned - Ru.placedBoosts(G) > 0);
-      $('nav-mice').classList.toggle('fresh', !paused && (Core.unassigned(G).length > 0 || G.cands.length > 0 || Ru.promoteOptions(G).some((o) => s.coins >= o.cost)));
+      $('nav-mice').classList.toggle('fresh', !paused && (Core.unassigned(G).length > 0 || G.cands.length > 0 || Ru.promoteOptions(G).some((o) => s.coins >= o.cost) || scene.stationState('house') === 'build' || (gShown && gShown.id === 'mouse' && s.coins >= Ru.recruitCost(G))));
     }
     if (!paused && !off && real >= nextSave) { nextSave = real + SAVE_EVERY; saveNow(); }
   }

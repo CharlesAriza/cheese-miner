@@ -6287,6 +6287,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     lifeTest(kind) { const now = performance.now(); if (kind === 'birds') LIFE.nextBirds = now; if (kind === 'star') LIFE.nextStar = now; if (kind === 'flicker') LIFE.flick = now; },
     skyInfo() { const S = skyState(performance.now()); return { mode: SKYCFG.mode, hour: S.h, rise: S.rise, set: S.set, phase: S.phase, tz: REG.tz, known: REG.known, lat: REG.lat }; },
     stationState: (st) => stateSt(st),
+    buildingRect: (id) => L.buildings[id],
     get focusedStation() { return mode === 'station' ? focusSt : null; }, heat: (st) => heat(st),
     setSurface(k) { SURFK = Math.max(1, Math.min(4, k)); }, get surface() { return SURFK; }, setTown(b) { TOWN = !!b; }, get town() { return TOWN; },
     townLots: () => ({ ...LOT }), townSizes: () => { const S = surfStages(); return { house: townHouse(S.house).width, lab: townLab(S.lab).width, labH: townLab(S.lab).height, houseH: townHouse(S.house).height }; },

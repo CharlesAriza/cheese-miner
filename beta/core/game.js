@@ -320,9 +320,9 @@ E2.game = (function () {
     labPhase(c) { return buyOption(c, (o) => o.kind === 'labphase'); },
     // Encargar a mano una receta concreta (o la mejor de la dirección). Se paga al empezar, como en el juego.
     labResearch(c, a) {
+      if (!c.s.built.cheese || !c.lab.built) return NO('not-built'); // se investiga en el laboratorio: antes hay que construirlo
       const L = Lb(), key = a && a.key ? a.key : L.pick(c, 'value');
       if (!key || c.lab.isKnown[key] || !L.styleOpen(c, key.slice(0, key.indexOf('+'))) || !L.partsOpen(c, key)) return NO('invalid');
-      if (!c.s.built.cheese) return NO('not-built');
       return L.enqueue(c, { kind: 'recipe', key }, 'research:hand:' + key) ? OK({ key }) : NO('queue-full');
     },
     labDir(c, a) {

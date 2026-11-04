@@ -33,7 +33,8 @@ E2.ROADMAP = (function () {
     u('build.cheese', 'cheddar', 'main', [{ t: 'base', n: 6 }], { tally: false }),
     u('build.sell', 'cheddar', 'main', [{ t: 'lots', n: 1 }], { tally: false }),
     u('build.house', 'cheddar', 'mice', [{ t: 'nodes', n: 1 }], { tally: false }),
-    u('build.lab', 'cheddar', 'lab', [recipes(3)], { tally: false }),
+    // El laboratorio se abre cuando ya hay algo que investigar: la primera receta nueva pide CHEESE 3.
+    u('build.lab', 'cheddar', 'lab', [{ t: 'staffed', n: 1 }, level('cheese', 3)], { tally: false }),
 
     // ---- Refuerzos ----
     u('boost.1', 'cheddar', 'tree', [{ t: 'chain' }]),
@@ -123,12 +124,14 @@ E2.ROADMAP = (function () {
     { id: 'house', at: 'mice', text: 'Build the Mouse House', requires: [{ t: 'built', id: 'house' }] },
     { id: 'mouse', at: 'mice', text: 'Recruit your first mouse', requires: [{ t: 'mice', n: 1 }] },
     { id: 'posted', at: 'mice', text: 'Give your mouse a job', requires: [{ t: 'staffed', n: 1 }] },
-    { id: 'recipe', at: 'cheese', text: 'Discover a recipe', requires: [recipes(2)] },
+    { id: 'cheese3', at: 'cheese', text: 'CHEESE level 3', requires: [level('cheese', 3)] },
+    { id: 'lab', at: 'lab', text: 'Build the Cheese Lab', requires: [{ t: 'built', id: 'lab' }] },
+    { id: 'recipe', at: 'lab', text: 'Discover a recipe', requires: [recipes(2)] },
     { id: 'level5', at: 'upgrades', text: 'Reach level 5 in any skill', requires: [{ t: 'levelAny', n: 5 }] },
     { id: 'allAuto', at: 'mice', text: 'Put a mouse on all five stages', requires: [{ t: 'chain' }] },
     { id: 'promote', at: 'mice', text: 'Promote a mouse', requires: [rank(1, 1)] },
     { id: 'depth3', at: 'mine', text: 'Dig down to depth 3', requires: [{ t: 'depth', n: 3 }] },
-    { id: 'recipes8', at: 'cheese', text: 'Discover 8 recipes', requires: [recipes(8)] },
+    { id: 'recipes8', at: 'lab', text: 'Discover 8 recipes', requires: [recipes(8)] },
     { id: 'level25', at: 'upgrades', text: 'Reach level 25 in any skill', requires: [{ t: 'levelAny', n: 25 }] },
   ];
   return { stages, systems, unlocks, goals };

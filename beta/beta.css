@@ -24,3 +24,14 @@
 .bt-sky .bt-act { min-width: 52px; min-height: 34px; }
 /* El objetivo va anclado a su lado (beta.js): no se anima su posición horizontal. */
 .goal { transition: opacity .18s, transform .22s cubic-bezier(.2, .8, .2, 1), top .25s cubic-bezier(.2, .8, .2, 1); }
+/* Cartel de obra de SHOP, HOUSE y LAB (beta.js): la placa verde de las máquinas, con una flecha que late hacia el edificio. */
+.bs-sign { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.bs-sign[hidden] { display: none; }
+.bs-sign .p0-plate { position: relative; }
+.bs-down { width: 14px; height: 8px; background: var(--new); clip-path: polygon(0 0, 14px 0, 14px 2px, 12px 2px, 12px 4px, 10px 4px, 10px 6px, 8px 6px, 8px 8px, 6px 8px, 6px 6px, 4px 6px, 4px 4px, 2px 4px, 2px 2px, 0 2px); animation: bs-down .8s steps(1) infinite; }
+.bs-up { display: none; width: 10px; height: 6px; background: var(--new); clip-path: polygon(4px 0, 6px 0, 6px 2px, 8px 2px, 8px 4px, 10px 4px, 10px 6px, 0 6px, 0 4px, 2px 4px, 2px 2px, 4px 2px); animation: bs-up .8s steps(1) infinite; }
+.bs-sign.up .bs-up { display: block; }
+.bs-sign.up .bs-down { display: none; }
+@keyframes bs-down { 50% { transform: translateY(3px); } }
+@keyframes bs-up { 50% { transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) { .bs-down, .bs-up { animation: none; } }
