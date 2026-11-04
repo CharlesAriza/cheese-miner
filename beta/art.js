@@ -3820,6 +3820,7 @@ const headOfB = (who) => () => { const b = BR[who]; return b && b.px != null ? [
 //     su sitio se decide al nacer y luego solo sigue a la cabeza, suavizado; ancho fijo; quien habla se para y mira al otro.
 //   · El remover de la cuba estaba roto (dos palas superpuestas): la cuba se dibuja sin la pala fija y la pala se anima sola.
 // Mismo motor y piezas aprobadas que MAIN 2.0; lo nuevo es PROVISIONAL y va en el registro PH (modo PH del prototipo).
+CM.art = { mouseCanvas, ghostCanvas };
 CM.createColonyScene = function (canvas, host, sim, hooks) {
   const g = canvas.getContext('2d');
   // ---- Geometría (píxeles de arte) ----
@@ -6275,6 +6276,9 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
   return {
     resize, draw, onEvent, hit, mouseAt, layout: () => L, get comp() { return 'B'; }, setComp() {},
     setMice(list) { mice = list; populate(); },
+    // Puestos de la escena con su sitio en el mundo. El tendero va tras el mostrador y el del montacargas, con la jaula.
+    posts: () => nodes.filter((n) => n.st !== 'lab').map((n) => ({ st: n.st, role: n.role, m: n.m, face: n.hf, x: n.role === 'keeper' ? LOT.shop[0] + 19 : n.role === 'liftman' ? CAGE.x + 1 : n.hx, feet: n.role === 'keeper' ? G - SHOP_H + 1 + 48 : n.role === 'liftman' ? Math.round(lift.y) - 4 : n.hs + (n.st === 'mine' ? MO : 0) })),
+    restMouse(m, ms) { const n = nodes.find((q) => q.m && q.m.id === m.id); if (n) n.q = [T.idle(ms)]; },
     setTier(t) { tier = t; },
     setStage, setStageOf, get stage() { return STGS.mine; }, stageOf: (st) => STGS[st],
     rushTap,

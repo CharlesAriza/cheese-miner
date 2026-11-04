@@ -264,6 +264,23 @@ E2.game = (function () {
       if (ST.every((st) => s.placed.some((p) => p.st === st && p.fn === 'pr'))) Ru().ev(c, 'chainAutomated');
       return OK();
     },
+    // Mover a otro puesto, sin coste y de una vez: si está ocupado, los dos se intercambian. Todo se comprueba antes de tocar nada, así que
+    // no hay ningún estado intermedio en el que un ratón se quede sin puesto.
+    move(c, a) {
+      const s = c.s, from = s.placed.find((p) => p.m.id === a.id);
+      if (!from) return NO('invalid');
+      const post = ST.includes(a.st) && (s.built[a.st] !== false || a.st === 'mine') ? postsOf(c, a.st).find((p) => p.role === a.role) : null;
+      if (!post) return NO('invalid');
+      if (from.st === a.st && from.role === a.role) return NO('same');
+      const other = s.placed.find((p) => p.st === a.st && p.role === a.role);
+      const next = s.placed.filter((p) => p !== from && p !== other).concat([{ m: from.m, st: a.st, fn: post.fn, role: a.role }]);
+      if (other) next.push({ m: other.m, st: from.st, fn: from.fn, role: from.role });
+      Mo().place(s, next);
+      if (post.fn === 'pr') Ru().ev(c, 'auto_' + a.st);
+      if (other && from.fn === 'pr') Ru().ev(c, 'auto_' + from.st);
+      if (ST.every((st) => s.placed.some((p) => p.st === st && p.fn === 'pr'))) Ru().ev(c, 'chainAutomated');
+      return OK({ swapped: other ? other.m.id : null });
+    },
     unassign(c, a) { return removeFromPosts(c, a.id) || c.roster.some((m) => m.id === a.id) ? OK() : NO('invalid'); },
     // Despido voluntario, sin reembolso. El precio de reclutar no baja. Limpia todas las referencias al ratón.
     dismiss(c, a) {

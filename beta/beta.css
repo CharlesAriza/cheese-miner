@@ -35,3 +35,15 @@
 @keyframes bs-down { 50% { transform: translateY(3px); } }
 @keyframes bs-up { 50% { transform: translateY(-2px); } }
 @media (prefers-reduced-motion: reduce) { .bs-down, .bs-up { animation: none; } }
+/* Arrastrar ratones (drag.js): capa de dibujo y cartel del destino. Solo existen mientras se sostiene un ratón. */
+.dh-ov { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; image-rendering: pixelated; }
+.dh-tag { position: absolute; z-index: 5; pointer-events: none; display: flex; flex-direction: column; gap: 2px; padding: 4px 8px 5px; white-space: nowrap; background: #1d1828f0; border: 2px solid var(--gold); box-shadow: inset 0 2px 0 var(--p1), inset 0 -3px 0 #120e18; clip-path: var(--cut); filter: drop-shadow(0 2px 0 #0c0910a0); }
+.dh-tag[hidden] { display: none; }
+.dh-tag.back { border-color: var(--p4); }
+.dh-tag b { font: 400 8px/10px var(--pixel); color: var(--text); }
+.dh-tag small { font: 700 11px/13px var(--sans); }
+.dh-tag small.ok { color: var(--new); }
+.dh-tag small.swap { color: var(--gold); }
+.dh-tag small.back { color: var(--soft); }
+/* Mantener el dedo sobre la escena: ni menú del navegador, ni lupa, ni selección de texto. */
+#cv { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }

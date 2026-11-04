@@ -86,15 +86,16 @@
   const rate = (k) => { const now = performance.now(), a = madeLog[k]; while (a.length && now - a[0][0] > 60000) a.shift(); return a.reduce((x, y) => x + y[1], 0); };
 
   // ---- La escena: la de P1; quién hay en cada puesto lo dice la partida ----
+  let dragger = null;
   function crewAt(st, role) {
     const stCore = st === 'lift' ? 'sell' : st;
     if (st === 'lab') return role === 'researcher' && G.lab.workers.length ? G.roster.find((m) => m.id === G.lab.workers[0]) || null : null;
     const r = SCENE_ROLE[role] || role, p = G.s.placed.find((q) => q.st === stCore && q.role === r);
-    return p ? p.m : null;
+    return p && !(dragger && dragger.isHidden(p.m)) ? p.m : null;
   }
   const scene = CM.createColonyScene($('cv'), $('scene-box'), sim, { hit: () => {}, crewAt, boostLabel: (st, n, x, y) => boostLabel(st, n, x, y) });
   let crewSig = '', selected = 'mine', tierShown = null;
-  const crewSigOf = () => G.s.placed.map((p) => p.st + p.role + p.m.id).sort().join() + '|' + G.lab.workers.join() + '|' + WORK.map((st) => G.phase[st]).join('');
+  const crewSigOf = () => G.s.placed.map((p) => p.st + p.role + p.m.id).sort().join() + '|' + G.lab.workers.join() + '|' + WORK.map((st) => G.phase[st]).join('') + '|' + (dragger ? dragger.sig : '');
   function syncCrew(force) {
     const sg = crewSigOf();
     if (!force && sg === crewSig) return;
@@ -533,16 +534,35 @@
   $('hud-depthbox').addEventListener('click', openDepth);
 
   // ---- Toques en la escena: los de P1 ----
+  // ---- Arrastrar un ratón a otro puesto (drag.js). Aquí, qué puestos hay y confirmar al soltar: la partida solo cambia en ese momento. ----
+  const dragTargets = (held) => {
+    const w = Core.whereIs(G, held.id), out = [];
+    for (const p of scene.posts()) {
+      const stCore = p.st === 'lift' ? 'sell' : p.st, role = SCENE_ROLE[p.role] || p.role;
+      if (stCore !== 'mine' && !G.s.built[stCore]) continue;
+      const post = Core.postsOf(G, stCore).find((q) => q.role === role); if (!post) continue;
+      out.push({ key: stCore + ':' + role, st: stCore, role, x: p.x, feet: p.feet, face: p.face, label: NAME[stCore] + ' · ' + (ROLE[role] || role), source: w.st === stCore && w.role === role, occ: post.mouse && post.mouse !== held.id ? byId(post.mouse) : null });
+    }
+    return out;
+  };
+  dragger = BetaDrag({
+    scene, box: $('scene-box'), targets: dragTargets, reduced: RM, topInset,
+    confirm: (m, t) => doAct('move', { id: m.id, st: t.st, role: t.role }).ok,
+    onGrab: () => { closeRes(); if (isOpen(pop)) openCrew(false); scene.unpick(); scene.dragStart(); },
+    onEnd: () => scene.dragEnd(0),
+  });
   const cv = $('cv'); let drag = null, multi = false; const fingers = new Set();
   cv.addEventListener('pointerdown', (e) => {
     fingers.add(e.pointerId);
-    if (fingers.size > 1 || multi) { multi = true; if (drag) { if (drag.moved) scene.dragEnd(0); drag = null; } return; }
+    if (fingers.size > 1 || multi) { multi = true; dragger.cancel(performance.now()); if (drag) { if (drag.moved) scene.dragEnd(0); drag = null; } return; }
     const r = cv.getBoundingClientRect(); drag = { id: e.pointerId, x: e.clientX, y: e.clientY, ly: e.clientY, moved: false, done: false, sx: e.clientX - r.left, sy: e.clientY - r.top, pts: [[performance.now(), e.clientY]] };
     try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+    if (!e.button) { const m = scene.mouseAt(drag.sx, drag.sy), w = m && Core.whereIs(G, m.id); if (w && w.scene === 'main') dragger.press(m, drag.sx, drag.sy, performance.now()); }
   });
   cv.addEventListener('pointermove', (e) => {
     if (!drag || e.pointerId !== drag.id) return;
-    if (!drag.moved && Math.hypot(e.clientY - drag.y, e.clientX - drag.x) > 7) { drag.moved = true; clearTimeout(drag.timer); scene.dragStart(); closeRes(); drag.ly = e.clientY; }
+    if (dragger.holding || dragger.pressing) { const r = cv.getBoundingClientRect(); dragger.move(e.clientX - r.left, e.clientY - r.top); if (dragger.holding) return; }
+    if (!drag.moved && Math.hypot(e.clientY - drag.y, e.clientX - drag.x) > 7) { drag.moved = true; clearTimeout(drag.timer); dragger.abort(performance.now()); scene.dragStart(); closeRes(); drag.ly = e.clientY; }
     if (drag.moved) { scene.dragBy(e.clientY - drag.ly); drag.pts.push([performance.now(), e.clientY]); if (drag.pts.length > 6) drag.pts.shift(); }
     drag.ly = e.clientY;
   });
@@ -550,6 +570,9 @@
     fingers.delete(e.pointerId); if (multi) { if (!fingers.size) multi = false; return; }
     if (!drag || e.pointerId !== drag.id) return;
     const d = drag; drag = null; clearTimeout(d.timer);
+    if (dragger.holding) { if (e.type === 'pointercancel') dragger.cancel(performance.now()); else dragger.release(performance.now()); return; }
+    dragger.abort(performance.now());
+    if (e.type === 'pointercancel' && !d.moved) return;
     if (d.moved) { const a = d.pts[0], b = d.pts[d.pts.length - 1], dt = Math.max(16, b[0] - a[0]), v = performance.now() - b[0] > 90 ? 0 : (b[1] - a[1]) / dt; scene.dragEnd(v); return; }
     if (d.done) return;
     closeRes(); scene.tapAt(d.sx, d.sy);
@@ -560,6 +583,10 @@
     if (h.type === 'station') { if (scene.focusedStation !== h.id) focusSt(h.id); return; }
     if (h.type === 'building') { if (h.id === 'shop') return focusSt('sell'); if (h.id === 'lab') return openLab(); return openMice(); }
   };
+  // Mantener pulsado no debe abrir nada del navegador ni hacer scroll de la página: cortaría el gesto.
+  cv.addEventListener('contextmenu', (e) => e.preventDefault());
+  cv.addEventListener('selectstart', (e) => e.preventDefault());
+  cv.addEventListener('touchmove', (e) => { if (dragger.holding || dragger.pressing) e.preventDefault(); }, { passive: false });
   cv.addEventListener('pointerup', endDrag);
   cv.addEventListener('pointercancel', endDrag);
   let wheelT = 0;
@@ -683,10 +710,10 @@
     const real = Date.now(), elapsed = Math.max(0, real - lastReal); lastReal = real;
     if (off) offlineStep();
     else if (!paused) { if (elapsed >= OFFLINE_MIN && beginOffline(elapsed)) {} else if (elapsed > 0 && elapsed < OFFLINE_MIN) Core.advance(G, elapsed); }
-    syncSim(); processEvents(); syncCrew(); syncWorld();
+    syncSim(); processEvents(); dragger.step(performance.now()); syncCrew(); dragger.settle(); syncWorld();
     rushTick(now); goalTick(now);
     scene.draw(now);
-    placePlates(); placeSigns();
+    placePlates(); placeSigns(); dragger.render(performance.now());
     const s = G.s, t = tierNow(), sig = [fmt(s.coins), fmt(rate('coins')), s.depth, t, s.vein.open, Math.floor((100 * (s.vein.open ? s.vein.left / Math.max(1, s.vein.cap) : s.vein.found / Math.max(1e-9, s.vein.need))))].join('|');
     if (sig !== hudSig) {
       hudSig = sig;
@@ -712,7 +739,7 @@
   function perfPaint() { const m = $('perf-meter'); if (!PERF.on) return; const a = PERF.iv.filter((x) => x > 0).sort((x, y) => x - y), j = [...PERF.js].sort((x, y) => x - y); m.hidden = false; if (a.length < 10) { m.textContent = 'measuring…'; return; } m.textContent = Math.round(1000 / (a.reduce((x, y) => x + y, 0) / a.length)) + ' fps · p95 ' + Math.round(a[Math.floor(a.length * 0.95)]) + ' ms · long ' + a.filter((x) => x > 33).length + ' · JS ' + j[j.length >> 1].toFixed(1) + ' ms · ' + innerWidth + '×' + innerHeight + ' @' + devicePixelRatio; }
   function frame(now) { const t0 = performance.now(); try { tick(now); } catch (e) { if (!frame.err) { frame.err = true; console.error(e); toast('Something went wrong. Your colony is safe: reload the page.'); } } perfFrame(now, performance.now() - t0); requestAnimationFrame(frame); }
   // Guardar al irse: en móvil, cerrar o cambiar de app no siempre avisa de otra forma.
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveNow(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { dragger.cancel(performance.now()); saveNow(); } });
   window.addEventListener('pagehide', () => saveNow());
   for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, (e) => e.preventDefault());
   document.addEventListener('touchmove', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
@@ -723,5 +750,5 @@
   select('mine');
   if (paused) startCover();
   requestAnimationFrame(frame);
-  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.BETA = { get G() { return G; }, sim, scene, save: saveNow, sync: () => { syncSim(); syncCrew(); }, act: doAct, tick, focus: focusSt };
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.BETA = { get G() { return G; }, get dragger() { return dragger; }, sim, scene, save: saveNow, sync: () => { syncSim(); syncCrew(); }, act: doAct, tick, focus: focusSt };
 })();
