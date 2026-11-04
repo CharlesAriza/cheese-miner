@@ -291,7 +291,10 @@
     if (e.target.closest('[data-card]')) { if (id) openPz('card', id); return; }
     if (e.target.closest('[data-follow]')) { if (scene.following) scene.unfollow(); else if (id) scene.focusMouse(id); paintCrew(true); return; }
     const po = e.target.closest('[data-post]'); if (po) return openPz('post', SKILL[selected] + ':' + po.dataset.post);
-    const b = e.target.closest('[data-mouse]'); if (!b) return; pickMouseId(b.dataset.mouse); paintCrew(true);
+    const b = e.target.closest('[data-mouse]'); if (!b) return;
+    const t = performance.now(), again = lastRow && lastRow.id === b.dataset.mouse && t - lastRow.t < DOUBLE_MS; lastRow = again ? null : { id: b.dataset.mouse, t };
+    if (again) return openPz('card', b.dataset.mouse); // dos toques en su fila del equipo, lo mismo que en la escena
+    pickMouseId(b.dataset.mouse); paintCrew(true);
   });
   pop.addEventListener('transitionend', () => homePos());
 
@@ -464,6 +467,8 @@
     if (drag.moved) { { const r = cv.getBoundingClientRect(); scene.dragBy(e.clientY - drag.ly, e.clientY - r.top, e.clientX - r.left); } drag.pts.push([performance.now(), e.clientY]); if (drag.pts.length > 6) drag.pts.shift(); }
     drag.ly = e.clientY;
   });
+  const DOUBLE_MS = 380;
+  let lastTap = null, lastRow = null;
   const endDrag = (e) => {
     fingers.delete(e.pointerId); if (multi) { if (!fingers.size) multi = false; return; }
     if (!drag || e.pointerId !== drag.id) return;
@@ -480,8 +485,10 @@
     if (d.moved) { const a = d.pts[0], b = d.pts[d.pts.length - 1], dt = Math.max(16, b[0] - a[0]), v = performance.now() - b[0] > 90 ? 0 : (b[1] - a[1]) / dt; scene.dragEnd(v); return; }
     if (d.done) return;
     closeRes(); scene.tapAt(d.sx, d.sy);
-    const m = scene.mouseAt(d.sx, d.sy);
-    if (m) return tapMouse(m);
+    const m = scene.mouseAt(d.sx, d.sy), t = performance.now(), prev = lastTap; lastTap = null;
+    // Dos toques seguidos en un ratón abren su ficha. El primero mueve la cámara: el segundo cuenta por dónde cae el dedo, aunque el ratón ya no esté justo debajo.
+    if (prev && t - prev.t < DOUBLE_MS && Math.hypot(d.sx - prev.x, d.sy - prev.y) < 36 && (!m || m.id === prev.id)) return openPz('card', prev.id);
+    if (m) { lastTap = { id: m.id, x: d.sx, y: d.sy, t }; return tapMouse(m); }
     const h = scene.hit(d.sx, d.sy); if (!h) { scene.release(); return; }
     if (h.type === 'face') { if (scene.focusedStation !== 'mine') focusSt('mine'); tapMine(); return; }
     if (h.type === 'station') { if (scene.focusedStation !== h.id) focusSt(h.id); return; }
