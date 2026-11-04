@@ -3820,7 +3820,7 @@ const headOfB = (who) => () => { const b = BR[who]; return b && b.px != null ? [
 //     su sitio se decide al nacer y luego solo sigue a la cabeza, suavizado; ancho fijo; quien habla se para y mira al otro.
 //   · El remover de la cuba estaba roto (dos palas superpuestas): la cuba se dibuja sin la pala fija y la pala se anima sola.
 // Mismo motor y piezas aprobadas que MAIN 2.0; lo nuevo es PROVISIONAL y va en el registro PH (modo PH del prototipo).
-CM.art = { mouseCanvas, ghostCanvas };
+CM.art = { mouseCanvas, ghostCanvas, labelLayer };
 CM.createColonyScene = function (canvas, host, sim, hooks) {
   const g = canvas.getContext('2d');
   // ---- Geometría (píxeles de arte) ----
@@ -6305,6 +6305,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     skyInfo() { const S = skyState(performance.now()); return { mode: SKYCFG.mode, hour: S.h, rise: S.rise, set: S.set, phase: S.phase, tz: REG.tz, known: REG.known, lat: REG.lat }; },
     stationState: (st) => stateSt(st),
     buildingRect: (id) => L.buildings[id],
+    stationRect: (st) => stRect(st),
     get focusedStation() { return mode === 'station' ? focusSt : null; }, heat: (st) => heat(st),
     setSurface(k) { SURFK = Math.max(1, Math.min(4, k)); }, get surface() { return SURFK; }, setTown(b) { TOWN = !!b; }, get town() { return TOWN; },
     townLots: () => ({ ...LOT }), townSizes: () => { const S = surfStages(); return { house: townHouse(S.house).width, lab: townLab(S.lab).width, labH: townLab(S.lab).height, houseH: townHouse(S.house).height }; },

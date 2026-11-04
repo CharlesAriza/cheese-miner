@@ -3,6 +3,16 @@
 // Una colonia y una cadena: un puesto es «oficio:papel» (mining:picker), no «oficio:roca». CM.ui.state() da una vista de la partida con
 // la forma que leen los módulos de dibujo; «line» es la única línea de CHEESE.
 (function () {
+  // Los temporizadores cortos de las animaciones aprobadas (25 fps) van con el refresco de la pantalla: un setInterval suelto cae a
+  // destiempo y en el móvil se nota como tirones. Mismas funciones, mismo ritmo, sin tocar los módulos.
+  const realSet = window.setInterval, realClear = window.clearInterval, slots = new Map(); let slotId = 1e6;
+  window.setInterval = (fn, ms, ...a) => { if (!(ms <= 50)) return realSet(fn, ms, ...a); const id = slotId++; slots.set(id, { fn, ms, next: performance.now() + ms }); return id; };
+  window.clearInterval = (id) => { if (!slots.delete(id)) realClear(id); };
+  (function beat() {
+    const now = performance.now();
+    for (const q of slots.values()) if (now >= q.next - 2) { q.next = Math.max(q.next + q.ms, now + q.ms / 2); try { q.fn(); } catch (e) { console.error(e); } }
+    requestAnimationFrame(beat);
+  })();
   const H = (window.H = parent.BETA_HOST);
   const B = H.REAL, M = B.mice, T = M.traits, Core = H.Core, Cr = H.Cr, Lb = H.Lb, Mo = H.Mo, Ru = H.Ru;
   const G = () => H.G;

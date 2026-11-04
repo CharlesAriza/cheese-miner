@@ -346,5 +346,7 @@
   };
   setInterval(() => { if (document.visibilityState !== 'hidden') repaint(true); }, 250);
   setInterval(paintBars, 100);
+  // La barra de la hornada, en cada fotograma: a saltos de 0,1 s parecía que el juego iba a tirones.
+  setInterval(() => { if (ui.panel !== 'cheese') return; const j = G().s.job.cheese, bar = document.querySelector('#sheet-body [data-job="cook:line"]'); if (bar && j) bar.style.width = Math.min(100, 100 * (1 - (j.end - G().s.t) / j.total)).toFixed(1) + '%'; }, 16);
   H.layerReady();
 })();

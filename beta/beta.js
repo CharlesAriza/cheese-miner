@@ -292,8 +292,7 @@
     if (e.target.closest('[data-follow]')) { if (scene.following) scene.unfollow(); else if (id) scene.focusMouse(id); paintCrew(true); return; }
     const po = e.target.closest('[data-post]'); if (po) return openPz('post', SKILL[selected] + ':' + po.dataset.post);
     const b = e.target.closest('[data-mouse]'); if (!b) return;
-    const t = performance.now(), again = lastRow && lastRow.id === b.dataset.mouse && t - lastRow.t < DOUBLE_MS; lastRow = again ? null : { id: b.dataset.mouse, t };
-    if (again) return openPz('card', b.dataset.mouse); // dos toques en su fila del equipo, lo mismo que en la escena
+    if (b.dataset.mouse === id) return openPz('card', id); // igual que en la escena: tocar al ya elegido abre su ficha
     pickMouseId(b.dataset.mouse); paintCrew(true);
   });
   pop.addEventListener('transitionend', () => homePos());
@@ -336,13 +335,14 @@
   const recipeName = (key) => { const [b, i, t, m] = key.split('+'), B = REAL; return B.ingredients[i].name + ' ' + B.treatments[t].name + ' ' + B.maturations[m].name + ' ' + B.bases[b].name; };
   const PATH_TXT = { prospector: 'Taps hit twice as hard; the crew lands critical hits', blasting: 'Three critical taps set off a blast of crew search', surveyCrew: 'Mine 30% faster', shiftRota: 'Scaffolders count for more', surveyAhead: 'Search for the next vein while drilling', wideSeams: 'Veins hold 40% more; deeper levels are richer', richSeams: 'Each vein gives one more material', quickSeams: 'Smaller veins, found much faster', pureBase: '20% more BASE, refining 20% slower', gaugeDiscipline: 'Yield posts count for more', fastStill: 'Refine 30% faster and cook 20% faster', affinage: 'Cheese worth 40% more, taking 50% longer', freshMarket: 'Cook 40% faster, cheese worth 5% less', boutique: 'Sell fewer, Fine cheese pays 40% more', collectorsList: 'Better buyers sooner', wholesale: 'Sell 80% more at 10% less', bulkContracts: 'Better wholesale prices', coreSampler: 'Twice the materials', strataLogs: 'Blueprints need 30% less material', throughput: '25% more RAW', heavyBits: 'Yield posts count for more' };
   // Refuerzos desde su hoja: el efecto en la escena (ya aprobado) sale al cerrarla, cuando se ve.
-  let boostPend = null;
+  // Lo pendiente va por estación: al cerrar la hoja, cada máquina cuenta su cambio. Vale el último valor; poner o quitar se anima igual.
+  const boostPend = {};
   function boostFx(st, n, was) {
     if (n > was) { if (plates[st]) pulse(plates[st].querySelector('.bo-chip'), 'stamp', 420); if (st === selected) pulse($('pn-st').querySelector('.bo-chip'), 'stamp', 420); }
-    if (pzOpen() && !scene.stationInView(st, topInset(), $('scene-box').clientHeight)) boostPend = { n, st, at: performance.now() }; else showBoost(n, st);
+    if (pzOpen()) boostPend[st] = n; else showBoost(n, st);
   }
-  function showBoost(n, st) { boostPend = null; scene.boostTo(st, n, scene.stationInView(st, topInset(), 0)); }
-  function flushBoost() { if (!boostPend) return; const b = boostPend; if (performance.now() - b.at < 10000) showBoost(b.n, b.st); else { scene.boostTo(b.st, b.n, false); boostPend = null; } }
+  function showBoost(n, st) { scene.boostTo(st, n, scene.stationInView(st, topInset(), 0)); }
+  function flushBoost() { for (const st of Object.keys(boostPend)) { const n = boostPend[st]; delete boostPend[st]; showBoost(n, st); } }
   function boostLabel(st, n, x, y) {
     const el = document.createElement('div'); el.className = 'bo-float'; el.textContent = BO_LABEL[st][n] + (st === 'refine' ? ' BASE' : ' SPEED');
     $('scene-box').appendChild(el); const w = el.offsetWidth; el.style.left = Math.round(Math.max(6, Math.min($('scene-box').clientWidth - w - 6, x - w / 2))) + 'px'; el.style.top = Math.round(Math.max(topInset(), y - 14)) + 'px';
@@ -467,8 +467,8 @@
     if (drag.moved) { { const r = cv.getBoundingClientRect(); scene.dragBy(e.clientY - drag.ly, e.clientY - r.top, e.clientX - r.left); } drag.pts.push([performance.now(), e.clientY]); if (drag.pts.length > 6) drag.pts.shift(); }
     drag.ly = e.clientY;
   });
-  const DOUBLE_MS = 380;
-  let lastTap = null, lastRow = null;
+  let lastTap = null;
+  const SECOND_TAP_MS = 700;
   const endDrag = (e) => {
     fingers.delete(e.pointerId); if (multi) { if (!fingers.size) multi = false; return; }
     if (!drag || e.pointerId !== drag.id) return;
@@ -485,10 +485,12 @@
     if (d.moved) { const a = d.pts[0], b = d.pts[d.pts.length - 1], dt = Math.max(16, b[0] - a[0]), v = performance.now() - b[0] > 90 ? 0 : (b[1] - a[1]) / dt; scene.dragEnd(v); return; }
     if (d.done) return;
     closeRes(); scene.tapAt(d.sx, d.sy);
-    const m = scene.mouseAt(d.sx, d.sy), t = performance.now(), prev = lastTap; lastTap = null;
-    // Dos toques seguidos en un ratón abren su ficha. El primero mueve la cámara: el segundo cuenta por dónde cae el dedo, aunque el ratón ya no esté justo debajo.
-    if (prev && t - prev.t < DOUBLE_MS && Math.hypot(d.sx - prev.x, d.sy - prev.y) < 36 && (!m || m.id === prev.id)) return openPz('card', prev.id);
-    if (m) { lastTap = { id: m.id, x: d.sx, y: d.sy, t }; return tapMouse(m); }
+    const m = scene.mouseAt(d.sx, d.sy), t = performance.now(), prev = lastTap, sel = scene.selectedMouse; lastTap = null;
+    // Un toque elige al ratón; otro toque en el ya elegido abre su ficha, sin prisa. El primero mueve la cámara, así que justo después
+    // también vale donde cayó el dedo, y al ya elegido se le da un margen: es pequeño y se mueve.
+    if (prev && t - prev.t < SECOND_TAP_MS && Math.hypot(d.sx - prev.x, d.sy - prev.y) < 36 && (!m || m.id === prev.id)) return openPz('card', prev.id);
+    if (!m && sel) { const n = scene.nodes().find((q) => q.m && q.m.id === sel && q.px != null); if (n) { const [x, y] = scene.toScreen(n.px + 11, n.py - 9); if (Math.hypot(d.sx - x, d.sy - y) < 30) return openPz('card', sel); } }
+    if (m) { if (m.id !== sel) lastTap = { id: m.id, x: d.sx, y: d.sy, t }; return tapMouse(m); }
     const h = scene.hit(d.sx, d.sy); if (!h) { scene.release(); return; }
     if (h.type === 'face') { if (scene.focusedStation !== 'mine') focusSt('mine'); tapMine(); return; }
     if (h.type === 'station') { if (scene.focusedStation !== h.id) focusSt(h.id); return; }
@@ -503,6 +505,7 @@
   let wheelT = 0;
   cv.addEventListener('wheel', (e) => { e.preventDefault(); if (!wheelT) scene.dragStart(); scene.dragBy(-e.deltaY); clearTimeout(wheelT); wheelT = setTimeout(() => { scene.dragEnd(0); wheelT = 0; }, 120); }, { passive: false });
   function tapMouse(m) {
+    if (scene.selectedMouse === m.id) return openPz('card', m.id);
     const n = scene.nodes().find((q) => q.m && q.m.id === m.id); if (!n) return;
     const w = workOf(n), work = WORK.includes(w); if (work && w !== selected) select(w);
     openCrew(work); scene.pickMouse(m.id, topInset()); if (work) paintCrew(true);
@@ -656,7 +659,49 @@
     const st = Object.keys(L.styles).length; if (st > labSeen.styles) { labSeen.styles = st; toast('New cheese to research!'); }
     for (const k of Object.keys(L.strainsOf || {})) { const n = L.strainsOf[k].length; if (n > (labSeen.strains[k] || 0)) { labSeen.strains[k] = n; if (PZ.ready) try { pzWin().SHEETS.strainFound(k, L.strainsOf[k][n - 1]); } catch (e) { console.warn(e); } toast('New strain found: compare it in LAB'); } }
   }
-  let revAt = 0;
+  let revAt = 0, lastDraw = 0;
+  const COVERED_MS = 66;
+  // ---- Avisos de máquina: la placa aprobada (.ad-warn y su colocación, labelLayer) con lo que le falta de verdad ----
+  // Ámbar si lo que falta ya viene de camino; roja si no viene. Sale al segundo y medio de faltar y se va a los 0,8 s de volver, para no parpadear.
+  const lbHost = document.createElement('div'); lbHost.className = 'lb-host'; $('scene-box').appendChild(lbHost);
+  const screenOf = () => { const sb = $('scene-box').getBoundingClientRect(), cr = $('cv').getBoundingClientRect(); return [cr.left - sb.left, cr.top - sb.top, sb]; };
+  const LBL = CM.art.labelLayer(lbHost, {
+    k: 1,
+    view: () => [0, 0, $('scene-box').clientWidth, $('scene-box').clientHeight],
+    keepOut: () => { const [, , sb] = screenOf(), out = []; for (const el of document.querySelectorAll('.hud > .bx, #goal:not([hidden]), #home-btn.in, #plates > *')) { if (el.style.visibility === 'hidden' || el.hidden) continue; const r = el.getBoundingClientRect(); if (r.width) out.push([r.left - sb.left, r.top - sb.top, r.width, r.height]); } return out; },
+    mice: () => { const [ox, oy] = screenOf(), out = []; for (const n of scene.nodes()) { if (!n.crew || n.px == null || n.inside) continue; const [ax, ay] = scene.toScreen(n.px, n.py - 20), [bx, by] = scene.toScreen(n.px + 22, n.py); out.push([n.key, ox + ax, oy + ay, bx - ax, by - ay]); } return out; },
+  });
+  const alertWant = {}, ALERT_POST = { drill: 'operator', refine: 'stoker', cheese: 'mixer', sell: 'keeper' };
+  function alertOf(st) {
+    const s = G.s; if (!s.built[st] || s.job[st]) return null;
+    const r = s.rates, t = tierNow();
+    if (st === 'drill') return !s.vein.open && !r.mine.auto ? { text: 'NO VEIN', tone: 'red', icon: 'ic_raw_' + t } : null;
+    if (st === 'refine') return s.inv.raw < REAL.refinery.rawPerBase ? { text: 'NO RAW', tone: s.job.drill || (r.drill.auto && s.vein.open) ? 'amber' : 'red', icon: 'ic_raw_' + t } : null;
+    if (st === 'cheese') {
+      const f = Mo.formula(Mo.currentKey(s)), pm = Mo.productMods(s, Mo.currentKey(s)), need = REAL.cheesery.lotBase * (pm && pm.base ? pm.base : 1) + (s.labWant || 0);
+      if (s.inv.base < need) return { text: 'NO BASE', tone: s.job.refine || (r.refine.auto && s.inv.raw >= REAL.refinery.rawPerBase) ? 'amber' : 'red', icon: 'ic_base_' + t };
+      return s.coins < f.coin ? { text: 'NO COINS', tone: 'red', icon: 'ic_coin' } : null;
+    }
+    if (st === 'sell') return Mo.lotsTotal(s) <= 0 ? { text: 'NO CHEESE', tone: s.job.cheese || r.cheese.auto ? 'amber' : 'red', icon: 'ic_lot_' + t } : null;
+    return null;
+  }
+  function alertsTick(now) {
+    const [ox, oy] = screenOf(); let any = false;
+    for (const st of ['drill', 'refine', 'cheese', 'sell']) {
+      const a = alertOf(st); let w = alertWant[st];
+      if (a) { if (!w || w.text !== a.text) w = alertWant[st] = Object.assign({ t0: now, shown: w && w.shown }, a); else { w.tone = a.tone; w.off = 0; } }
+      else if (w && !w.off) w.off = now;
+      if (!w) continue;
+      if (w.off && now - w.off > 800) { delete alertWant[st]; LBL.unwarn(st); continue; }
+      any = true;
+      if (!w.shown && now - w.t0 < 1500) continue;
+      const q = scene.posts().find((p) => p.st === st && p.role === ALERT_POST[st]); if (!q) continue;
+      w.shown = true;
+      const [x, y] = scene.toScreen(q.x + 11, q.feet - 26); // cuelga de donde trabaja el principal, junto a su máquina
+      LBL.warn(st, { tone: w.tone, icon: icd(w.icon), text: w.text, anchor: [ox + x, oy + y] });
+    }
+    if (any || LBL.plates.size) LBL.tick(now);
+  }
   function tick(now) {
     if (now - revAt > 200) { revAt = now; rev += 1; watchLab(); }
     const real = Date.now(), elapsed = Math.max(0, real - lastReal); lastReal = real;
@@ -664,8 +709,12 @@
     else if (!paused) { if (elapsed >= OFFLINE_MIN && beginOffline(elapsed)) {} else if (elapsed > 0 && elapsed < OFFLINE_MIN) Core.advance(G, elapsed); }
     syncSim(); processEvents(); dragger.step(performance.now()); syncCrew(); dragger.settle(); syncWorld();
     rushTick(now); goalTick(now);
-    scene.draw(now);
-    placePlates(); placeSigns(); dragger.render(performance.now());
+    // Con una hoja delante, la escena queda tapada y atenuada: se pinta menos para que la hoja vaya fluida en el móvil (mismo hilo).
+    if (!pzOpen() || now - lastDraw >= COVERED_MS) {
+      lastDraw = now; scene.draw(now);
+      placePlates(); placeSigns(); dragger.render(performance.now());
+      alertsTick(now);
+    }
     const s = G.s, t = tierNow(), sig = [fmt(s.coins), fmt(rate('coins')), s.depth, t, s.vein.open, Math.floor((100 * (s.vein.open ? s.vein.left / Math.max(1, s.vein.cap) : s.vein.found / Math.max(1e-9, s.vein.need))))].join('|');
     if (sig !== hudSig) {
       hudSig = sig;
