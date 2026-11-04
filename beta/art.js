@@ -4106,7 +4106,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
   };
   const rockOf = () => TIER_ROCK[tier] || TIER_ROCK.cheddar;
   function bake() {
-    return art('p1bg:' + tier + ':' + STGS.mine + STGS.drill + STGS.refine + STGS.cheese + ':' + SURFK + (TOWN ? 'n' : 'o'), () => {
+    return art('p1bg:' + tier + ':' + STGS.mine + STGS.drill + STGS.refine + STGS.cheese + ':' + SURFK + (TOWN ? 'n' : 'o') + (builtSt('house') ? 'h' : '') + (builtSt('lab') ? 'l' : '') + (builtSt('sell') ? 's' : ''), () => {
       const c = document.createElement('canvas'); c.width = WW + PAD * 2; c.height = LV.mine.top + 64; const bg = c.getContext('2d'); bg.imageSmoothingEnabled = false; bg.translate(PAD, 0);
       const was = ctx; ctx = bg;
       try { paintSky(); paintSurfaceBG(bg); for (const k of ORDER) paintLevel(k); paintShaft(); paintEarth(); paintCrest(); }
@@ -4346,13 +4346,13 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     const S = skyState(now), n = S.night; if (n < 0.05 || !TOWN) return;
     const H = LOT.house[0], HY = G - 65, Lx = LOT.lab[0], LY = G - 81, k = surfStages(), fl = (i) => 0.88 + 0.12 * Math.sin(now / (520 + i * 90) + i * 1.7);
     const win = (x, y, w, h, i, col = '#ffd890') => { ctx.globalAlpha = n * 0.9 * fl(i); R(x, y, w, h, col); R(x, y, w, 1, '#fff2c0'); ctx.globalAlpha = 1; };
-    glowH(H + 36, HY + 46, 10, '#ffb860', 0.22 * n * fl(1)); win(H + 39, HY + 45, 5, 5, 1); win(H + 30, HY + 46, 2, 3, 2, '#fff2b0');
-    if (k.house >= 2) win(H + 24, HY + 32, 15, 5, 3, '#ffcf7a');
-    if (k.house >= 3) win(H + 30, HY + 16, 5, 5, 4);
-    glowH(Lx + 17, LY + 41, 9, '#ffc880', 0.18 * n * fl(6)); if (k.lab >= 2) win(Lx + 10, LY + 37, 14, 3, 6, '#ffe0a0');
-    glowH(LOT.shop[0] + 40, G - 28, 11, '#ffc070', 0.24 * n * fl(7)); // el puesto encendido
+    if (builtSt('house')) { glowH(H + 36, HY + 46, 10, '#ffb860', 0.22 * n * fl(1)); win(H + 39, HY + 45, 5, 5, 1); win(H + 30, HY + 46, 2, 3, 2, '#fff2b0'); }
+    if (builtSt('house')) { if (k.house >= 2) win(H + 24, HY + 32, 15, 5, 3, '#ffcf7a'); }
+    if (builtSt('house')) { if (k.house >= 3) win(H + 30, HY + 16, 5, 5, 4); }
+    if (builtSt('lab')) { glowH(Lx + 17, LY + 41, 9, '#ffc880', 0.18 * n * fl(6)); if (k.lab >= 2) win(Lx + 10, LY + 37, 14, 3, 6, '#ffe0a0'); }
+    if (builtSt('sell')) { glowH(LOT.shop[0] + 40, G - 28, 11, '#ffc070', 0.24 * n * fl(7)); }
     // Dos farolillos colgados de los extremos del toldo del puesto.
-    for (const ox of [5, 67]) { const lx = LOT.shop[0] + ox, ly = G - 36; R(lx + 1, ly - 3, 1, 3, '#2a2230'); R(lx, ly, 3, 4, INK4); ctx.globalAlpha = 0.45 + 0.55 * n; R(lx + 1, ly + 1, 1, 2, '#ffd860'); ctx.globalAlpha = 1; glowH(lx + 1, ly + 2, 6, '#ffd890', 0.32 * n * fl(9 + ox)); }
+    if (builtSt('sell')) { for (const ox of [5, 67]) { const lx = LOT.shop[0] + ox, ly = G - 36; R(lx + 1, ly - 3, 1, 3, '#2a2230'); R(lx, ly, 3, 4, INK4); ctx.globalAlpha = 0.45 + 0.55 * n; R(lx + 1, ly + 1, 1, 2, '#ffd860'); ctx.globalAlpha = 1; glowH(lx + 1, ly + 2, 6, '#ffd890', 0.32 * n * fl(9 + ox)); } }
     // Farol colgado del castillete, con su luz.
     const fx = 205, fy = G - 47; R(fx + 1, fy - 3, 1, 3, '#2a2230'); R(fx, fy, 3, 4, INK4); ctx.globalAlpha = 0.4 + 0.6 * n; R(fx + 1, fy + 1, 1, 2, '#ffd860'); ctx.globalAlpha = 1; glowH(fx + 1, fy + 2, 7, '#ffd890', 0.3 * n * fl(8));
   }
@@ -4360,7 +4360,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
   function lightPools(now) {
     const S = skyState(now), n = S.night; if (n < 0.05 || !TOWN) return;
     // [x, suelo, radio]: elipses macizas en el suelo (fila a fila, sin huecos), con tres anillos de luz.
-    const pools = [[LOT.house[0] + 30, G, 20], [LOT.lab[0] + 12, G, 14], [LOT.shop[0] + 6, G, 15], [LOT.shop[0] + 68, G, 15], [206, G - 34, 12]];
+    const pools = [...(builtSt('house') ? [[LOT.house[0] + 30, G, 20]] : []), ...(builtSt('lab') ? [[LOT.lab[0] + 12, G, 14]] : []), ...(builtSt('sell') ? [[LOT.shop[0] + 6, G, 15], [LOT.shop[0] + 68, G, 15]] : []), [206, G - 34, 12]];
     ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.fillStyle = '#ffa850';
     pools.forEach(([x, y, r], i) => { const f = 0.9 + 0.1 * Math.sin(now / (600 + i * 110) + i); for (const [rx, a] of [[r, 0.1], [Math.round(r * 0.66), 0.12], [Math.round(r * 0.36), 0.14]]) { const ry = Math.max(2, Math.round(rx * 0.35)); ctx.globalAlpha = a * n * f; for (let dy = -ry; dy <= 1; dy++) { const w = Math.floor(rx * Math.sqrt(Math.max(0, 1 - (dy * dy) / (ry * ry)))); ctx.fillRect(x - w, y + dy, w * 2 + 1, 1); } } });
     ctx.restore();
@@ -4399,7 +4399,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     // Luciérnagas: se encienden y se apagan despacio, cada una a su ritmo, sobre la hierba.
     for (const f of LIFE.fireflies) { const t = now / 1000 * f.sp, x = Math.round(f.x + Math.sin(t + f.ph) * 8), y = Math.round(f.y + Math.sin(t * 1.3 + f.ph * 2) * 3), b = Math.max(0, Math.sin(t * 2 + f.ph)); if (b < 0.15) continue; glowH(x, y, 3, '#d8ff7a', 0.5 * S.night * b); ctx.globalAlpha = S.night * b; R(x, y, 1, 1, '#f0ffb0'); ctx.globalAlpha = 1; }
     // Polillas en el farol del puesto.
-    if (S.night > 0.5 && TOWN) for (let i = 0; i < 2; i++) { const t = now / 1000 * (1.6 + i * 0.5) + i * 2, x = Math.round(LOT.shop[0] + 40 + Math.cos(t) * (5 + i * 2)), y = Math.round(G - 30 + Math.sin(t * 1.7) * 3); ctx.globalAlpha = S.night * 0.8; R(x, y, 1, 1, '#e8e0d0'); ctx.globalAlpha = 1; }
+    if (S.night > 0.5 && TOWN && builtSt('sell')) for (let i = 0; i < 2; i++) { const t = now / 1000 * (1.6 + i * 0.5) + i * 2, x = Math.round(LOT.shop[0] + 40 + Math.cos(t) * (5 + i * 2)), y = Math.round(G - 30 + Math.sin(t * 1.7) * 3); ctx.globalAlpha = S.night * 0.8; R(x, y, 1, 1, '#e8e0d0'); ctx.globalAlpha = 1; }
   }
   // Lámparas (todas: las de cada nivel, las de la cámara de MINE y las del pozo): un halo pequeño en el farol y un cono de luz
   // que cae hacia el suelo, los dos respirando despacio, cada lámpara a su ritmo; de vez en cuando una parpadea un instante.
@@ -4419,7 +4419,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     for (const [x, big] of [[-24, 1], [-40, 0], [244, 1], [262, 0]]) { const tr = tree(big).canvas(); bg.drawImage(tr, x, G - tr.height + 2); }
     const put = (cv, x, base) => { groundShadow(bg, x, base, cv.width); bg.drawImage(cv, x, base - cv.height + 1); };
     const S = surfStages();
-    if (TOWN) { put(gradeCv(townLab(S.lab)), LOT.lab[0], G); put(gradeCv(townHouse(S.house)), LOT.house[0], G); bg.drawImage(gradeCv(shopBack(S.shop)), LOT.shop[0], G - SHOP_H + 1); }
+    if (TOWN) { if (builtSt('lab')) put(gradeCv(townLab(S.lab)), LOT.lab[0], G); if (builtSt('house')) put(gradeCv(townHouse(S.house)), LOT.house[0], G); if (builtSt('sell')) bg.drawImage(gradeCv(shopBack(S.shop)), LOT.shop[0], G - SHOP_H + 1); }
     else { put(labV2(S.lab), 52, G - 1); put(houseStage(S.house), -6, G + 1); bg.drawImage(bush(1).canvas(), 78, G - 7); bg.drawImage(shopBack(S.shop), 118, G - SHOP_H + 1); }
     for (let x = -PAD; x < WW + PAD; x++) { R(x, G, 1, 6, EARTH[2]); R(x, G, 1, 3, '#3f9a3a'); R(x, G, 1, 1, '#6cc44e'); if (hash4(x, 2) < 0.3) R(x, G - 1, 1, 1, '#4fae40'); R(x, G + 3, 1, 1, '#2a6a2a'); }
     if (TOWN) townFooting(bg);
@@ -4745,6 +4745,11 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
         for (let i = 0; i < 8; i++) rfx('glint', r[0] + 20 + rnd() * (r[2] - 40), LV[st].F - 10 - rnd() * 30, { life: 420, delay: 150 + i * 60 });
         nodes.filter((n) => n.st === st && n.crew).forEach((n, i) => { n.x = n.hx; n.q = []; react(n, 'wow', 200 + i * 90); });
       }
+      wasBuilt[st] = b;
+    }
+    for (const [st, x, w] of [['house', LOT.house[0], LOT.house[1]], ['lab', LOT.lab[0], LOT.lab[1]], ['sell', LOT.shop[0], LOT.shop[1]]]) {
+      const b = builtSt(st);
+      if (b && wasBuilt[st] === false) { for (let i = 0; i < 10; i++) rfx('puff', x + 6 + rnd() * (w - 12), G - 4, { vx: (rnd() - 0.5) * 0.02, vy: -0.012 - rnd() * 0.01, life: 900 + rnd() * 400, c: '#c8bca8', delay: i * 40 }); for (let i = 0; i < 8; i++) rfx('glint', x + 6 + rnd() * (w - 12), G - 10 - rnd() * 30, { life: 420, delay: 150 + i * 60 }); }
       wasBuilt[st] = b;
     }
   }
@@ -5450,6 +5455,15 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
   }
 
   // ================= SUPERFICIE =================
+  function townGhosts(now) {
+    if (!TOWN) return;
+    const S = surfStages(), a = (st) => (stateSt(st) === 'build' ? 0.62 + 0.2 * Math.sin(now / 420) : 0.2);
+    // El azul claro de las máquinas está pensado para los muros oscuros: sobre el cielo no se veía. Aquí, un azul de plano más oscuro.
+    const put = (st, src, x, y) => { ctx.globalAlpha = a(st); ctx.drawImage(tintC(src, '#2f6fb4'), x, y); ctx.globalAlpha = 1; };
+    if (!builtSt('house')) { const c = townHouse(S.house); put('house', c, LOT.house[0], G - c.height + 1); }
+    if (!builtSt('lab')) { const c = townLab(S.lab); put('lab', c, LOT.lab[0], G - c.height + 1); }
+    if (!builtSt('sell')) { const y = G - SHOP_H + 1; put('sell', shopBack(S.shop), LOT.shop[0], y); put('sell', shopFront(S.shop), LOT.shop[0], y); }
+  }
   function drawSurface(now, dt) {
     const sx = 118, sy = G - SHOP_H + 1;
     const vs = vnow('sell', now), hs = heat('sell'), kp = N('sell', 'keeper'); if (kp) { ctx.drawImage(mF(kp.crew, Math.floor((vs + 431) / (650 - 300 * hs)) % 2, (now + 997) % 3300 < 110, now - vis.coin < 700 || now - (vis.shopCheer || -1e9) < 900 ? { face: 'happy', tail: hs > 0.3 } : hs > 0.3 ? { face: 'grump' } : {}), sx + 19, sy + 28 - (hs > 0.3 && Math.floor(vs / 140) % 2 ? 1 : 0) - (now - (vis.shopCheer || -1e9) < 600 && Math.floor((now - vis.shopCheer) / 120) % 2 ? 1 : 0)); kp.px = sx + 19; kp.py = sy + 48; }
@@ -5459,9 +5473,10 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
       // Las monedas saltan del mostrador en arco y caen en la caja (al ritmo del acelerón).
       for (let i = every('sco', 4 * hs, dt); i > 0; i--) { const tx = sx + 26 + rnd() * 26; rfx('coin', sx + 40, sy + 30, { x1: tx, y1: sy + 34, h: 10 + rnd() * 8, life: 520 }); }
     }
-    const S = surfStages(); ctx.drawImage(gradeCv(shopFront(S.shop)), sx, sy); heatTint('sell', gradeCv(shopFront(S.shop)), sx, sy, now, '#ffe070', 0.22); hitFlash('sell', gradeCv(shopFront(S.shop)), sx, sy, now); shopLots(ctx, sx, sy, Math.min(4, vis.shopLots)); drawBoostShop(now, 'front');
+    townGhosts(now);
+    const S = surfStages(); if (builtSt('sell')) { ctx.drawImage(gradeCv(shopFront(S.shop)), sx, sy); heatTint('sell', gradeCv(shopFront(S.shop)), sx, sy, now, '#ffe070', 0.22); hitFlash('sell', gradeCv(shopFront(S.shop)), sx, sy, now); shopLots(ctx, sx, sy, Math.min(4, vis.shopLots)); drawBoostShop(now, 'front'); }
     if (now - vis.coin < 600) { const k = (now - vis.coin) / 600; coinTok(sx + 40, Math.round(sy + 30 - k * 14)); }
-    if (TOWN) vfxSmoke(ctx, LOT.house[0] + 43, G - 65 + (S.house >= 2 ? 4 : 18), now); else vfxSmoke(ctx, 41, G + 1 - 52, now);
+    if (TOWN) { if (builtSt('house')) vfxSmoke(ctx, LOT.house[0] + 43, G - 65 + (S.house >= 2 ? 4 : 18), now); } else vfxSmoke(ctx, 41, G + 1 - 52, now);
     const mv = lift.state === 'move';
     ctx.drawImage(pulleySprite(mv ? Math.floor(now / 110) % 3 : 0), 218, G - 78);
     const wx = 201, wy = G - 44; R(wx, wy, 9, 9, INK4); R(wx + 1, wy + 1, 7, 7, MAT.iron[2]); R(wx + 1, wy + 1, 7, 1, MAT.iron[3]); R(wx + 3, wy + 3, 3, 3, MAT.wood[2]);

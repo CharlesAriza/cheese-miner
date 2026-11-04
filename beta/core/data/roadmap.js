@@ -117,7 +117,7 @@ E2.ROADMAP = (function () {
     { id: 'base', at: 'refine', text: 'Refine 6 Cheese Base', requires: [{ t: 'base', n: 6 }] },
     { id: 'cheesery', at: 'cheese', text: 'Build the Cheesery', requires: [{ t: 'built', id: 'cheese' }] },
     { id: 'firstLot', at: 'cheese', text: 'Make your first cheese', requires: [{ t: 'lots', n: 1 }] },
-    { id: 'shop', at: 'sell', text: 'Open your Cheese Shop', requires: [{ t: 'built', id: 'sell' }] },
+    { id: 'shop', at: 'sell', text: 'Build the Cheese Shop', requires: [{ t: 'built', id: 'sell' }] },
     { id: 'sale', at: 'sell', text: 'Sell a cheese', requires: [{ t: 'sold', n: 1 }] },
     { id: 'node', at: 'upgrades', text: 'Buy an upgrade', requires: [{ t: 'nodes', n: 1 }] },
     { id: 'house', at: 'mice', text: 'Build the Mouse House', requires: [{ t: 'built', id: 'house' }] },

@@ -48,6 +48,8 @@
     menu: sprite(['HHHHHHHHHH', 'SSSSSSSSSS', '..........', '..........', 'HHHHHHHHHH', 'SSSSSSSSSS', '..........', '..........', 'HHHHHHHHHH', 'SSSSSSSSSS'], { H: '#f4f0fa', S: '#b9b2cc' }),
     ret: sprite(['...Y......', '..YY......', '.YYYYYYYY.', '..YY....YY', '...Y.....Y', '.........Y', '........YY', '....YYYYY.'], { Y: '#ffcf2e' }),
     bars: sprite(['......YY.', '.....YYYY', '......YY.', '......YY.', '...SS.YY.', '...SS.YY.', 'SS.SS.YY.', 'SS.SS.YY.'], { Y: '#ffcf2e', S: '#d6d0e6' }),
+    // SPRITE: el registro de objetivos, una tablilla con su lista (provisional). Una moneda se confundía con otra divisa.
+    goal: sprite(['...DDDD...', '.BBDGGDBB.', 'BPPPPPPPPB', 'BPLLPLLLPB', 'BPPPPPPPPB', 'BPLLPLLLPB', 'BPPPPPPPPB', 'BPLLPLLLPB', 'BPPPPPPPPB', 'BBBBBBBBBB'], { B: '#a8703a', D: '#6c7a96', G: '#c9d1e0', P: '#f4efe0', L: '#6b5a4a' }),
   };
   document.querySelectorAll('[data-ic]').forEach((im) => (im.src = NAV_IC[im.dataset.ic]));
 
@@ -74,6 +76,7 @@
     sim.raw = s.inv.raw; sim.base = s.inv.base; sim.cheese = Mo.lotsTotal(s); sim.coins = s.coins;
     sim.drillJob = remain(s.job.drill, 2000); sim.refJob = remain(s.job.refine, 3000); sim.cookJob = remain(s.job.cheese, 3500); sim.sellJob = remain(s.job.sell, 2600);
     for (const st of ['drill', 'refine', 'cheese', 'sell']) { sim.built[st] = !!s.built[st]; sim.ready[st] = Pg.isOpen(G, 'build.' + st); }
+    sim.built.house = !!G.built.house; sim.ready.house = Pg.isOpen(G, 'build.house'); sim.built.lab = !!G.lab.built; sim.ready.lab = Pg.isOpen(G, 'build.lab');
     for (const st of WORK) sim.boosted[st] = G.boosts.place[st] || 0;
   }
   syncSim();
@@ -345,7 +348,7 @@
     let h = BASIC;
     if (!G.built.house) {
       const open = Pg.isOpen(G, 'build.house');
-      return h + row(NAV_IC.mouse, 'Mouse House', open ? 'Recruit mice to automate your stations' : Pg.status(G, 'build.house').requires[0].text + ' first', open ? btn('BUILD', 'build', { id: 'house' }) : '', open ? '' : 'bt-lock');
+      return h + row(NAV_IC.mouse, 'Mouse House', open ? 'Recruit mice to automate your stations' : REAL.buildings.house.requires.text, open ? btn('BUILD', 'build', { id: 'house' }) : '', open ? '' : 'bt-lock');
     }
     const cost = Ru.recruitCost(G);
     h += row(NAV_IC.mouse, G.cands.length ? 'Three candidates are waiting' : 'Recruit a mouse', G.cands.length ? 'Already paid: choose one' : 'You choose one of three', G.cands.length ? btn('SEE', 'showCands', {}) : buy('hire', {}, cost, 'HIRE'));
@@ -568,7 +571,6 @@
   home.addEventListener('click', () => { scene.home(); if (isOpen(pop)) paintCrew(true); });
 
   // ---- Objetivo: la píldora de P1, con los objetivos reales ----
-  const GOAL_IC = { mine: ic('ic_pick'), drill: ic('ic_raw_cheddar'), refine: ic('ic_base_cheddar'), cheese: ic('ic_lot_cheddar'), sell: ic('ic_coin'), upgrades: NAV_IC.bars, mice: NAV_IC.mouse };
   const gEl = $('goal'); let gShown = null, gChange = 0, gProg = '', gDoneUntil = 0;
   const goalDef = (id) => E2.ROADMAP.goals.find((g) => g.id === id);
   let gSlot = 0, gSlotAt = 0, gSqueeze = false;
@@ -586,7 +588,8 @@
     if (costs[gSlot] > 0 && free >= 0 && now - gSlotAt > 1200) { slot = free; gSlotAt = now; }
     gSqueeze = free < 0;
     if (slot !== gSlot) gSlot = slot;
-    const [x, y] = cands[gSlot]; gEl.style.left = Math.round(x) + 'px'; gEl.style.right = 'auto'; gEl.style.top = Math.round(y) + 'px';
+    // Anclada a su lado: al desplegarse crece hacia dentro. Con left calculado para el tamaño plegado se salía de la pantalla y volvía.
+    const atRight = gSlot % 2 === 0; gEl.style.left = atRight ? 'auto' : '6px'; gEl.style.right = atRight ? '6px' : 'auto'; gEl.style.top = Math.round(cands[gSlot][1]) + 'px';
   }
   function goalTick(now) {
     if (paused) return;
@@ -595,9 +598,10 @@
     const v = Core.view(G).goal;
     if (!v) { if (gShown) { gEl.classList.remove('in'); setTimeout(() => { if (!Core.view(G).goal) gEl.hidden = true; }, 220); gShown = null; } return; }
     const q = v.requires[0], counted = q.need > 1, ps = counted ? fmt(q.cur) + '/' + fmt(q.need) : '';
-    if (!gShown || gShown.id !== v.id) { gShown = goalDef(v.id); gChange = now; gEl.hidden = false; gEl.classList.remove('done', 'min'); $('goal-ic').src = GOAL_IC[gShown.at] || GOAL_IC.mine; $('goal-t').textContent = v.text; void gEl.offsetWidth; gEl.classList.add('in'); pulse(gEl, 'bump', 320); gProg = '-'; }
+    if (!gShown || gShown.id !== v.id) { gShown = goalDef(v.id); gChange = now; gEl.hidden = false; gEl.classList.remove('done', 'min'); $('goal-ic').src = NAV_IC.goal; $('goal-t').textContent = v.text; void gEl.offsetWidth; gEl.classList.add('in'); pulse(gEl, 'bump', 320); gProg = '-'; }
     if (ps !== gProg) { gProg = ps; gChange = now; $('goal-n').textContent = ps; $('goal-bar').style.width = counted ? Math.round((100 * q.cur) / q.need) + '%' : '0%'; }
-    gEl.classList.toggle('min', now - gChange > 7000 || gSqueeze);
+    // Solo se pliega si le queda una cuenta que enseñar: un objetivo sin cuenta plegado era un icono suelto y parecía que se iba.
+    gEl.classList.toggle('min', counted && (now - gChange > 7000 || gSqueeze));
   }
   gEl.addEventListener('click', () => {
     if (!gShown) return;

@@ -22,3 +22,5 @@
 .bt-load i { display: block; height: 100%; width: 0; background: var(--gold); }
 .bt-sky { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .bt-sky .bt-act { min-width: 52px; min-height: 34px; }
+/* El objetivo va anclado a su lado (beta.js): no se anima su posición horizontal. */
+.goal { transition: opacity .18s, transform .22s cubic-bezier(.2, .8, .2, 1), top .25s cubic-bezier(.2, .8, .2, 1); }
