@@ -211,5 +211,19 @@ E2.crew = (function () {
     return { auto: true, ritmo: Math.max(0.2, ritmo), rend: Math.max(0.2, 1 + P.rend * sy), pr: pr.m.id };
   }
 
-  return { ST, SKILL, level, gradeOf, combosOf, fx, work, own, hasTrait, traitsOf, pairs, lineSets, auras, team, station };
+  // Lo que un ratón suma a su estación en un puesto, con las cuentas de station(), y de qué se compone. Solo lee; la suma de todos da lo que devuelve station().
+  function contribution(m, st, fn, ctx, tm) {
+    const P0 = E2.PARAMS.crew, w = (ctx.w && ctx.w[st]) || {}, P = Object.assign({}, P0, w.ritmo != null ? { ritmo: w.ritmo } : {}, w.rend != null ? { rend: w.rend } : {});
+    const B = M(), W = work(m, st), o = own(m, st, ctx), t = (tm && tm.eff[m.id]) || { vel: 0, cant: 0, dbl: 0 }, f = fx(m, SKILL[st]);
+    const dbl = Math.min(B.caps.double, o.dbl + t.dbl), vel = o.vel + t.vel, cant = o.cant + t.cant + dbl, isRend = fn === 'rend';
+    const levelK = isRend ? (P.combine === 'hybrid' ? 0 : P.combine === 'hybridW' ? P.yieldW : 1) : 1, wY = isRend ? (P.combine === 'hybrid' ? 1 : P.combine === 'hybridW' ? 1 + P.yieldW * (W - 1) : W) : W;
+    const weight = isRend ? P.rend : fn === 'ritmo' ? P.ritmo : 1, value = isRend ? P.rend * wY * (1 + cant) : weight * W * (1 + vel);
+    return {
+      fn, base: weight, value, levelK,
+      level: levelK * B.perLevel * (level(m) - 1), rank: levelK * (B.ranks[m.rank || 0].bonus + (f.rankSpeed || 0) * (m.rank || 0)), rarity: levelK * B.rarities[m.rarity || 0].bonus, liking: levelK * affinity(m, SKILL[st]).speed,
+      traits: isRend ? o.cant + Math.min(B.caps.double, o.dbl) : o.vel, team: isRend ? cant - o.cant - Math.min(B.caps.double, o.dbl) : t.vel,
+    };
+  }
+
+  return { ST, SKILL, level, gradeOf, combosOf, fx, work, own, hasTrait, traitsOf, pairs, lineSets, auras, team, station, contribution };
 })();

@@ -55,8 +55,14 @@
 /* Edificios: responden al tocarlos. */
 .bd-press { position: absolute; z-index: 4; pointer-events: none; outline: 2px solid var(--gold); outline-offset: -2px; background: #ffcf2e22; animation: bd-press .26s steps(3) forwards; }
 @keyframes bd-press { to { opacity: 0; } }
-/* Lo que acaba de cambiar el saldo, en la línea del marcador: verde lo que entra, rojo lo que sale. */
-#hud-rate.delta { font: 400 8px/12px var(--pixel); color: #8ff09a; text-shadow: 1px 1px 0 #10261a; white-space: nowrap; }
-#hud-rate.delta.dn { color: #ffa08f; text-shadow: 1px 1px 0 #3a1014; }
-#hud-coins.delta { color: #c8ffc0; }
-#hud-coins.delta.dn { color: #ffc0b4; }
+/* Los gestos de la escena los decide gesture.js, sin que el navegador se quede ninguno; los botones responden sin esperar a un posible doble toque. */
+#cv { touch-action: none; }
+button { touch-action: manipulation; }
+.input-log { position: fixed; left: 4px; top: 60px; z-index: 99; margin: 0; padding: 4px 6px; max-width: 60vw; font: 10px/12px ui-monospace, monospace; color: #bfffbf; background: #000c; pointer-events: none; white-space: pre-wrap; }
+/* La tira del objetivo abre QUESTS: su flecha se ve también plegada, y no desaparece aunque no queden objetivos. */
+.goal-more { flex: none; width: 0; height: 0; border: 4px solid transparent; border-top: 5px solid var(--soft); border-bottom: 0; }
+.goal.min { max-width: 84px; }
+.goal.allq .goal-bar { display: none; }
+/* El marcador no cambia de ancho con los dígitos de sus cifras: solo crecería con un saldo de más de seis caracteres. */
+.hud-coins span { min-width: 74px; }
+#hud-rate, #hud-coins { font-variant-numeric: tabular-nums; }

@@ -110,11 +110,20 @@ E2.model = (function () {
   }
   function setAway(s, away) { if (s.away !== !!away) { s.away = !!away; s.team = C().team(s.placed, s.away); refreshRates(s); } }
   function refreshRates(s) {
-    const DT = P().depthTraits, sx = stratumOf(s.depth);
-    const depthT = DT.mode === 'stratum' ? s.depth - sx.from : DT.mode === 'tier' ? P().strata.indexOf(sx) * DT.perTier : s.depth;
-    const ctx = { depth: depthT, away: s.away, mice: s.placed.length, recipes: s.recipesKnown != null ? s.recipesKnown : P().recipesKnown || 0, stationLevel: P().stationLevel, w: MD(s).w }; // S3: s.recipesKnown (LAB)
+    const ctx = rateCtx(s, s.placed.length);
     s.rates = {};
     for (const st of ST) { s.rates[st] = C().station(s.placed, st, ctx, s.team); s.rates[st].ritmo *= (P().invest[st] || 1) * MD(s)[st].speed; }
+  }
+  function rateCtx(s, mice) {
+    const DT = P().depthTraits, sx = stratumOf(s.depth);
+    const depthT = DT.mode === 'stratum' ? s.depth - sx.from : DT.mode === 'tier' ? P().strata.indexOf(sx) * DT.perTier : s.depth;
+    return { depth: depthT, away: s.away, mice, recipes: s.recipesKnown != null ? s.recipesKnown : P().recipesKnown || 0, stationLevel: P().stationLevel, w: MD(s).w }; // S3: s.recipesKnown (LAB)
+  }
+  // Los ritmos que tendría otra cuadrilla, sin tocar la partida: la misma cuenta que refreshRates.
+  function ratesWith(s, placed) {
+    const ctx = rateCtx(s, placed.length), team = C().team(placed, s.away), out = {};
+    for (const st of ST) { out[st] = C().station(placed, st, ctx, team); out[st].ritmo *= (P().invest[st] || 1) * MD(s)[st].speed; }
+    return out;
   }
 
   // ---- MINE ----
@@ -399,5 +408,5 @@ E2.model = (function () {
     return JSON.stringify({ t: s.t, depth: s.depth, coins: s.coins, inv: s.inv, lots: s.lots, made: s.made, carry: s.carry, vein: s.vein, mine: s.mine, m: { raw: s.m.raw, base: s.m.base, lotsMade: s.m.lotsMade, sold: s.m.sold, whole: s.m.whole, coins: s.m.coins, busy: s.m.busy, veins: s.m.veins.length } });
   }
 
-  return { hooks, defaultMods, mastery, styleValue, productMods, create, place, setAway, refreshRates, advance, run, tap, digest, price, formula, stratumOf, veinFor, recipeKey, currentKey, lotsTotal, cycle, skillMult };
+  return { hooks, defaultMods, mastery, styleValue, productMods, create, place, setAway, refreshRates, rateCtx, ratesWith, advance, run, tap, digest, price, formula, stratumOf, veinFor, recipeKey, currentKey, lotsTotal, cycle, skillMult };
 })();

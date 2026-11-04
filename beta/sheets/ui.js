@@ -44,6 +44,8 @@
     close, noop() {},
     treetab(t) { ui.tree = t; },
     open(name) { openPanel(name); },
+    questgo() { H.questGo(); },
+    questall() { ui.questAll = !ui.questAll; },
     tree(t) { ui.tree = t; openPanel('tree'); },
     book() { openPanel('cheese'); ui.cheeseView = 'book'; },
     build(id) { const r = act('build', { id }); if (r.ok) { toast((id === 'house' ? 'Mouse House' : 'Cheese Lab') + ' built!', true); H.afterBuild(id); leave(); } },
@@ -192,6 +194,7 @@
     mice: () => CM.pmice.ic('head', 2), options: () => CM.pmenu.ic('gear').replace('<canvas', '<canvas style="margin-top:3px"'),
     stock: () => '<canvas class="pix" data-pnic="pantry" style="margin-top:3px"></canvas>', shopinfo: () => '<canvas class="pix" data-pnic="shop" style="margin-top:3px"></canvas>', coins: () => '<canvas class="pix" data-pnic="coins" style="margin-top:3px"></canvas>',
     boosts: () => '<canvas class="pix" data-boic="gem" data-k="3" style="margin-top:1px"></canvas>',
+    quests: () => '<img class="pix" alt="" src="' + H.questIcon + '" style="width:20px;height:20px;margin-top:1px">',
     lab: () => '<img class="pix" alt="" src="assets/main2/out/sprites/ic_flask.png" style="width:22px;height:24px">', cheese: () => '<img class="pix" alt="" src="assets/main2/out/sprites/ic_lot_cheddar.png" style="width:30px;height:26px">',
   };
   function openPanel(name) {
@@ -219,6 +222,9 @@
     sh.classList.remove('p1-in'); sh.classList.add('p1-out'); H.layerClosing();
     closing = setTimeout(() => { closing = 0; sh.classList.remove('p1-out'); sh.hidden = true; ui.panel = null; ui.lastMove = null; ui.moveSel = null; lastHtml = ''; if ($('modal').hidden) H.layerClosed(); }, RM() ? 160 : 210); // con una ventana abierta (WELCOME BACK), la capa sigue a la vista
   }
+  // El clic fantasma del toque que abrió esta capa (lo explica beta.js): aquí también, antes que nadie. Un dedo de verdad lo desarma.
+  document.addEventListener('pointerdown', () => H.ghostClear(), true);
+  document.addEventListener('click', (e) => { if (H.ghostClick(e.clientX, e.clientY)) { e.stopPropagation(); e.preventDefault(); } }, true);
   document.addEventListener('click', (e) => {
     const sh = $('sheet');
     if (e.target === sh) { e.preventDefault(); leave(); return; }

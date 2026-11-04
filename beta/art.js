@@ -6259,20 +6259,22 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
   // un margen de unos 8 px de pantalla para que un dedo los acierte, y entre varios gana el más cercano al dedo. El margen
   // nunca invade el frente de MINE (tocar la roca es picar, aunque haya picadores al lado) y del tendero solo se ve la
   // cabeza por encima del mostrador: solo ahí se le toca, sin margen.
-  function mouseAt(sx, sy) {
+  function mouseHit(sx, sy) {
     const [wx, wy] = worldAt(sx, sy), pad = Math.max(2, Math.round(8 / s)), my = toMine(wy);
     const onFace = wx >= FACE.x0 && wx <= edgeX(my) + 2 && my >= FACE.y0 && my <= FACE.y1;
+    const onBld = wy < G + 6 && Object.values(L.buildings).some((r) => wx >= r[0] && wx <= r[0] + r[2] && wy >= r[1] && wy <= r[1] + r[3]);
     let best = null, bd = 1e9;
     for (const n of nodes) {
       if (!n.crew || n.px == null || !here(n)) continue;
       const keeper = n.role === 'keeper', top = n.py - 20, bot = keeper ? n.py - 9 : n.py + 1;
       const body = wx >= n.px + 3 && wx <= n.px + 19 && wy >= top && wy <= bot;
-      const p = keeper || onFace ? 0 : pad;
+      const p = keeper || onFace || onBld ? 0 : pad;
       if (!body && (wx < n.px + 3 - p || wx > n.px + 19 + p || wy < top - p || wy > bot + p)) continue;
       const d = Math.hypot(wx - (n.px + 11), wy - (n.py - 9)) + (body ? 0 : 1000); if (d < bd) { bd = d; best = n; }
     }
-    return best ? best.m : null;
+    return best ? { m: best.m, body: bd < 1000 } : null;
   }
+  const mouseAt = (sx, sy) => { const h = mouseHit(sx, sy); return h ? h.m : null; };
   // Qué está haciendo un ratón (para la lista de obreros).
   const ITEMNAME = { crate: 'a crate of RAW', bars: 'BASE bars', wheel: 'a fresh wheel', wheelL: 'a sealed wheel', curd: 'a curd mould', chunk: 'rubble', empty: 'an empty crate' };
   const WORK_POSES = ['windup', 'toss', 'lever', 'grease', 'valve', 'crank', 'stamp', 'dump', 'read'];
@@ -6290,7 +6292,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
   function setStage(k) { for (const st of Object.keys(STGS)) STGS[st] = Math.max(1, Math.min(3, k)); vis.press = [null, null]; vis.curd = 0; vis.passes.length = 0; vis.tosses.length = 0; vis.wheelOut = 0; vis.cart.x = CART.home; vis.cart.load = 0; vis.cart.tilt = 0; populate(); }
   function setStageOf(st, k) { if (!(st in STGS) || STGS[st] === k) return; STGS[st] = Math.max(1, Math.min(3, k)); if (st === 'cheese') { vis.press = [null, null]; vis.curd = 0; vis.wheelOut = 0; } if (st === 'mine') { vis.cart.x = CART.home; vis.cart.load = 0; vis.cart.tilt = 0; } vis.passes.length = 0; vis.tosses.length = 0; populate(); }
   return {
-    resize, draw, onEvent, hit, mouseAt, layout: () => L, get comp() { return 'B'; }, setComp() {},
+    resize, draw, onEvent, hit, mouseAt, mouseHit, layout: () => L, get comp() { return 'B'; }, setComp() {},
     setMice(list) { mice = list; populate(); },
     // Puestos de la escena con su sitio en el mundo. El tendero va tras el mostrador y el del montacargas, con la jaula.
     posts: () => nodes.filter((n) => n.st !== 'lab').map((n) => ({ st: n.st, role: n.role, m: n.m, face: n.hf, x: n.role === 'keeper' ? LOT.shop[0] + 19 : n.role === 'liftman' ? CAGE.x + 1 : n.hx, feet: n.role === 'keeper' ? G - SHOP_H + 1 + 48 : n.role === 'liftman' ? Math.round(lift.y) - 4 : n.hs + (n.st === 'mine' ? MO : 0) })),

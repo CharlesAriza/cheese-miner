@@ -433,7 +433,43 @@ E2.rules = (function () {
     return any;
   }
 
+  // ---- Qué aporta cada puesto, con las cuentas de la partida. Nada de esto la modifica ----
+  // Capacidad de una estación: lo que saca por unidad de tiempo si no le falta material. En la tienda, la cantidad son monedas por venta y cuenta a medias.
+  const stationOut = (st, r) => (!r.auto ? 0 : r.ritmo * (st === 'sell' ? 1 + (r.rend - 1) * P().sell.yieldWeight : r.rend));
+  const pctOf = (a, b) => (b > 0 ? a / b - 1 : null);
+  function postOf(c, st, role) { const post = (P().posts[st][c.s.stage[st] - 1] || []).find(([r]) => r === role); return post ? { st, role, fn: post[1] } : null; }
+  // La cuadrilla si este ratón pasa a ese puesto, igual que move y assign: si estaba colocado y el puesto está ocupado, se intercambian.
+  function crewWith(c, id, st, role) {
+    const s = c.s, post = postOf(c, st, role), m = c.roster.find((x) => x.id === id); if (!post || !m) return null;
+    const from = s.placed.find((p) => p.m.id === id), other = s.placed.find((p) => p.st === st && p.role === role);
+    const next = s.placed.filter((p) => p !== from && p !== other).concat([{ m, st, fn: post.fn, role }]);
+    if (from && other && other !== from) next.push({ m: other.m, st: from.st, fn: from.fn, role: from.role });
+    return { next, from, other };
+  }
+  // Un puesto y quien está en él (o el ratón que se quiera mirar en él).
+  function postInfo(c, st, role, id) {
+    const s = c.s, post = postOf(c, st, role); if (!post) return null;
+    const here = s.placed.find((p) => p.st === st && p.role === role), mid = id || (here && here.m.id), m = c.roster.find((x) => x.id === mid);
+    const w = (s.mods.w && s.mods.w[st]) || {}, cr = P().crew, base = post.fn === 'rend' ? (w.rend != null ? w.rend : cr.rend) : post.fn === 'ritmo' ? (w.ritmo != null ? w.ritmo : cr.ritmo) : 1;
+    const out = { st, role, fn: post.fn, base, rates: { ritmo: s.rates[st].ritmo, rend: s.rates[st].rend, auto: s.rates[st].auto }, hasBoss: s.placed.some((p) => p.st === st && p.fn === 'pr'), mouse: null };
+    if (!m) return out;
+    const sim = here && here.m.id === m.id ? s.placed : crewWith(c, m.id, st, role).next, team = sim === s.placed ? s.team : C().team(sim, s.away);
+    out.mouse = C().contribution(m, st, post.fn, Mo().rateCtx(s, sim.length), team);
+    // Sin él: la capacidad de esta estación si se queda vacío su puesto.
+    if (here && here.m.id === m.id) { const r1 = stationOut(st, s.rates[st]), r0 = stationOut(st, Mo().ratesWith(s, s.placed.filter((p) => p !== here))[st]); out.without = post.fn === 'pr' ? null : pctOf(r0, r1); out.gain = post.fn === 'pr' ? null : pctOf(r1, r0); }
+    return out;
+  }
+  // Qué se gana o se pierde poniendo a este ratón aquí: la capacidad de esta estación y, si deja otro puesto, la de aquella.
+  function postCompare(c, id, st, role) {
+    const s = c.s, w = crewWith(c, id, st, role); if (!w) return null;
+    const after = Mo().ratesWith(s, w.next), here = { from: stationOut(st, s.rates[st]), to: stationOut(st, after[st]) };
+    const res = { pct: pctOf(here.to, here.from), starts: here.from === 0 && here.to > 0, there: null };
+    if (w.from && w.from.st !== st) res.there = { st: w.from.st, pct: pctOf(stationOut(w.from.st, after[w.from.st]), stationOut(w.from.st, s.rates[w.from.st])), stops: !after[w.from.st].auto && s.rates[w.from.st].auto };
+    return res;
+  }
+
   return {
+    postInfo, postCompare, stationOut,
     ST, SKILL, gate, note, settle, addExtra, realNow, s3Scale, create, rngOf, clone, ev, log, stratumIdx, activeNodes, applyMods, stXpFor, stLevelOf, creditXp, grow,
     recruitCost, candidates, fitValue, emptyPosts, hire, promoteOptions, promote,
     fundRule, fundEff, fundMax, fundCost, fundOptions, buyFund, phaseOptions, buyPhase, pathOptions, buyPath, switchPath, pathAlternatives,

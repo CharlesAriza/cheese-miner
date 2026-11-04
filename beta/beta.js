@@ -134,7 +134,6 @@
         case 'unlock': { const tx = UNLOCK_TXT(e.id); if (tx) toast(tx); if (/^(phase|path|ms)/.test(e.id)) freshUp = true; break; }
         case 'specialty': case 'trait': { const m = G.roster.find((x) => x.id === e.id), tr = REAL.mice.traits[e.trait]; if (m && tr && tr.kind !== 'legend') toast(m.name + ' learned ' + tr.name); toSheets(e); break; }
         case 'recruited': toSheets(e); break;
-        case 'goal': if (e.reward) coinsGoal += e.reward; break;
         default: break;
       }
     }
@@ -163,7 +162,7 @@
   function tapBuilding(hid) {
     const id = BUILDING_OF[hid], r = scene.buildingRect(hid);
     if (r) { const sb = $('scene-box').getBoundingClientRect(), cr = $('cv').getBoundingClientRect(), [x0, y0] = scene.toScreen(r[0], r[1]), [x1, y1] = scene.toScreen(r[0] + r[2], r[1] + r[3]), el = document.createElement('i'); el.className = 'bd-press'; el.style.cssText = 'left:' + Math.round(cr.left - sb.left + x0) + 'px;top:' + Math.round(cr.top - sb.top + y0) + 'px;width:' + Math.round(x1 - x0) + 'px;height:' + Math.round(y1 - y0) + 'px'; $('scene-box').appendChild(el); setTimeout(() => el.remove(), 260); }
-    if (id === 'sell') return selected === 'sell' && isBuilt('sell') ? openPz('shopinfo') : focusSt('sell'); // la tienda es también una estación: el primer toque la elige
+    if (id === 'sell') return isBuilt('sell') ? openPz('shopinfo') : focusSt('sell'); // sin construir, su estación dice cómo se construye
     if (id === 'lab') return openPz('lab');
     return openPz('mice', G.built.house ? 'house' : undefined);
   }
@@ -271,22 +270,34 @@
 
   // ---- Equipo de la estación: los puestos de verdad; un puesto vacío se ve vacío ----
   const pop = $('crew-pop');
-  let popSig = '';
+  let popSig = '', popHold = 0, popBySel = false; // popHold: hasta cuándo no se rehace la tira. popBySel: la abrió elegir un ratón, y se cierra al dejar de elegirlo
   const PORTRAIT = {};
   const portrait = (m, st) => { const k = m.id + ':' + st + ':' + (m.rank || 0); return PORTRAIT[k] || (PORTRAIT[k] = scene.portrait(m, st)); };
   const byId = (id) => G.roster.find((m) => m.id === id);
   const tone = (s) => (/Waiting|Idle/.test(s) ? 'wait' : /Working|Carrying|Passing|Digging|On shift/.test(s) ? 'busy' : '');
+  // Lo que aporta en una palabra, con las cifras del núcleo. El detalle está en su ficha.
+  const CREW_UNIT = { mine: 'power', drill: 'Raw', refine: 'batch', cheese: 'cheese', sell: 'coins' };
+  function crewGives(st, role, id) {
+    const i = Ru.postInfo(G, st, role, id); if (!i || !i.mouse) return '';
+    if (i.fn === 'pr') return Math.round(i.mouse.value * 100) + '% speed';
+    if (i.fn === 'ritmo') return '+' + Math.round(i.mouse.value * 100) + '% speed';
+    return '+' + Math.round(i.mouse.value * (st === 'sell' ? E2.PARAMS.sell.yieldWeight : 1) * 100) + '% ' + CREW_UNIT[st];
+  }
   function paintCrew(force) {
     const posts = Core.postsOf(G, selected), selId = scene.selectedMouse, here = scene.stationState(selected) === 'on';
     const sel = posts.find((p) => p.mouse && p.mouse === selId), node = sel && scene.nodes().find((q) => q.m && q.m.id === selId), m = sel && byId(selId);
-    const line = sel && m ? '<b>' + m.name + '</b> · ' + RANKS[Math.min(3, m.rank || 0)] + ' ' + (ROLE[sel.role] || sel.role) + (node ? ' · <span class="' + tone(scene.stateOf(node)) + '">' + scene.stateOf(node) + '</span>' : '') : here ? 'Tap a worker, or an empty post to fill it.' : 'Build this station first.';
+    const line = sel && m ? '<b>' + m.name + '</b> · ' + (ROLE[sel.role] || sel.role) + ' · ' + crewGives(selected, sel.role, m.id) + (node ? '<br><span class="' + tone(scene.stateOf(node)) + '">' + scene.stateOf(node) + '</span>' : '') : here ? 'Tap a worker, or an empty post to fill it.' : 'Build this station first.';
     const sig = selected + '|' + selId + '|' + scene.following + '|' + posts.map((p) => p.role + p.mouse).join(',') + here;
-    if (force || sig !== popSig) {
+    if ((force || sig !== popSig) && performance.now() >= popHold) {
       popSig = sig;
       const rows = !here ? '<p>Nobody works here.</p>' : posts.map((p) => { const w = p.mouse && byId(p.mouse); return w ? '<button class="crew-row' + (w.id === selId ? ' on' : '') + '" data-mouse="' + w.id + '" aria-label="' + w.name + ', ' + (ROLE[p.role] || p.role) + '"><img class="pix" src="' + portrait(w, selected) + '" alt=""><b>' + w.name + '</b></button>' : '<button class="crew-row empty" data-post="' + p.role + '" aria-label="Empty post: ' + (ROLE[p.role] || p.role) + '"><i>+</i><b>' + (ROLE[p.role] || p.role) + '</b></button>'; }).join('');
       pop.innerHTML = '<h5>' + NAME[selected] + ' CREW <small>' + posts.filter((p) => p.mouse).length + '/' + posts.length + ' WORKERS</small></h5><div class="crew-strip" style="--n:' + Math.max(4, posts.length) + '">' + rows + '</div><div class="crew-sel" id="crew-sel"></div>';
     }
-    $('crew-sel').innerHTML = '<span>' + line + '</span>' + (sel ? '<button class="crew-card bx" data-follow aria-pressed="' + scene.following + '">' + (scene.following ? 'STOP' : 'FOLLOW') + '</button><button class="crew-card bx" data-card>CARD</button>' : '');
+    // Solo cambia lo que ha cambiado: esto se pinta cada 0,4 s y, rehaciendo los botones, un toque empezaba en uno y acababa en otro y se perdía.
+    const box = $('crew-sel'); if (!box) return;
+    if (box.dataset.sel !== String(!!sel)) { box.dataset.sel = String(!!sel); box.innerHTML = '<span></span>' + (sel ? '<button class="crew-card bx" data-follow></button><button class="crew-card bx" data-card>CARD</button>' : ''); box.dataset.line = ''; }
+    if (box.dataset.line !== line) { box.dataset.line = line; box.firstChild.innerHTML = line; }
+    const fb = box.querySelector('[data-follow]'); if (fb) { const t = scene.following ? 'STOP' : 'FOLLOW'; if (fb.textContent !== t) fb.textContent = t; fb.setAttribute('aria-pressed', String(scene.following)); }
     if (force && sel) { const b = pop.querySelector('.crew-row.on'); if (b) b.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
   }
   function openCrew(open) {
@@ -295,15 +306,17 @@
     scene.setInsetBottom(open ? pop.offsetHeight : 0);
     homePos();
   }
-  $('pn-crew').addEventListener('click', () => openCrew(!isOpen(pop)));
+  $('pn-crew').addEventListener('click', () => { popBySel = false; openCrew(!isOpen(pop)); });
+  pop.addEventListener('pointerdown', () => { popHold = Infinity; }, true);
+  for (const t of ['pointerup', 'pointercancel']) window.addEventListener(t, () => { if (popHold === Infinity) popHold = performance.now() + 250; }, true);
   pop.addEventListener('click', (e) => {
-    const id = scene.selectedMouse;
+    const id = scene.selectedMouse; popHold = 0;
     if (e.target.closest('[data-card]')) { if (id) openPz('card', id); return; }
     if (e.target.closest('[data-follow]')) { if (scene.following) scene.unfollow(); else if (id) scene.focusMouse(id); paintCrew(true); return; }
     const po = e.target.closest('[data-post]'); if (po) return openPz('post', SKILL[selected] + ':' + po.dataset.post);
     const b = e.target.closest('[data-mouse]'); if (!b) return;
     if (b.dataset.mouse === id) return openPz('card', id); // igual que en la escena: tocar al ya elegido abre su ficha
-    pickMouseId(b.dataset.mouse); paintCrew(true);
+    chooseMouse(b.dataset.mouse);
   });
   pop.addEventListener('transitionend', () => homePos());
 
@@ -402,6 +415,8 @@
     layerShow() { PZ.el.classList.remove('off'); PZ.el.classList.add('in'); PZ.el.setAttribute('aria-hidden', 'false'); },
     layerClosing() { PZ.el.classList.remove('in'); },
     layerClosed() { closePz(true); },
+    questIcon: NAV_IC.goal, questGo: () => goToGoal(), E2,
+    ghostClick: (x, y) => { const r = PZ.fr.getBoundingClientRect(); return isGhost(r.left + x, r.top + y); }, ghostClear: () => { ghost.until = 0; },
   };
   const PZ = { el: $('pz'), fr: null, ready: false, want: null, t: 0 };
   const pzWin = () => PZ.fr && PZ.fr.contentWindow;
@@ -458,70 +473,118 @@
     confirm: (m, t) => doAct('move', { id: m.id, st: t.st, role: t.role }).ok,
     // Coger un ratón suspende lo que hacía la cámara (hay que ver los puestos); al terminar, se devuelve tal cual: FOLLOW sigue a quien seguía,
     // la selección y el foco de estación siguen ahí, y siempre con el controlador de P1, sin mover la cámara por otro camino.
-    onGrab: () => { camBefore = { follow: scene.following ? scene.selectedMouse : null, sel: scene.selectedMouse, st: scene.focusedStation, pop: isOpen(pop) }; closeRes(); if (isOpen(pop)) openCrew(false); scene.unpick(); scene.dragStart(); },
+    onGrab: () => { if (!gesture.grabbed()) return dragger.cancel(performance.now()); camBefore = { follow: scene.following ? scene.selectedMouse : null, sel: scene.selectedMouse, st: scene.focusedStation, pop: isOpen(pop) }; closeRes(); if (isOpen(pop)) openCrew(false); scene.unpick(); scene.dragStart(); },
     onEnd: () => scene.dragEnd(0),
-    onDone: () => { const c = camBefore; camBefore = null; if (!c) return; if (c.tap) return tapMouse(c.tap); const has = (id) => id && scene.nodes().some((n) => n.m && n.m.id === id && n.px != null);
-      if (has(c.sel)) { pickMouseId(c.sel); if (c.follow === c.sel) scene.focusMouse(c.sel); if (c.pop) openCrew(true); return; }
-      if (c.st) scene.focusStation(c.st); if (c.pop) openCrew(true); },
+    onDone: () => { camBack = camBefore; camBefore = null; restoreCam(); },
   });
-  let camBefore = null;
-  // Si el jugador toca cualquier otra cosa antes de que acabe la transición, manda él: no se le recoloca la cámara.
-  document.addEventListener('pointerdown', () => { if (!dragger.holding) camBefore = null; }, true);
-  const cv = $('cv'); let drag = null, multi = false; const fingers = new Set();
-  cv.addEventListener('pointerdown', (e) => {
-    fingers.add(e.pointerId);
-    if (fingers.size > 1 || multi) { multi = true; dragger.cancel(performance.now()); if (drag) { if (drag.moved) scene.dragEnd(0); drag = null; } return; }
-    const r = cv.getBoundingClientRect(); drag = { id: e.pointerId, x: e.clientX, y: e.clientY, ly: e.clientY, moved: false, done: false, sx: e.clientX - r.left, sy: e.clientY - r.top, pts: [[performance.now(), e.clientY]] };
-    try { cv.setPointerCapture(e.pointerId); } catch (err) {}
-    if (!e.button) { const m = scene.mouseAt(drag.sx, drag.sy), w = m && Core.whereIs(G, m.id); drag.m = m || null; if (w && w.scene === 'main') dragger.press(m, drag.sx, drag.sy, performance.now()); }
+  let camBefore = null, camBack = null;
+  // Devolver la cámara y la selección al acabar. El ratón puede no estar aún en la escena (en un fotograma lento vuelve y la transición acaba en el mismo paso):
+  // entonces se espera a que esté, sin perder lo que se estaba viendo. Si ya no trabaja en esta escena, queda lo demás.
+  function restoreCam() {
+    const c = camBack; if (!c) return;
+    const n = c.sel && scene.nodes().find((q) => q.m && q.m.id === c.sel), w = c.sel && Core.whereIs(G, c.sel);
+    if (c.sel && w && w.scene === 'main' && (!n || n.px == null)) return;
+    camBack = null;
+    if (n && n.px != null) { pickMouseId(c.sel); if (c.follow === c.sel) scene.focusMouse(c.sel); } else if (c.st) scene.focusStation(c.st);
+    if (c.pop) openCrew(true);
+  }
+  // Si el jugador toca cualquier otra cosa antes de que acabe la transición, manda él: la selección vuelve, pero no se le recoloca la cámara.
+  document.addEventListener('pointerdown', () => { if (dragger.holding) return; const c = camBefore || camBack; camBefore = null; camBack = null; if (!c) return; if (c.sel && scene.nodes().some((n) => n.m && n.m.id === c.sel && n.px != null)) pickMouseId(c.sel); if (c.pop && !isOpen(pop)) openCrew(true); }, true);
+
+  const inputLog = /[?&]input\b/.test(location.search) ? document.createElement('pre') : null;
+  if (inputLog) { inputLog.className = 'input-log'; document.body.appendChild(inputLog); }
+  function inputNote(t) { if (!inputLog) return; const l = inputLog.textContent.split('\n'); l.push(t); inputLog.textContent = l.slice(-14).join('\n'); }
+
+  // ---- Qué hay bajo el dedo ----
+  // Por este orden: el cuerpo de un ratón (está pintado delante de todo); el ratón elegido, con una zona más amplia porque es al que se va a volver a
+  // tocar; los edificios y la roca, enteros; un margen alrededor de los demás ratones para acertarles con el dedo; y, si no, la estación o nada.
+  // Un ratón delante de un edificio solo se lleva lo que tapa de verdad, así que el edificio siempre se puede tocar.
+  const SEL_RX = 30, SEL_RY = 36, SPOT_R = 30, SPOT_MS = 1200;
+  let selSpot = null; // dónde estaba el ratón al elegirlo: la cámara lo lleva a su sitio y, mientras tanto, quien vuelve a tocar apunta ahí
+  function selectedNear(x, y) {
+    const id = scene.selectedMouse; if (!id || !byId(id)) return '';
+    if (selSpot && selSpot.id === id && performance.now() - selSpot.t < SPOT_MS && Math.hypot(x - selSpot.x, y - selSpot.y) <= SPOT_R) return 'spot';
+    const n = scene.nodes().find((q) => q.m && q.m.id === id); if (!n || n.px == null) return '';
+    const [mx, my] = scene.toScreen(n.px + 11, n.py - 9);
+    return Math.abs(x - mx) <= SEL_RX && Math.abs(y - my) <= SEL_RY ? 'mouse' : '';
+  }
+  function targetAt(x, y) {
+    const hit = scene.mouseHit(x, y); if (hit && hit.body) return { m: hit.m };
+    const h = scene.hit(x, y), near = selectedNear(x, y);
+    if (near === 'spot' || (near === 'mouse' && !(h && (h.type === 'building' || h.type === 'face')))) return { m: byId(scene.selectedMouse) };
+    if (hit) return { m: hit.m };
+    return { h };
+  }
+
+  // ---- Clic fantasma ----
+  // Un toque se decide al levantar el dedo y lo que abre aparece en ese momento; después, el navegador puede generar un clic en el mismo punto, que caería
+  // sobre lo recién abierto (el velo de una hoja la cerraba al instante). touchend lo evita en el móvil; esto es la red: un clic junto a un toque recién
+  // decidido, sin que haya vuelto a apoyarse ningún dedo, no es del jugador. No hace esperar a nadie: un segundo toque de verdad empieza con su pointerdown.
+  const GHOST_MS = 450, GHOST_R = 48, ghost = { until: 0, x: 0, y: 0 };
+  const isGhost = (x, y) => performance.now() < ghost.until && Math.hypot(x - ghost.x, y - ghost.y) <= GHOST_R;
+  document.addEventListener('pointerdown', () => { ghost.until = 0; }, true);
+  document.addEventListener('click', (e) => { if (isGhost(e.clientX, e.clientY)) { e.stopPropagation(); e.preventDefault(); inputNote('ghost click'); } }, true);
+
+  // ---- Un solo clasificador (gesture.js); aquí, solo qué hace cada resultado ----
+  const cv = $('cv'), TAP_SLOP = 7, TAP_SLOP_MOUSE = 12; // apoyar el dedo en un ratón admite más temblor: en un móvil, un toque se mueve varios píxeles
+  const gesture = window.BetaGesture({
+    resolve: targetAt, slop: (t) => (t && t.m ? TAP_SLOP_MOUSE : TAP_SLOP),
+    label: (t) => (t.m ? 'mouse ' + t.m.id : t.h ? t.h.type + (t.h.id ? ' ' + t.h.id : '') : 'nothing'),
+    onNote: (t) => inputNote(t),
+    press: (t, x, y) => { if (!t.m) return false; const w = Core.whereIs(G, t.m.id); return !!(w && w.scene === 'main') && dragger.press(t.m, x, y, performance.now()); },
+    pressMove: (x, y) => dragger.move(x, y), pressAbort: () => dragger.abort(performance.now()),
+    cameraStart: (x, y) => { scene.dragStart(y, x); closeRes(); }, cameraMove: (dy, x, y) => scene.dragBy(dy, y, x), cameraEnd: (v) => scene.dragEnd(v),
+    holdMove: (x, y) => dragger.move(x, y),
+    holdDrop: (moved) => { if (moved) dragger.release(performance.now()); else dragger.cancel(performance.now(), true); }, // soltarlo sin haberlo llevado a ningún sitio: vuelve, y no abre nada
+    holdCancel: () => dragger.cancel(performance.now()),
+    tap: (t, x, y) => {
+      const r = cv.getBoundingClientRect(); ghost.until = performance.now() + GHOST_MS; ghost.x = r.left + x; ghost.y = r.top + y;
+      if (pzOpen() || paused) return; // se abrió algo mientras el dedo estaba puesto: ese toque ya no es para la escena
+      closeRes(); scene.tapAt(x, y);
+      if (t.m) return tapMouse(t.m, x, y);
+      const h = t.h;
+      if (!h) return dropMouse();
+      if (h.type === 'face') { if (!scene.following && scene.focusedStation !== 'mine') focusSt('mine'); tapMine(); return; } // picar no saca de FOLLOW
+      if (h.type === 'station') { dropMouse(true); if (scene.focusedStation !== h.id) focusSt(h.id); return; }
+      if (h.type === 'building') return tapBuilding(h.id);
+    },
   });
-  cv.addEventListener('pointermove', (e) => {
-    if (!drag || e.pointerId !== drag.id) return;
-    if (dragger.holding || dragger.pressing) { const r = cv.getBoundingClientRect(); dragger.move(e.clientX - r.left, e.clientY - r.top); if (dragger.holding) return; }
-    if (!drag.moved && Math.hypot(e.clientY - drag.y, e.clientX - drag.x) > (drag.m ? TAP_SLOP_MOUSE : TAP_SLOP)) { drag.moved = true; clearTimeout(drag.timer); dragger.abort(performance.now()); { const r = cv.getBoundingClientRect(); scene.dragStart(drag.y - r.top, drag.x - r.left); } closeRes(); drag.ly = e.clientY; }
-    if (drag.moved) { { const r = cv.getBoundingClientRect(); scene.dragBy(e.clientY - drag.ly, e.clientY - r.top, e.clientX - r.left); } drag.pts.push([performance.now(), e.clientY]); if (drag.pts.length > 6) drag.pts.shift(); }
-    drag.ly = e.clientY;
-  });
-  const TAP_SLOP = 7, TAP_SLOP_MOUSE = 12; // apoyar el dedo en un ratón admite más temblor: en un móvil, un toque se mueve varios píxeles
-  const endDrag = (e) => {
-    fingers.delete(e.pointerId); if (multi) { if (!fingers.size) multi = false; return; }
-    if (!drag || e.pointerId !== drag.id) return;
-    const d = drag; drag = null; clearTimeout(d.timer);
-    if (dragger.holding) {
-      if (e.type === 'pointercancel') dragger.cancel(performance.now());
-      // Soltarlo sin haberlo movido es un toque algo lento: lo selecciona, como en P1, en vez de quedarse en nada.
-      else if (Math.hypot(e.clientY - d.y, e.clientX - d.x) <= TAP_SLOP_MOUSE) { const m = dragger.heldMouse; dragger.cancel(performance.now(), true); camBefore = m ? { tap: m } : camBefore; }
-      else dragger.release(performance.now());
-      return;
-    }
-    dragger.abort(performance.now());
-    if (e.type === 'pointercancel' && !d.moved) return;
-    if (d.moved) { const a = d.pts[0], b = d.pts[d.pts.length - 1], dt = Math.max(16, b[0] - a[0]), v = performance.now() - b[0] > 90 ? 0 : (b[1] - a[1]) / dt; scene.dragEnd(v); return; }
-    if (d.done) return;
-    closeRes(); scene.tapAt(d.sx, d.sy);
-    // El ratón es el que había bajo el dedo al apoyarlo: los ratones se mueven, y al levantarlo puede haberse ido un poco.
-    const m = d.m || scene.mouseAt(d.sx, d.sy);
-    if (m) return tapMouse(m);
-    const h = scene.hit(d.sx, d.sy); if (!h) { scene.release(); return; }
-    if (h.type === 'face') { if (scene.focusedStation !== 'mine') focusSt('mine'); tapMine(); return; }
-    if (h.type === 'station') { if (scene.focusedStation !== h.id) focusSt(h.id); return; }
-    if (h.type === 'building') return tapBuilding(h.id);
-  };
-  // Mantener pulsado no debe abrir nada del navegador ni hacer scroll de la página: cortaría el gesto.
+  const pointer = (e) => { const r = cv.getBoundingClientRect(); return { id: e.pointerId, x: e.clientX - r.left, y: e.clientY - r.top, button: e.button, primary: e.isPrimary, kind: e.pointerType }; };
+  cv.addEventListener('pointerdown', (e) => { if (gesture.down(pointer(e))) try { cv.setPointerCapture(e.pointerId); } catch (err) {} });
+  // En la ventana, no en el lienzo: el final de un dedo tiene que llegar aunque la captura falle o algo se haya abierto encima.
+  window.addEventListener('pointermove', (e) => { if (gesture.active) gesture.move(pointer(e)); }, true);
+  window.addEventListener('pointerup', (e) => gesture.up(pointer(e)), true);
+  window.addEventListener('pointercancel', (e) => gesture.cancel(pointer(e)), true);
+  cv.addEventListener('lostpointercapture', (e) => gesture.cancel(pointer(e), 'lost'));
+  // Mantener pulsado no debe abrir nada del navegador ni hacer scroll de la página: cortaría el gesto. El clic que seguiría a un toque tampoco hace falta.
   cv.addEventListener('contextmenu', (e) => e.preventDefault());
   cv.addEventListener('selectstart', (e) => e.preventDefault());
-  cv.addEventListener('touchmove', (e) => { if (dragger.holding || dragger.pressing) e.preventDefault(); }, { passive: false });
-  cv.addEventListener('pointerup', endDrag);
-  cv.addEventListener('pointercancel', endDrag);
+  cv.addEventListener('touchmove', (e) => { if (gesture.active) e.preventDefault(); }, { passive: false });
+  cv.addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
   let wheelT = 0;
-  cv.addEventListener('wheel', (e) => { e.preventDefault(); if (!wheelT) scene.dragStart(); scene.dragBy(-e.deltaY); clearTimeout(wheelT); wheelT = setTimeout(() => { scene.dragEnd(0); wheelT = 0; }, 120); }, { passive: false });
-  // Toque corto en un ratón: su ficha, sin pasos intermedios. Elegirlo (para FOLLOW) se hace en su fila de WORKERS.
-  function tapMouse(m) { if (byId(m.id)) openPz('card', m.id); }
-  function selectMouse(m) {
-    const n = scene.nodes().find((q) => q.m && q.m.id === m.id); if (!n) return;
-    const w = workOf(n), work = WORK.includes(w); if (work && w !== selected) select(w);
-    openCrew(work); scene.pickMouse(m.id, topInset()); if (work) paintCrew(true);
+  cv.addEventListener('wheel', (e) => { e.preventDefault(); if (gesture.active) return; if (!wheelT) scene.dragStart(); scene.dragBy(-e.deltaY); clearTimeout(wheelT); wheelT = setTimeout(() => { scene.dragEnd(0); wheelT = 0; }, 120); }, { passive: false });
+
+  // ---- Elegir y seguir ----
+  // Primer toque: lo elige, WORKERS lo enseña y la cámara le sigue. Segundo toque, sin límite de tiempo: su ficha. Otro ratón: pasa a él, sin abrir nada.
+  function tapMouse(m, x, y) {
+    if (!byId(m.id)) return;
+    if (scene.selectedMouse === m.id) return openPz('card', m.id);
+    chooseMouse(m.id); if (scene.selectedMouse === m.id) selSpot = { id: m.id, x, y, t: performance.now() };
   }
+  function chooseMouse(id) {
+    const n = scene.nodes().find((q) => q.m && q.m.id === id); if (!n || n.px == null) return;
+    const w = workOf(n), work = WORK.includes(w); if (work && w !== selected) select(w);
+    if (work && !isOpen(pop)) { popBySel = true; openCrew(true); }
+    scene.focusMouse(id); if (isOpen(pop)) paintCrew(true);
+  }
+  // Tocar en vacío lo suelta. keepCam: ya se ocupa de la cámara quien llama.
+  function dropMouse(keepCam) {
+    const had = scene.selectedMouse; selSpot = null;
+    if (!keepCam) scene.release(); else if (had) scene.unpick();
+    if (had && popBySel && isOpen(pop)) openCrew(false); else if (isOpen(pop)) paintCrew(true);
+    popBySel = false;
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') gesture.reset('hidden'); });
   const tag = document.createElement('button'); tag.className = 'focus-tag'; $('scene-box').appendChild(tag);
   tag.addEventListener('click', () => { const id = scene.selectedMouse; if (id) openPz('card', id); });
   let tagT = 0, tagId = null;
@@ -541,7 +604,7 @@
   function homeTick() {
     const now = performance.now(), m = mineSeen();
     if (mineY == null || Math.abs(m.y - mineY) > 0.5) { mineY = m.y; mineMoved = now; }
-    if ((drag && drag.moved) || wheelT || (!scene.following && now - mineMoved < 150)) return;
+    if (gesture.state === 'camera' || wheelT || (!scene.following && now - mineMoved < 150)) return;
     const on = homeOn ? m.vis <= 0.4 : m.vis < 0.2;
     if (on === homeOn) return; homeOn = on; homePos();
     if (on) showEl(home); else hideEl(home, 160);
@@ -574,23 +637,26 @@
     if (gShown && G.goals[gShown.id] != null && now >= gDoneUntil && !gEl.classList.contains('done')) { gDoneUntil = now + 1300; gEl.classList.add('done'); gEl.classList.remove('min'); $('goal-t').textContent = '✓ ' + gShown.text; { const rw = (REAL.goalRewards || {})[gShown.id]; $('goal-n').textContent = rw ? '+' + fmt(rw) + ' coins' : ''; } return; }
     if (now < gDoneUntil) return;
     const v = Core.view(G).goal;
-    if (!v) { if (gShown) { gEl.classList.remove('in'); setTimeout(() => { if (!Core.view(G).goal) gEl.hidden = true; }, 220); gShown = null; } return; }
+    // Sin objetivos pendientes, la tira se queda: sigue siendo la entrada a QUESTS.
+    if (!v) { if (gShown || gEl.hidden) { gShown = null; gEl.hidden = false; gEl.classList.remove('done', 'min'); gEl.classList.add('in', 'allq'); $('goal-ic').src = NAV_IC.goal; $('goal-t').textContent = 'QUESTS'; $('goal-n').textContent = '✓'; $('goal-bar').style.width = '100%'; } return; }
+    gEl.classList.remove('allq');
     const q = v.requires[0], counted = q.need > 1, ps = counted ? fmt(q.cur) + '/' + fmt(q.need) : '';
     if (!gShown || gShown.id !== v.id) { gShown = goalDef(v.id); gChange = now; gEl.hidden = false; gEl.classList.remove('done', 'min'); $('goal-ic').src = NAV_IC.goal; $('goal-t').textContent = v.text; void gEl.offsetWidth; gEl.classList.add('in'); pulse(gEl, 'bump', 320); gProg = '-'; }
     if (ps !== gProg) { gProg = ps; gChange = now; $('goal-n').textContent = ps; $('goal-bar').style.width = counted ? Math.round((100 * q.cur) / q.need) + '%' : '0%'; }
     // Solo se pliega si le queda una cuenta que enseñar: un objetivo sin cuenta plegado era un icono suelto y parecía que se iba.
     gEl.classList.toggle('min', counted && (now - gChange > 7000 || gSqueeze));
   }
-  gEl.addEventListener('click', () => {
-    if (!gShown) return;
-    if (gEl.classList.contains('min')) { gChange = performance.now(); gEl.classList.remove('min'); }
+  // La tira es el resumen; tocarla abre QUESTS. Llevar al sitio es el botón GO THERE de allí.
+  gEl.addEventListener('click', () => openPz('quests'));
+  function goToGoal() {
+    if (!gShown) return closePz();
     const at = gShown.at;
-    if (gShown.id === 'shop' || gShown.id === 'house' || gShown.id === 'lab') return goBuild(gShown.id === 'shop' ? 'sell' : gShown.id);
+    if (gShown.id === 'shop' || gShown.id === 'house' || gShown.id === 'lab') { if (gShown.id === 'shop') closePz(); return goBuild(gShown.id === 'shop' ? 'sell' : gShown.id); }
     if (at === 'upgrades') { freshUp = false; return openPz('tree', selected); }
     if (at === 'mice') return openPz('mice');
     if (/^recipe/.test(gShown.id) || at === 'lab') return openPz('lab');
-    focusSt(at); if (plates[at]) pulse(plates[at], 'bump', 320);
-  });
+    closePz(); focusSt(at); if (plates[at]) pulse(plates[at], 'bump', 320);
+  }
   // Avisos en cola: cada uno se lee; si llegan muchos a la vez, se quedan los primeros.
   let toastT = 0; const toastQ = [];
   function toast(t) { if (toastQ.includes(t)) return; if (toastT) { if (toastQ.length < 3) toastQ.push(t); return; } showToast(t); }
@@ -673,21 +739,6 @@
   }
   let revAt = 0, lastDraw = 0, boostAfter = 0, boostCalm = 0, lastFrameAt = 0;
   const boostSettled = (now) => { if (!boostAfter) return true; boostCalm = now - lastFrameAt < 40 ? boostCalm + 1 : 0; if (boostCalm >= 3 || performance.now() - boostAfter > 500) { boostAfter = 0; boostCalm = 0; return true; } return false; };
-  // Las monedas se mueven de verdad a saltos: entran al cerrarse una venta y salen con cada hornada (el ingrediente), con los gerentes y con lo que compra el jugador.
-  // El marcador enseña siempre el saldo real. Su segunda línea cuenta cada cambio de verdad, con el total de 1,2 s y en su sitio: no se apila ni tapa nada.
-  // Las recompensas de objetivo se nombran: entran monedas sin venta de por medio y, sin decirlo, parecía que el RAW se contaba como oro.
-  let coinsPrev = null, coinsNet = 0, coinsAt = 0, coinsGoal = 0, deltaUntil = 0;
-  function coinsTick(now) {
-    const c = G.s.coins; if (coinsPrev == null || off || pzOpen()) { coinsPrev = c; coinsNet = 0; return; }
-    coinsNet += c - coinsPrev; coinsPrev = c;
-    if (!coinsNet || now - coinsAt < 1200) return;
-    coinsAt = now; deltaUntil = now + 1100; const up = coinsNet > 0, el = $('hud-rate'), goal = up && coinsGoal >= coinsNet;
-    el.textContent = (up ? '+' : '-') + fmt(Math.abs(coinsNet)) + (goal ? ' GOAL' : ''); el.classList.add('delta'); el.classList.toggle('dn', !up);
-    $('hud-coins').classList.toggle('dn', !up); $('hud-coins').classList.add('delta');
-    coinsNet = 0; coinsGoal = 0;
-    if (el.animate && !RM()) el.animate([{ transform: 'translateY(3px)' }, { transform: 'none' }], { duration: 120, easing: 'steps(2)' });
-  }
-  function coinsLine(now) { const el = $('hud-rate'); if (now < deltaUntil) return; const t = '+' + fmt(income()) + '/min'; if (el.classList.contains('delta')) { el.classList.remove('delta', 'dn'); $('hud-coins').classList.remove('delta', 'dn'); el.textContent = t; } else if (el.textContent !== t) el.textContent = t; }
   const COVERED_MS = 66;
   // ---- Avisos de máquina: la placa aprobada (.ad-warn y su colocación, labelLayer) con lo que le falta de verdad ----
   // Ámbar si lo que falta ya viene de camino; roja si no viene. Sale al segundo y medio de faltar y se va a los 0,8 s de volver, para no parpadear.
@@ -735,8 +786,7 @@
     const real = Date.now(), elapsed = Math.max(0, real - lastReal); lastReal = real;
     if (off) offlineStep();
     else if (!paused) { if (elapsed >= OFFLINE_MIN && beginOffline(elapsed)) {} else if (elapsed > 0 && elapsed < OFFLINE_MIN) Core.advance(G, elapsed); }
-    syncSim(); processEvents(); dragger.step(performance.now()); syncCrew(); dragger.settle(); syncWorld();
-    coinsTick(now);
+    syncSim(); processEvents(); dragger.step(performance.now()); syncCrew(); dragger.settle(); restoreCam(); syncWorld();
     // Lo pendiente de los refuerzos sale con la escena ya estable: justo al cerrar la hoja, el móvil pierde fotogramas y se comería la animación.
     if (!pzOpen() && boostSettled(now)) flushBoost();
     lastFrameAt = now;
@@ -750,12 +800,11 @@
     const s = G.s, t = tierNow(), sig = [fmt(s.coins), fmt(income()), s.depth, t, s.vein.open, Math.floor((100 * (s.vein.open ? s.vein.left / Math.max(1, s.vein.cap) : s.vein.found / Math.max(1e-9, s.vein.need))))].join('|');
     if (sig !== hudSig) {
       hudSig = sig;
-      $('hud-coins').textContent = fmt(s.coins);
+      $('hud-coins').textContent = fmt(s.coins); $('hud-rate').textContent = '+' + fmt(income()) + '/min';
       $('hud-depth').textContent = 'DEPTH ' + s.depth; $('hud-tier').textContent = t.toUpperCase(); $('hud-tieric').src = icd('ic_raw_' + t);
       $('hud-depthbar').style.width = Math.round(100 * (s.vein.open ? s.vein.left / Math.max(1, s.vein.cap) : s.vein.found / Math.max(1e-9, s.vein.need))) + '%';
       $('hud-depthbox').classList.toggle('vein', s.vein.open);
     }
-    coinsLine(now);
     homeTick();
     paintPanel(false); paintTag(now);
     if (now - slow > 400) {
@@ -784,5 +833,5 @@
   select('mine');
   if (paused) startCover();
   requestAnimationFrame(frame);
-  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.BETA = { get G() { return G; }, get dragger() { return dragger; }, sim, scene, stationSeen, boostPend, pick: (id) => selectMouse(byId(id)), save: saveNow, sync: () => { syncSim(); syncCrew(); }, act: doAct, tick, focus: focusSt };
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.BETA = { get G() { return G; }, get dragger() { return dragger; }, sim, scene, stationSeen, boostPend, pick: chooseMouse, gesture, isGhost, save: saveNow, sync: () => { syncSim(); syncCrew(); }, act: doAct, tick, focus: focusSt };
 })();

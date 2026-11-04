@@ -22,13 +22,104 @@
   const STN = { mining: 'mine', drilling: 'drill', refining: 'refine', cheesemaking: 'cheese', trading: 'sell' };
   const FN_TXT = { pr: 'runs the station', ritmo: 'speeds it up', rend: 'raises its output' };
 
+  // ---- Qué hace cada puesto y qué aporta. El texto cuenta lo que pasa en el núcleo; las cifras salen de él (Ru.postInfo, Ru.postCompare) ----
+  const POST_DOES = {
+    'mine:picker': 'Swings the pick at the rock until a vein shows.', 'mine:climber': 'Picks from the scaffold, so the rock gets hit more often.', 'mine:collector': 'Clears the rubble, so every swing uncovers more.', 'mine:hauler': 'Carts the rubble out, so every swing uncovers more.',
+    'drill:operator': 'Runs the drill that pulls Raw out of an open vein.', 'drill:greaser': 'Greases the gears, so the drill cycles faster.', 'drill:runner': 'Runs the crates to the lift, so the drill cycles faster.', 'drill:filler': 'Fills the crates, so each cycle brings up more Raw.', 'drill:pumphand': 'Works the pump, so each cycle brings up more Raw.',
+    'refine:stoker': 'Feeds the furnace that turns Raw into Base.', 'refine:valve': 'Minds the valves, so batches finish faster.', 'refine:runner': 'Brings the Raw over, so batches finish faster.', 'refine:moulder': 'Fills the moulds, so each batch takes more Raw and makes more Base.', 'refine:gauge': 'Reads the gauges, so each batch takes more Raw and makes more Base.',
+    'cheese:mixer': 'Mixes the curd and cooks the recipe.', 'cheese:carrier': 'Carries the curd around, so batches finish faster.', 'cheese:presser': 'Works the press, so batches finish faster.', 'cheese:stacker': 'Stacks the wheels, so batches finish faster.', 'cheese:sealer': 'Seals the wheels, so each batch makes more cheese.', 'cheese:turner': 'Turns the wheels, so each batch makes more cheese.', 'cheese:taster': 'Tastes as it goes, so each batch makes more cheese.',
+    'sell:keeper': 'Runs the counter and sells the cheese.', 'sell:liftman': 'Works the lift, so cheese sells faster.', 'sell:winch': 'Works the winch, so cheese sells faster.', 'sell:porter': 'Keeps the shelves stocked, so every sale pays more.',
+  };
+  const AMOUNT = { mine: 'power', drill: 'Raw', refine: 'batch', cheese: 'cheese', sell: 'coins' };
+  const pctTxt = (x) => { const n = Math.round(x * 100); return n === 0 ? '0%' : (n > 0 ? '+' : '−') + Math.abs(n) + '%'; };
+  function postWhy(st, fn, bossName) {
+    if (fn === 'pr') return 'Without it this station only runs when you tap, and its helpers count for nothing.';
+    const w = fn === 'ritmo' ? 'Optional. Same output per cycle, more cycles.' : st === 'sell' ? 'Optional. More coins per sale, at half weight.' : st === 'mine' ? 'Optional. More search per swing.' : 'Optional. More per cycle, same number of cycles.';
+    return w + ' Only counts while the ' + bossName + ' post is filled.';
+  }
+  function postBest(fn) {
+    return fn === 'rend' ? '<b>Amount</b>: traits that add amount or doubles count in full; level, rank, rarity and liking the job count half. Speed traits do nothing here.'
+      : '<b>Speed</b>: level, rank, rarity, liking the job and traits that add speed. Amount traits do nothing here.';
+  }
+  // Una línea con lo que suma: «+72% speed». El principal es la base de la estación: 100% es un ratón nuevo.
+  function givesTxt(st, fn, v) {
+    if (fn === 'pr') return Math.round(v * 100) + '% speed';
+    if (fn === 'ritmo') return '+' + Math.round(v * 100) + '% speed';
+    return st === 'sell' ? '+' + Math.round(v * H.PARAMS.sell.yieldWeight * 100) + '% coins' : '+' + Math.round(v * 100) + '% ' + AMOUNT[st];
+  }
+  function postParts(i) {
+    const m = i.mouse, list = [['Level', m.level], ['Rank', m.rank], ['Rarity', m.rarity], ['Liking', m.liking], ['Traits', m.traits], ['Team', m.team]].filter(([, v]) => Math.abs(v) >= 0.005);
+    return list.length ? list.map(([k, v]) => '<span class="' + (v < 0 ? 'mx-pi-neg' : '') + '">' + k + ' ' + pctTxt(v) + '</span>').join('') : '<span>No bonuses yet</span>';
+  }
+  // El bloque de un puesto: en el selector y en la ficha.
+  function mxPostInfo(skill, zone, m) {
+    if (skill === 'research') return '';
+    const st = STN[skill], i = Ru.postInfo(G(), st, zone, m ? m.id : null); if (!i) return '';
+    const boss = (H.PARAMS.posts[st][G().s.stage[st] - 1].find((p) => p[1] === 'pr') || ['operator'])[0], bossName = H.ROLE[boss] || boss, name = m ? esc(m.name) : '';
+    const rows = ['<span class="mx-pi-r"><em>Any new mouse</em><b>' + givesTxt(st, i.fn, i.base) + '</b></span>'];
+    if (i.mouse) rows.push('<span class="mx-pi-r mx-pi-me"><em>' + name + ' here</em><b>' + givesTxt(st, i.fn, i.mouse.value) + '</b></span>');
+    if (i.mouse && m && m.post === skill + ':' + zone) rows.push('<span class="mx-pi-r"><em>Without ' + name + '</em><b class="mx-pi-loss">' + (i.fn === 'pr' ? 'Stops unless you tap' : pctTxt(i.without || 0) + ' at this station') + '</b></span>');
+    if (i.rates.auto) rows.push('<span class="mx-pi-r mx-pi-st"><em>Station now, with upgrades</em><b>×' + round1(i.rates.ritmo) + ' speed · ×' + round1(st === 'sell' ? 1 + (i.rates.rend - 1) * H.PARAMS.sell.yieldWeight : i.rates.rend) + ' ' + AMOUNT[st] + '</b></span>');
+    return '<div class="mx-box mx-pi"><p class="mx-pi-do"><small>WHAT IT DOES</small>' + (POST_DOES[st + ':' + zone] || '') + '</p>' +
+      '<p class="mx-pi-why">' + postWhy(st, i.fn, bossName) + '</p>' +
+      '<div class="mx-pi-rows"><small>WHAT IT GIVES</small>' + rows.join('') + (i.mouse ? '<span class="mx-pi-parts">' + postParts(i) + '</span>' : '') + '</div>' +
+      '<p class="mx-pi-best"><small>WHO FITS</small>' + postBest(i.fn) + '</p></div>';
+  }
+
+  // ---- QUESTS: los objetivos de siempre (ROADMAP), con su nombre y por qué importan. Ni requisitos ni recompensas salen de aquí ----
+  const QUEST = {
+    vein: ['FIRST DIG', 'Tap the rock until a vein shows. Everything here starts with a hole.'],
+    drill: ['THE BIG DRILL', 'Picks find cheese, but only a drill gets it out. Build it to tap the vein.'],
+    raw: ['FIRST HARVEST', 'Pull 10 Raw Cheese out of the vein. The whole chain runs on this stuff.'],
+    refinery: ['MELTING POINT', 'Raw Cheese can\'t be sold. The Refinery turns it into Cheese Base.'],
+    base: ['FIRST BATCH', 'Refine 6 Cheese Base, the only thing the Cheesery cooks with.'],
+    cheesery: ['HOUSE OF CURDS', 'Build the Cheesery, where Base finally becomes real cheese.'],
+    firstLot: ['SAY CHEESE', 'Cook your first cheese from the Base you refined.'],
+    shop: ['OPEN FOR BUSINESS', 'Cheese in the cellar pays nothing. The Shop is where coins come from.'],
+    sale: ['FIRST CUSTOMER', 'Sell one cheese. Coins arrive when the sale is done.'],
+    node: ['BETTER TOOLS', 'Spend coins in UPGRADES. Every stage has its own tree.'],
+    house: ['HOME SWEET HOLE', 'Mice want a roof before they work for you. Build the Mouse House.'],
+    mouse: ['FIRST HIRE', 'Recruit a mouse. You choose one of three, quirks included.'],
+    posted: ['CLOCK IN', 'A mouse only works on a post. Give yours a job in MICE.'],
+    cheese3: ['PRACTICE MAKES CHEESE', 'Keep cooking: CHEESE levels up as the wheels come out.'],
+    lab: ['MAD SCIENCE', 'Build the Cheese Lab to start inventing recipes.'],
+    recipe: ['NEW FLAVOUR', 'Discover a second recipe in the Lab. Better recipes sell for more.'],
+    level5: ['GETTING GOOD', 'Get any stage to level 5. Levels open new upgrades.'],
+    allAuto: ['FULL SHIFT', 'Put a mouse in charge of all five stages and the chain runs without you.'],
+    promote: ['FIRST PROMOTION', 'Promote a mouse. Higher ranks work better at everything.'],
+    depth3: ['GOING DOWN', 'Empty veins to reach depth 3. Each one takes the colony a level deeper.'],
+    recipes8: ['RECIPE BOOK', 'Discover 8 recipes. A colony can\'t live on one cheese.'],
+    level25: ['OLD HAND', 'Get any stage to level 25. By now they could do it asleep.'],
+  };
+  const QUEST_UNIT = { raw: 'Raw', base: 'Base', depth3: 'depth', recipe: 'recipes', recipes8: 'recipes', level5: 'level', level25: 'level', cheese3: 'level', allAuto: 'stages' };
+  const questReward = (id) => (B.goalRewards && B.goalRewards[id]) || 0;
+  const questCoins = (n) => '<span class="mx-qs-rw"><img class="pix" src="' + MXSP + 'ic_coin.png" alt="" style="width:16px;height:16px">+' + CM.fmt(n) + ' coins</span>';
+  function mxQuests(s, ui) {
+    const c = G(), all = H.E2.ROADMAP.goals, done = all.filter((g) => c.goals[g.id] != null), todo = all.filter((g) => c.goals[g.id] == null), cur = todo[0];
+    let h = '<div class="mx-qs-count"><small>QUESTS DONE</small><b>' + done.length + ' / ' + all.length + '</b></div>';
+    if (cur) {
+      const [name, blurb] = QUEST[cur.id] || [cur.text.toUpperCase(), ''], q = Pg.explain(c, cur.requires[0]), counted = q.need > 1, rw = questReward(cur.id), unit = QUEST_UNIT[cur.id];
+      h += '<div class="mx-box mx-qs-now"><small class="mx-qs-k">NOW</small><b class="mx-qs-name">' + name + '</b><p class="mx-qs-blurb">' + blurb + '</p>' +
+        '<div class="mx-qs-goal"><span>' + esc(cur.text) + '</span>' + (counted ? '<em>' + CM.fmt(q.cur) + ' / ' + CM.fmt(q.need) + (unit ? ' ' + unit : '') + '</em>' : '') + '</div>' +
+        (counted ? '<i class="mx-qs-bar"><i style="width:' + Math.min(100, Math.round((100 * q.cur) / q.need)) + '%"></i></i>' : '') +
+        '<div class="mx-qs-foot">' + (rw ? '<span class="mx-qs-rwb"><small>REWARD</small>' + questCoins(rw) + '</span>' : '<span class="mx-qs-rwb"><small>REWARD</small><span class="mx-qs-no">No coins: it opens what comes next</span></span>') + '<span class="mx-go st-do mx-act" role="button" data-act="questgo">GO THERE</span></div></div>';
+      const next = todo.slice(1, 3);
+      if (next.length) h += '<div class="mx-qs-h">UP NEXT</div>' + next.map((g) => { const r = questReward(g.id); return '<div class="mx-box mx-qs-row mx-qs-next"><span class="mx-qs-t"><b>' + (QUEST[g.id] || [g.text])[0] + '</b><span>' + esc(g.text) + '</span></span>' + (r ? questCoins(r) : '') + '</div>'; }).join('');
+    } else h += '<div class="mx-box mx-qs-now"><small class="mx-qs-k">ALL DONE</small><b class="mx-qs-name">NOTHING LEFT TO PROVE</b><p class="mx-qs-blurb">Every quest is finished. The colony is all yours now.</p></div>';
+    if (done.length) {
+      const list = done.slice().reverse(), shown = ui.questAll ? list : list.slice(0, 3);
+      h += '<div class="mx-qs-h">COMPLETED</div>' + shown.map((g) => { const r = questReward(g.id); return '<div class="mx-box mx-qs-row mx-qs-done"><i class="mx-qs-tick">✓</i><span class="mx-qs-t"><b>' + (QUEST[g.id] || [g.text])[0] + '</b><span>' + esc(g.text) + '</span></span>' + (r ? '<span class="mx-qs-got">+' + CM.fmt(r) + ' coins<small>received</small></span>' : '') + '</div>'; }).join('');
+      if (list.length > 3) h += '<div style="display:flex;justify-content:center"><span class="mx-act" role="button" data-act="questall">' + (ui.questAll ? 'SHOW LESS' : 'SHOW ALL ' + list.length) + '</span></div>';
+    }
+    return h;
+  }
+
   // Lo que hace un ratón en un puesto, en valores reales: el principal, su ciclo; los apoyos, lo que suman a la estación.
   function mouseRate(s, m, skill, role) {
     const K = CM.mice, sp = K.solo(m, skill, s, role);
     if (skill === 'research') return 'a recipe every ' + secs(Lb.labTime(G(), tier()) / sp);
-    const st = STN[skill], c = G().s, md = c.mods[st], P = H.PARAMS, def = (P.posts[st][c.stage[st] - 1] || []).find((x) => x[0] === role) || ['', 'pr'], W = (md && c.mods.w && c.mods.w[st]) || {};
-    if (def[1] === 'ritmo') return '+' + Math.round((W.ritmo != null ? W.ritmo : P.crew.ritmo) * sp * 100) + '% speed for ' + MXJ[skill];
-    if (def[1] === 'rend') return '+' + Math.round((W.rend != null ? W.rend : P.crew.rend) * sp * 100) + '% output for ' + MXJ[skill];
+    const st = STN[skill], c = G().s, md = c.mods[st], P = H.PARAMS, def = (P.posts[st][c.stage[st] - 1] || []).find((x) => x[0] === role) || ['', 'pr'];
+    if (def[1] !== 'pr') return givesTxt(st, def[1], Cr.contribution(m, st, def[1], Mo.rateCtx(c, c.placed.length), c.team).value) + ' for ' + MXJ[skill];
     const ritmo = sp * (P.invest[st] || 1) * md.speed, rend = (c.rates[st] && c.rates[st].rend) || 1, R = B, num = (n, u) => (n >= 100 ? CM.fmt(Math.round(n)) : round1(n)) + ' ' + u;
     if (skill === 'mining') return 'a swing every ' + secs(R.mining.minerIntervalMs / ritmo);
     if (skill === 'drilling') { const y = Mo.cycle(R.drill.durationMs / ritmo); return num(R.drill.yield * Mo.skillMult() * rend * md.yield * y.mult, 'Raw') + ' every ' + secs(y.total); }
@@ -183,18 +274,20 @@
       (now ? '<canvas class="mx-m" width="22" height="20"></canvas><div class="mx-fc-nfx"></div>' : mxM('ghost', 'mx-ghost')) + '</div><div class="mx-ps-id">' +
       (now ? '<span class="mx-k">WHO WORKS AT</span>' + p + '<span class="mx-who">' + esc(now.name) + '<em>here now</em></span><span class="mx-out"><b class="mx-ov">' + mxX(base) + '</b><small>ALONE</small></span><span class="mx-rate">' + mouseRate(s, now, skill, zone) + '</span>'
         : '<span class="mx-k">ASSIGN A MOUSE TO</span>' + p + '<span class="mx-who" style="color:var(--muted)">Nobody works here</span><span class="mx-rate" style="white-space:normal;margin-top:auto">You do it by hand until a mouse takes it.</span>') + '</div></div>';
+    h += mxPostInfo(skill, zone, now);
     if (!now) h += mxHire(s, 'recruitfor:' + skill + ':' + zone, 'recruitfor:' + skill + ':' + zone) + (s.mice.length ? '<div class="mx-ps-h"><b>OR MOVE ONE YOU HAVE</b><small>free ones first</small></div>' : '');
     const list = s.mice.filter((m) => m !== now).map((m) => ({ m, v: K.solo(m, skill, s, zone) }));
     list.sort(now ? (a, b) => b.v - a.v : (a, b) => (a.m.post ? 1 : 0) - (b.m.post ? 1 : 0) || b.v - a.v);
     if (!list.length) return h + (now ? '<p class="mx-ps-hint">You have no other mouse. Find new mice in COLONY.</p>' : '');
-    h += '<p class="mx-ps-hint">' + (now ? 'Tap a mouse to see its card, or SWAP to change places with <b>' + esc(now.name) + '</b>. The number is what each would do <b>on its own</b> at this post; neighbours and combos can change it.' : 'Tap a mouse to see its card, or PUT HERE to place it. The number is what it would do <b>on its own</b> here; neighbours and combos can change it.') + '</p><div class="mx-ps-list">';
+    h += '<p class="mx-ps-hint">' + (now ? 'Tap a mouse to see its card, or SWAP to change places with <b>' + esc(now.name) + '</b>.' : 'Tap a mouse to see its card, or PUT HERE to place it.') + (skill === 'research' ? '' : ' <b>×</b> is what it does on its own; <b>%</b> is what this station would gain or lose, neighbours and combos included.') + '</p><div class="mx-ps-list">';
     for (const { m, v } of list) {
-      const d = v - base;
+      const cmp = skill === 'research' ? null : Ru.postCompare(G(), m.id, STN[skill], zone), d = cmp && cmp.pct != null ? cmp.pct : (v - base) / Math.max(base, 0.01);
+      const there = cmp && cmp.there ? '<span class="mx-pi-there' + (cmp.there.stops || cmp.there.pct <= -0.005 ? ' mx-pi-loss' : '') + '">' + (cmp.there.stops ? MXJ[H.Cr.SKILL[cmp.there.st]] + ' stops unless you tap' : pctTxt(cmp.there.pct || 0) + ' at ' + MXJ[H.Cr.SKILL[cmp.there.st]]) + '</span>' : '';
       const from = !now ? (m.post ? '<span class="mx-from mx-leaves">Leaves ' + mxPostN(m.post) + ' empty</span>' : '<span class="mx-from mx-free">Unassigned · in the house</span>')
         : m.post ? '<span class="mx-from"><img class="pix" src="' + mxJobIc(m.post.split(':')[0], m.post.split(':')[1]) + '" alt=""><span class="mx-at">Now at </span>' + mxPostN(m.post) + '<span class="mx-sw"> · swaps</span></span>' : '<span class="mx-from mx-free">Free</span>';
       h += '<div role="button" class="mx-box mx-ps-row" data-act="card:' + m.id + '"><span class="mx-pt' + (m.rarity ? ' mx-r' + m.rarity : '') + '" style="--zw2:' + (m.post ? mxWall(m.post.split(':')[1]) : '#2a2433') + '">' + mxM('m:' + m.id + ':' + skill) + '</span>' +
-        '<span class="mx-t"><b>' + esc(m.name) + '<em>' + (m.rank ? mxI('rank' + Math.min(3, m.rank), 1.5) : '') + 'LV ' + K.level(m) + '</em></b>' + from + '<span class="mx-tags">' + mxTags(m, skill, now ? 3 : 2) + '</span></span>' +
-        '<span class="mx-v st-do" role="button" data-act="post:' + m.id + ':' + key + '"><b>' + mxX(v) + '</b>' + (now ? '<span class="mx-d ' + (d > 0.05 ? 'mx-up">▲ +' : d < -0.05 ? 'mx-dn">▼ ' : 'mx-eq">= ') + (Math.round(d * 10) / 10).toFixed(1) + '</span><span class="mx-put">SWAP</span>' : '<span class="mx-put">PUT HERE</span>') + '</span></div>';
+        '<span class="mx-t"><b>' + esc(m.name) + '<em>' + (m.rank ? mxI('rank' + Math.min(3, m.rank), 1.5) : '') + 'LV ' + K.level(m) + '</em></b>' + from + there + '<span class="mx-tags">' + mxTags(m, skill, now ? 3 : 2) + '</span></span>' +
+        '<span class="mx-v st-do" role="button" data-act="post:' + m.id + ':' + key + '"><b>' + mxX(v) + '</b>' + (now || (cmp && !cmp.starts && cmp.pct != null) ? '<span class="mx-d ' + (d > 0.005 ? 'mx-up">▲ ' : d < -0.005 ? 'mx-dn">▼ ' : 'mx-eq">= ') + pctTxt(d) + '</span>' : cmp && cmp.starts ? '<span class="mx-d mx-up">STARTS IT</span>' : '') + '<span class="mx-put">' + (now ? 'SWAP' : 'PUT HERE') + '</span></span></div>';
     }
     h += '</div>';
     if (now) h += '<div style="display:flex;justify-content:flex-end"><span class="mx-act mx-send" data-act="post:' + now.id + ':">SEND ' + esc(now.name).toUpperCase() + ' TO REST</span></div>';
@@ -284,7 +377,7 @@
       '<div class="mx-fc-id"><span class="mx-fc-name"><b>' + esc(m.name) + '</b>' + (m.id === GM ? mxI('star', 2) : '') + '</span><span class="mx-fc-who"><span class="mx-rk">' + mxRankI(m.rank) + '</span><span class="mx-rn">' + M.ranks[m.rank].name + '</span><span class="mx-rar mx-r' + rar + '">· ' + RARITY[rar].name + '</span></span>' +
       '<span class="mx-fc-lv"><b><small>LV</small><span class="mx-lvn">' + p.level + '</span></b><span class="mx-xpn" data-xp="' + m.id + '"></span></span><span class="mx-fc-xp"><i data-xpw="' + m.id + '"></i></span></div><div class="mx-fc-hfx"></div></div>';
     // Trabajo de hoy, con MOVE (el flujo de siempre: COLONY con el ratón elegido).
-    h += skill ? '<div class="mx-box mx-fc-job"><span class="mx-t"><span class="mx-k">WORKS AT</span><span class="mx-p"><img class="pix" src="' + mxJobIc(skill, zone) + '" alt="">' + mxPostN(m.post) + '<span class="mx-x">' + mxX(K.here(s, m)) + '</span></span><span class="mx-r">' + mouseRate(s, m, skill, zone) + '</span></span><span class="mx-act st-do" role="button" data-act="pickmouse:' + m.id + '">MOVE</span></div>'
+    h += skill ? '<div class="mx-box mx-fc-job"><span class="mx-t"><span class="mx-k">WORKS AT</span><span class="mx-p"><img class="pix" src="' + mxJobIc(skill, zone) + '" alt="">' + mxPostN(m.post) + '<span class="mx-x">' + mxX(K.here(s, m)) + '</span></span><span class="mx-r">' + mouseRate(s, m, skill, zone) + '</span></span><span class="mx-act st-do" role="button" data-act="pickmouse:' + m.id + '">MOVE</span></div>' + mxPostInfo(skill, zone, m)
       : '<div class="mx-box mx-fc-job mx-none"><span class="mx-t"><span class="mx-k">UNASSIGNED</span><span class="mx-p">In the Mouse House</span><span class="mx-r">It only works and levels up on a post</span></span><span class="mx-act mx-go st-do" role="button" data-act="pickmouse:' + m.id + '">ASSIGN</span></div>';
     // Afinidades: los seis oficios con sus corazones; la marca, donde trabaja.
     h += '<div class="mx-fc-aff">' + K.JOBS.map((k) => '<i class="mx-a' + ((m.aff && m.aff[k]) || 0) + (k === skill ? ' mx-here' : '') + '"><img class="pix" src="' + mxJobIc(k, zone || 'cheddar') + '" alt=""><em>' + MXJ[k] + '</em>' + mxHearts((m.aff && m.aff[k]) || 0) + '</i>').join('') + '</div>' +
@@ -913,7 +1006,7 @@
     return h + (view === 'roster' ? mxRoster(s, ui) : view === 'house' ? mxHouse(s, ui) : mxColony(s, ui));
   }
   const pnRoot = (kind, extra) => '<div class="mx-pn-root" data-pn="' + kind + '" data-k="' + (extra || '') + '"></div>';
-  const TITLES = { cheese: 'CHEESERY', lab: 'CHEESE LAB', stock: 'PANTRY', shopinfo: 'SHOP', coins: 'COINS', mice: 'MICE', boosts: 'BOOSTS', options: 'MENU', tree: 'UPGRADES' };
+  const TITLES = { cheese: 'CHEESERY', lab: 'CHEESE LAB', stock: 'PANTRY', shopinfo: 'SHOP', coins: 'COINS', mice: 'MICE', boosts: 'BOOSTS', quests: 'QUESTS', options: 'MENU', tree: 'UPGRADES' };
   CM.panels = {
     esc, mouseRate, itemCard,
     // Las cifras de la tarjeta de CHEESE se ponen al día en su sitio, sin rehacer la tarjeta.
@@ -928,6 +1021,7 @@
       if (name === 'cheese') return cheesePanel(s, ui);
       if (name === 'lab') return mxLab(s, ui);
       if (name === 'boosts') return mxBoosts(s, ui);
+      if (name === 'quests') return mxQuests(s, ui);
       if (name === 'options') return mxMenu();
       if (name === 'tree') return CM.skilltree.render(s, ui);
       if (name === 'stock') return pnRoot('pantry', Object.keys(G().lab.styles).join());

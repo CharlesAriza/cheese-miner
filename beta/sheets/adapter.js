@@ -54,16 +54,16 @@
   const stSkill = (skill) => (skill === 'research' ? 'research' : STOF[skill]);
   // Por sí solo en un puesto: nivel, rango, rareza, afinidad, especialidad y rasgos, sin vecinos.
   function solo(m, skill, s, role) {
-    const st = stSkill(skill), fn = skill === 'research' ? 'pr' : (postDef(st, role) || ['', 'pr'])[1], o = Cr.own(m, st, ctxOf(st)), W = Cr.work(m, st);
-    return fn === 'rend' ? W * (1 + o.cant + o.dbl) : W * (1 + o.vel);
+    const st = stSkill(skill), fn = skill === 'research' ? 'pr' : (postDef(st, role) || ['', 'pr'])[1], o = Cr.contribution(m, st, fn, ctxOf(st), null);
+    return o.value / o.base; // en un puesto de cantidad, el nivel cuenta a medias: la misma cuenta que la estación
   }
   const postDef = (st, role) => (H.PARAMS.posts[st] ? (H.PARAMS.posts[st][G().s.stage[st] - 1] || []).find((x) => x[0] === role) : null);
   function here(s, m) {
     if (!m.post) return 1;
     const [skill, role] = m.post.split(':'), v = solo(m, skill, s, role);
     if (skill === 'research') return v;
-    const t = G().s.team.eff[m.id];
-    return !t ? v : (postDef(STOF[skill], role) || ['', 'pr'])[1] === 'rend' ? v + Cr.work(m, STOF[skill]) * (t.cant + t.dbl) : v + Cr.work(m, STOF[skill]) * t.vel;
+    const st = STOF[skill], o = Cr.contribution(m, st, (postDef(st, role) || ['', 'pr'])[1], ctxOf(st), G().s.team);
+    return o.value / o.base;
   }
   function xpProgress(m) {
     const lv = Cr.level(m), g = M.xpGrowth, at = (l) => (M.xpBase * (Math.pow(g, l - 1) - 1)) / (g - 1);

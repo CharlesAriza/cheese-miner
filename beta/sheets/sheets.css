@@ -135,3 +135,51 @@ body.p2 #sheet[data-panel='mice'] #sheet-body { flex: 1 1 0; min-height: 0; }
 /* A 320 px, TAP TO ASSIGN no cabe en una línea dentro de su casilla: parte en dos y la casilla no crece, porque una ocupada lleva tres. */
 body.p2 #sheet-body .mx-post.mx-empty .mx-line { min-width: 0; }
 body.p2 #sheet-body .mx-post.mx-empty .mx-lv { display: block; max-width: 100%; white-space: normal; text-align: center; line-height: 11px; }
+
+/* Qué hace un puesto y qué aporta: en el selector y en la ficha. */
+body.p2 #sheet-body .mx-pi { display: flex; flex-direction: column; gap: 8px; padding: 9px 10px 11px; }
+body.p2 #sheet-body .mx-pi p { margin: 0; font-size: 12px; line-height: 16px; color: var(--soft); }
+body.p2 #sheet-body .mx-pi small { display: block; margin-bottom: 3px; font-size: 9px; line-height: 11px; font-weight: 800; letter-spacing: .5px; color: var(--muted); }
+body.p2 #sheet-body .mx-pi b { color: var(--text); }
+body.p2 #sheet-body .mx-pi-do { color: var(--text) !important; font-weight: 700; }
+body.p2 #sheet-body .mx-pi-rows { display: flex; flex-direction: column; gap: 3px; }
+body.p2 #sheet-body .mx-pi-r { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 12px; line-height: 16px; }
+body.p2 #sheet-body .mx-pi-r em { font-style: normal; color: var(--soft); min-width: 0; }
+body.p2 #sheet-body .mx-pi-r b { flex: none; font-weight: 800; text-align: right; }
+body.p2 #sheet-body .mx-pi-me em, body.p2 #sheet-body .mx-pi-me b { color: var(--gold); }
+body.p2 #sheet-body .mx-pi-loss { color: #ff9a8a !important; }
+body.p2 #sheet-body .mx-pi-st em, body.p2 #sheet-body .mx-pi-st b { color: var(--muted); font-weight: 700; }
+body.p2 #sheet-body .mx-pi-parts { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 11px; line-height: 14px; color: var(--muted); }
+body.p2 #sheet-body .mx-pi-neg { color: #ff9a8a; }
+body.p2 #sheet-body .mx-pi-there { display: block; font-size: 11px; line-height: 14px; color: var(--muted); }
+
+/* QUESTS */
+body.p2 #sheet[data-panel='quests'] > .panel { display: flex; flex-direction: column; height: calc(100vh - 88px); height: calc(100dvh - 88px); max-height: none; }
+body.p2 #sheet[data-panel='quests'] #sheet-body { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 8px; font-family: var(--sans, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif); font-size: 13px; }
+body.p2 #sheet-body .mx-qs-count { display: flex; justify-content: space-between; align-items: baseline; margin: 0 2px; }
+body.p2 #sheet-body .mx-qs-count small { font: 400 8px/12px var(--pixel); color: var(--muted); }
+body.p2 #sheet-body .mx-qs-count b { font: 400 10px/12px var(--pixel); color: var(--soft); }
+body.p2 #sheet-body .mx-qs-now { display: flex; flex-direction: column; gap: 7px; flex: none; padding: 10px 11px 12px; border-color: var(--gold); }
+body.p2 #sheet-body .mx-qs-k { font: 400 8px/10px var(--pixel); color: var(--gold); }
+body.p2 #sheet-body .mx-qs-name { font: 400 13px/17px var(--pixel); color: var(--text); }
+body.p2 #sheet-body .mx-qs-blurb { margin: 0; font-size: 13px; line-height: 17px; color: var(--soft); }
+body.p2 #sheet-body .mx-qs-goal { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 13px; line-height: 16px; font-weight: 800; color: var(--text); }
+body.p2 #sheet-body .mx-qs-goal em { flex: none; font: 400 9px/14px var(--pixel); color: var(--gold); }
+body.p2 #sheet-body .mx-qs-bar { display: block; height: 8px; background: var(--p4); box-shadow: inset 0 0 0 1px #0006; }
+body.p2 #sheet-body .mx-qs-bar > i { display: block; height: 100%; background: var(--gold); }
+body.p2 #sheet-body .mx-qs-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 2px; }
+body.p2 #sheet-body .mx-qs-rwb { min-width: 0; }
+body.p2 #sheet-body .mx-qs-rwb > small { display: block; font-size: 9px; line-height: 12px; font-weight: 800; letter-spacing: .5px; color: var(--muted); }
+body.p2 #sheet-body .mx-qs-rw { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; line-height: 16px; font-weight: 800; color: var(--gold); white-space: nowrap; }
+body.p2 #sheet-body .mx-qs-no { font-size: 12px; line-height: 15px; color: var(--soft); }
+body.p2 #sheet-body .mx-qs-foot .mx-act { flex: none; min-height: 44px; display: inline-flex; align-items: center; }
+body.p2 #sheet-body .mx-qs-h { margin: 4px 2px 0; font: 400 8px/12px var(--pixel); color: var(--muted); }
+body.p2 #sheet-body .mx-qs-row { display: flex; align-items: center; flex: none; gap: 8px; padding: 7px 10px 9px; }
+body.p2 #sheet-body .mx-qs-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+body.p2 #sheet-body .mx-qs-t b { font: 400 8px/12px var(--pixel); color: var(--soft); }
+body.p2 #sheet-body .mx-qs-t span { font-size: 12px; line-height: 15px; color: var(--muted); }
+body.p2 #sheet-body .mx-qs-next .mx-qs-rw { font-size: 12px; color: var(--soft); }
+body.p2 #sheet-body .mx-qs-done { box-shadow: none; background: transparent; }
+body.p2 #sheet-body .mx-qs-tick { flex: none; font-style: normal; font-weight: 800; color: #62d36e; }
+body.p2 #sheet-body .mx-qs-got { flex: none; text-align: right; font-size: 12px; line-height: 14px; font-weight: 800; color: var(--soft); }
+body.p2 #sheet-body .mx-qs-got small { display: block; font-size: 10px; line-height: 12px; font-weight: 700; color: var(--muted); }
