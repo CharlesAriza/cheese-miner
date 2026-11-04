@@ -35,7 +35,7 @@
   function world() {
     const s = CM.ui.state(), C = CM.cheesery, H = window.H;
     const rocks = C.unlockedBases(s).slice().sort((a, b) => ZN.indexOf(a) - ZN.indexOf(b));
-    const r = CM.telemetry.rates(s, 180000), cap = H.shopCapacity();
+    const r = CM.telemetry.rates(s, 60000), cap = H.shopCapacity();
     const recs = s.recipes.map((x) => ({ id: x.id, name: x.name, b: C.parseKey(x.key).base, rec: x }));
     const lots = {}, lotsB = {};
     for (const x of recs) { const n = s.lots[x.id] || 0; lots[x.id] = n; lotsB[x.b] = (lotsB[x.b] || 0) + n; }
@@ -127,7 +127,8 @@ const icGem = () => glyph('gem', ['.HHHHH.', 'HWHLLLD', 'LHLLLDD', '.LLLDD.', '.
 const chevR = (c = '#9f97b8') => glyph('chev' + c, ['m..', 'mm.', 'mmm', 'mm.', 'm..'], { m: c });
 
 const ROLL = new Set();
-function rollTo(e, v, f = fmt) { if (e._v === undefined || reduced) { e._v = v; e._t = v; e.textContent = f(v); return; } e._t = v; e._f = f; ROLL.add(e); }
+function rollTo(e, v, f = fmt) { if (e._v === undefined || reduced || (body && body.dataset.pn === 'pantry')) { // PANTRY dice lo que hay, exacto y en el acto; una cifra rodando no coincide con el resto de la pantalla
+ e._v = v; e._t = v; e.textContent = f(v); return; } e._t = v; e._f = f; ROLL.add(e); }
 setInterval(() => { for (const e of ROLL) { if (!e.isConnected) { ROLL.delete(e); continue; } const d = e._t - e._v; e._v = Math.abs(d) < Math.max(1, Math.abs(e._t) * 0.004) ? e._t : e._v + d * 0.25; e.textContent = e._f(e._v); if (e._v === e._t) ROLL.delete(e); } }, 60);
 // ---------- PANTRY ----------
 // SPRITE: cada mercancía es su icono aprobado y, a su lado, un indicador de nivel: tres casillas enmarcadas en tinta que se

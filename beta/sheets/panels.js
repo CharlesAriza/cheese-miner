@@ -87,17 +87,20 @@
     const all = K.posts(s), empty = all.filter((p) => !K.at(s, p.skill, p.zone)), total = all.length;
     const sel = ui.moveSel ? K.byId(s, ui.moveSel) : null;
     let h = '';
-    if (sel) h += '<div class="mx-box mx-ps-left" style="justify-content:space-between"><span style="display:flex;align-items:center;gap:8px"><i class="mx-mini' + (sel.rarity ? ' mx-r' + sel.rarity : '') + '">' + mxM('m:' + sel.id) + '</i><span>Moving <b>' + esc(sel.name) + '</b>: tap a post</span></span><span class="mx-act" data-act="movecancel">CANCEL</span></div>' +
+    // Colocar es un modo aparte: su franja se queda a la vista con CANCEL, y mientras dura solo se puede elegir un puesto o salir.
+    if (sel) h += '<div class="mx-box mx-ps-left st-placing" style="justify-content:space-between"><span style="display:flex;align-items:center;gap:8px"><i class="mx-mini' + (sel.rarity ? ' mx-r' + sel.rarity : '') + '">' + mxM('m:' + sel.id) + '</i><span>' + (sel.post ? 'Moving' : 'Placing') + ' <b>' + esc(sel.name) + '</b>: tap a post</span></span><span class="mx-act" data-act="movecancel">CANCEL</span></div>' +
       (sel.post ? '<div class="mx-notes"><div role="button" class="mx-box mx-note" data-act="post:' + sel.id + ':"><span>TO HOUSE</span></div></div>' : '');
     h += '<div class="mx-status"><b>' + (total - empty.length) + '/' + total + ' POSTS</b><span style="display:flex;align-items:center;gap:8px">' + (ui.lastMove ? '<span class="mx-act" data-act="undomove">UNDO</span>' : '') + '<span class="mx-meta mx-ok">' + (empty.length ? empty.length + ' empty' : 'all staffed') + '</span></span></div>';
     let notes = '';
+    if (!sel) {
     if (promos.length) notes += mxNote('up', mxI('up', 2), promos.length, 'to promote', 'promos');
-    if (idle.length) notes += mxNote('free', mxI('head', 1), idle.length, 'unassigned', idle.length === 1 ? 'pickmouse:' + idle[0].id : 'rosterfilter:free');
+    if (idle.length) notes += mxNote('free', mxI('head', 1), idle.length, 'unassigned', idle.length === 1 ? 'card:' + idle[0].id : 'rosterfilter:free');
     if (s.care && K.byId(s, s.care.id)) notes += mxNote('bed', mxI(s.care.kind === 'spec' ? 'book' : 'bed', 2), esc(K.byId(s, s.care.id).name).toUpperCase(), Math.max(1, Math.ceil(s.care.remaining / 60000)) + 'm', 'housego:' + (s.care.kind === 'spec' ? 'training' : 'bed'));
     if (notes) h += '<div class="mx-notes">' + notes + '</div>';
     h += mxHire(s, 'recruit', 'recruitview');
-    if (s.mice.length > 1) h += '<div role="button" class="mx-box mx-note mx-bf" data-act="bestfit"><span class="mx-t"><b>BEST FIT</b><span>Puts each mouse where the colony earns the most. Combos between mice are yours to find.</span></span><span class="mx-act">DO IT</span></div>';
-    if (!ui.dragTold && s.mice.length > 1) h += '<p class="mx-ps-hint">Tap a mouse for its card. Hold it to drag it to another post; drop it on a mouse to swap them.</p>';
+    }
+    if (!sel && s.mice.length > 1) h += '<div role="button" class="mx-box mx-note mx-bf" data-act="bestfit"><span class="mx-t"><b>BEST FIT</b><span>Puts each mouse where the colony earns the most. Combos between mice are yours to find.</span></span><span class="mx-act">DO IT</span></div>';
+    if (!sel && !ui.dragTold && s.mice.length > 1) h += '<p class="mx-ps-hint">Tap a mouse for its card. Hold it to drag it to another post; drop it on a mouse to swap them.</p>';
     if (K.posts(s).some((p) => p.skill === 'research')) h += '<div class="mx-grp" data-rock="lab"><div class="mx-box mx-ghead" style="cursor:default"><img class="pix" src="' + MXSP + 'ic_flask.png" alt="" style="width:18px;height:20px"><span class="mx-t"><b>LAB</b><span>Researches for the colony</span></span><span></span></div><div class="mx-crew mx-c2">' + mxPost(s, 'research', 'all', sel, true).replace('--zw2:#2a2433', '--zw2:#22302a') + '</div></div>';
     const zc = (MXZ[tier()] || MXZ.cheddar)[0];
     for (const [skill, st, name, ic] of STATIONS) {
@@ -113,9 +116,9 @@
     }
     const sets = (c.s.team && c.s.team.sets) || [];
     if (sets.length) h += '<div class="mx-box mx-combos mx-open"><div class="mx-cmb-list"><div class="mx-cmb-h">Whole line · the four running MINE to CHEESE</div>' + sets.map((d) => '<div class="mx-cmb-row"><span class="mx-who"><img class="pix" src="' + MXSP + 'ic_raw_' + tier() + '.png" alt="" style="width:18px"></span><span class="mx-t"><b>' + d.name + '</b><span>' + d.desc.split(':')[0] + '</span></span><span class="mx-chip">' + effTxt(d.eff) + '</span></div>').join('') + '</div></div>';
-    if (idle.length) {
-      h += '<div class="mx-ps-h"><b>NO POST · ' + idle.length + '</b><small>tap one to place it</small></div><div class="mx-ps-list">';
-      for (const m of idle) h += '<div role="button" class="mx-box mx-ps-row" data-act="pickmouse:' + m.id + '" data-mouse="' + m.id + '"><span class="mx-pt' + (m.rarity ? ' mx-r' + m.rarity : '') + '">' + mxM('m:' + m.id) + '</span><span class="mx-t"><b>' + esc(m.name) + '<em>LV ' + K.level(m) + '</em></b><span class="mx-from mx-free">Waiting in the house</span><span class="mx-tags">' + mxTags(m, '', 2) + '</span></span><span class="mx-v"><span class="mx-put">PLACE</span></span></div>';
+    if (idle.length && !sel) {
+      h += '<div class="mx-ps-h"><b>NO POST · ' + idle.length + '</b><small>tap one to see its card</small></div><div class="mx-ps-list">';
+      for (const m of idle) h += '<div role="button" class="mx-box mx-ps-row" data-act="card:' + m.id + '" data-mouse="' + m.id + '"><span class="mx-pt' + (m.rarity ? ' mx-r' + m.rarity : '') + '">' + mxM('m:' + m.id) + '</span><span class="mx-t"><b>' + esc(m.name) + '<em>LV ' + K.level(m) + '</em></b><span class="mx-from mx-free">Waiting in the house</span><span class="mx-tags">' + mxTags(m, '', 2) + '</span></span><span class="mx-v st-do" role="button" data-act="pickmouse:' + m.id + '"><span class="mx-put">PLACE</span></span></div>';
       h += '</div>';
     }
     return h;
@@ -184,14 +187,14 @@
     const list = s.mice.filter((m) => m !== now).map((m) => ({ m, v: K.solo(m, skill, s, zone) }));
     list.sort(now ? (a, b) => b.v - a.v : (a, b) => (a.m.post ? 1 : 0) - (b.m.post ? 1 : 0) || b.v - a.v);
     if (!list.length) return h + (now ? '<p class="mx-ps-hint">You have no other mouse. Find new mice in COLONY.</p>' : '');
-    h += '<p class="mx-ps-hint">' + (now ? 'Tap a mouse to put it here: it swaps places with <b>' + esc(now.name) + '</b>. The number is what each would do <b>on its own</b> at this post; neighbours and combos can change it.' : 'Tap a mouse to put it here. The number is what it would do <b>on its own</b> here; neighbours and combos can change it.') + '</p><div class="mx-ps-list">';
+    h += '<p class="mx-ps-hint">' + (now ? 'Tap a mouse to see its card, or SWAP to change places with <b>' + esc(now.name) + '</b>. The number is what each would do <b>on its own</b> at this post; neighbours and combos can change it.' : 'Tap a mouse to see its card, or PUT HERE to place it. The number is what it would do <b>on its own</b> here; neighbours and combos can change it.') + '</p><div class="mx-ps-list">';
     for (const { m, v } of list) {
       const d = v - base;
       const from = !now ? (m.post ? '<span class="mx-from mx-leaves">Leaves ' + mxPostN(m.post) + ' empty</span>' : '<span class="mx-from mx-free">Unassigned · in the house</span>')
         : m.post ? '<span class="mx-from"><img class="pix" src="' + mxJobIc(m.post.split(':')[0], m.post.split(':')[1]) + '" alt=""><span class="mx-at">Now at </span>' + mxPostN(m.post) + '<span class="mx-sw"> · swaps</span></span>' : '<span class="mx-from mx-free">Free</span>';
-      h += '<div role="button" class="mx-box mx-ps-row" data-act="post:' + m.id + ':' + key + '"><span class="mx-pt' + (m.rarity ? ' mx-r' + m.rarity : '') + '" style="--zw2:' + (m.post ? mxWall(m.post.split(':')[1]) : '#2a2433') + '">' + mxM('m:' + m.id + ':' + skill) + '</span>' +
+      h += '<div role="button" class="mx-box mx-ps-row" data-act="card:' + m.id + '"><span class="mx-pt' + (m.rarity ? ' mx-r' + m.rarity : '') + '" style="--zw2:' + (m.post ? mxWall(m.post.split(':')[1]) : '#2a2433') + '">' + mxM('m:' + m.id + ':' + skill) + '</span>' +
         '<span class="mx-t"><b>' + esc(m.name) + '<em>' + (m.rank ? mxI('rank' + Math.min(3, m.rank), 1.5) : '') + 'LV ' + K.level(m) + '</em></b>' + from + '<span class="mx-tags">' + mxTags(m, skill, now ? 3 : 2) + '</span></span>' +
-        '<span class="mx-v"><b>' + mxX(v) + '</b>' + (now ? '<span class="mx-d ' + (d > 0.05 ? 'mx-up">▲ +' : d < -0.05 ? 'mx-dn">▼ ' : 'mx-eq">= ') + (Math.round(d * 10) / 10).toFixed(1) + '</span>' : '<span class="mx-put">PUT HERE</span>') + '</span></div>';
+        '<span class="mx-v st-do" role="button" data-act="post:' + m.id + ':' + key + '"><b>' + mxX(v) + '</b>' + (now ? '<span class="mx-d ' + (d > 0.05 ? 'mx-up">▲ +' : d < -0.05 ? 'mx-dn">▼ ' : 'mx-eq">= ') + (Math.round(d * 10) / 10).toFixed(1) + '</span><span class="mx-put">SWAP</span>' : '<span class="mx-put">PUT HERE</span>') + '</span></div>';
     }
     h += '</div>';
     if (now) h += '<div style="display:flex;justify-content:flex-end"><span class="mx-act mx-send" data-act="post:' + now.id + ':">SEND ' + esc(now.name).toUpperCase() + ' TO REST</span></div>';
@@ -273,16 +276,16 @@
     const care = mxCare(s, m), due = canPromote(s, m);
     const st = care ? (care.kind === 'spec' ? 'train' : 'bed') : !m.post ? 'free' : due ? 'due' : '';
     const rar = m.rarity || 0, idx = s.mice.indexOf(m);
-    let h = mxTabs(s, ui.miceView === 'roster' || ui.miceView === 'house' ? ui.miceView : 'rocks') + '<div class="mx-fc-back" role="button" data-act="back"><span class="mx-act">' + mxI('back', 2) + (ui.miceView === 'roster' ? 'ROSTER' : 'COLONY') + '</span><span class="mx-meta">' + (idx + 1) + ' of ' + s.mice.length + '</span></div>';
+    let h = mxTabs(s, ui.miceView === 'roster' || ui.miceView === 'house' ? ui.miceView : 'rocks') + '<div class="mx-fc-back" role="button" data-act="back"><span class="mx-act">' + mxI('back', 2) + (ui.cardHome || ui.pick ? 'BACK' : ui.miceView === 'roster' ? 'ROSTER' : 'COLONY') + '</span><span class="mx-meta">' + (idx + 1) + ' of ' + s.mice.length + '</span></div>';
     // Héroe: el nicho grande con la pared de su roca y el ratón vivo; al lado, quién es.
     h += '<div class="mx-box mx-fc-hero"><div class="mx-fc-niche' + (rar ? ' mx-r' + rar : '') + (st === 'bed' ? ' mx-bed' : st === 'train' ? ' mx-train' : '') + '" style="--zw2:' + (zone ? mxWall(zone) : '#2a2433') + '" data-hero="card:' + m.id + '" data-hero-crew="m:' + m.id + ':' + (skill || '') + '" data-st="' + st + '" data-lv="' + p.level + '" data-cer data-enter><i class="mx-bricks"></i><i class="mx-shadow"></i><canvas class="mx-m" width="22" height="20"></canvas><div class="mx-fc-nfx"></div>' +
       (st === 'bed' ? '<span class="mx-zz" style="left:66%;top:14px">Z</span><span class="mx-zz" style="left:78%;top:26px;animation-delay:1s">z</span>' : '') +
       (rar === 2 ? [0, 1, 2].map((i) => '<i class="mx-spark" style="left:' + [12, 84, 70][i] + '%;top:' + [24, 36, 12][i] + '%;animation-delay:' + i * 0.5 + 's"></i>').join('') : '') + '</div>' +
       '<div class="mx-fc-id"><span class="mx-fc-name"><b>' + esc(m.name) + '</b>' + (m.id === GM ? mxI('star', 2) : '') + '</span><span class="mx-fc-who"><span class="mx-rk">' + mxRankI(m.rank) + '</span><span class="mx-rn">' + M.ranks[m.rank].name + '</span><span class="mx-rar mx-r' + rar + '">· ' + RARITY[rar].name + '</span></span>' +
-      '<span class="mx-fc-lv"><b><small>LV</small><span class="mx-lvn">' + p.level + '</span></b><span class="mx-xpn">' + (p.maxed ? 'MAX' : whole(p.cur) + ' / ' + whole(p.need) + ' XP') + '</span></span><span class="mx-fc-xp"><i style="width:' + (p.maxed ? 100 : Math.round((p.cur / p.need) * 100)) + '%"></i></span></div><div class="mx-fc-hfx"></div></div>';
+      '<span class="mx-fc-lv"><b><small>LV</small><span class="mx-lvn">' + p.level + '</span></b><span class="mx-xpn" data-xp="' + m.id + '"></span></span><span class="mx-fc-xp"><i data-xpw="' + m.id + '"></i></span></div><div class="mx-fc-hfx"></div></div>';
     // Trabajo de hoy, con MOVE (el flujo de siempre: COLONY con el ratón elegido).
-    h += skill ? '<div class="mx-box mx-fc-job" role="button" data-act="pickmouse:' + m.id + '"><span class="mx-t"><span class="mx-k">WORKS AT</span><span class="mx-p"><img class="pix" src="' + mxJobIc(skill, zone) + '" alt="">' + mxPostN(m.post) + '<span class="mx-x">' + mxX(K.here(s, m)) + '</span></span><span class="mx-r">' + mouseRate(s, m, skill, zone) + '</span></span><span class="mx-act">MOVE</span></div>'
-      : '<div class="mx-box mx-fc-job mx-none" role="button" data-act="pickmouse:' + m.id + '"><span class="mx-t"><span class="mx-k">UNASSIGNED</span><span class="mx-p">In the Mouse House</span><span class="mx-r">It only works and levels up on a post</span></span><span class="mx-act mx-go">ASSIGN</span></div>';
+    h += skill ? '<div class="mx-box mx-fc-job"><span class="mx-t"><span class="mx-k">WORKS AT</span><span class="mx-p"><img class="pix" src="' + mxJobIc(skill, zone) + '" alt="">' + mxPostN(m.post) + '<span class="mx-x">' + mxX(K.here(s, m)) + '</span></span><span class="mx-r">' + mouseRate(s, m, skill, zone) + '</span></span><span class="mx-act st-do" role="button" data-act="pickmouse:' + m.id + '">MOVE</span></div>'
+      : '<div class="mx-box mx-fc-job mx-none"><span class="mx-t"><span class="mx-k">UNASSIGNED</span><span class="mx-p">In the Mouse House</span><span class="mx-r">It only works and levels up on a post</span></span><span class="mx-act mx-go st-do" role="button" data-act="pickmouse:' + m.id + '">ASSIGN</span></div>';
     // Afinidades: los seis oficios con sus corazones; la marca, donde trabaja.
     h += '<div class="mx-fc-aff">' + K.JOBS.map((k) => '<i class="mx-a' + ((m.aff && m.aff[k]) || 0) + (k === skill ? ' mx-here' : '') + '"><img class="pix" src="' + mxJobIc(k, zone || 'cheddar') + '" alt=""><em>' + MXJ[k] + '</em>' + mxHearts((m.aff && m.aff[k]) || 0) + '</i>').join('') + '</div>' +
       '<div class="mx-fc-legend"><span>' + mxHearts(1, 1) + M.affinity[1].name + ' +' + Math.round(M.affinity[1].speed * 100) + '%</span><span>' + mxHearts(2, 2) + M.affinity[2].name + ' +' + Math.round(M.affinity[2].speed * 100) + '% faster</span></div>';

@@ -39,3 +39,23 @@
 .pn-st { position: relative; }
 .pn-st:not(.na) { padding-top: 13px; }
 .pn-st.na .dd-well { display: none; }
+
+/* El icono con pestaña: la chapa de refuerzos va debajo de la pestaña, nunca tapada por ella, con uno o con dos. */
+#pn-st:not(.na) > .bo-chip { top: 16px; right: 2px; z-index: 1; }
+/* Avisos de máquina: la versión roja aprobada, sin parpadeo. */
+.ad-warn.lb-red { background: #7e1626; border-color: #ff5a7a; box-shadow: 0 0 0 2px #1b1220, inset 0 2px 0 #b8344a; }
+.ad-warn.lb-red b { color: #fff; }
+.ad-warn.lb-red .ad-chain { background: repeating-linear-gradient(#ff5a7a 0 2px, transparent 2px 4px); }
+/* Avisos sin parpadeo: lo pendiente se marca quieto; al aparecer, dos latidos y ya. */
+.nav > button.fresh { clip-path: none; animation-iteration-count: 2; border-color: var(--gold); box-shadow: inset 0 2px 0 var(--p1), inset 0 -3px 0 var(--p3), 0 0 0 1px #ffe55c; }
+.pn-act.dig { animation-iteration-count: 2; }
+.pn-act.manual:not(.off) { animation-iteration-count: 2; border-color: var(--gold); }
+.p0-plate.build { animation-iteration-count: 3; border-color: var(--new); }
+.bs-down, .bs-up { animation-iteration-count: 6; }
+/* Edificios: su nombre como pista inicial, quieto y sin flecha; y una respuesta al tocarlos. */
+.bs-sign.known .bs-down, .bs-sign.known .bs-up { display: none; }
+.bd-press { position: absolute; z-index: 4; pointer-events: none; outline: 2px solid var(--gold); outline-offset: -2px; background: #ffcf2e22; animation: bd-press .26s steps(3) forwards; }
+@keyframes bd-press { to { opacity: 0; } }
+/* Lo que acaba de cambiar el saldo, junto al marcador. */
+.hud-delta { position: absolute; left: 12px; top: calc(env(safe-area-inset-top, 0px) + 50px); z-index: 7; opacity: 0; pointer-events: none; font: 400 8px/10px var(--pixel); font-style: normal; color: var(--rate); text-shadow: 1px 1px 0 #1b1220; }
+.hud-delta.dn { color: #ff9a8a; }

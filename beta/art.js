@@ -4868,7 +4868,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
   function actTick(now) {
     const A = BA.act; if (!A || now - A.t0 < A.dur) return; BA.shown = A.to; BA.act = null; const q = BA.queue; BA.queue = null;
     if (q != null && q !== BA.shown) { if (q === 2 && BA.shown === 0) { startAct(1); BA.queue = 2; } else startAct(q); return; }
-    if (A.to > A.from) { BUBS.gapUntil = Math.max(BUBS.gapUntil, now + 450); speak(N('drill', 'operator') || N('drill', 'filler'), A.to === 2 ? 'Full power!' : 'Hear it hum!'); } // después del efecto y de la cifra, nunca encima
+    if (A.to > A.from) { BUBS.gapUntil = Math.max(BUBS.gapUntil, now + 450); speak(N('drill', 'operator') || N('drill', 'filler'), A.to === 2 ? 'Full power!' : 'Hear it hum!', true); } // después del efecto y de la cifra, nunca encima
   }
   const once = (A, key, t, at, fn) => { if (!A.fired[key] && t >= at) { A.fired[key] = 1; fn(); } };
   // Respuesta mecánica: un golpe (la máquina salta y vuelve) y vueltas de más en el volante, con frenada.
@@ -5776,7 +5776,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     const fa = Math.sign(b.x - n.x) || n.hf, fb = -fa;
     const end = (m) => [T.do(() => (m.inter = null)), T.idle(200), T.face(m.hf)];
     n.inter = b.inter = { with: true };
-    const canTalk = !BUBS.cur && !BUBS.q.length && visible(n) && visible(b);
+    const canTalk = !BUBS.cur && !BUBS.q.length && visible(n) && visible(b) && performance.now() >= (BUBS.okAt || 0);
     if (canTalk && r < 0.7 && (lines || r < 0.35)) {
       const pool = lines || GENERIC, [la, lb] = pool[Math.floor(r * 97) % pool.length], ms = readMs(la), ms2 = readMs(lb);
       b.q = [T.face(fb), T.act('listen', ms + 380), T.act('talk', ms2), ...end(b)];
@@ -5894,7 +5894,8 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
   // se decide al nacer y no cambia; después solo sigue a la cabeza, suavizado, dentro de la escena y por debajo del marcador.
   const bubHost = document.createElement('div'); bubHost.className = 'lb-host'; host.appendChild(bubHost);
   const BUBS = { cur: null, q: [], gapUntil: 0 };
-  function speak(n, text) { if (!n) return; if (BUBS.q.length >= 3) BUBS.q.shift(); BUBS.q.push({ n, text }); }
+  const TALK_GAP = 45000;
+  function speak(n, text, always) { if (!n) return; const t = performance.now(); if (!always) { if (t >= (BUBS.okAt || 0)) { BUBS.okAt = t + TALK_GAP; BUBS.pairTo = t + 60; } else if (t > (BUBS.pairTo || 0)) return; } if (BUBS.q.length >= 3) BUBS.q.shift(); BUBS.q.push({ n, text }); }
   const hudBottom = () => { const e = document.querySelector('.hud'), hb = host.getBoundingClientRect(); return e ? e.getBoundingClientRect().bottom - hb.top + 4 : 8; };
   function bubbleTick(now) {
     const B = BUBS;
@@ -5954,7 +5955,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     const now = performance.now();
     if (type === 'reveal') { vis.reveal = { t0: now, burst: false }; vis.drillCycle++; for (const n of nodes) if (n.st === 'mine' || n.st === 'drill') react(n, 'vein', ((n.hx >> 3) % 4) * 90); say2(N('mine', 'picker'), 'Vein! Look at that!', N('drill', 'operator'), 'Bar going down!'); }
     if (type === 'deeper') { vis.marks.length = 0; const p = N('mine', 'climber') || N('mine', 'picker'); if (p) speak(p, 'Empty. Dig deeper!'); }
-    if (type === 'stratum') { for (const n of nodes) react(n, 'wow', ((n.hx >> 3) % 5) * 80); const p = N('mine', 'collector'); if (p) speak(p, 'New stone down here!'); }
+    if (type === 'stratum') { for (const n of nodes) react(n, 'wow', ((n.hx >> 3) % 5) * 80); const p = N('mine', 'collector'); if (p) speak(p, 'New stone down here!', true); }
     if (type === 'refineDone') vis.rFire = now;
     if (type === 'drillDone') { vis.drip.push({ t0: now }); vis.drillCycle++; }
     if (type === 'refineDone') { const t = STGS.refine >= 3 && vis.trays[1] < vis.trays[0] ? 1 : 0; vis.trays[t] = Math.min(3, vis.trays[t] + 1); }

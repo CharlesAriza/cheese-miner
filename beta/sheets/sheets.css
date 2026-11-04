@@ -70,7 +70,7 @@ body.p2 #sheet[data-panel='tree'] > .panel { display: flex; flex-direction: colu
 .st-q { font: 400 16px var(--pixel); color: #5a5270; }
 .st-n.st-sel .st-ic { outline: 2px solid #fff; outline-offset: 1px; }
 .st-n.st-owned .st-ic { border-color: #c98a08; box-shadow: inset 0 0 0 2px #6a4a10, inset 0 -3px 0 var(--p3); }
-.st-n.st-available .st-ic { border-color: #5a9cf0; animation: st-pulse 1.4s steps(4) infinite; }
+.st-n.st-available .st-ic { border-color: #5a9cf0; animation: st-pulse 1.4s steps(4) 2; }
 .st-n.st-locked .st-ic { background: #221d2c; }
 .st-n.st-locked .st-ic > img:first-child { filter: grayscale(1) brightness(.55); }
 .st-n.st-locked small { color: var(--muted); }
@@ -112,3 +112,17 @@ body.p2 #sheet-body .st-ch-slot { height: 66px; display: flex; flex-direction: c
 body.p2 #sheet-body .mx-ch-line.mx-on .mx-ch-s { white-space: nowrap; }
 body.p2 #sheet-body .mx-ch-needrow small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 body.p2 #sheet-body .mx-ch-btn.st-act1 { flex: 1.6; }
+
+/* Toque en iOS: Safari solo manda el clic a elementos que parecen pulsables. Y sin esperas ni resaltados del navegador. */
+[data-act], [role="button"], .st-n, #sheet { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+[data-act], [role="button"], .st-n, button { touch-action: manipulation; }
+/* MICE: colocar es un modo con su franja siempre a la vista. */
+body.p2 #sheet-body .mx-ps-left.st-placing { position: sticky; top: 0; z-index: 6; border-style: solid; border-color: var(--gold); background: #2a2233; }
+/* Lo que cambia el juego en una fila es su botón: se ve y tiene sitio para el dedo. */
+body.p2 #sheet-body .mx-ps-row .mx-v.st-do { align-self: stretch; justify-content: center; min-width: 64px; margin: -6px -8px -6px 0; padding: 6px 8px; background: #ffffff0a; border-left: 2px solid var(--p4); }
+body.p2 #sheet-body .mx-fc-job .mx-act.st-do { min-height: 36px; display: inline-flex; align-items: center; }
+/* Avisos sin parpadeo: lo pendiente se marca quieto; solo lo que acaba de aparecer se mueve, y poco. */
+body.p2 #sheet-body .mx-ch-need > i, body.p2 #sheet-body .mx-ch-needrow .mx-ic i { animation: none; }
+body.p2 #sheet-body .mx-post.mx-empty { animation: none; }
+body.p2 #sheet .mx-ch-gwrow.mx-soon canvas { animation: none; }
+body.p2 #sheet-body .mx-fc-promo.mx-ready::after { animation-iteration-count: 2; }

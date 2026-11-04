@@ -51,16 +51,18 @@
     recruitfor(skill, zone) { ui.cand = -1; const r = act('recruitOffer', { forPost: { st: STOF[skill] || 'lab', role: zone } }); if (r.ok) { ui.miceTab = 'recruit'; top(); } },
     recruitview() { ui.miceTab = G().cands.length ? 'recruit' : ''; top(); },
     recruitlater() { ui.miceTab = ''; },
-    choose(i) { ui.cand = -1; ui.pick = null; ui.card = null; ui.miceTab = ''; ui.moveSel = null; const r = act('recruitChoose', { index: +i }); const nm = r.ok && K.byId(null, r.id); if (nm && !nm.post) { ui.miceView = 'rocks'; ui.moveSel = nm.id; } },
+    // Sin vacante pedida, el nuevo llega sin puesto y se ve su ficha: desde ahí se decide. Nada entra solo en modo de colocar.
+    choose(i) { ui.cand = -1; ui.pick = null; ui.card = null; ui.miceTab = ''; ui.moveSel = null; const r = act('recruitChoose', { index: +i }); const nm = r.ok && K.byId(null, r.id); if (nm && !nm.post) { ui.miceView = 'rocks'; ui.card = nm.id; ui.cardSec = {}; top(); } },
     cand(i) { ui.cand = +i; },
     bestfit() { const before = snapshot(), r = act('bestFit', {}); if (r.ok) { if (r.moved) ui.lastMove = before; toast(r.moved ? 'BEST FIT moved ' + r.moved + (r.moved === 1 ? ' mouse' : ' mice') + (r.gain > 1.005 ? ': about +' + Math.round((r.gain - 1) * 100) + '% coins' : '') : 'No better line-up found: your mice stay where they are', true); } },
     pickpost(skill, zone) { const key = skill + ':' + zone; top(); ui.pick = ui.pick === key ? null : key; },
-    pickmouse(id) { ui.card = null; ui.pick = null; ui.miceTab = ''; ui.miceView = 'rocks'; ui.moveSel = id; },
+    pickmouse(id) { ui.moveBack = ui.card === id ? id : null; ui.card = null; ui.pick = null; ui.cardHome = ui.moveBack ? ui.cardHome : false; ui.miceTab = ''; ui.miceView = 'rocks'; ui.moveSel = id; top(); },
     housego(room) { ui.miceView = 'house'; ui.houseRoom = room; ui.trainSel = null; ui.pick = null; ui.moveSel = null; top(); },
-    movecancel() { ui.moveSel = null; },
-    moveto(skill, zone) { const id = ui.moveSel; ui.moveSel = null; return placeMouse(id, skill + ':' + zone); },
+    // Cancelar no cambia nada y devuelve a donde se estaba.
+    movecancel() { ui.moveSel = null; if (ui.moveBack) ui.card = ui.moveBack; ui.moveBack = null; },
+    moveto(skill, zone) { const id = ui.moveSel; ui.moveSel = null; ui.moveBack = null; ui.cardHome = false; return placeMouse(id, skill + ':' + zone); },
     unpick() { ui.pick = null; },
-    miceview(v) { ui.miceView = v; ui.card = null; ui.pick = null; ui.moveSel = null; top(); },
+    miceview(v) { ui.miceView = v; ui.card = null; ui.cardHome = false; ui.pick = null; ui.moveSel = null; ui.moveBack = null; top(); },
     rocktoggle(st) { const o = ui.rockOpen[st] !== undefined ? ui.rockOpen[st] : true; ui.rockOpen[st] = !o; },
     rosteropts() { ui.rosterOpts = !ui.rosterOpts; },
     combotoggle(st) { ui.comboOpen[st] = !ui.comboOpen[st]; },
@@ -69,9 +71,9 @@
     rosterlikes(job) { ui.miceLikes = ui.miceLikes === job ? '' : job; },
     micesort(v) { ui.miceSort = v; },
     sec(id) { const def = { traits: true, specs: false, combos: false, rank: false }[id]; ui.cardSec[id] = !(ui.cardSec[id] !== undefined ? ui.cardSec[id] : def); },
-    card(id) { ui.card = id; ui.pick = null; ui.cardSec = {}; top(); },
-    back() { ui.card = null; },
-    post(id, skill, zone) { const r = placeMouse(id, skill ? skill + ':' + zone : ''); if (r && r.ok && !(ui.pick && skill)) ui.pick = null; ui.card = null; },
+    card(id) { ui.card = id; ui.cardSec = {}; top(); }, // desde el selector de puesto, BACK vuelve a él
+    back() { if (ui.cardHome) { ui.cardHome = false; return leave(); } ui.card = null; },
+    post(id, skill, zone) { const r = placeMouse(id, skill ? skill + ':' + zone : ''); if (r && r.ok && !(ui.pick && skill)) ui.pick = null; ui.card = null; ui.moveBack = null; },
     undomove() { if (!ui.lastMove) return; const l = ui.lastMove; ui.lastMove = null; restore(l); toast('Move undone', true); },
     promote(id) { act('promote', { id }); },
     promos() { ui.miceTab = 'promos'; ui.promo = K.promotePicks(null, 'afford'); ui.promoDone = null; },
@@ -134,7 +136,10 @@
     act(name, ...a) { const f = ACTS[name]; if (f) f(...a); repaint(); },
     toast,
     // pulido-boosts.js cambia las gemas en su sitio con estas dos acciones.
-    quiet(name, sk, z, i) {
+    // Y deja la hoja marcada como pintada con el estado nuevo: si no, el repintado siguiente rehacía las gemas a media animación.
+    quiet(name, sk, z, i) { const r = quietAct(name, sk, z, i); if (ui.panel) lastHtml = P.render(ui.panel, CM.viewState, ui); return r; },
+  };
+  function quietAct(name, sk, z, i) {
       if (name === 'boostclear') { for (const st of CM.ST) while (G().boosts.place[st] > 0) H.act('boostRemove', { st }); return { ok: true }; }
       if (name === 'boslot') {
         const key = sk + ':' + z, st = STOF[sk], j = +i, n = G().boosts.place[st] || 0;
@@ -143,12 +148,13 @@
         const r = H.act('boostPlace', { st }); if (r.ok && n === 0) ui.boSlot[key] = j; return report(r);
       }
       return { ok: false };
-    },
-  };
+  }
   const top = () => { $('sheet-body').scrollTop = 0; };
 
   // ---- Pintar ----
-  let lastHtml = '', touching = false, calmAt = 0, drag = { src: null };
+  // El panel no se rehace con el dedo encima, justo al levantarlo (el navegador manda el toque después y su botón ya no estaría) ni mientras se desplaza.
+  let lastHtml = '', touching = false, calmAt = 0, drag = { src: null }, quietUntil = 0;
+  const holdRepaint = (ms) => { quietUntil = Math.max(quietUntil, performance.now() + ms); };
   const CALM = { stock: 1, shopinfo: 1, coins: 1 };
   function mountAll(b) {
     for (const f of [CM.pmice, CM.pcheese, CM.plab, CM.pboosts, CM.pecon, CM.pmenu]) { try { if (f) f.mount(b); } catch (e) { console.error(e); } }
@@ -156,7 +162,7 @@
   }
   function repaint(tick) {
     if (!ui.panel || drag.src) return;
-    if (tick && touching) return;
+    if (tick && (touching || performance.now() < quietUntil)) return;
     if (tick && CALM[ui.panel] && performance.now() - calmAt < 1500) return;
     let html;
     try { html = P.render(ui.panel, CM.viewState, ui); } catch (e) { console.error(e); if (!tick) toast('That panel could not be drawn'); return; }
@@ -178,6 +184,8 @@
     if (bar && j) bar.style.width = Math.min(100, (100 * (1 - (j.end - G().s.t) / j.total))).toFixed(1) + '%';
     const lb = document.querySelector('#sheet-body [data-labbar]'), L = G().lab.job;
     if (lb && L) lb.style.width = Math.round((1 - L.remaining / L.total) * 100) + '%';
+    const xp = document.querySelector('#sheet-body [data-xp]');
+    if (xp) { const m = K.byId(null, xp.dataset.xp), p = m && K.xpProgress(m), bar2 = document.querySelector('#sheet-body [data-xpw]'); if (p) { const t = p.maxed ? 'MAX' : CM.fmt(Math.floor(p.cur)) + ' / ' + CM.fmt(Math.floor(p.need)) + ' XP'; if (xp.textContent !== t) xp.textContent = t; if (bar2) bar2.style.width = (p.maxed ? 100 : Math.round((p.cur / p.need) * 100)) + '%'; } }
     for (const t of document.querySelectorAll('#sheet-body [data-gwt]')) { const every = B.milestones.wheel.everyMs; t.textContent = Math.max(0, Math.ceil((every - (G().s.wheelMs || 0)) / 60000)) + 'm'; }
   }
   const TITLE_IC = {
@@ -188,7 +196,7 @@
   };
   function openPanel(name) {
     if (name === 'cheese') { ui.cheeseView = 'lines'; ui.cheeseLine = 'line'; ui.bookBase = null; ui.bookRow = null; }
-    if (name === 'mice') { ui.pick = null; ui.card = null; ui.miceTab = ''; ui.moveSel = null; ui.cardSec = {}; ui.rosterOpts = false; }
+    if (name === 'mice') { ui.pick = null; ui.card = null; ui.cardHome = false; ui.moveBack = null; ui.miceTab = ''; ui.moveSel = null; ui.cardSec = {}; ui.rosterOpts = false; }
     if (name === 'lab') { ui.labDirOpen = false; ui.labDirCat = null; ui.labHand = null; if (ui.found) ui.labTab = 'strains'; }
     ui.panel = name; lastHtml = '';
     $('sheet').dataset.panel = name;
@@ -209,7 +217,7 @@
   function leave() {
     const sh = $('sheet'); if (sh.hidden || closing) return;
     sh.classList.remove('p1-in'); sh.classList.add('p1-out'); H.layerClosing();
-    closing = setTimeout(() => { closing = 0; sh.classList.remove('p1-out'); sh.hidden = true; ui.panel = null; ui.lastMove = null; ui.moveSel = null; lastHtml = ''; H.layerClosed(); }, RM() ? 160 : 210);
+    closing = setTimeout(() => { closing = 0; sh.classList.remove('p1-out'); sh.hidden = true; ui.panel = null; ui.lastMove = null; ui.moveSel = null; lastHtml = ''; if ($('modal').hidden) H.layerClosed(); }, RM() ? 160 : 210); // con una ventana abierta (WELCOME BACK), la capa sigue a la vista
   }
   document.addEventListener('click', (e) => {
     const sh = $('sheet');
@@ -297,7 +305,9 @@
   body.addEventListener('touchend', () => dEnd(false));
   body.addEventListener('touchcancel', () => dEnd(true));
   body.addEventListener('touchstart', () => (touching = true), { passive: true });
-  for (const t of ['touchend', 'touchcancel']) body.addEventListener(t, (e) => { if (!e.touches.length) touching = false; }, { passive: true });
+  for (const t of ['touchend', 'touchcancel']) body.addEventListener(t, (e) => { if (!e.touches.length) { touching = false; holdRepaint(180); } }, { passive: true });
+  body.addEventListener('scroll', () => holdRepaint(160), { passive: true });
+  body.addEventListener('pointerdown', () => holdRepaint(400), { passive: true });
   body.addEventListener('pointerdown', (e) => { if (e.pointerType === 'mouse' && e.button === 0) dStart(e.clientX, e.clientY, e.target, false); });
   window.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse' && drag.src && !drag.touch) dMove(e.clientX, e.clientY); });
   window.addEventListener('pointerup', (e) => { if (e.pointerType === 'mouse' && drag.src && !drag.touch) dEnd(false); });
@@ -318,8 +328,8 @@
     open(kind, arg) {
       H.layerShow(); clearTimeout(closing); closing = 0; $('sheet').classList.remove('p1-out'); opening = true;
       if (kind === 'tree') { ui.tree = arg && CM.skilltree.TABS.includes(arg) ? arg : 'mine'; openPanel('tree'); }
-      else if (kind === 'mice') { openPanel('mice'); if (arg) ui.miceView = arg; if (ui.miceView !== 'rocks') repaint(); }
-      else if (kind === 'card') { openPanel('mice'); ui.card = arg; lastHtml = ''; repaint(); }
+      else if (kind === 'mice') { openPanel('mice'); ui.miceView = arg || 'rocks'; lastHtml = ''; repaint(); }
+      else if (kind === 'card') { openPanel('mice'); ui.card = arg; ui.cardHome = true; lastHtml = ''; repaint(); }
       else if (kind === 'post') { openPanel('mice'); ui.pick = arg; lastHtml = ''; repaint(); }
       else if (kind === 'recruit') { openPanel('mice'); ui.miceTab = G().cands.length ? 'recruit' : ''; lastHtml = ''; repaint(); }
       else if (kind === 'book') { openPanel('cheese'); ui.cheeseView = 'book'; lastHtml = ''; repaint(); }

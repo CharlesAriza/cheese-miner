@@ -129,7 +129,7 @@
         case 'refineDone': made('base', e.amount); scene.onEvent('refineDone'); break;
         case 'lotDone': made('cheese', e.n + (e.wheel || 0)); scene.onEvent('cookDone'); break;
         case 'sale': made('coins', e.coins); scene.onEvent('sale'); break;
-        case 'sellStart': if (e.by) saleLog.push({ at: performance.now(), by: e.by, f: e.f || 1 }); break;
+        case 'sellStart': if (e.by) { if (saleFrom == null) saleFrom = performance.now(); saleLog.push({ at: performance.now(), by: e.by, f: e.f || 1 }); } break;
         case 'depth': { scene.onEvent('deeper'); const t = tierNow(); if (t !== tierShown) { scene.setTier(t); tierShown = t; scene.onEvent('stratum'); toast('New stratum: ' + t.toUpperCase()); } break; }
         case 'unlock': { const tx = UNLOCK_TXT(e.id); if (tx) toast(tx); if (/^(phase|path|ms)/.test(e.id)) freshUp = true; break; }
         case 'specialty': case 'trait': { const m = G.roster.find((x) => x.id === e.id), tr = REAL.mice.traits[e.trait]; if (m && tr && tr.kind !== 'legend') toast(m.name + ' learned ' + tr.name); toSheets(e); break; }
@@ -156,17 +156,33 @@
     w.firstChild.addEventListener('click', () => goBuild(id));
     $('plates').appendChild(w); g.el = w;
   }
-  function goBuild(id) { if (id === 'sell') focusSt('sell'); else { scene.showSurface(); openPz(id === 'house' ? 'mice' : 'lab'); } if (!SIGNS[id].el.hidden) pulse(SIGNS[id].el.firstChild, 'bump', 320); }
+  function goBuild(id) { if (id === 'sell') focusSt('sell'); else { scene.showSurface(); openPz(id === 'house' ? 'mice' : 'lab', id === 'house' && G.built.house ? 'house' : undefined); } if (!SIGNS[id].el.hidden) pulse(SIGNS[id].el.firstChild, 'bump', 320); if (scene.stationState(id) !== 'build') knowBuilding(id); }
+  // Un edificio ya construido lleva su nombre hasta que se ha tocado o se ha visto un rato: una pista inicial, quieta. Después, solo responde al toque.
+  const BUILDING_OF = { shop: 'sell', house: 'house', lab: 'lab' }, HINT_MS = 30000, hintSeen = {};
+  const isBuilt = (id) => scene.stationState(id) === 'on' || (id === 'house' && G.built.house) || (id === 'lab' && G.lab.built) || (id === 'sell' && G.s.built.sell);
+  const knowBuilding = (id) => { if (G.seen['bld.' + id] == null) { Core.act(G, 'seen', { id: 'bld.' + id }); saveNow(); } };
+  function tapBuilding(hid) {
+    const id = BUILDING_OF[hid], r = scene.buildingRect(hid);
+    if (r) { const sb = $('scene-box').getBoundingClientRect(), cr = $('cv').getBoundingClientRect(), [x0, y0] = scene.toScreen(r[0], r[1]), [x1, y1] = scene.toScreen(r[0] + r[2], r[1] + r[3]), el = document.createElement('i'); el.className = 'bd-press'; el.style.cssText = 'left:' + Math.round(cr.left - sb.left + x0) + 'px;top:' + Math.round(cr.top - sb.top + y0) + 'px;width:' + Math.round(x1 - x0) + 'px;height:' + Math.round(y1 - y0) + 'px'; $('scene-box').appendChild(el); setTimeout(() => el.remove(), 260); }
+    if (isBuilt(id)) knowBuilding(id);
+    if (id === 'sell') return selected === 'sell' && isBuilt('sell') ? openPz('shopinfo') : focusSt('sell'); // la tienda es también una estación: el primer toque la elige
+    if (id === 'lab') return openPz('lab');
+    return openPz('mice', G.built.house ? 'house' : undefined);
+  }
   function placeSigns() {
-    if (Object.keys(SIGNS).every((id) => SIGNS[id].el.hidden && scene.stationState(id) !== 'build')) return; // sin obras pendientes no se mide nada en cada fotograma
+    const hinted = (id) => isBuilt(id) && G.seen['bld.' + id] == null;
+    if (Object.keys(SIGNS).every((id) => SIGNS[id].el.hidden && scene.stationState(id) !== 'build' && !hinted(id))) return; // sin obras ni pistas pendientes no se mide nada en cada fotograma
     const sb = $('scene-box').getBoundingClientRect(), cr = $('cv').getBoundingClientRect(), ox = cr.left - sb.left, oy = cr.top - sb.top, W = sb.width, top = topInset(), used = [];
     for (const [id, g] of Object.entries(SIGNS)) {
-      const on = scene.stationState(id) === 'build'; if (g.el.hidden === on) g.el.hidden = !on;
+      const build = scene.stationState(id) === 'build', hint = !build && hinted(id), on = build || hint; if (g.el.hidden === on) g.el.hidden = !on;
       if (!on) continue;
+      g.el.firstChild.classList.toggle('build', build); g.el.classList.toggle('known', hint);
       const r = scene.buildingRect(g.at), [ax, ay] = scene.toScreen(r[0] + r[2] / 2, r[1]), by = oy + scene.toScreen(r[0], r[1] + r[3])[1], w = g.el.offsetWidth, up = by < top + 28;
       const x = up ? W - w - 6 : Math.max(6, Math.min(W - w - 6, Math.round(ox + ax - w / 2))); let y = up ? top : Math.max(top, Math.round(oy + ay) - 36);
       while (used.some((u) => x < u[0] + u[2] && u[0] < x + w && y < u[1] + 28 && u[1] < y + 28)) y += 28;
       used.push([x, y, w]); g.el.style.left = x + 'px'; g.el.style.top = y + 'px'; g.el.classList.toggle('up', up);
+      // La pista solo se enseña con el edificio a la vista, y deja de enseñarse tras un rato mirándolo.
+      if (hint) { g.el.style.visibility = up ? 'hidden' : ''; if (!up) { hintSeen[id] = (hintSeen[id] || 0) + 1; if (hintSeen[id] * 16 > HINT_MS) knowBuilding(id); } } else g.el.style.visibility = '';
     }
   }
   let plateSig = ''; const ghostAt = {};
@@ -214,7 +230,7 @@
     if (st === 'drill') { status = job ? 'Extracting RAW' : v.open ? 'Tap to extract RAW' : 'Waiting for a vein'; tone = job ? 'good' : 'stop'; flow = ri('raw') + fmt(s.inv.raw) + ' · +' + fmt(rate('raw')) + '/min'; off = !v.open; if (off) acts = 'No vein yet'; }
     if (st === 'refine') { status = job ? 'Refining RAW' : s.inv.raw >= REAL.refinery.rawPerBase ? 'Tap to refine' : 'Waiting for RAW'; tone = job ? 'good' : 'stop'; flow = ri('raw') + fmt(s.inv.raw) + ' → ' + ri('base') + fmt(s.inv.base); }
     if (st === 'cheese') { status = job ? 'Making wheels' : s.inv.base >= REAL.cheesery.lotBase ? 'Tap to make cheese' : 'Waiting for BASE'; tone = job ? 'good' : 'stop'; flow = ri('base') + fmt(s.inv.base) + ' → ' + ri('lot') + fmt(Mo.lotsTotal(s)); }
-    if (st === 'sell') { const lots = Mo.lotsTotal(s); status = job ? 'Selling cheese' : lots > 0 ? 'Tap to sell' : 'No cheese to sell'; tone = job ? 'good' : 'stop'; flow = ri('lot') + fmt(lots) + ' → ' + ri('coin') + '+' + fmt(rate('coins')) + '/min'; }
+    if (st === 'sell') { const lots = Mo.lotsTotal(s); status = job ? 'Selling cheese' : lots > 0 ? 'Tap to sell' : 'No cheese to sell'; tone = job ? 'good' : 'stop'; flow = ri('lot') + fmt(lots) + ' → ' + ri('coin') + '+' + fmt(income()) + '/min'; }
     const ss = scene.stationState(st);
     if (ss !== 'on') { const q = buildReq(st); tone = ss === 'build' ? 'good' : 'stop'; status = ss === 'build' ? 'Ready to build' : 'Not built yet'; flow = ss === 'build' ? (st === 'sell' ? 'Sells your cheese · free' : BNAME[st] + ' · free') : q.text + ' (' + fmt(q.cur) + '/' + fmt(q.need) + ')'; act = 'BUILD'; acts = ss === 'build' ? 'Tap to build' : 'Locked'; off = ss !== 'build'; dig = false; bar = q.cur / q.need; }
     $('pn-bar').style.width = Math.round(Math.max(0, Math.min(1, bar)) * 100) + '%';
@@ -301,8 +317,8 @@
   const res = $('res-pop');
   function paintRes() {
     const t = tierNow(), s = G.s, row = (icon, name, sub, val, r) => '<button class="res-row" data-res="' + name + '"><img class="pix" src="' + icd(icon) + '" alt=""><span><b>' + name + '</b><small>' + sub + '</small></span><em><b>' + val + '</b><small>' + r + '</small></em><i class="rr-go" aria-hidden="true">›</i></button>';
-    res.innerHTML = '<h5>RESOURCES <small>LAST MINUTE</small></h5>' +
-      row('ic_coin', 'COINS', 'From the shop', fmt(s.coins), '+' + fmt(rate('coins')) + '/min') +
+    res.innerHTML = '<h5>RESOURCES <small>STOCK · LAST MINUTE</small></h5>' +
+      row('ic_coin', 'COINS', 'Earned in the shop', fmt(s.coins), '+' + fmt(income()) + '/min') +
       row('ic_lot_' + t, 'CHEESE', 'Wheels waiting to sell', fmt(Mo.lotsTotal(s)), '+' + fmt(rate('cheese')) + '/min') +
       row('ic_base_' + t, 'CHEESE BASE', 'Ready for the cheesery', fmt(s.inv.base), '+' + fmt(rate('base')) + '/min') +
       row('ic_raw_' + t, 'RAW CHEESE', 'Ready for the refinery', fmt(s.inv.raw), '+' + fmt(rate('raw')) + '/min');
@@ -341,7 +357,8 @@
     if (n > was) { if (plates[st]) pulse(plates[st].querySelector('.bo-chip'), 'stamp', 420); if (st === selected) pulse($('pn-st').querySelector('.bo-chip'), 'stamp', 420); }
     if (pzOpen()) boostPend[st] = n; else showBoost(n, st);
   }
-  function showBoost(n, st) { scene.boostTo(st, n, scene.stationInView(st, topInset(), 0)); }
+  // Siempre con su animación: exigir media máquina a la vista la saltaba en un móvil, donde se ve menos escena, y el sprite cambiaba de golpe.
+  function showBoost(n, st) { scene.boostTo(st, n, true); }
   function flushBoost() { for (const st of Object.keys(boostPend)) { const n = boostPend[st]; delete boostPend[st]; showBoost(n, st); } }
   function boostLabel(st, n, x, y) {
     const el = document.createElement('div'); el.className = 'bo-float'; el.textContent = BO_LABEL[st][n] + (st === 'refine' ? ' BASE' : ' SPEED');
@@ -349,10 +366,13 @@
     setTimeout(() => el.remove(), 1300);
   }
   // Ventas de los últimos minutos, por queso: las de verdad, contadas según llegan. Con el juego cerrado no se cuentan.
-  const saleLog = [];
+  const saleLog = []; let saleFrom = null, incomeAt = -1e9, incomeV = 0;
+  // Monedas por minuto: la misma cifra en el marcador, en RESOURCES, en el panel de SELL, en SHOP y en COINS.
+  const income = () => { const t = performance.now(); if (t - incomeAt > 250) { incomeAt = t; incomeV = salesRates(null, 60000).coins; } return incomeV; };
   function salesRates(s, win) {
     const now = performance.now(), from = now - win; while (saleLog.length && saleLog[0].at < from) saleLog.shift();
-    const span = saleLog.length ? Math.max(0.05, (now - saleLog[0].at) / 60000) : 0, bases = {}; let coins = 0;
+    // Lo vendido en la ventana, por minuto. Hasta tener la ventana entera se divide por lo medido (nunca menos de 12 s, para no inflar la primera venta).
+    const span = saleFrom == null ? 0 : Math.max(0.2, Math.min(win, now - saleFrom) / 60000), bases = {}; let coins = 0;
     for (const e of saleLog) for (const b of Object.keys(e.by)) { const o = bases[b] || (bases[b] = { c: 0, w: 0, n: 0, wn: 0 }), v = e.by[b]; o.n += v[0] / span; o.c += (v[1] * e.f) / span; o.wn += v[2] / span; o.w += (v[3] * e.f) / span; coins += ((v[1] + v[3]) * e.f) / span; }
     return { span, bases, coins };
   }
@@ -399,7 +419,7 @@
   }
   setTimeout(ensurePz, 3500); // precarga cuando la escena ya está en marcha
   function openPz(kind, arg) {
-    if (isOpen($('sheet'))) closeSheet(); closeRes(); if (isOpen(pop)) openCrew(false);
+    if (isOpen($('sheet'))) closeSheet(); closeRes(); if (isOpen(pop)) { PZ.popWas = true; openCrew(false); } // WORKERS vuelve al cerrar: no se pierde FOLLOW / STOP
     ensurePz(); PZ.want = [kind, arg];
     PZ.el.classList.remove('off'); PZ.el.setAttribute('aria-hidden', 'false');
     if (PZ.ready) return pzGo();
@@ -414,7 +434,8 @@
   function closePz(fromSheet) {
     PZ.want = null; $('pz-load').hidden = true; PZ.el.classList.remove('in');
     if (!fromSheet && PZ.ready) { let open = false; try { open = pzWin().SHEETS.isOpen; if (open) pzWin().SHEETS.close(); } catch (e) {} if (open) return; }
-    PZ.el.classList.add('off'); PZ.el.setAttribute('aria-hidden', 'true'); setTimeout(flushBoost, 60);
+    PZ.el.classList.add('off'); PZ.el.setAttribute('aria-hidden', 'true'); boostAfter = performance.now();
+    if (PZ.popWas) { PZ.popWas = false; if (!isOpen(pop)) openCrew(true); }
   }
   const openDepth = () => sheet('DEPTH ' + G.s.depth, '<p>Stratum: ' + tierNow().toUpperCase() + '. Every emptied vein takes the colony one level deeper. Each new stratum brings a richer cheese to study in the Cheese Lab.</p>');
   document.querySelectorAll('[data-nav]').forEach((b) => b.addEventListener('click', () => {
@@ -458,17 +479,16 @@
     if (fingers.size > 1 || multi) { multi = true; dragger.cancel(performance.now()); if (drag) { if (drag.moved) scene.dragEnd(0); drag = null; } return; }
     const r = cv.getBoundingClientRect(); drag = { id: e.pointerId, x: e.clientX, y: e.clientY, ly: e.clientY, moved: false, done: false, sx: e.clientX - r.left, sy: e.clientY - r.top, pts: [[performance.now(), e.clientY]] };
     try { cv.setPointerCapture(e.pointerId); } catch (err) {}
-    if (!e.button) { const m = scene.mouseAt(drag.sx, drag.sy), w = m && Core.whereIs(G, m.id); if (w && w.scene === 'main') dragger.press(m, drag.sx, drag.sy, performance.now()); }
+    if (!e.button) { const m = scene.mouseAt(drag.sx, drag.sy), w = m && Core.whereIs(G, m.id); drag.m = m || null; if (w && w.scene === 'main') dragger.press(m, drag.sx, drag.sy, performance.now()); }
   });
   cv.addEventListener('pointermove', (e) => {
     if (!drag || e.pointerId !== drag.id) return;
     if (dragger.holding || dragger.pressing) { const r = cv.getBoundingClientRect(); dragger.move(e.clientX - r.left, e.clientY - r.top); if (dragger.holding) return; }
-    if (!drag.moved && Math.hypot(e.clientY - drag.y, e.clientX - drag.x) > 7) { drag.moved = true; clearTimeout(drag.timer); dragger.abort(performance.now()); { const r = cv.getBoundingClientRect(); scene.dragStart(drag.y - r.top, drag.x - r.left); } closeRes(); drag.ly = e.clientY; }
+    if (!drag.moved && Math.hypot(e.clientY - drag.y, e.clientX - drag.x) > (drag.m ? TAP_SLOP_MOUSE : TAP_SLOP)) { drag.moved = true; clearTimeout(drag.timer); dragger.abort(performance.now()); { const r = cv.getBoundingClientRect(); scene.dragStart(drag.y - r.top, drag.x - r.left); } closeRes(); drag.ly = e.clientY; }
     if (drag.moved) { { const r = cv.getBoundingClientRect(); scene.dragBy(e.clientY - drag.ly, e.clientY - r.top, e.clientX - r.left); } drag.pts.push([performance.now(), e.clientY]); if (drag.pts.length > 6) drag.pts.shift(); }
     drag.ly = e.clientY;
   });
-  let lastTap = null;
-  const SECOND_TAP_MS = 700;
+  const TAP_SLOP = 7, TAP_SLOP_MOUSE = 12; // apoyar el dedo en un ratón admite más temblor: en un móvil, un toque se mueve varios píxeles
   const endDrag = (e) => {
     fingers.delete(e.pointerId); if (multi) { if (!fingers.size) multi = false; return; }
     if (!drag || e.pointerId !== drag.id) return;
@@ -476,7 +496,7 @@
     if (dragger.holding) {
       if (e.type === 'pointercancel') dragger.cancel(performance.now());
       // Soltarlo sin haberlo movido es un toque algo lento: lo selecciona, como en P1, en vez de quedarse en nada.
-      else if (Math.hypot(e.clientY - d.y, e.clientX - d.x) <= 7) { const m = dragger.heldMouse; dragger.cancel(performance.now(), true); camBefore = m ? { tap: m } : camBefore; }
+      else if (Math.hypot(e.clientY - d.y, e.clientX - d.x) <= TAP_SLOP_MOUSE) { const m = dragger.heldMouse; dragger.cancel(performance.now(), true); camBefore = m ? { tap: m } : camBefore; }
       else dragger.release(performance.now());
       return;
     }
@@ -485,16 +505,13 @@
     if (d.moved) { const a = d.pts[0], b = d.pts[d.pts.length - 1], dt = Math.max(16, b[0] - a[0]), v = performance.now() - b[0] > 90 ? 0 : (b[1] - a[1]) / dt; scene.dragEnd(v); return; }
     if (d.done) return;
     closeRes(); scene.tapAt(d.sx, d.sy);
-    const m = scene.mouseAt(d.sx, d.sy), t = performance.now(), prev = lastTap, sel = scene.selectedMouse; lastTap = null;
-    // Un toque elige al ratón; otro toque en el ya elegido abre su ficha, sin prisa. El primero mueve la cámara, así que justo después
-    // también vale donde cayó el dedo, y al ya elegido se le da un margen: es pequeño y se mueve.
-    if (prev && t - prev.t < SECOND_TAP_MS && Math.hypot(d.sx - prev.x, d.sy - prev.y) < 36 && (!m || m.id === prev.id)) return openPz('card', prev.id);
-    if (!m && sel) { const n = scene.nodes().find((q) => q.m && q.m.id === sel && q.px != null); if (n) { const [x, y] = scene.toScreen(n.px + 11, n.py - 9); if (Math.hypot(d.sx - x, d.sy - y) < 30) return openPz('card', sel); } }
-    if (m) { if (m.id !== sel) lastTap = { id: m.id, x: d.sx, y: d.sy, t }; return tapMouse(m); }
+    // El ratón es el que había bajo el dedo al apoyarlo: los ratones se mueven, y al levantarlo puede haberse ido un poco.
+    const m = d.m || scene.mouseAt(d.sx, d.sy);
+    if (m) return tapMouse(m);
     const h = scene.hit(d.sx, d.sy); if (!h) { scene.release(); return; }
     if (h.type === 'face') { if (scene.focusedStation !== 'mine') focusSt('mine'); tapMine(); return; }
     if (h.type === 'station') { if (scene.focusedStation !== h.id) focusSt(h.id); return; }
-    if (h.type === 'building') { if (h.id === 'shop') return focusSt('sell'); if (h.id === 'lab') return openPz('lab'); return openPz('mice'); }
+    if (h.type === 'building') return tapBuilding(h.id);
   };
   // Mantener pulsado no debe abrir nada del navegador ni hacer scroll de la página: cortaría el gesto.
   cv.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -504,8 +521,9 @@
   cv.addEventListener('pointercancel', endDrag);
   let wheelT = 0;
   cv.addEventListener('wheel', (e) => { e.preventDefault(); if (!wheelT) scene.dragStart(); scene.dragBy(-e.deltaY); clearTimeout(wheelT); wheelT = setTimeout(() => { scene.dragEnd(0); wheelT = 0; }, 120); }, { passive: false });
-  function tapMouse(m) {
-    if (scene.selectedMouse === m.id) return openPz('card', m.id);
+  // Toque corto en un ratón: su ficha, sin pasos intermedios. Elegirlo (para FOLLOW) se hace en su fila de WORKERS.
+  function tapMouse(m) { if (byId(m.id)) openPz('card', m.id); }
+  function selectMouse(m) {
     const n = scene.nodes().find((q) => q.m && q.m.id === m.id); if (!n) return;
     const w = workOf(n), work = WORK.includes(w); if (work && w !== selected) select(w);
     openCrew(work); scene.pickMouse(m.id, topInset()); if (work) paintCrew(true);
@@ -659,7 +677,18 @@
     const st = Object.keys(L.styles).length; if (st > labSeen.styles) { labSeen.styles = st; toast('New cheese to research!'); }
     for (const k of Object.keys(L.strainsOf || {})) { const n = L.strainsOf[k].length; if (n > (labSeen.strains[k] || 0)) { labSeen.strains[k] = n; if (PZ.ready) try { pzWin().SHEETS.strainFound(k, L.strainsOf[k][n - 1]); } catch (e) { console.warn(e); } toast('New strain found: compare it in LAB'); } }
   }
-  let revAt = 0, lastDraw = 0;
+  let revAt = 0, lastDraw = 0, boostAfter = 0, boostCalm = 0, lastFrameAt = 0;
+  // Las monedas se mueven de verdad a saltos: entran al cerrarse una venta y salen con cada hornada (el ingrediente), con los gerentes y con lo que compra el jugador.
+  // El marcador enseña siempre el saldo real; esto dice cuánto ha cambiado, como mucho una vez cada 1,2 s y con el total, igual que los demás efectos.
+  const coinTag = document.createElement('i'); coinTag.className = 'hud-delta'; $('scene-box').appendChild(coinTag);
+  let coinsPrev = null, coinsNet = 0, coinsAt = 0;
+  function coinsTick(now) {
+    const c = G.s.coins; if (coinsPrev == null || off || pzOpen()) { coinsPrev = c; coinsNet = 0; return; }
+    coinsNet += c - coinsPrev; coinsPrev = c;
+    if (!coinsNet || now - coinsAt < 1200) return;
+    coinsAt = now; const up = coinsNet > 0; coinTag.textContent = (up ? '+' : '-') + fmt(Math.abs(coinsNet)); coinTag.classList.toggle('dn', !up); coinsNet = 0;
+    if (coinTag.animate && !RM()) coinTag.animate([{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none', offset: 0.15 }, { opacity: 1, transform: 'none', offset: 0.7 }, { opacity: 0, transform: 'translateY(-3px)' }], { duration: 1000, easing: 'steps(6)' });
+  }
   const COVERED_MS = 66;
   // ---- Avisos de máquina: la placa aprobada (.ad-warn y su colocación, labelLayer) con lo que le falta de verdad ----
   // Ámbar si lo que falta ya viene de camino; roja si no viene. Sale al segundo y medio de faltar y se va a los 0,8 s de volver, para no parpadear.
@@ -708,6 +737,10 @@
     if (off) offlineStep();
     else if (!paused) { if (elapsed >= OFFLINE_MIN && beginOffline(elapsed)) {} else if (elapsed > 0 && elapsed < OFFLINE_MIN) Core.advance(G, elapsed); }
     syncSim(); processEvents(); dragger.step(performance.now()); syncCrew(); dragger.settle(); syncWorld();
+    coinsTick(now);
+    // Lo pendiente de los refuerzos sale con la escena ya estable: justo al cerrar la hoja, el móvil pierde fotogramas y se comería la animación.
+    if (boostAfter && !pzOpen()) { const quiet = now - lastFrameAt < 40; boostCalm = quiet ? boostCalm + 1 : 0; if (boostCalm >= 3 || performance.now() - boostAfter > 500) { boostAfter = 0; boostCalm = 0; flushBoost(); } }
+    lastFrameAt = now;
     rushTick(now); goalTick(now);
     // Con una hoja delante, la escena queda tapada y atenuada: se pinta menos para que la hoja vaya fluida en el móvil (mismo hilo).
     if (!pzOpen() || now - lastDraw >= COVERED_MS) {
@@ -715,10 +748,10 @@
       placePlates(); placeSigns(); dragger.render(performance.now());
       alertsTick(now);
     }
-    const s = G.s, t = tierNow(), sig = [fmt(s.coins), fmt(rate('coins')), s.depth, t, s.vein.open, Math.floor((100 * (s.vein.open ? s.vein.left / Math.max(1, s.vein.cap) : s.vein.found / Math.max(1e-9, s.vein.need))))].join('|');
+    const s = G.s, t = tierNow(), sig = [fmt(s.coins), fmt(income()), s.depth, t, s.vein.open, Math.floor((100 * (s.vein.open ? s.vein.left / Math.max(1, s.vein.cap) : s.vein.found / Math.max(1e-9, s.vein.need))))].join('|');
     if (sig !== hudSig) {
       hudSig = sig;
-      $('hud-coins').textContent = fmt(s.coins); $('hud-rate').textContent = '+' + fmt(rate('coins')) + '/min';
+      $('hud-coins').textContent = fmt(s.coins); $('hud-rate').textContent = '+' + fmt(income()) + '/min';
       $('hud-depth').textContent = 'DEPTH ' + s.depth; $('hud-tier').textContent = t.toUpperCase(); $('hud-tieric').src = icd('ic_raw_' + t);
       $('hud-depthbar').style.width = Math.round(100 * (s.vein.open ? s.vein.left / Math.max(1, s.vein.cap) : s.vein.found / Math.max(1e-9, s.vein.need))) + '%';
       $('hud-depthbox').classList.toggle('vein', s.vein.open);
@@ -751,5 +784,5 @@
   select('mine');
   if (paused) startCover();
   requestAnimationFrame(frame);
-  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.BETA = { get G() { return G; }, get dragger() { return dragger; }, sim, scene, save: saveNow, sync: () => { syncSim(); syncCrew(); }, act: doAct, tick, focus: focusSt };
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.BETA = { get G() { return G; }, get dragger() { return dragger; }, sim, scene, pick: (id) => selectMouse(byId(id)), save: saveNow, sync: () => { syncSim(); syncCrew(); }, act: doAct, tick, focus: focusSt };
 })();
