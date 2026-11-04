@@ -93,7 +93,7 @@
     const r = SCENE_ROLE[role] || role, p = G.s.placed.find((q) => q.st === stCore && q.role === r);
     return p && !(dragger && dragger.isHidden(p.m)) ? p.m : null;
   }
-  const scene = CM.createColonyScene($('cv'), $('scene-box'), sim, { hit: () => {}, crewAt, camExit: new URLSearchParams(location.search).get('exit'), boostLabel: (st, n, x, y) => boostLabel(st, n, x, y) });
+  const scene = CM.createColonyScene($('cv'), $('scene-box'), sim, { hit: () => {}, crewAt, boostLabel: (st, n, x, y) => boostLabel(st, n, x, y) });
   let crewSig = '', selected = 'mine', tierShown = null;
   const crewSigOf = () => G.s.placed.map((p) => p.st + p.role + p.m.id).sort().join() + '|' + G.lab.workers.join() + '|' + WORK.map((st) => G.phase[st]).join('') + '|' + (dragger ? dragger.sig : '');
   function syncCrew(force) {
@@ -571,8 +571,8 @@
   cv.addEventListener('pointermove', (e) => {
     if (!drag || e.pointerId !== drag.id) return;
     if (dragger.holding || dragger.pressing) { const r = cv.getBoundingClientRect(); dragger.move(e.clientX - r.left, e.clientY - r.top); if (dragger.holding) return; }
-    if (!drag.moved && Math.hypot(e.clientY - drag.y, e.clientX - drag.x) > 7) { drag.moved = true; clearTimeout(drag.timer); dragger.abort(performance.now()); scene.dragStart(e.clientY - cv.getBoundingClientRect().top); closeRes(); drag.ly = e.clientY; }
-    if (drag.moved) { scene.dragBy(e.clientY - drag.ly, e.clientY - cv.getBoundingClientRect().top); drag.pts.push([performance.now(), e.clientY]); if (drag.pts.length > 6) drag.pts.shift(); }
+    if (!drag.moved && Math.hypot(e.clientY - drag.y, e.clientX - drag.x) > 7) { drag.moved = true; clearTimeout(drag.timer); dragger.abort(performance.now()); { const r = cv.getBoundingClientRect(); scene.dragStart(drag.y - r.top, drag.x - r.left); } closeRes(); drag.ly = e.clientY; }
+    if (drag.moved) { { const r = cv.getBoundingClientRect(); scene.dragBy(e.clientY - drag.ly, e.clientY - r.top, e.clientX - r.left); } drag.pts.push([performance.now(), e.clientY]); if (drag.pts.length > 6) drag.pts.shift(); }
     drag.ly = e.clientY;
   });
   const endDrag = (e) => {
