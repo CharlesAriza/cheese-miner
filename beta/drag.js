@@ -2,12 +2,12 @@
 // la mano, se lleva con el dedo y al soltar se confirma de una sola vez. La partida no cambia hasta ese momento: mientras se sostiene, el
 // ratón sigue trabajando en su puesto y aquí solo se decide qué se ve. Se dibuja en una capa propia, a la misma escala de píxeles.
 window.BetaDrag = function (o) {
-  const { scene, box, targets, confirm, onGrab, onEnd, reduced } = o;
+  const { scene, box, targets, confirm, onGrab, onEnd, onDone, reduced } = o;
   const LONG_MS = 300; // cuánto hay que mantener el dedo (ajustable tras probarlo en móviles reales)
   const HAND_AT = 90; // antes de esto no se enseña nada, para que un toque normal no haga aparecer la mano
-  const LIFT_MS = 110, DROP_MS = 640, SWAP_MS = 760, CANCEL_MS = 800, ABORT_MS = 170, REST_MS = 700;
+  const LIFT_MS = 110, DROP_MS = 640, SWAP_MS = 760, CANCEL_MS = 800, QUICK_MS = 320, ABORT_MS = 170, REST_MS = 700;
   const LAND = { drop: 0.3, swap: 0.3, cancel: 0.45 }, OTHER_LANDS = 0.7;
-  const EDGE = 64, SCROLL_MAX = 420; // zona de los bordes (px) y velocidad máxima de la cámara al acercarse (px/s)
+  const EDGE = 64, SCROLL_MAX = 420, SCROLL_ARM = 24; // zona de los bordes (px), velocidad máxima de la cámara (px/s) y cuánto hay que mover el dedo para que empiece: coger un ratón que ya está cerca del borde no debe mover la cámara
   const GRIP_X = 22, GRIP_Y = 21; // del dedo al lienzo del ratón (px de dibujo): la muñeca queda sobre el dedo y el ratón, arriba a la izquierda
 
   // SPRITE: la mano es un puntero, de abierta a cerrada, según la referencia del propietario. Se pinta tal cual, con su contorno.
@@ -36,7 +36,7 @@ window.BetaDrag = function (o) {
   function hollow(src, col) { const c = document.createElement('canvas'); c.width = src.width; c.height = src.height; const x = c.getContext('2d'), d = src.getContext('2d').getImageData(0, 0, src.width, src.height).data, on = (i, j) => i >= 0 && j >= 0 && i < src.width && j < src.height && d[(j * src.width + i) * 4 + 3] > 0; x.fillStyle = col; for (let j = 0; j < src.height; j++) for (let i = 0; i < src.width; i++) if (on(i, j) && !(on(i - 1, j) && on(i + 1, j) && on(i, j - 1) && on(i, j + 1))) x.fillRect(i, j, 1, 1); return c; }
   const ghostFill = CM.art.ghostCanvas(), ghost = hollow(ghostFill, '#62d36e'), ghostGold = hollow(ghostFill, '#ffcf2e');
 
-  const ov = document.createElement('canvas'); ov.className = 'dh-ov'; box.appendChild(ov);
+  const ov = document.createElement('canvas'); ov.className = 'dh-ov'; ov.style.display = 'none'; box.appendChild(ov); // sin gesto, la capa ni existe para el navegador: no cuesta nada al pintar
   const g = ov.getContext('2d');
   const tag = document.createElement('div'); tag.className = 'dh-tag'; tag.hidden = true; tag.innerHTML = '<b></b><small></small>'; box.appendChild(tag);
   const sprites = new Map();
@@ -93,6 +93,9 @@ window.BetaDrag = function (o) {
     tag.style.left = Math.round(clamp(ax - w / 2, 6, W - w - 6)) + 'px'; tag.style.top = Math.round(clamp(ht - h - 4, top, H - h - 4)) + 'px';
   }
 
+  // Coger otro ratón sin esperar a que acabe una transición: esta se da por terminada al instante, con cada ratón en su sitio.
+  function finish() { if (st.m) show(st.m); if (st.other) show(st.other); st = null; }
+
   // ---- Gesto ----
   const api = {
     get holding() { return !!st && st.k === 'hold'; },
@@ -100,9 +103,10 @@ window.BetaDrag = function (o) {
     get busy() { return !!st; },
     get sig() { return hiddenSig; },
     get target() { return st && st.k === 'hold' ? st.tgt : null; },
+    get heldMouse() { return st && st.k === 'hold' ? st.m : null; },
     isHidden: (m) => hidden.has(m.id),
     GRIP_X, GRIP_Y, LONG_MS,
-    press(m, sx, sy, now) { if (st) return false; const n = nodeOf(m); if (!n || n.px == null) return false; sprites.clear(); st = { k: 'press', m, t0: now, fx: sx, fy: sy }; return true; },
+    press(m, sx, sy, now) { if (st && st.k !== 'abort') { if (st.k === 'hold' || st.k === 'press') return false; finish(); } const n = nodeOf(m); if (!n || n.px == null) return false; sprites.clear(); st = { k: 'press', m, t0: now, fx: sx, fy: sy }; return true; },
     move(sx, sy) { if (st && (st.k === 'press' || st.k === 'hold')) { st.fx = sx; st.fy = sy; } },
     // Se suelta antes de tiempo o el dedo se mueve: era un toque o un arrastre de cámara. La mano, si ya asomaba, se va.
     abort(now) { if (!st || st.k !== 'press') return; const n = nodeOf(st.m), seen = now - st.t0 > HAND_AT; st = seen && n && n.px != null ? { k: 'abort', t0: now, x: n.px, my: n.py - 20 } : null; },
@@ -118,20 +122,22 @@ window.BetaDrag = function (o) {
       st = Object.assign(base, { k: 'cancel', d: CANCEL_MS });
     },
     // Cualquier interrupción (segundo dedo, el sistema, cambiar de app): vuelve a su sitio sin haber cambiado nada.
-    cancel(now) { if (!st) return; if (st.k === 'press') return api.abort(now); if (st.k !== 'hold') return; const h = st; tag.hidden = true; onEnd(); st = { k: 'cancel', d: CANCEL_MS, m: h.m, t0: now, from: { x: h.x, my: h.my }, src: h.src }; },
+    // quick: se soltó sin moverlo (era un toque algo lento): vuelve enseguida para seleccionarlo.
+    cancel(now, quick) { if (!st) return; if (st.k === 'press') return api.abort(now); if (st.k !== 'hold') return; const h = st; tag.hidden = true; onEnd(); st = { k: 'cancel', d: quick ? QUICK_MS : CANCEL_MS, m: h.m, t0: now, from: { x: h.x, my: h.my }, src: h.src }; },
     // Antes de dibujar la escena: si no, al acabar una transición habría un fotograma sin ratón.
     step(now) {
       if (!st) return;
       if (st.k === 'press' && now - st.t0 >= LONG_MS) {
         const n = nodeOf(st.m), list = targets(st.m), src = list.find((p) => p.source);
         if (!n || n.px == null || !src) { st = null; return; }
-        st = { k: 'hold', m: st.m, t0: now, fx: st.fx, fy: st.fy, x: n.px, my: n.py - 20, x0: n.px, my0: n.py - 20, src, tgt: null };
+        st = { k: 'hold', m: st.m, t0: now, fx: st.fx, fy: st.fy, x: n.px, my: n.py - 20, x0: n.px, my0: n.py - 20, gx: st.fx, gy: st.fy, armed: false, src, tgt: null };
         spr(st.m); hide(st.m); onGrab();
       }
       if (st.k === 'hold') {
         // La cámara se desplaza sola cerca de los bordes, más deprisa cuanto más cerca.
+        if (!st.armed && Math.hypot(st.fx - st.gx, st.fy - st.gy) > SCROLL_ARM) st.armed = true;
         const dt = Math.min(50, Math.max(0, now - lastNow)), H = box.clientHeight, top = o.topInset(), up = clamp((top + EDGE - st.fy) / EDGE, 0, 1), down = clamp((st.fy - (H - EDGE)) / EDGE, 0, 1), v = (up - down) * SCROLL_MAX * (dt / 1000);
-        if (v) scene.dragBy(v);
+        if (v && st.armed) scene.dragBy(v);
         const [wx, wy] = toWorld(st.fx, st.fy), tx = wx - GRIP_X, ty = wy - GRIP_Y, l = smooth(clamp((now - st.t0) / LIFT_MS, 0, 1));
         st.x = st.x0 + (tx - st.x0) * l; st.my = st.my0 + (ty - st.my0) * l;
       }
@@ -139,15 +145,16 @@ window.BetaDrag = function (o) {
         const q = clamp((now - st.t0) / st.d, 0, 1);
         if (!st.landed && q >= LAND[st.k]) { st.landed = true; show(st.m); st.rest = st.m; }
         if (st.k === 'swap' && !st.settled && q >= OTHER_LANDS) { st.settled = true; show(st.other); st.rest2 = st.other; }
-        if (q >= 1) st = null;
+        if (q >= 1) { st = null; onDone(); return; }
       } else if (st.k === 'abort' && now - st.t0 >= ABORT_MS) st = null;
       lastNow = now;
     },
     // Después de sincronizar la escena: el recién colocado espera a que la mano se haya ido antes de ponerse a trabajar.
     settle() { if (!st) return; if (st.rest) { scene.restMouse(st.rest, REST_MS); st.rest = null; } if (st.rest2) { scene.restMouse(st.rest2, REST_MS); st.rest2 = null; } },
     render(now) {
+      if (!st) { if (ov.style.display !== 'none') { ov.style.display = 'none'; g.clearRect(0, 0, ov.width, ov.height); } lastNow = now; return; }
+      if (ov.style.display === 'none') ov.style.display = '';
       size(); g.clearRect(0, 0, ov.width, ov.height);
-      if (!st) { lastNow = now; return; }
       if (st.k === 'press') {
         const n = nodeOf(st.m), t = now - st.t0; if (!n || n.px == null || t < HAND_AT) return;
         const x = n.px, y = n.py - 20, q = (t - HAND_AT) / (LONG_MS - HAND_AT);

@@ -156,6 +156,7 @@
   }
   function goBuild(id) { if (id === 'sell') focusSt('sell'); else { scene.showSurface(); if (id === 'house') openMice(); else openLab(); } if (!SIGNS[id].el.hidden) pulse(SIGNS[id].el.firstChild, 'bump', 320); }
   function placeSigns() {
+    if (Object.keys(SIGNS).every((id) => SIGNS[id].el.hidden && scene.stationState(id) !== 'build')) return; // sin obras pendientes no se mide nada en cada fotograma
     const sb = $('scene-box').getBoundingClientRect(), cr = $('cv').getBoundingClientRect(), ox = cr.left - sb.left, oy = cr.top - sb.top, W = sb.width, top = topInset(), used = [];
     for (const [id, g] of Object.entries(SIGNS)) {
       const on = scene.stationState(id) === 'build'; if (g.el.hidden === on) g.el.hidden = !on;
@@ -548,9 +549,17 @@
   dragger = BetaDrag({
     scene, box: $('scene-box'), targets: dragTargets, reduced: RM, topInset,
     confirm: (m, t) => doAct('move', { id: m.id, st: t.st, role: t.role }).ok,
-    onGrab: () => { closeRes(); if (isOpen(pop)) openCrew(false); scene.unpick(); scene.dragStart(); },
+    // Coger un ratón suspende lo que hacía la cámara (hay que ver los puestos); al terminar, se devuelve tal cual: FOLLOW sigue a quien seguía,
+    // la selección y el foco de estación siguen ahí, y siempre con el controlador de P1, sin mover la cámara por otro camino.
+    onGrab: () => { camBefore = { follow: scene.following ? scene.selectedMouse : null, sel: scene.selectedMouse, st: scene.focusedStation, pop: isOpen(pop) }; closeRes(); if (isOpen(pop)) openCrew(false); scene.unpick(); scene.dragStart(); },
     onEnd: () => scene.dragEnd(0),
+    onDone: () => { const c = camBefore; camBefore = null; if (!c) return; if (c.tap) return tapMouse(c.tap); const has = (id) => id && scene.nodes().some((n) => n.m && n.m.id === id && n.px != null);
+      if (has(c.sel)) { pickMouseId(c.sel); if (c.follow === c.sel) scene.focusMouse(c.sel); if (c.pop) openCrew(true); return; }
+      if (c.st) scene.focusStation(c.st); if (c.pop) openCrew(true); },
   });
+  let camBefore = null;
+  // Si el jugador toca cualquier otra cosa antes de que acabe la transición, manda él: no se le recoloca la cámara.
+  document.addEventListener('pointerdown', () => { if (!dragger.holding) camBefore = null; }, true);
   const cv = $('cv'); let drag = null, multi = false; const fingers = new Set();
   cv.addEventListener('pointerdown', (e) => {
     fingers.add(e.pointerId);
@@ -570,7 +579,13 @@
     fingers.delete(e.pointerId); if (multi) { if (!fingers.size) multi = false; return; }
     if (!drag || e.pointerId !== drag.id) return;
     const d = drag; drag = null; clearTimeout(d.timer);
-    if (dragger.holding) { if (e.type === 'pointercancel') dragger.cancel(performance.now()); else dragger.release(performance.now()); return; }
+    if (dragger.holding) {
+      if (e.type === 'pointercancel') dragger.cancel(performance.now());
+      // Soltarlo sin haberlo movido es un toque algo lento: lo selecciona, como en P1, en vez de quedarse en nada.
+      else if (Math.hypot(e.clientY - d.y, e.clientX - d.x) <= 7) { const m = dragger.heldMouse; dragger.cancel(performance.now(), true); camBefore = m ? { tap: m } : camBefore; }
+      else dragger.release(performance.now());
+      return;
+    }
     dragger.abort(performance.now());
     if (e.type === 'pointercancel' && !d.moved) return;
     if (d.moved) { const a = d.pts[0], b = d.pts[d.pts.length - 1], dt = Math.max(16, b[0] - a[0]), v = performance.now() - b[0] > 90 ? 0 : (b[1] - a[1]) / dt; scene.dragEnd(v); return; }
