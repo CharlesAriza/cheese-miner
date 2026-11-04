@@ -6005,7 +6005,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
   // pan: la curva lleva también la altura con la cámara libre (recentrar al elegir un ratón que no se ve).
   function startTween(pan) { tw = { fx: cam.x, fy: cam.y, fz: dz, t0: null, ms: 0, pan: !!pan }; camLocked = false; } // empieza en el siguiente fotograma, con el reloj de la escena
   function camTick(dt, now) {
-    const tz = mode === 'mouse' ? d0 + 1 : d0;
+    const tz = mode === 'mouse' || exitHold ? d0 + 1 : d0;
     let tx, ty;
     if (mode === 'mouse') {
       const n = nodes.find((q) => q.m && q.m.id === selMouse);
@@ -6015,7 +6015,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     } else if (mode === 'station') {
       tx = centerXz(tz); if (focusSt === 'mine') cam.ty = clampYz(stRect('mine')[1] + stRect('mine')[3] / 2 - vHz(tz) / 2 - 8, tz); ty = cam.ty;
     } else {
-      tx = centerXz(tz);
+      tx = exitHold ? cam.x : centerXz(tz);
       if (anchored && !dragging) cam.ty = clampYz(baseBottom() - vHz(tz), tz);
       if (Math.abs(cam.vy) > 0.002) { cam.ty = clampY(cam.ty + cam.vy * dt); cam.vy *= Math.pow(0.9, dt / 16); if (cam.ty === clampY(-1e9) || cam.ty === clampY(1e9)) cam.vy = 0; } else cam.vy = 0;
       ty = cam.ty;
@@ -6023,8 +6023,9 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     if (tw) {
       if (tw.t0 == null) tw.t0 = now;
       if (!tw.ms) tw.ms = Math.max(350, Math.min(900, 330 + Math.hypot(tx - tw.fx, ty - tw.fy) * 2.2 + Math.abs(tz - tw.fz) * 120));
-      const k = Math.min(1, (now - tw.t0) / tw.ms), e = easeIO(k);
+      const k = Math.min(1, (now - tw.t0) / tw.ms), e = exitFinger != null ? 1 - Math.pow(1 - k, 3) : easeIO(k), wyF = exitFinger != null ? cam.y + exitFinger / s : 0;
       dz = tw.fz + (tz - tw.fz) * e; s = dz / dpr;
+      if (exitFinger != null) { ty = clampYz(wyF - exitFinger / s, dz); cam.ty = ty; if (k >= 1) exitFinger = null; }
       cam.x = tw.fx + (tx - tw.fx) * e;
       // Libre (al soltar o al arrastrar): la altura la lleva el dedo o el ancla; la curva solo mueve el zoom y el centrado.
       const ly = mode !== 'free' || (tw.pan && !dragging);
@@ -6043,6 +6044,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     const want = mode === 'free' ? 0 : 1; focusAmt += (want - focusAmt) * Math.min(1, dt / 90); if (Math.abs(want - focusAmt) < 0.01) focusAmt = want;
   }
   let camLocked = false; // el seguimiento ya llegó al ratón: desde ahí va pegado a él
+  let exitFinger = null, exitHold = false;
   let dragging = false, anchored = true; // anclada: la cámara libre sigue al fondo de MINE (como al empezar)
   function release() { if (mode !== 'free') { focusOut = { st: mode === 'station' ? focusSt : null }; if (mode === 'mouse') { startTween(); cam.ty = cam.y + vHz(dz) / 2 - vHz(d0) / 2; } } mode = 'free'; selMouse = null; }
   function focusStation(st) {
@@ -6306,9 +6308,9 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     unfollow() { if (mode === 'mouse') { const k = selMouse; release(); selMouse = k; } },
     selectMouse(id) { if (id) focusMouse(id); else if (mode === 'mouse') release(); },
     // Arrastre con el dedo (1:1) y lanzamiento al soltar (inercia).
-    dragStart() { const keep = selMouse; release(); selMouse = keep; dragging = true; anchored = false; cam.vy = 0; }, // arrastrar no quita la elección
-    dragBy(dy) { cam.ty = clampY(cam.ty - dy / s); cam.y = cam.ty; },
-    dragEnd(vy) { dragging = false; cam.vy = Math.max(-2.5, Math.min(2.5, -vy / s)); },
+    dragStart(fy) { const was = mode === 'mouse', keep = selMouse; release(); selMouse = keep; dragging = true; anchored = false; cam.vy = 0; if (was && fy != null && hooks.camExit === 'finger') { exitFinger = fy; if (tw) tw.ms = 420; } if (was && fy != null && hooks.camExit === 'release') { tw = null; exitHold = true; cam.ty = cam.y; } }, // arrastrar no quita la elección
+    dragBy(dy, fy) { if (exitFinger != null && fy != null) exitFinger = fy; cam.ty = clampY(cam.ty - dy / s); cam.y = cam.ty; },
+    dragEnd(vy) { dragging = false; if (exitHold) { exitHold = false; startTween(); cam.ty = cam.y + vHz(dz) / 2 - vHz(d0) / 2; } cam.vy = Math.max(-2.5, Math.min(2.5, -vy / s)); },
     // Dónde está en pantalla el ratón enfocado (para su placa con nombre y lo que hace).
     focusTag() { const n = selMouse && nodes.find((q) => q.m && q.m.id === selMouse); return n && n.px != null && here(n) ? { x: (n.px + 11 - cam.x) * s, y: (n.py + 2 - cam.y) * s, n } : null; },
     // Lo lejos que está la cámara de su sitio de partida (el fondo de MINE), en pantallas; y volver allí.
