@@ -1,0 +1,76 @@
+/* GENERADO por build_celebrate.py: celebraciones aprobadas (celebraciones.html). */
+body.p2 .vw-l3 { position: absolute; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 20px; background: #050308f0; cursor: pointer; }
+body.p2 .vw-l3[hidden] { display: none; }
+body.p2 .vw-l3 .card { position: relative; width: 100%; max-width: 300px; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px 14px 14px; background: #1d1828; border: 2px solid var(--gold); box-shadow: 0 0 0 2px var(--p4), inset 0 2px 0 #3d3352, 0 0 24px #ffcf2e44; }
+body.p2 .vw-l3 .top { font-family: var(--pixel); font-size: 12px; color: var(--gold); text-shadow: 2px 2px 0 #5a3a0a; }
+body.p2 .vw-l3 .nm { font-family: var(--pixel); font-size: 16px; line-height: 18px; color: var(--text); text-align: center; }
+body.p2 .vw-l3 p { margin: 0; font-size: 12px; line-height: 16px; color: var(--soft); text-align: center; }
+body.p2 .vw-l3 small { font-family: var(--pixel); font-size: 7px; color: var(--muted); }
+body.p2 .vw-l3 .sk { font-size: 10.5px; color: #7d7596; text-align: center; border-top: 1px dashed #3a3450; padding-top: 8px; }
+body.p2 .vw-lgw { font-family: var(--pixel); font-size: 16px; line-height: 18px; color: var(--gold); text-shadow: 2px 2px 0 #5a3a0a; letter-spacing: 1px; }
+body.p2 .vw-lgs { position: relative; width: 240px; height: 236px; }
+body.p2 .vw-lgbg { position: absolute; left: 0; top: 0; width: 240px; height: 236px; }
+body.p2 .vw-lgm { position: absolute; left: 43px; top: 73px; width: 154px; height: 140px; transform-origin: 50% 100%; }
+body.p2 .vw-lgstar { position: absolute; left: 79px; top: 16px; }
+body.p2 .vw-lgc { width: 100%; max-width: 300px; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 12px 14px 12px; background: #1d1828; border: 2px solid var(--gold); box-shadow: 0 0 0 2px var(--p4), inset 0 2px 0 #3d3352; }
+body.p2 .vw-lgc > small { font-family: var(--pixel); font-size: 7px; color: var(--muted); text-align: center; }
+body.p2 .vw-lgc > b { font-family: var(--pixel); font-size: 16px; line-height: 18px; font-weight: 400; color: var(--text); text-align: center; }
+body.p2 .vw-lgc p { margin: 0; font-size: 12px; line-height: 16px; color: var(--soft); text-align: center; }
+body.p2 .vw-lgc em { font-style: normal; font-family: var(--pixel); font-size: 7px; color: var(--muted); }
+body.p2 .vw-lgd { display: flex; align-items: center; gap: 10px; padding: 6px 10px 7px; background: #141020; border: 2px solid var(--p4); }
+body.p2 .vw-lgd span { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+body.p2 .vw-lgd small { font-family: var(--pixel); font-size: 6px; color: var(--muted); }
+body.p2 .vw-lgd s { font-family: var(--pixel); font-size: 8px; color: #8a83a0; }
+body.p2 .vw-lgd u { text-decoration: none; font-family: var(--pixel); font-size: 12px; color: var(--gold); }
+body.p2 .vw-lgd i { width: 8px; height: 8px; border-top: 2px solid var(--muted); border-right: 2px solid var(--muted); transform: rotate(45deg); }
+body.p2 .vw-chip[hidden] { display: none; }
+body.p2 .vw-yield canvas { display: block; flex: none; }
+body.p2 .vw-stage.lab { height: 112px; }
+body.p2 .vw-lgbang { position: absolute; left: 152px; top: 65px; font-family: var(--pixel); font-size: 16px; color: #fff3a0; text-shadow: 2px 2px 0 #5a3a0a; pointer-events: none; }
+body.p2 .vw-l3 .vw-lgw { margin-bottom: -4px; }
+body.p2 .vw-l3 .vw-lgc { margin-top: -14px; position: relative; }
+body.p2 .vw-lgwhere { align-self: stretch; padding: 6px 8px 7px; font-size: 11.5px; line-height: 15px; color: var(--soft); text-align: center; background: #141020; border: 2px solid var(--p4); }
+body.p2 .vw-lgwhere b { color: var(--text); }
+body.p2 .vw-lgwhere.free { border-style: dashed; border-color: #5a5270; }
+body.p2 #modal-body .cb-stage { height: 178px; }
+body.p2 #modal-body .cb-stage > canvas { top: 0; left: var(--cbx, 0px); }
+body.p2 #modal-body .cb-fx { left: var(--cbx, 0px) !important; }
+body.p2 #modal-body .cb-fx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+body.p2 #modal-body .cb-bang { position: absolute; font-family: var(--pixel); font-size: 18px; color: #fff3a0; text-shadow: 2px 2px 0 #3a2a5a; }
+body.p2 #modal-body .cb-spk { position: absolute; width: 4px; height: 4px; margin: -2px 0 0 -2px; pointer-events: none; }
+body.p2 #modal-body .cb-card { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 9px 10px 10px; background: #1a1622; border: 2px solid #2a2338; }
+body.p2 #modal-body .cb-who { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+body.p2 #modal-body .cb-who b { font-size: 13px; color: var(--text); }
+body.p2 #modal-body .cb-who span { font-size: 12px; color: var(--muted); }
+body.p2 #modal-body .cb-swap { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+body.p2 #modal-body .cb-old { font-size: 12px; font-weight: 800; color: #9cc0f4; }
+body.p2 #modal-body .cb-arr { display: inline-grid; place-items: center; }
+body.p2 #modal-body .cb-q { display: inline-block; perspective: 300px; }
+body.p2 #modal-body .cb-q > span { display: inline-block; padding: 4px 8px 5px; font-family: var(--pixel); font-size: 10px; line-height: 11px; color: #9cc0f4; border: 2px dashed #2b4a7a; white-space: nowrap; }
+body.p2 #modal-body .cb-q.on > span { color: #fff; background: #2b5cab; border-style: solid; border-color: #5a8ad8; box-shadow: inset 0 2px 0 #4a7ad0, inset 0 -2px 0 #1a3a7a; }
+body.p2 #modal-body .cb-info[hidden] { display: none; }
+body.p2 #modal-body .cb-info { display: flex; flex-direction: column; gap: 5px; }
+body.p2 #modal-body .cb-info small { font-family: var(--pixel); font-size: 7px; color: #9cc0f4; letter-spacing: .5px; }
+body.p2 #modal-body .cb-info p { margin: 0; font-size: 11.5px; line-height: 15px; color: var(--soft); }
+body.p2 #modal-body .cb-info p b { color: var(--text); }
+body.p2 #modal-body .cb-was { color: var(--muted) !important; }
+body.p2 #modal-body .cb-was s { color: #8a83a0; }
+body.p2 #modal-body .cb-delta { padding-top: 6px; border-top: 1px dashed #3a3450; }
+body.p2 #modal-body .cb-delta b.tok { color: var(--new); }
+body.p2 #modal-body .cb-delta b.tbad { color: #ff8a96; }
+body.p2 #modal-body .cb-delta.other { color: var(--muted) !important; }
+body.p2 #modal-body #vw-sheet .cb-slot { display: flex; flex-direction: column; gap: 6px; }
+body.p2 #modal-body .cb-sl { display: flex; flex-direction: column; gap: 6px; padding: 8px; background: var(--p2); border: 2px solid var(--p4); border-left: 3px solid #5a8ad8; }
+body.p2 #modal-body .cb-sl small { font-family: var(--pixel); font-size: 7px; color: var(--muted); }
+body.p2 #modal-body .cb-sl > span { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; color: var(--soft); }
+body.p2 #modal-body .cb-sl-note { margin: 0; font-size: 11.5px; line-height: 15px; color: var(--muted); }
+body.p2 #modal-body .vw-lgwhere { align-self: stretch; padding: 6px 8px 7px; font-size: 11.5px; line-height: 15px; color: var(--soft); text-align: center; background: #141020; border: 2px solid var(--p4); }
+body.p2 #modal-body .vw-lgwhere b { color: var(--text); }
+body.p2 #modal-body .vw-lgwhere.free { border-style: dashed; border-color: #5a5270; }
+
+/* En el juego: la ceremonia legendaria va sobre todo (también sobre las ventanas) y con la letra de texto donde toca. */
+body.p2 .vw-l3 { position: fixed; z-index: 90; font-family: var(--sans); color: var(--text); }
+body.p2 .vw-l3 .vw-lgd { flex-direction: column; gap: 5px; }
+body.p2 .vw-l3 .vw-lgd i { transform: rotate(135deg); margin: -2px 0 2px; }
+body.p2 .vw-l3 .vw-lgd s, body.p2 .vw-l3 .vw-lgd u { font-family: var(--sans); font-size: 11.5px; font-weight: 800; text-align: center; }
+body.p2 #modal-body .cb-win .vw-bts > button { flex: 1; }

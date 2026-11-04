@@ -211,5 +211,5 @@ E2.crew = (function () {
     return { auto: true, ritmo: Math.max(0.2, ritmo), rend: Math.max(0.2, 1 + P.rend * sy), pr: pr.m.id };
   }
 
-  return { ST, SKILL, level, fx, work, own, hasTrait, traitsOf, pairs, lineSets, auras, team, station };
+  return { ST, SKILL, level, gradeOf, combosOf, fx, work, own, hasTrait, traitsOf, pairs, lineSets, auras, team, station };
 })();

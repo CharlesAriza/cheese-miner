@@ -301,7 +301,8 @@ E2.model = (function () {
     const per = SP.perCycle * MD(s).sell.count * cyc.mult + (s.carry.sell || 0);
     let left = Math.floor(per), coins = 0, n = 0;
     s.carry.sell = per - left; // S2: cantidades decimales por mejoras de SELL
-    for (const x of keys) { const k = Math.min(left, s.lots[x.k]); if (k <= 0) break; s.lots[x.k] -= k; coins += x.p * k; n += k; left -= k; }
+    const by = {}, tally = (key, a, b) => { const st = key.slice(0, key.indexOf('+')), o = by[st] || (by[st] = [0, 0, 0, 0]); o[a] += b[0]; o[a + 1] += b[1]; };
+    for (const x of keys) { const k = Math.min(left, s.lots[x.k]); if (k <= 0) break; s.lots[x.k] -= k; coins += x.p * k; n += k; left -= k; tally(x.k, 0, [k, x.p * k]); }
     // Estanterías: caben shelfMinutes de ventas; lo que sobra va al mayorista a mitad de precio, lo más barato primero.
     const shelf = Math.floor(((SP.perCycle * MD(s).sell.count * cyc.mult) / cyc.total) * 60000 * B.shelfMinutes);
     const wr = MD(s).sell.wholesale != null ? MD(s).sell.wholesale : B.wholesale;
@@ -309,13 +310,13 @@ E2.model = (function () {
     for (let i = keys.length - 1; i >= 0 && extra > 0; i--) {
       const x = keys[i], k = Math.min(extra, s.lots[x.k] || 0);
       if (k <= 0) continue;
-      s.lots[x.k] -= k; wc += Math.round((P().sellFineOverflow === false ? x.p / (formula(x.k).value >= R().tiers[1].min ? MD(s).sell.fineBonus : 1) : x.p) * wr) * k; wn += k; extra -= k; // S2.5: sin el bonus de Boutique en el mayorista
+      s.lots[x.k] -= k; const wv = Math.round((P().sellFineOverflow === false ? x.p / (formula(x.k).value >= R().tiers[1].min ? MD(s).sell.fineBonus : 1) : x.p) * wr) * k; wc += wv; wn += k; extra -= k; tally(x.k, 2, [k, wv]); // S2.5: sin el bonus de Boutique en el mayorista
     }
     if (wn) minuteRow(s, Math.floor(s.t / 60000)).whole += wn;
     const mult = auto ? 1 + (r.rend - 1) * P().sell.yieldWeight : 1; // el tendero multiplica lo cobrado en los dos canales, a medias (REAL)
     const total = Math.round((coins + wc) * mult), f = coins + wc > 0 ? total / (coins + wc) : 0;
     s.job.sell = { end: s.t + cyc.total, total: cyc.total, n, wn, coins: total, direct: coins * f, whole: wc * f, src };
-    if (hooks.emit) hooks.emit(s, 'sellStart', { n, wn, src });
+    if (hooks.emit) hooks.emit(s, 'sellStart', { n, wn, src, by, f }); // by: por estilo [vendidos, monedas, al mayorista, monedas], para COINS y SHOP
     return true;
   }
   function endSell(s) {

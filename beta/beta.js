@@ -1,7 +1,6 @@
 // CHEESE DRILLER BETA · MAIN 3.0 sobre la partida real. La composición, la escena y la navegación son las de P1 (proto3/p0.js);
 // aquí se sustituyen sus datos simulados por el núcleo (core/game.js): lo que se ve es lo que hay. `sim` ya no simula nada: es la
-// vista que lee la escena, copiada de la partida en cada fotograma. Las hojas de este hito son vistas básicas: las hojas Pulido+
-// completas llegan en el Hito 3. Guarda en su propia clave (core/save.js) y no lee ni toca ninguna otra partida.
+// vista que lee la escena, copiada de la partida en cada fotograma. Las hojas Pulido+ viven en su capa (sheets.html). Guarda en su propia clave (core/save.js) y no lee ni toca ninguna otra partida.
 (function () {
   const $ = (id) => document.getElementById(id);
   const Core = E2.game, Sv = E2.save, Pg = E2.progression, Inv = E2.inventory, Mo = E2.model, Ru = E2.rules, Cr = E2.crew, Lb = E2.lab;
@@ -121,6 +120,7 @@
     return null;
   };
   let freshUp = false;
+  const toSheets = (e) => { if (PZ.ready) try { pzWin().SHEETS.event(e); } catch (err) { console.warn(err); } };
   function processEvents() {
     for (const e of Core.drain(G)) {
       switch (e.type) {
@@ -129,9 +129,11 @@
         case 'refineDone': made('base', e.amount); scene.onEvent('refineDone'); break;
         case 'lotDone': made('cheese', e.n + (e.wheel || 0)); scene.onEvent('cookDone'); break;
         case 'sale': made('coins', e.coins); scene.onEvent('sale'); break;
+        case 'sellStart': if (e.by) saleLog.push({ at: performance.now(), by: e.by, f: e.f || 1 }); break;
         case 'depth': { scene.onEvent('deeper'); const t = tierNow(); if (t !== tierShown) { scene.setTier(t); tierShown = t; scene.onEvent('stratum'); toast('New stratum: ' + t.toUpperCase()); } break; }
         case 'unlock': { const tx = UNLOCK_TXT(e.id); if (tx) toast(tx); if (/^(phase|path|ms)/.test(e.id)) freshUp = true; break; }
-        case 'specialty': case 'trait': { const m = G.roster.find((x) => x.id === e.id), tr = REAL.mice.traits[e.trait]; if (m && tr) toast(m.name + ' learned ' + tr.name); break; }
+        case 'specialty': case 'trait': { const m = G.roster.find((x) => x.id === e.id), tr = REAL.mice.traits[e.trait]; if (m && tr && tr.kind !== 'legend') toast(m.name + ' learned ' + tr.name); toSheets(e); break; }
+        case 'recruited': toSheets(e); break;
         default: break;
       }
     }
@@ -154,7 +156,7 @@
     w.firstChild.addEventListener('click', () => goBuild(id));
     $('plates').appendChild(w); g.el = w;
   }
-  function goBuild(id) { if (id === 'sell') focusSt('sell'); else { scene.showSurface(); if (id === 'house') openMice(); else openLab(); } if (!SIGNS[id].el.hidden) pulse(SIGNS[id].el.firstChild, 'bump', 320); }
+  function goBuild(id) { if (id === 'sell') focusSt('sell'); else { scene.showSurface(); openPz(id === 'house' ? 'mice' : 'lab'); } if (!SIGNS[id].el.hidden) pulse(SIGNS[id].el.firstChild, 'bump', 320); }
   function placeSigns() {
     if (Object.keys(SIGNS).every((id) => SIGNS[id].el.hidden && scene.stationState(id) !== 'build')) return; // sin obras pendientes no se mide nada en cada fotograma
     const sb = $('scene-box').getBoundingClientRect(), cr = $('cv').getBoundingClientRect(), ox = cr.left - sb.left, oy = cr.top - sb.top, W = sb.width, top = topInset(), used = [];
@@ -254,7 +256,7 @@
     act.classList.toggle('rush', !!sim.boost[selected]); $('pn-bar').parentElement.classList.toggle('rush', !!sim.boost[selected]);
     for (const [k, b] of Object.entries(plates)) { const ss = k === 'mine' ? 'on' : scene.stationState(k), bo = ss === 'on' ? G.boosts.place[k] || 0 : 0; b.classList.toggle('rush', !!sim.boost[k]); b.classList.toggle('build', ss === 'build'); b.classList.toggle('locked', ss === 'locked'); if (b.dataset.bo !== String(bo)) b.dataset.bo = bo; }
   }
-  const ST_SHEET = { cheese: () => openCheese(), sell: () => openShop() };
+  const ST_SHEET = { cheese: () => openPz('cheese'), sell: () => openPz('shopinfo') };
   $('pn-st').addEventListener('click', () => { const sp = ST_SHEET[selected]; if (sp) sp(); });
 
   // ---- Equipo de la estación: los puestos de verdad; un puesto vacío se ve vacío ----
@@ -286,9 +288,9 @@
   $('pn-crew').addEventListener('click', () => openCrew(!isOpen(pop)));
   pop.addEventListener('click', (e) => {
     const id = scene.selectedMouse;
-    if (e.target.closest('[data-card]')) { if (id) openMouse(id); return; }
+    if (e.target.closest('[data-card]')) { if (id) openPz('card', id); return; }
     if (e.target.closest('[data-follow]')) { if (scene.following) scene.unfollow(); else if (id) scene.focusMouse(id); paintCrew(true); return; }
-    const po = e.target.closest('[data-post]'); if (po) return openPost(selected, po.dataset.post);
+    const po = e.target.closest('[data-post]'); if (po) return openPz('post', SKILL[selected] + ':' + po.dataset.post);
     const b = e.target.closest('[data-mouse]'); if (!b) return; pickMouseId(b.dataset.mouse); paintCrew(true);
   });
   pop.addEventListener('transitionend', () => homePos());
@@ -304,233 +306,120 @@
       row('ic_raw_' + t, 'RAW CHEESE', 'Ready for the refinery', fmt(s.inv.raw), '+' + fmt(rate('raw')) + '/min');
   }
   function closeRes() { hideEl(res); $('hud-coinsbox').setAttribute('aria-expanded', 'false'); }
-  res.addEventListener('click', (e) => { const b = e.target.closest('[data-res]'); if (b) openPantry(); });
+  res.addEventListener('click', (e) => { const b = e.target.closest('[data-res]'); if (!b) return; if (b.dataset.res === 'COINS') openPz('coins'); else openPz('stock'); });
   $('hud-coinsbox').addEventListener('click', () => { const open = !isOpen(res); $('hud-coinsbox').setAttribute('aria-expanded', String(open)); if (open) { paintRes(); showEl(res); if (isOpen(pop)) openCrew(false); } else closeRes(); });
 
-  // ---- Hojas: el armazón de P1. Vistas básicas de este hito: las Pulido+ completas llegan en el Hito 3. ----
+  // ---- Hojas: las Pulido+ aprobadas viven en su propia capa (sheets.html), como en P1; aquí solo se abren y se les da la partida ----
   const RM = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   function rise(body, delay) { if (RM() || !body.animate) return; [...body.children].slice(0, 8).forEach((el, i) => el.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 260, delay: delay + i * 28, easing: 'cubic-bezier(.2, .8, .2, 1)', fill: 'backwards' })); }
-  let sheetFn = null, sheetHtml = '';
-  function sheet(title, fn) {
-    const was = isOpen($('sheet')); sheetFn = fn; $('sheet-title').textContent = title; sheetHtml = fn(); $('sheet-body').innerHTML = sheetHtml; $('sheet-body').scrollTop = 0; showEl($('sheet')); rise($('sheet-body'), was ? 0 : 110); closeRes(); if (isOpen(pop)) openCrew(false);
-  }
-  function refreshSheet() { if (!sheetFn || !isOpen($('sheet'))) return; const h = sheetFn(); if (h !== sheetHtml) { sheetHtml = h; const b = $('sheet-body'), y = b.scrollTop; b.innerHTML = h; b.scrollTop = y; } }
-  const closeSheet = () => { hideEl($('sheet'), 220); sheetFn = null; flushBoost(); };
+  // La hoja propia de P1, para lo que es de MAIN (la profundidad).
+  function sheet(title, html) { closePz(); const was = isOpen($('sheet')); $('sheet-title').textContent = title; $('sheet-body').innerHTML = html; $('sheet-body').scrollTop = 0; showEl($('sheet')); rise($('sheet-body'), was ? 0 : 110); closeRes(); if (isOpen(pop)) openCrew(false); }
+  const closeSheet = () => { hideEl($('sheet'), 220); };
   $('sheet-close').addEventListener('click', closeSheet);
   $('sheet').addEventListener('click', (e) => { if (e.target === $('sheet')) closeSheet(); });
   const REASON = { 'no-coins': 'Not enough coins', locked: 'Not available yet', 'no-materials': 'Not enough materials', 'queue-full': 'The lab queue is full', 'bed-busy': 'The bed is taken', 'no-house': 'Build the Mouse House first', 'not-built': 'Build it first', full: 'Two boosts at most', 'none-free': 'No free boosts' };
+  let rev = 0;
+  // Toda acción pasa por aquí, venga de MAIN o de una hoja: la escena, el panel y lo guardado se ponen al día a la vez.
+  function applied(type) { rev += 1; syncSim(); syncCrew(); processEvents(); paintPanel(true); if (type !== 'seen') saveNow(); }
   function doAct(type, args, okMsg) {
     const r = Core.act(G, type, args);
     if (!r.ok) { toast(REASON[r.reason] || 'Not possible right now'); return r; }
     if (okMsg) toast(okMsg);
-    syncSim(); syncCrew(); processEvents(); paintPanel(true); saveNow(); refreshSheet();
+    applied(type);
     return r;
   }
   const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-  const btn = (label, type, args, opt) => { const o = opt || {}; return '<button class="bx bt-act' + (o.warn ? ' warn' : '') + '" data-do="' + type + '" data-arg=\'' + JSON.stringify(args || {}).replace(/'/g, '') + '\'' + (o.disabled ? ' disabled' : '') + '>' + label + (o.cost != null ? '<small>' + fmt(o.cost) + '</small>' : '') + '</button>'; };
-  const row = (icon, title, sub, right, cls) => '<div class="p0-row bx ' + (cls || '') + '">' + (icon ? '<img class="pix" src="' + icon + '" alt="">' : '<i></i>') + '<span><b>' + title + '</b><small>' + sub + '</small></span><em>' + (right || '') + '</em></div>';
-  const buy = (type, args, cost, label) => btn(label || 'BUY', type, args, { cost, disabled: G.s.coins < cost });
   const pretty = (id) => id.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase());
-  const BASIC = '<div class="p1-band"><b>BASIC VIEW</b>The full panel arrives in a later update.</div>';
-  $('sheet-body').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-do]');
-    if (b && !b.disabled) { const t = b.dataset.do, a = JSON.parse(b.dataset.arg || '{}'); if (LOCAL[t]) LOCAL[t](a); else doAct(t, a); return; }
-    const ba = e.target.closest('[data-boadd]'); if (ba && !ba.disabled) setBoost((G.boosts.place[ba.dataset.bost] || 0) + +ba.dataset.boadd, ba.dataset.bost);
-  });
-
-  // UPGRADES
-  const realNode = (st, id) => (REAL.trees[SKILL[st]] || []).find((n) => n.id === id) || {};
+  const recipeName = (key) => { const [b, i, t, m] = key.split('+'), B = REAL; return B.ingredients[i].name + ' ' + B.treatments[t].name + ' ' + B.maturations[m].name + ' ' + B.bases[b].name; };
   const PATH_TXT = { prospector: 'Taps hit twice as hard; the crew lands critical hits', blasting: 'Three critical taps set off a blast of crew search', surveyCrew: 'Mine 30% faster', shiftRota: 'Scaffolders count for more', surveyAhead: 'Search for the next vein while drilling', wideSeams: 'Veins hold 40% more; deeper levels are richer', richSeams: 'Each vein gives one more material', quickSeams: 'Smaller veins, found much faster', pureBase: '20% more BASE, refining 20% slower', gaugeDiscipline: 'Yield posts count for more', fastStill: 'Refine 30% faster and cook 20% faster', affinage: 'Cheese worth 40% more, taking 50% longer', freshMarket: 'Cook 40% faster, cheese worth 5% less', boutique: 'Sell fewer, Fine cheese pays 40% more', collectorsList: 'Better buyers sooner', wholesale: 'Sell 80% more at 10% less', bulkContracts: 'Better wholesale prices', coreSampler: 'Twice the materials', strataLogs: 'Blueprints need 30% less material', throughput: '25% more RAW', heavyBits: 'Yield posts count for more' };
-  function upgradesHtml() {
-    const opts = Core.options(G), order = [selected].concat(WORK.filter((x) => x !== selected));
-    let h = BASIC;
-    for (const st of order) {
-      if (st !== 'mine' && !G.s.built[st]) continue;
-      h += '<h4 class="bt-h">' + NAME[st] + ' · LV ' + G.stLv[st] + '</h4><div class="bt-rows">';
-      for (const o of opts) {
-        if (o.st !== st) continue;
-        if (o.kind === 'fund') { const n = realNode(st, o.f.id); h += row(icd(ICON[st]), (n.name || pretty(o.f.id)) + ' · ' + (G.fund[st][o.f.id] || 0), n.desc || '', buy('fund', { st, id: o.f.id }, o.cost)); }
-        if (o.kind === 'phase') h += row(icd(ICON[st]), NAME[st] + ' stage ' + o.next, 'New posts and machinery', buy('phase', { st }, o.cost));
-        if (o.kind === 'path') h += row(icd(ICON[st]), pretty(o.node.id), (G.active[o.fk] ? '' : 'Choose one path · ') + (PATH_TXT[o.node.id] || ''), buy('path', { fk: o.fk, opt: o.opt }, o.cost));
-      }
-      const nx = G.phase[st] + 1, id = 'phase' + nx + '.' + st;
-      if (Pg.has(id) && !Pg.isOpen(G, id)) { const q = Pg.status(G, id).requires.filter((r) => !r.ok); h += row(icd(ICON[st]), NAME[st] + ' stage ' + nx, 'Needs: ' + q.map((r) => r.text).join(' · '), '', 'bt-lock'); }
-      h += '</div>';
-    }
-    const extra = opts.filter((o) => o.kind === 'milestone' || o.kind === 'lamp');
-    if (extra.length) { h += '<h4 class="bt-h">COLONY</h4><div class="bt-rows">'; for (const o of extra) h += o.kind === 'lamp' ? row(icd('ic_coin'), 'Night Lamp · ' + G.lamp, 'Mice keep working 2 more hours while you are away', buy('lamp', {}, o.cost)) : row(icd('ic_lot_cheddar'), pretty(o.id === 'wheel' ? 'grandWheel' : 'grandMaster'), (REAL.milestones[o.id] && REAL.milestones[o.id].desc) || '', buy('milestone', { id: o.id }, o.cost)); h += '</div>'; }
-    return h;
-  }
-  function openUpgrades() { freshUp = false; sheet('UPGRADES', upgradesHtml); }
-
-  // MICE
-  const levelOf = (m) => Cr.level(m);
-  const whereTxt = (m) => { const w = Core.whereIs(G, m.id); return !w ? '' : w.scene === 'main' ? NAME[w.st] + ' · ' + (ROLE[w.role] || w.role) : w.scene === 'lab' ? 'LAB · Researcher' : 'No job yet'; };
-  const stFor = (m) => { const w = Core.whereIs(G, m.id); return w && w.scene === 'main' ? w.st : 'mine'; };
-  function miceHtml() {
-    let h = BASIC;
-    if (!G.built.house) {
-      const open = Pg.isOpen(G, 'build.house');
-      return h + row(NAV_IC.mouse, 'Mouse House', open ? 'Recruit mice to automate your stations' : REAL.buildings.house.requires.text, open ? btn('BUILD', 'build', { id: 'house' }) : '', open ? '' : 'bt-lock');
-    }
-    const cost = Ru.recruitCost(G);
-    h += row(NAV_IC.mouse, G.cands.length ? 'Three candidates are waiting' : 'Recruit a mouse', G.cands.length ? 'Already paid: choose one' : 'You choose one of three', G.cands.length ? btn('SEE', 'showCands', {}) : buy('hire', {}, cost, 'HIRE'));
-    if (!G.roster.length) return h;
-    const list = G.roster.slice().sort((a, b) => (Core.whereIs(G, a.id).scene === 'house' ? 0 : 1) - (Core.whereIs(G, b.id).scene === 'house' ? 0 : 1));
-    h += '<h4 class="bt-h">YOUR MICE · ' + list.length + '</h4><div class="bt-rows">';
-    for (const m of list) h += row(portrait(m, stFor(m)), esc(m.name) + ' · LV ' + levelOf(m), RANKS[Math.min(3, m.rank || 0)] + ' · ' + whereTxt(m), btn('CARD', 'showMouse', { id: m.id }));
-    return h + '</div>';
-  }
-  function openMice() { sheet('MICE', miceHtml); }
-  let hireFor = null;
-  function hire(forPost) {
-    hireFor = forPost || null;
-    const r = doAct('recruitOffer', forPost ? { forPost } : {});
-    if (r.ok) sheet('RECRUIT', candsHtml);
-  }
-  const traitName = (id) => (REAL.mice.traits[id] ? REAL.mice.traits[id].name : id);
-  function candsHtml() {
-    if (!G.cands.length) return '<p>No candidates.</p>';
-    let h = BASIC + '<p>' + (hireFor ? 'For the post of ' + (ROLE[hireFor.role] || hireFor.role) + '.' : 'They will arrive without a job: you choose where they work.') + '</p><div class="bt-rows">';
-    G.cands.forEach((k, i) => { const aff = Object.keys(k.aff || {}).map((a) => a + (k.aff[a] > 1 ? ' ★★' : ' ★')).join(', '), rar = ['', 'Rare · ', 'Legendary · '][k.rarity || 0]; h += row(portrait(k, 'mine'), esc(k.name), rar + k.traits.map(traitName).join(', ') + (aff ? ' · ' + aff : ''), btn('PICK', 'pick', { index: i })); });
-    return h + '</div>';
-  }
-  function openPost(st, role) { sheet(NAME[st] + ' · ' + (ROLE[role] || role).toUpperCase(), () => postHtml(st, role)); }
-  function postHtml(st, role) {
-    const free = Core.unassigned(G);
-    let h = BASIC;
-    if (!G.built.house) return h + row(NAV_IC.mouse, 'No Mouse House yet', 'Build it from MICE to recruit', btn('MICE', 'showMice', {}));
-    h += '<div class="bt-rows">';
-    for (const m of free) h += row(portrait(m, st), esc(m.name) + ' · LV ' + levelOf(m), 'No job yet', btn('ASSIGN', 'assignHere', { id: m.id, st, role }));
-    h += row(NAV_IC.mouse, G.cands.length ? 'Three candidates are waiting' : 'Recruit for this post', G.cands.length ? 'Already paid: choose one' : 'You choose one of three', G.cands.length ? btn('SEE', 'hirePost', { st, role }) : buy('hirePost', { st, role }, Ru.recruitCost(G), 'HIRE'));
-    return h + '</div>';
-  }
-  let dismissArm = null;
-  function openMouse(id) { dismissArm = null; const m = byId(id); if (m) sheet(m.name.toUpperCase(), () => mouseHtml(id)); }
-  function mouseHtml(id) {
-    const m = byId(id); if (!m) return '<p>This mouse has left the colony.</p>';
-    const w = Core.whereIs(G, id), pr = Ru.promoteOptions(G).find((o) => o.m.id === id), next = REAL.mice.ranks[(m.rank || 0) + 1];
-    const all = Cr.traitsOf(m).map((t) => traitName(t.id));
-    let h = BASIC + '<div class="bt-rows">' + row(portrait(m, stFor(m)), esc(m.name) + ' · LV ' + levelOf(m), ['', 'Rare · ', 'Legendary · '][m.rarity || 0] + RANKS[Math.min(3, m.rank || 0)] + ' · ' + whereTxt(m), '');
-    h += row('', 'Traits', all.length ? all.join(', ') : 'None yet', '');
-    h += next ? row('', 'Promote to ' + next.name, pr ? 'Works better' : 'Needs level ' + next.level, pr ? buy('promote', { id }, pr.cost) : '', pr ? '' : 'bt-lock') : '';
-    h += w.scene === 'house' ? row('', 'No job yet', 'Pick an empty post', btn('POSTS', 'postsFor', { id })) : row('', 'Take off this post', 'Production there changes right away', btn('REMOVE', 'unassign', { id }));
-    h += row('', 'Dismiss', dismissArm === id ? 'For good, with no refund. Sure?' : 'Leaves the colony for good', dismissArm === id ? btn('YES, DISMISS', 'dismissGo', { id }, { warn: true }) : btn('DISMISS', 'dismissArm', { id }, { warn: true }));
-    return h + '</div>';
-  }
-  function postsForHtml(id) {
-    const m = byId(id); if (!m) return '';
-    let h = BASIC + '<div class="bt-rows">';
-    const empty = Core.emptyPosts(G);
-    for (const p of empty) h += row(icd(ICON[p.st]), NAME[p.st] + ' · ' + (ROLE[p.role] || p.role), p.fn === 'pr' ? 'Runs the station by itself' : p.fn === 'ritmo' ? 'Makes the station faster' : 'Makes the station yield more', btn('ASSIGN', 'assignHere', { id, st: p.st, role: p.role }));
-    if (G.lab.nodes.assistant && !G.lab.workers.length) h += row(icd('ic_base_cheddar'), 'LAB · Researcher', 'Researches recipes by itself', btn('ASSIGN', 'assignHere', { id, st: 'lab' }));
-    if (!empty.length) h += row('', 'No empty posts', 'Upgrade a station to its next stage for more', '');
-    return h + '</div>';
-  }
-  // Acciones de navegación de las hojas.
-  const LOCAL = {
-    // Construir desde la hoja: se cierra y la cámara va al edificio, para ver cómo se levanta.
-    build: (a) => { const r = doAct('build', a, (a.id === 'house' ? 'Mouse House' : 'Cheese Lab') + ' built!'); if (r.ok) { closeSheet(); scene.showSurface(); } },
-    hire: () => hire(null),
-    hirePost: (a) => hire({ st: a.st, role: a.role }),
-    showCands: () => sheet('RECRUIT', candsHtml),
-    showMice: () => openMice(),
-    showMouse: (a) => openMouse(a.id),
-    pick: (a) => { const want = hireFor; const r = doAct('recruitChoose', { index: a.index }); hireFor = null; if (!r.ok) return; toast(byId(r.id).name + (want ? ' got the job!' : ' joined the colony')); if (want) { closeSheet(); focusSt(want.st); } else openMouse(r.id); },
-    assignHere: (a) => { const r = doAct('assign', a); if (r.ok) { const m = byId(a.id); closeSheet(); toast(m.name + (a.st === 'lab' ? ' now works in the lab' : ' now works at ' + NAME[a.st])); if (a.st !== 'lab') focusSt(a.st); } },
-    postsFor: (a) => sheet('CHOOSE A POST', () => postsForHtml(a.id)),
-    dismissArm: (a) => { dismissArm = a.id; refreshSheet(); },
-    dismissGo: (a) => { const r = doAct('dismiss', a); if (r.ok) { dismissArm = null; openMice(); } },
-    newArm: () => { newArmed = true; refreshSheet(); },
-    newGo: () => { paused = true; try { if (store) Sv.erase(store); } catch (e) {} location.reload(); },
-    sky: (a) => { scene.setSky(a.v === 'auto' ? { mode: 'auto' } : { mode: 'fixed', hour: +a.v }); refreshSheet(); },
-    showLab: () => openLab(),
-  };
-
-  // BOOSTS: el panel real sobre los refuerzos que hay.
-  const BO_TXT = { drill: 'speed', refine: 'BASE per batch', cheese: 'speed', mine: 'speed', sell: 'selling speed' };
-  function boostsHtml() {
-    const free = G.boosts.earned - Ru.placedBoosts(G);
-    const r = (st) => { const n = G.boosts.place[st] || 0, off = st !== 'mine' && !G.s.built[st]; return '<div class="p0-row bx bo-row"><img class="pix" src="' + ic(ICON[st]) + '" alt=""><span><b>' + NAME[st] + '</b><small>' + (off ? 'Not built yet' : n ? BO_LABEL[st][n] + ' ' + BO_TXT[st] : 'No boost') + '</small></span><em class="bo-ctl"><button class="bx" data-boadd="-1" data-bost="' + st + '"' + (n ? '' : ' disabled') + ' aria-label="Remove a boost">−</button><i class="bo-chip" data-bo="' + n + '"><i></i><i></i></i><button class="bx" data-boadd="1" data-bost="' + st + '"' + (n < 2 && free > 0 && !off ? '' : ' disabled') + ' aria-label="Add a boost">+</button></em></div>'; };
-    return '<p>A boost improves one station for good (×1.5 each, two at most), whoever works there. REFINE gets more BASE from the same RAW instead of speed. Moving one is free.</p><h4>FREE BOOSTS · ' + free + ' OF ' + G.boosts.earned + '</h4>' + WORK.map(r).join('');
-  }
-  function openBoosts() { sheet('BOOSTS', boostsHtml); }
+  // Refuerzos desde su hoja: el efecto en la escena (ya aprobado) sale al cerrarla, cuando se ve.
   let boostPend = null;
-  function setBoost(n, st) {
-    n = Math.max(0, Math.min(2, n)); const was = G.boosts.place[st] || 0; if (n === was) return;
-    const r = Core.act(G, n > was ? 'boostPlace' : 'boostRemove', { st });
-    if (!r.ok) return toast(REASON[r.reason] || 'Not possible right now');
-    syncSim(); saveNow(); refreshSheet(); paintPanel(true);
+  function boostFx(st, n, was) {
     if (n > was) { if (plates[st]) pulse(plates[st].querySelector('.bo-chip'), 'stamp', 420); if (st === selected) pulse($('pn-st').querySelector('.bo-chip'), 'stamp', 420); }
-    if (isOpen($('sheet')) && !scene.stationInView(st, topInset(), sheetCover())) boostPend = { n, st, at: performance.now() }; else showBoost(n, st);
+    if (pzOpen() && !scene.stationInView(st, topInset(), $('scene-box').clientHeight)) boostPend = { n, st, at: performance.now() }; else showBoost(n, st);
   }
-  function sheetCover() { if (!isOpen($('sheet'))) return isOpen(pop) ? pop.offsetHeight : 0; const sb = $('scene-box').getBoundingClientRect(), bx = document.querySelector('.p0-sheetbox').getBoundingClientRect(); return Math.max(0, sb.bottom - bx.top); }
-  function showBoost(n, st) { boostPend = null; scene.boostTo(st, n, scene.stationInView(st, topInset(), sheetCover())); }
+  function showBoost(n, st) { boostPend = null; scene.boostTo(st, n, scene.stationInView(st, topInset(), 0)); }
   function flushBoost() { if (!boostPend) return; const b = boostPend; if (performance.now() - b.at < 10000) showBoost(b.n, b.st); else { scene.boostTo(b.st, b.n, false); boostPend = null; } }
   function boostLabel(st, n, x, y) {
     const el = document.createElement('div'); el.className = 'bo-float'; el.textContent = BO_LABEL[st][n] + (st === 'refine' ? ' BASE' : ' SPEED');
     $('scene-box').appendChild(el); const w = el.offsetWidth; el.style.left = Math.round(Math.max(6, Math.min($('scene-box').clientWidth - w - 6, x - w / 2))) + 'px'; el.style.top = Math.round(Math.max(topInset(), y - 14)) + 'px';
     setTimeout(() => el.remove(), 1300);
   }
-
-  // CHEESE, SHOP, LAB, PANTRY, COINS, DEPTH y MENU: lo justo para jugar y entender.
-  const recipeName = (key) => { const [b, i, t, m] = key.split('+'), B = REAL; return B.ingredients[i].name + ' ' + B.treatments[t].name + ' ' + B.maturations[m].name + ' ' + B.bases[b].name; };
-  // El nivel de CHEESE que abre la siguiente receta: para decir qué falta en vez de un «no hay nada».
-  const nextRecipeLevel = () => { let best = Infinity; for (const st of Object.keys(G.lab.styles)) for (const k of Lb.combosOf(st)) { if (G.lab.isKnown[k]) continue; const [, i, t, m] = k.split('+'); best = Math.min(best, Math.max(REAL.ingredients[i].level, REAL.treatments[t].level, REAL.maturations[m].level)); } return best; };
-  function researchRow() {
-    const L = G.lab, job = L.job, cost = Lb.labCost(G), next = Lb.pick(G, 'value');
-    if (job) return row(icd('ic_base_cheddar'), 'Researching…', Math.round(100 * (1 - job.remaining / job.total)) + '% · ' + (job.kind === 'recipe' ? 'a new recipe' : job.kind === 'study' ? 'a new cheese' : job.kind === 'strain' ? 'a strain' : 'a blueprint'), '');
-    if (L.queue.length) return row(icd('ic_base_cheddar'), 'Research waiting', 'Needs ' + cost + ' Cheese Base', '');
-    if (!next) { const lv = nextRecipeLevel(); return row(icd('ic_base_cheddar'), 'No recipes to research yet', lv > G.stLv.cheese && lv < Infinity ? 'Reach CHEESE level ' + lv + ' (now ' + G.stLv.cheese + ')' : 'Study a new cheese to find more', '', 'bt-lock'); }
-    return row(icd('ic_base_cheddar'), 'Research a recipe', 'Uses ' + cost + ' Cheese Base', btn('RESEARCH', 'labResearch', {}));
+  // Ventas de los últimos minutos, por queso: las de verdad, contadas según llegan. Con el juego cerrado no se cuentan.
+  const saleLog = [];
+  function salesRates(s, win) {
+    const now = performance.now(), from = now - win; while (saleLog.length && saleLog[0].at < from) saleLog.shift();
+    const span = saleLog.length ? Math.max(0.05, (now - saleLog[0].at) / 60000) : 0, bases = {}; let coins = 0;
+    for (const e of saleLog) for (const b of Object.keys(e.by)) { const o = bases[b] || (bases[b] = { c: 0, w: 0, n: 0, wn: 0 }), v = e.by[b]; o.n += v[0] / span; o.c += (v[1] * e.f) / span; o.wn += v[2] / span; o.w += (v[3] * e.f) / span; coins += ((v[1] + v[3]) * e.f) / span; }
+    return { span, bases, coins };
   }
-  function cheeseHtml() {
-    const L = G.lab, built = G.s.built.cheese;
-    if (!built) return BASIC + '<p>Build the Cheesery first.</p>';
-    const f = Mo.formula(G.s.recipe);
-    return BASIC + '<div class="bt-rows">' + row(icd('ic_lot_' + f.combo.base), 'Cooking: ' + recipeName(G.s.recipe), 'Worth ' + fmt(Mo.price(G.s, G.s.recipe)) + ' each · the Cheesemaker picks the best you know', '') + row(icd('ic_base_cheddar'), L.known.length + ' recipes known', L.built ? 'Discover more in the Cheese Lab' : Pg.isOpen(G, 'build.lab') ? 'Build the Cheese Lab to discover more' : 'The Cheese Lab will discover more', L.built || Pg.isOpen(G, 'build.lab') ? btn('LAB', 'showLab', {}) : '') + '</div>';
+  function shopCapacity() {
+    const s = G.s, SP = E2.PARAMS.sell, r = s.rates.sell, per = SP.perCycleByStage ? SP.perCycleByStage[s.stage.sell - 1] : SP.perCycle, cyc = Mo.cycle(SP.cycleMs / (r.auto ? r.ritmo : 1)), perMin = ((per * s.mods.sell.count * cyc.mult) / cyc.total) * 60000;
+    return { perMin, shelf: Math.floor(perMin * REAL.shop.shelfMinutes) };
   }
-  function openCheese() { sheet('CHEESERY', cheeseHtml); }
-  function openShop() { const f = () => BASIC + '<div class="bt-rows">' + (G.s.built.sell ? row(icd('ic_coin'), 'Coins earned', fmt(G.s.m.coins) + ' in total · +' + fmt(rate('coins')) + '/min', '') + row(icd('ic_lot_' + tierNow()), 'Cheese sold', fmt(G.s.m.sold + G.s.m.whole) + ' in total · ' + fmt(Mo.lotsTotal(G.s)) + ' waiting', '') : row(icd('ic_coin'), 'Cheese Shop', 'Not built yet', '', 'bt-lock')) + '</div>'; sheet('SHOP', f); }
-  function labHtml() {
-    const L = G.lab; let h = BASIC;
-    if (!L.built) { const open = Pg.isOpen(G, 'build.lab'); return h + row(icd('ic_base_cheddar'), 'Cheese Lab', open ? 'Discover new recipes here' : 'Opens at CHEESE level 3, with a mouse at work', open ? btn('BUILD', 'build', { id: 'lab' }) : '', open ? '' : 'bt-lock'); }
-    h += '<div class="bt-rows">' + researchRow();
-    const w = L.workers[0] && byId(L.workers[0]);
-    if (L.nodes.assistant) h += w ? row(portrait(w, 'mine'), esc(w.name) + ' · LV ' + levelOf(w), 'Your researcher · ' + L.known.length + ' recipes known', btn('CARD', 'showMouse', { id: w.id })) : row(NAV_IC.mouse, 'Research post is empty', 'Give a mouse from MICE this job', btn('MICE', 'showMice', {}));
-    if (L.nodes.advanced) h += row('', 'Looking for', L.dir === 'strain' ? 'New strains' : 'The most valuable recipes', btn(L.dir === 'strain' ? 'RECIPES' : 'STRAINS', 'labDir', { dir: L.dir === 'strain' ? 'value' : 'strain' }, { disabled: !L.nodes.strains }));
-    for (const st of E2.PARAMS.strata) { const id = 'study.' + st.id; if (Pg.has(id) && Pg.isOpen(G, id) && !L.styles[st.id]) { const busy = (L.job && L.job.style === st.id) || L.queue.some((q) => q.style === st.id); h += row(icd('ic_lot_' + st.id), 'Study ' + REAL.bases[st.id].name, busy ? 'In progress' : 'Uses ' + Lb.studyNeed(st.id)[st.id] + ' ' + REAL.bases[st.id].name + ' samples (you have ' + Math.floor(Inv.count(G.s, st.id)) + ')', busy ? '' : btn('STUDY', 'labStudy', { style: st.id })); } }
-    for (const id of Object.keys(E2.PARAMS.s3.lab.blueprints || {})) if (Pg.has('plan.' + id) && Pg.isOpen(G, 'plan.' + id) && !L.blueprints[id]) h += row('', 'Blueprint: ' + pretty(id), 'Opens the last step of its path', btn('MAKE', 'labBlueprint', { id }));
-    h += '</div>';
-    const opts = Core.options(G).filter((o) => /^lab/.test(o.kind));
-    if (opts.length) { h += '<h4 class="bt-h">IMPROVE THE LAB</h4><div class="bt-rows">'; for (const o of opts) { const n = (REAL.trees.lab || []).find((x) => x.id === o.id) || {}; h += o.kind === 'labphase' ? row('', 'Lab stage ' + o.next, 'A bigger lab', buy('labPhase', {}, o.cost)) : o.kind === 'labrank' ? row('', (n.name || pretty(o.id)) + ' · ' + (L.nodes[o.id] || 0), n.desc || '', buy('labRank', { id: o.id }, o.cost)) : row('', n.name || pretty(o.id), n.desc || '', buy('labNode', { id: o.id }, o.cost)); } h += '</div>'; }
-    return h;
+  function stXp(st) {
+    const lv = G.stLv[st], at = (l) => Ru.stXpFor(l), a = at(lv), b = at(lv + 1), x = G.stXp[st] || 0;
+    return { cur: Math.max(0, x - a), need: Math.max(1, b - a) };
   }
-  function openLab() { sheet('CHEESE LAB', labHtml); }
-  function pantryHtml() {
-    const t = tierNow(), l = Inv.list(G); let h = BASIC + '<div class="bt-rows">' + row(ic('ic_raw_' + t), 'RAW CHEESE', 'Ready for the refinery', '<b>' + fmt(l.raw) + '</b>') + row(ic('ic_base_' + t), 'CHEESE BASE', 'Ready for the cheesery', '<b>' + fmt(l.base) + '</b>') + row(ic('ic_lot_' + t), 'CHEESE', 'Wheels waiting to sell', '<b>' + fmt(Mo.lotsTotal(G.s)) + '</b>');
-    for (const m of l.materials) { const k = Inv.card(G, m.id); h += row(ic('ic_raw_' + m.id), esc(m.name), 'Found in its veins' + (k.uses.length ? ' · used to study and make blueprints' : ''), '<b>' + fmt(m.n) + '</b>'); }
-    return h + '</div>';
-  }
-  function openPantry() { sheet('PANTRY', pantryHtml); }
-  function openDepth() { sheet('DEPTH ' + G.s.depth, () => '<p>Stratum: ' + tierNow().toUpperCase() + '. Every emptied vein takes the colony one level deeper. Each new stratum brings a richer cheese to study in the Cheese Lab.</p>'); }
   const hhmm = (h) => { h = ((h % 24) + 24) % 24; const m = Math.round((h % 1) * 60); return String(Math.floor(h) + (m === 60 ? 1 : 0)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
-  const SKY_OPTS = [['auto', 'AUTO'], [8, 'DAWN'], [13, 'DAY'], [18.4, 'DUSK'], [23, 'NIGHT']];
-  let newArmed = false;
-  function menuHtml() {
-    const i = scene.skyInfo();
-    let h = '<div class="bt-rows">' + row('', 'Your colony', (saveFailed ? 'Could not save on this device.' : 'Saved on this device' + (savedAt ? ', ' + Math.max(0, Math.round((Date.now() - savedAt) / 1000)) + ' s ago' : '')) + ' · away up to ' + Math.round(Core.capMs(G) / 3600000) + ' h', '');
-    h += row('', 'Sky', (i.mode === 'auto' ? 'Follows your clock (' + hhmm(i.hour) + ')' : 'Fixed at ' + hhmm(i.hour)), '') + '</div><div class="bt-sky">' + SKY_OPTS.map(([v, l]) => btn(l, 'sky', { v })).join('') + '</div>';
-    h += '<h4 class="bt-h">NEW COLONY</h4><div class="bt-rows">' + row('', 'Start over', newArmed ? 'This erases this colony for good. Sure?' : 'Only this beta colony. Other games are not touched', newArmed ? btn('YES, ERASE', 'newGo', {}, { warn: true }) : btn('START OVER', 'newArm', {}, { warn: true })) + row('', 'Cheese Driller Beta', 'Build ' + esc(window.BETA_BUILD || 'dev'), '') + '</div>';
-    return h;
+  window.BETA_HOST = {
+    get G() { return G; }, Core, Ru, Lb, Mo, Cr, Pg, Inv, REAL, get PARAMS() { return E2.PARAMS; }, ROLE, PATH_TXT, pretty, fmt, recipeName,
+    tier: tierNow, rev: () => rev, salesRates, shopCapacity, stXp, boLabel: (st, n) => (n ? BO_LABEL[st][n] + (st === 'refine' ? ' BASE' : ' SPEED') : ''),
+    act(type, args) {
+      const was = type === 'boostPlace' || type === 'boostRemove' ? G.boosts.place[args.st] || 0 : null;
+      const r = Core.act(G, type, args);
+      if (r.ok) { applied(type); if (was != null) boostFx(args.st, G.boosts.place[args.st] || 0, was); }
+      return r;
+    },
+    toastIn: (t) => toast(t),
+    afterBuild: () => scene.showSurface(),
+    newsList: () => G.news.filter((e) => e.trait).slice().reverse().map((e) => { const m = G.roster.find((x) => x.id === e.id); return { id: e.id, trait: e.trait, name: m ? m.name : '' }; }),
+    itemSource: (id) => { const d = E2.PARAMS.strata.find((x) => x.id === id), k = Inv.card(G, id); return k.sources.some((r) => r.on === 'vein') && d ? 'Every cheese vein opened in the ' + REAL.bases[id].name + ' stone gives some (depth ' + d.from + ' to ' + d.to + ').' : 'Nobody knows yet.'; },
+    saveInfo: () => ({ failed: saveFailed, ago: savedAt ? Math.max(0, Math.round((Date.now() - savedAt) / 1000)) : null, hours: Math.round(Core.capMs(G) / 3600000), build: window.BETA_BUILD || 'dev' }),
+    skyInfo: () => { const i = scene.skyInfo(); return { mode: i.mode, text: (i.mode === 'auto' ? 'Now ' : 'Set to ') + hhmm(i.hour), value: i.mode === 'auto' ? 'auto' : String(i.hour) }; },
+    setSky: (v) => scene.setSky(v === 'auto' ? { mode: 'auto' } : { mode: 'fixed', hour: +v }),
+    exportSave: () => Sv.serialize(G, Date.now()),
+    importSave: (t) => { if (!store || !Sv.deserialize(t)) return false; paused = true; store.setItem(Sv.KEY, t); location.reload(); return true; },
+    newGame: () => { paused = true; try { if (store) Sv.erase(store); } catch (e) {} location.reload(); },
+    layerReady() { PZ.ready = true; if (PZ.want) pzGo(); flushWelcome(); },
+    layerShow() { PZ.el.classList.remove('off'); PZ.el.classList.add('in'); PZ.el.setAttribute('aria-hidden', 'false'); },
+    layerClosing() { PZ.el.classList.remove('in'); },
+    layerClosed() { closePz(true); },
+  };
+  const PZ = { el: $('pz'), fr: null, ready: false, want: null, t: 0 };
+  const pzWin = () => PZ.fr && PZ.fr.contentWindow;
+  const pzOpen = () => !PZ.el.classList.contains('off');
+  function ensurePz() {
+    if (PZ.fr) return;
+    const f = document.createElement('iframe'); f.className = 'pz-frame'; f.title = 'Game panels'; f.src = 'sheets.html?v=' + (window.BETA_BUILD || 'dev');
+    PZ.el.appendChild(f); PZ.fr = f;
   }
-  function openMenu() { newArmed = false; sheet('MENU', menuHtml); }
+  setTimeout(ensurePz, 3500); // precarga cuando la escena ya está en marcha
+  function openPz(kind, arg) {
+    if (isOpen($('sheet'))) closeSheet(); closeRes(); if (isOpen(pop)) openCrew(false);
+    ensurePz(); PZ.want = [kind, arg];
+    PZ.el.classList.remove('off'); PZ.el.setAttribute('aria-hidden', 'false');
+    if (PZ.ready) return pzGo();
+    $('pz-load').hidden = false; clearTimeout(PZ.t); PZ.t = setTimeout(() => { if (PZ.want && !PZ.ready) { closePz(true); toast('The game panels are taking too long to load'); } }, 12000);
+  }
+  function pzGo() {
+    const [k, a] = PZ.want; PZ.want = null; $('pz-load').hidden = true;
+    let ok = false; try { ok = pzWin().SHEETS.open(k, a); } catch (e) { console.warn(e); }
+    if (!ok) { closePz(true); toast('This panel is not available yet'); return; }
+    PZ.el.classList.add('in');
+  }
+  function closePz(fromSheet) {
+    PZ.want = null; $('pz-load').hidden = true; PZ.el.classList.remove('in');
+    if (!fromSheet && PZ.ready) { let open = false; try { open = pzWin().SHEETS.isOpen; if (open) pzWin().SHEETS.close(); } catch (e) {} if (open) return; }
+    PZ.el.classList.add('off'); PZ.el.setAttribute('aria-hidden', 'true'); setTimeout(flushBoost, 60);
+  }
+  const openDepth = () => sheet('DEPTH ' + G.s.depth, '<p>Stratum: ' + tierNow().toUpperCase() + '. Every emptied vein takes the colony one level deeper. Each new stratum brings a richer cheese to study in the Cheese Lab.</p>');
   document.querySelectorAll('[data-nav]').forEach((b) => b.addEventListener('click', () => {
     const k = b.dataset.nav;
-    if (k === 'mice') return openMice();
-    if (k === 'upgrades') return openUpgrades();
-    if (k === 'boosts') return openBoosts();
-    if (k === 'menu') return openMenu();
+    if (k === 'mice') return openPz('mice');
+    if (k === 'upgrades') { freshUp = false; return openPz('tree', selected); }
+    if (k === 'boosts') return openPz('boosts');
+    if (k === 'menu') return openPz('options');
   }));
   $('hud-depthbox').addEventListener('click', openDepth);
 
@@ -596,7 +485,7 @@
     const h = scene.hit(d.sx, d.sy); if (!h) { scene.release(); return; }
     if (h.type === 'face') { if (scene.focusedStation !== 'mine') focusSt('mine'); tapMine(); return; }
     if (h.type === 'station') { if (scene.focusedStation !== h.id) focusSt(h.id); return; }
-    if (h.type === 'building') { if (h.id === 'shop') return focusSt('sell'); if (h.id === 'lab') return openLab(); return openMice(); }
+    if (h.type === 'building') { if (h.id === 'shop') return focusSt('sell'); if (h.id === 'lab') return openPz('lab'); return openPz('mice'); }
   };
   // Mantener pulsado no debe abrir nada del navegador ni hacer scroll de la página: cortaría el gesto.
   cv.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -612,7 +501,7 @@
     openCrew(work); scene.pickMouse(m.id, topInset()); if (work) paintCrew(true);
   }
   const tag = document.createElement('button'); tag.className = 'focus-tag'; $('scene-box').appendChild(tag);
-  tag.addEventListener('click', () => { const id = scene.selectedMouse; if (id) openMouse(id); });
+  tag.addEventListener('click', () => { const id = scene.selectedMouse; if (id) openPz('card', id); });
   let tagT = 0, tagId = null;
   function paintTag(now) {
     const f = scene.focusTag();
@@ -675,9 +564,9 @@
     if (gEl.classList.contains('min')) { gChange = performance.now(); gEl.classList.remove('min'); }
     const at = gShown.at;
     if (gShown.id === 'shop' || gShown.id === 'house' || gShown.id === 'lab') return goBuild(gShown.id === 'shop' ? 'sell' : gShown.id);
-    if (at === 'upgrades') return openUpgrades();
-    if (at === 'mice') return openMice();
-    if (/^recipe/.test(gShown.id)) return openLab();
+    if (at === 'upgrades') { freshUp = false; return openPz('tree', selected); }
+    if (at === 'mice') return openPz('mice');
+    if (/^recipe/.test(gShown.id) || at === 'lab') return openPz('lab');
     focusSt(at); if (plates[at]) pulse(plates[at], 'bump', 320);
   });
   // Avisos en cola: cada uno se lee; si llegan muchos a la vez, se quedan los primeros.
@@ -697,20 +586,50 @@
   function beginOffline(ms) {
     const J = Core.offlineStart(G, ms);
     if (!J) return false;
-    off = { total: J.total, t0: performance.now() };
+    off = { total: J.total, t0: performance.now(), long: J.total > 30 * 60000, shown: false };
+    if (off.long) ensurePz();
     card.innerHTML = '<h1>WELCOME BACK</h1><p>Your colony kept working…</p><div class="bt-load"><i id="bt-bar"></i></div>'; cover.hidden = false;
     return true;
   }
   function offlineStep() {
     const t0 = performance.now(); let left = G.offJob ? G.offJob.left : 0;
     while (left > 0 && performance.now() - t0 < 14) left = Core.offlineRun(G, 300000);
-    const b = $('bt-bar'); if (b) b.style.width = Math.round((100 * (off.total - left)) / Math.max(1, off.total)) + '%';
+    const b = $('bt-bar'), p = (off.total - left) / Math.max(1, off.total); if (b) b.style.width = Math.round(100 * p) + '%';
+    if (off.long && PZ.ready) { try { if (!off.shown) { off.shown = true; cover.hidden = true; pzWin().SHEETS.welcomeCatch(dur(off.total)); } pzWin().SHEETS.welcomeProgress(p); } catch (e) { console.warn(e); } }
     if (left > 0) return;
-    const S = Core.offlineEnd(G); off = null; cover.hidden = true;
+    const S = Core.offlineEnd(G); off = null; cover.hidden = true; rev += 1;
     syncSim(); syncCrew(); syncWorld(); saveNow(); Core.drain(G);
-    const rows = [['ic_coin', 'Coins', S.coins], ['ic_raw_' + tierNow(), 'Raw Cheese', S.raw], ['ic_base_' + tierNow(), 'Cheese Base', S.base], ['ic_lot_' + tierNow(), 'Cheese', S.lots]].filter((x) => x[2] > 0);
-    const body = () => '<p>Away for ' + dur(S.ms + S.lost) + (S.lost ? ': the colony worked the first ' + dur(S.ms) + '. Night Lamp in UPGRADES lets it work longer.' : '.') + '</p><div class="bt-rows">' + rows.map((x) => row(ic(x[0]), x[1], '+' + fmt(x[2]), '')).join('') + (S.depth ? row(ic('ic_pick'), 'Depth', S.depth + ' levels deeper', '') : '') + (S.recipes ? row(ic('ic_base_cheddar'), 'Recipes', S.recipes + ' new', '') : '') + (S.notes.filter((n) => n.type === 'trait' || n.type === 'specialty').length ? row(NAV_IC.mouse, 'Your mice', S.notes.filter((n) => n.type === 'trait' || n.type === 'specialty').length + ' new skills learned', '') : '') + '</div>';
-    if (rows.length || S.depth) sheet('WELCOME BACK', body);
+    welcomeV = welcomeData(S); flushWelcome();
+  }
+  // El resumen de vuelta, con lo que dice el núcleo: nada se calcula aquí ni se cuenta dos veces.
+  let welcomeV = null;
+  function welcomeData(S) {
+    const T = REAL.mice.traits, name = (id) => { const m = G.roster.find((x) => x.id === id); return m ? m.name : ''; }, t = tierNow();
+    const legs = [], grew = {}, legacy = [], news = [];
+    for (const e of S.notes || []) {
+      if ((e.type === 'trait' || e.type === 'specialty') && T[e.trait]) { if (T[e.trait].kind === 'legend') legs.push({ k: 'leg', name: esc(name(e.id)), trait: T[e.trait].name, desc: T[e.trait].desc }); else (grew[name(e.id)] = grew[name(e.id)] || []).push(T[e.trait].name); }
+      if (e.type === 'careDone') legacy.push(esc(name(e.id)) + (e.kind === 'quirk' ? ' got over <b class="tok">' + T[e.what].name + '</b>' : ' finished retraining: now <b class="tok">' + T[e.to].name + '</b>'));
+    }
+    news.push(...legs);
+    if (S.depth) legacy.unshift('The colony dug <b>' + S.depth + '</b> level' + (S.depth > 1 ? 's' : '') + ' deeper, to depth <b>' + G.s.depth + '</b>');
+    if (S.recipes) legacy.push('<b>' + S.recipes + '</b> new recipe' + (S.recipes > 1 ? 's' : '') + ' discovered in the lab');
+    for (const id of Object.keys(S.items || {})) legacy.push('<b>+' + fmt(S.items[id]) + '</b> ' + esc(Inv.card(G, id).name));
+    const mins = Math.round((S.ms + S.lost) / 60000);
+    if (S.wheels) legacy.push('<b>' + S.wheels + '</b> Grand Wheel' + (S.wheels > 1 ? 's' : ''));
+    const skills = S.levels ? WORK.filter((st) => G.stLv[st] > S.levels[st]).map((st) => [NAME[st], S.levels[st], G.stLv[st]]) : [];
+    const ups = (S.miceFrom || []).map(([id, lv]) => { const m = G.roster.find((x) => x.id === id); return m ? { name: m.name, from: lv, to: Cr.level(m), d: Cr.level(m) - lv } : null; }).filter((x) => x && x.d > 0).sort((a, b) => b.d - a.d);
+    return {
+      away: mins < 1 ? 'under a minute' : mins >= 120 ? Math.round(mins / 60) + ' h' : mins + ' min', capped: S.lost > 0 ? Math.round(S.ms / 3600000) : 0, zone: t, coins: S.coins, raw: S.raw, base: S.base, lots: S.lots, sold: S.sold || 0, wheels: 0, wheelLots: 0, veins: S.depth || 0,
+      news, legacy, grew: Object.keys(grew).map((k) => [esc(k), grew[k]]), ups: ups.length === 1 ? { n: 1, name: esc(ups[0].name), from: ups[0].from, to: ups[0].to } : { n: ups.length, top: ups[0] ? esc(ups[0].name) : '' }, grades: 0, skills, nothing: !(S.coins > 0 || S.raw > 0 || S.base > 0 || S.lots > 0 || S.depth > 0 || legacy.length || news.length),
+    };
+  }
+  function flushWelcome() {
+    if (!welcomeV) return;
+    if (!PZ.fr) ensurePz();
+    if (!PZ.ready) return;
+    const v = welcomeV; welcomeV = null;
+    if (v.nothing && !v.capped) return;
+    try { pzWin().SHEETS.welcomeSummary(v); } catch (e) { console.warn(e); toast('Your colony kept working while you were away'); closePz(true); }
   }
   function startCover() {
     if (brokenSave) card.innerHTML = '<h1>CHEESE DRILLER</h1><p>This save could not be read. It has been kept aside on this device, not deleted.</p><button class="bx bt-main" id="bt-new">START A NEW COLONY</button>';
@@ -721,7 +640,18 @@
 
   // ---- Bucle ----
   let last = performance.now(), hudSig = '', slow = 0, lastReal = loadedSave ? loadedSave.savedAt : Date.now(), nextSave = 0;
+  // Lo que el núcleo no anuncia con un evento: recetas, quesos y cepas nuevas se ven en cuanto aparecen.
+  const labSeen = { known: G.lab.known.length, styles: Object.keys(G.lab.styles).length, strains: {} };
+  for (const k of Object.keys(G.lab.strainsOf || {})) labSeen.strains[k] = G.lab.strainsOf[k].length;
+  function watchLab() {
+    const L = G.lab;
+    if (L.known.length > labSeen.known) { toast('New recipe: ' + recipeName(L.known[L.known.length - 1])); labSeen.known = L.known.length; }
+    const st = Object.keys(L.styles).length; if (st > labSeen.styles) { labSeen.styles = st; toast('New cheese to research!'); }
+    for (const k of Object.keys(L.strainsOf || {})) { const n = L.strainsOf[k].length; if (n > (labSeen.strains[k] || 0)) { labSeen.strains[k] = n; if (PZ.ready) try { pzWin().SHEETS.strainFound(k, L.strainsOf[k][n - 1]); } catch (e) { console.warn(e); } toast('New strain found: compare it in LAB'); } }
+  }
+  let revAt = 0;
   function tick(now) {
+    if (now - revAt > 200) { revAt = now; rev += 1; watchLab(); }
     const real = Date.now(), elapsed = Math.max(0, real - lastReal); lastReal = real;
     if (off) offlineStep();
     else if (!paused) { if (elapsed >= OFFLINE_MIN && beginOffline(elapsed)) {} else if (elapsed > 0 && elapsed < OFFLINE_MIN) Core.advance(G, elapsed); }
@@ -741,7 +671,7 @@
     paintPanel(false); paintTag(now);
     if (now - slow > 400) {
       slow = now; goalPlace(now); perfPaint(); for (const k of Object.keys(madeLog)) rate(k);
-      if (isOpen(pop)) paintCrew(false); if (isOpen(res)) paintRes(); refreshSheet();
+      if (isOpen(pop)) paintCrew(false); if (isOpen(res)) paintRes();
       $('nav-upgrades').classList.toggle('fresh', freshUp || (gShown && gShown.id === 'node' && Core.options(G).some((o) => s.coins >= o.cost)));
       $('nav-boosts').classList.toggle('fresh', G.boosts.earned - Ru.placedBoosts(G) > 0);
       $('nav-mice').classList.toggle('fresh', !paused && (Core.unassigned(G).length > 0 || G.cands.length > 0 || Ru.promoteOptions(G).some((o) => s.coins >= o.cost) || scene.stationState('house') === 'build' || (gShown && gShown.id === 'mouse' && s.coins >= Ru.recruitCost(G))));

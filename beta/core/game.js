@@ -110,7 +110,7 @@ E2.game = (function () {
     if (c.offJob) return c.offJob;
     if (!(awayMs >= R().offline.minMs)) return null;
     const s = c.s, ms = Math.min(Math.floor(awayMs), capMs(c));
-    c.offJob = { total: ms, left: ms, lost: Math.max(0, Math.floor(awayMs) - ms), from: { coins: s.m.coins, raw: s.m.raw, base: s.m.base, lots: s.m.lotsMade, depth: s.depth, recipes: c.lab.known.length, items: JSON.parse(JSON.stringify(s.matMade || {})) } };
+    c.offJob = { total: ms, left: ms, lost: Math.max(0, Math.floor(awayMs) - ms), from: { coins: s.m.coins, raw: s.m.raw, base: s.m.base, lots: s.m.lotsMade, sold: s.m.sold + s.m.whole, wheels: s.m.wheels, depth: s.depth, recipes: c.lab.known.length, items: JSON.parse(JSON.stringify(s.matMade || {})), levels: Object.assign({}, c.stLv), mice: c.roster.map((m) => [m.id, C().level(m)]) } };
     enterAway(c);
     return c.offJob;
   }
@@ -132,7 +132,7 @@ E2.game = (function () {
     for (const k of Object.keys(s.matMade || {})) { const d = s.matMade[k] - (f.items[k] || 0); if (d > 0) items[k] = d; }
     s.muted = false; Mo().setAway(s, false); Ru().applyMods(c); c.modsT = s.t;
     c.offJob = null;
-    const summary = { ms: J.total, lost: J.lost, coins: s.m.coins - f.coins, raw: s.m.raw - f.raw, base: s.m.base - f.base, lots: s.m.lotsMade - f.lots, depth: s.depth - f.depth, recipes: c.lab.known.length - f.recipes, items, notes: c.inbox };
+    const summary = { ms: J.total, lost: J.lost, coins: s.m.coins - f.coins, raw: s.m.raw - f.raw, base: s.m.base - f.base, lots: s.m.lotsMade - f.lots, sold: f.sold != null ? s.m.sold + s.m.whole - f.sold : 0, wheels: f.wheels != null ? s.m.wheels - f.wheels : 0, depth: s.depth - f.depth, recipes: c.lab.known.length - f.recipes, items, notes: c.inbox, levels: f.levels || null, miceFrom: f.mice || [] };
     c.inbox = [];
     return summary;
   }
@@ -367,6 +367,42 @@ E2.game = (function () {
       (lab.bpQueue = lab.bpQueue || []).push(t);
       Ru().log(c, 'blueprint:' + a.id, 0);
       return OK();
+    },
+    // Cultivar una cepa de una receta que ya se conoce: entra en la cola del laboratorio, como cualquier investigación.
+    labCulture(c, a) {
+      const L = Lb(), key = a.key;
+      if (!c.lab.nodes.strains || !key || !c.lab.isKnown[key]) return NO('locked');
+      if (L.strainsFor(c, key).length >= Object.keys(R().strains).length) return NO('done');
+      if ((c.lab.job && c.lab.job.kind === 'strain' && c.lab.job.key === key) || c.lab.queue.some((q) => q.kind === 'strain' && q.key === key)) return NO('done');
+      return L.enqueue(c, { kind: 'strain', key }, 'research:strain:' + key) ? OK() : NO('queue-full');
+    },
+    // Quitar lo último de la cola. Lo que está en cola aún no se ha pagado: no hay nada que devolver.
+    labCancel(c) {
+      if (!c.lab.queue.length) return NO('invalid');
+      c.lab.queue.pop();
+      c.s.labWant = 0;
+      return OK();
+    },
+    // Varios ascensos de una vez: si el total no alcanza no se cobra nada. picks = { id del ratón: rango al que llega }.
+    promoteMany(c, a) {
+      const M = R().mice, S2 = P().s2, plan = [];
+      let total = 0;
+      for (const id of Object.keys(a.picks || {})) {
+        const m = c.roster.find((x) => x.id === id);
+        if (!m) return NO('invalid');
+        const to = a.picks[id], lv = C().level(m);
+        for (let r = (m.rank || 0) + 1; r <= to; r++) { const nx = M.ranks[r]; if (!nx || lv < nx.level) return NO('invalid'); total += Math.round(nx.cost * S2.rankCostScale); plan.push(m.id); }
+      }
+      if (!plan.length) return NO('invalid');
+      if (c.s.coins < total) return NO('no-coins');
+      for (const id of plan) { const r = buyOption(c, (o) => o.kind === 'promote' && o.m.id === id); if (!r.ok) return r; }
+      return OK({ mice: Object.keys(a.picks).length, steps: plan.length, cost: total });
+    },
+    // BEST FIT: solo busca al tocarlo. Ningún ratón se queda sin puesto, el investigador no se mueve y, si nada mejora, no cambia nada.
+    bestFit(c) {
+      const plan = E2.bestfit.plan(c);
+      for (const op of plan.ops) { const r = op.kind === 'assign' ? ACTIONS.assign(c, { id: op.id, st: op.st, role: op.role }) : ACTIONS.move(c, { id: op.id, st: op.st, role: op.role }); if (!r.ok) return r; }
+      return OK({ moved: plan.moved, gain: plan.gain });
     },
     recipePin(c, a) {
       if (a.key && !c.lab.isKnown[a.key]) return NO('invalid');

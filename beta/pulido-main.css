@@ -1,0 +1,204 @@
+/* ============================================================================================================
+   MAIN HORIZONTAL (por defecto desde el 22-10-2026) · la interfaz Pulido+ aprobada de la pantalla principal
+   (exploracion/pixel/main.html, versión 6; las capturas del propietario) sobre las piezas fijas del juego (index.html).
+   Solo con body.p2h. La MAIN vertical (?main=2) sigue en pulido.css (body.p2v) y la antigua (?main=1) en style.css.
+   Medidas de la maqueta: HUD 58, objetivo 36, escena (el resto), cadena 68, panel 262, barra 30; 6 px entre bloques.
+   Nada cambia de alto mientras el juego corre: cada pieza tiene su alto fijo y los textos se cortan con puntos suspensivos.
+   ============================================================================================================ */
+
+/* ---- La caja única (borde de tinta, luz arriba, sombra abajo, esquinas a píxel) ---- */
+body.p2h #app .hud > .res, body.p2h #app .hud > .hshop, body.p2h #app .objective, body.p2h #app .fchip, body.p2h #app .chain > .tile,
+body.p2h #app .dock, body.p2h #app .rchip, body.p2h #app #dock-worker, body.p2h #app #dock-book, body.p2h #app .dups > .dup, body.p2h #app .tools > button {
+  background: var(--p2); border: 2px solid var(--p4); border-radius: 0;
+  box-shadow: inset 0 2px 0 var(--p1), inset 0 -3px 0 var(--p3);
+  clip-path: polygon(2px 0, calc(100% - 2px) 0, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 0 calc(100% - 2px), 0 2px);
+  color: var(--text); font-family: var(--sans); text-shadow: none;
+}
+body.p2h #app { background: var(--bg); }
+body.p2h #app .pix { image-rendering: pixelated; }
+
+/* ---- HUD: monedas y tienda, la misma estructura (icono, etiqueta, valor, ritmo) y el mismo alto ---- */
+body.p2h #app .hud { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gap); height: 64px; padding: 6px 6px 0; margin: 0; background: none; border: 0; box-shadow: none; }
+body.p2h #app .hud > .res, body.p2h #app .hud > .hshop { position: relative; display: grid; grid-template-columns: 30px minmax(0, 1fr); align-items: center; column-gap: 8px; min-width: 0; height: 58px; padding: 0 var(--pad) 1px; margin: 0; text-align: left; cursor: pointer; }
+body.p2h #app .hud img { justify-self: center; width: auto; height: auto; }
+body.p2h #app #ic-coins { width: 32px; height: 32px; }
+body.p2h #app #ic-shop { width: 30px; height: 26px; }
+body.p2h #app .hud > .res > div, body.p2h #app .hud > .hshop > div { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
+body.p2h #app .hud span { display: block; max-width: 100%; margin: 0; font: 700 10px/12px var(--sans); letter-spacing: .6px; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.p2h #app .hud b { display: block; max-width: 100%; margin: 0; font: 400 16px/16px var(--pixel); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: clip; }
+body.p2h #app .hud em { display: block; max-width: 100%; height: auto; margin: 0; font: 600 11px/12px var(--sans); font-style: normal; color: var(--rate); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.p2h #app .hud em.neg { color: #ff8a7a; }
+body.p2h #app .hud .hbar { position: absolute; left: 2px; right: 2px; bottom: 3px; height: 2px; margin: 0; background: transparent; border: 0; border-radius: 0; overflow: hidden; }
+body.p2h #app .hud .hbar > i { display: block; height: 100%; background: #8a7fb0; animation: none; }
+@media (max-width: 359px) { body.p2h #app .hud b { font-size: 13px; line-height: 14px; } body.p2h #app .hud > .res, body.p2h #app .hud > .hshop { grid-template-columns: 26px minmax(0, 1fr); column-gap: 6px; padding: 0 6px 1px; } body.p2h #app #ic-coins { width: 24px; height: 24px; } body.p2h #app #ic-shop { width: 23px; height: 20px; } }
+
+/* ---- Objetivo: GOAL y su barra arriba, el texto entero debajo, la flecha a la derecha ---- */
+body.p2h #app .objective { display: grid; grid-template-columns: auto minmax(0, 1fr) 11px; grid-template-rows: 8px 14px; align-content: center; column-gap: 8px; row-gap: 4px; height: 36px; margin: 6px 6px 0; padding: 0 var(--pad) 1px; }
+body.p2h #app .objective::before { content: 'GOAL'; grid-column: 1; grid-row: 1; align-self: center; font: 700 10px/12px var(--sans); letter-spacing: .6px; color: var(--gold); }
+body.p2h #app .objective::after { content: ''; grid-column: 3; grid-row: 1 / 3; align-self: center; width: 11px; height: 15px; background: url(assets/main2/out/sprites/ic_arrow.png) center / 11px 15px no-repeat; image-rendering: pixelated; }
+body.p2h #app .objective .obj-row { display: contents; }
+body.p2h #app .objective #obj-text { grid-column: 1 / 3; grid-row: 2; min-width: 0; font: 600 12px/14px var(--sans); color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.p2h #app .objective #obj-num { display: none; }
+body.p2h #app .objective .bar { grid-column: 2; grid-row: 1; align-self: center; height: 4px; margin: 0; background: var(--p4); border: 0; border-radius: 0; }
+body.p2h #app .objective .bar > i { background: linear-gradient(#fff3a0 0 1px, var(--gold) 1px 3px, #c98a08 3px); animation: none; }
+/* Todos los objetivos cumplidos: un renglón fino (vuelve a su alto cuando se abre el siguiente). */
+body.p2h #app .objective.idle { grid-template-rows: 14px; height: 22px; }
+body.p2h #app .objective.idle::before, body.p2h #app .objective.idle::after, body.p2h #app .objective.idle .bar { display: none; }
+body.p2h #app .objective.idle #obj-text { grid-row: 1; font-size: 11px; color: var(--muted); }
+
+/* ---- Escena: de borde a borde, con la etiqueta de la roca arriba y la franja de recursos encima del suelo ---- */
+body.p2h #app .stage { margin-top: 6px; background: #4c5f98; border: 0; }
+body.p2h #bubbles { display: none !important; }
+/* Números que flotan (maqueta v6): píxel de 12, blanco con sombra de tinta, con el icono aprobado del recurso. */
+body.p2h #floaters .float { display: flex; align-items: center; gap: 4px; font: 400 12px/12px var(--pixel); color: #fff; text-shadow: 2px 2px 0 var(--p4); }
+body.p2h #floaters .float .pix { width: 20px; height: auto; margin: 0; }
+body.p2h #floaters .float.coins { color: var(--gold); }
+body.p2h #floaters .float.crit { color: #ff7a8a; font-size: 14px; line-height: 14px; }
+body.p2h #floaters .float.info { font-size: 8px; line-height: 9px; }
+body.p2h .h-tag { position: absolute; left: 8px; top: 8px; z-index: 3; max-width: calc(100% - 16px); padding: 4px 6px 5px; font: 400 8px/8px var(--pixel); color: var(--soft); background: #1b1622cc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+body.p2h .stage:has(#combo.on) .h-tag { visibility: hidden; }
+body.p2h #app .flowband { position: absolute; left: var(--gap); right: var(--gap); top: auto; bottom: var(--gap); z-index: 3; display: grid !important; grid-template-columns: minmax(0, 1fr) 7px minmax(0, 1fr) 7px minmax(0, 1fr); align-items: center; gap: 2px; height: 48px; margin: 0; padding: 0; background: none; border: 0; box-shadow: none; pointer-events: auto; }
+body.p2h #app .flowband .fchip { display: grid; grid-template-columns: 21px minmax(0, 1fr); align-items: center; column-gap: 5px; height: 48px; min-width: 0; padding: 0 5px 1px; margin: 0; background: #1d1828f2; }
+body.p2h #app .flowband .fchip img { justify-self: center; width: 21px; height: auto; }
+body.p2h #app .flowband #ic-lots { width: 22px; }
+body.p2h #app .flowband .fchip > div { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
+body.p2h #app .flowband .fname { display: block; font: 700 10px/12px var(--sans); letter-spacing: .6px; text-transform: uppercase; color: var(--muted); }
+body.p2h #app .flowband b { display: block; max-width: 100%; font: 400 12px/12px var(--pixel); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: clip; }
+body.p2h #app .flowband em { display: block; max-width: 100%; margin: 0; font: 600 11px/12px var(--sans); font-style: normal; color: var(--rate); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.p2h #app .flowband .farrow { justify-self: center; width: 7px; height: 10px; margin: 0; background: url(assets/main2/out/sprites/ic_arrow.png) center / 7px 10px no-repeat; border: 0; opacity: .6; image-rendering: pixelated; }
+body.p2h #app .flowband .farrow::before, body.p2h #app .flowband .farrow::after { content: none; }
+@media (max-width: 359px) { body.p2h #app .flowband .fchip { grid-template-columns: 16px minmax(0, 1fr); column-gap: 4px; padding: 0 4px 1px; } body.p2h #app .flowband .fchip img { width: 16px; } body.p2h #app .flowband b { font-size: 10px; line-height: 10px; } body.p2h #app .flowband em { font-size: 10px; } }
+
+/* ---- Abajo: cadena (68), panel de la etapa (262) y barra (30) ---- */
+body.p2h #app .controls { display: flex; flex-direction: column; gap: var(--gap); padding: var(--gap) var(--gap) calc(var(--gap) + env(safe-area-inset-bottom, 0px)); background: var(--bg); border: 0; box-shadow: none; }
+body.p2h #app .controls > * { flex: none; margin: 0; }
+
+/* Cadena: las seis casillas con la misma rejilla (nivel arriba, icono, nombre y una línea de estado) */
+body.p2h #app .chain { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; height: 68px; padding: 0; }
+body.p2h #app .chain:has(.labtile[hidden]) { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+body.p2h #app .chain > .tile { position: relative; display: grid; grid-template-rows: 24px 8px 10px; justify-items: center; align-items: center; row-gap: 2px; min-width: 0; height: 68px; padding: 14px 3px 0; margin: 0; opacity: 1; filter: none; }
+body.p2h #app .chain > .tile::after, body.p2h #app .chain > .tile::before { content: none; display: none; }
+body.p2h #app .chain > .tile img { align-self: end; width: 21px; height: 21px; margin: 0; }
+body.p2h #app .chain > .tile[data-st='drill'] img, body.p2h #app .chain > .tile[data-st='refinery'] img { height: 18px; }
+body.p2h #app .chain > .tile[data-st='cheesery'] img { width: 22px; height: 20px; }
+body.p2h #app .chain > .tile[data-st='shop'] img { width: 24px; height: 24px; }
+body.p2h #app .chain > .tile[data-st='lab'] img { width: 20px; }
+body.p2h #app .chain > .tile b { max-width: 100%; font: 400 8px/8px var(--pixel); color: var(--soft); white-space: nowrap; overflow: hidden; }
+body.p2h #app .chain > .tile u { position: absolute; left: 0; right: 0; top: 2px; text-align: center; font: 700 9px/11px var(--sans); text-decoration: none; color: var(--muted); }
+body.p2h #app .chain > .tile em { position: static; display: block; max-width: 100%; height: 10px; padding: 0; margin: 0; font: 800 9px/10px var(--sans); font-style: normal; letter-spacing: .5px; color: var(--muted); background: none; border: 0; box-shadow: none; white-space: nowrap; overflow: hidden; transform: none; animation: none; }
+body.p2h #app .chain > .tile .mini { position: absolute; left: 4px; right: 4px; bottom: 3px; height: 2px; margin: 0; background: transparent; border: 0; border-radius: 0; }
+body.p2h #app .chain > .tile .mini > i { background: #8a7fb0; animation: none; }
+body.p2h #app .chain > .tile.sel { border-color: var(--gold); background: #322a2c; }
+body.p2h #app .chain > .tile.sel b { color: var(--text); }
+body.p2h #app .chain > .tile.sel u, body.p2h #app .chain > .tile.sel em { color: var(--soft); }
+body.p2h #app .chain > .tile.isnew em, body.p2h #app .chain > .tile.build em { color: var(--new); }
+body.p2h #app .chain > .tile.help em, body.p2h #app .chain > .tile.blocked em { color: var(--o1); }
+body.p2h #app .chain > .tile.locked img, body.p2h #app .chain > .tile.locked b { opacity: .45; }
+body.p2h #app .chain > .tile.labtile { background: #1f2a2a; }
+body.p2h #app .chain > .tile.labtile.sel { background: #26332c; }
+/* El objetivo señala su etapa con el aura dorada; un refuerzo, con el marco azul por dentro (nunca cambia el tamaño). */
+body.p2h #app .chain > .tile.goal { box-shadow: inset 0 2px 0 var(--p1), inset 0 -3px 0 var(--p3), inset 0 0 0 2px #ffcf2e80; }
+body.p2h #app .chain > .tile[data-boost='1'] { box-shadow: inset 0 0 0 2px #5ad1ff, inset 0 -3px 0 var(--p3); }
+body.p2h #app .chain > .tile[data-boost='2'] { box-shadow: inset 0 0 0 2px #5ad1ff, inset 0 0 0 4px #1d6a8a, inset 0 -3px 0 var(--p3); }
+
+/* Panel de la etapa: rocas, cabecera (nombre, experiencia y dos renglones), acción con su ratón y mejoras */
+body.p2h #app .dock { display: flex; flex-direction: column; gap: 9px; height: 262px; padding: 7px var(--pad) var(--pad); overflow: hidden; }
+body.p2h #app .rockstrip { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; height: 36px; flex: none; padding: 0; margin: 0; overflow: visible; }
+body.p2h #app .rockstrip[hidden] { display: none; }
+/* Con una sola roca no hay fichas: el panel conserva su alto y su contenido queda centrado. */
+body.p2h #app .dock:has(.rockstrip[hidden]) { justify-content: center; }
+body.p2h #app .rockstrip .rchip { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0; height: 36px; padding: 0 2px 1px; margin: 0; background: var(--p3); box-shadow: inset 0 2px 0 var(--p2), inset 0 -3px 0 var(--p4); }
+body.p2h #app .rockstrip .rchip img { width: 21px; height: 18px; margin: 0; }
+body.p2h #app .rockstrip .rchip b { max-width: 100%; font: 600 10px/11px var(--sans); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.p2h #app .rockstrip .rchip.on { border-color: var(--gold); background: #322a2c; box-shadow: inset 0 2px 0 var(--p1), inset 0 -3px 0 var(--p3); }
+body.p2h #app .rockstrip .rchip.on b { color: var(--text); }
+body.p2h #app .rockstrip .rdot { position: absolute; right: 2px; top: 2px; width: 6px; height: 6px; border-radius: 0; border: 1px solid var(--p4); }
+body.p2h #app .dhead { display: flex; flex-direction: column; gap: 6px; flex: none; margin: 0; padding: 0; }
+body.p2h #app .dtitle { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 0; }
+body.p2h #app .dtitle b { min-width: 0; font: 400 12px/12px var(--pixel); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.p2h #app .dtitle span { flex: none; font: 600 11px/12px var(--sans); color: var(--muted); white-space: nowrap; }
+body.p2h #app .dhead .bar.xp { height: 6px; margin: 0; background: var(--p4); border: 0; border-radius: 0; }
+body.p2h #app .dhead .bar.xp > i { background: linear-gradient(#b8dcff 0 1px, var(--xp) 1px 4px, #3f6fb8 4px); animation: none; }
+body.p2h #app .dinfo { display: flex; flex-direction: column; gap: 3px; margin: 2px 0 0; padding: 0; }
+body.p2h #app .dinfo small { display: block; height: 15px; font: 400 12px/15px var(--sans); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.p2h #app .dinfo small b { font-weight: 600; color: var(--soft); }
+body.p2h #app .dinfo #dock-status { color: var(--soft); }
+body.p2h #app .dinfo small.good { color: var(--rate); }
+body.p2h #app .dinfo small.warn { color: var(--o1); }
+body.p2h #app .dinfo small.bad { color: #ff8a7a; }
+body.p2h #app .drow { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: var(--gap); height: 76px; flex: none; margin: 0; }
+body.p2h #app .drow:has(#dock-side[hidden]) { grid-template-columns: minmax(0, 1fr); }
+/* La acción: el único naranja. */
+body.p2h #app #dock-main { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; width: auto; height: 76px; min-width: 0; padding: 0 6px; margin: 0; overflow: hidden; color: #fff; cursor: pointer;
+  background: var(--o2); border: 2px solid #2b1d12; border-radius: 0; box-shadow: inset 0 2px 0 var(--o0), inset 0 4px 0 var(--o1), inset 0 -4px 0 var(--o3); text-shadow: 2px 2px 0 var(--o4);
+  clip-path: polygon(2px 0, calc(100% - 2px) 0, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 0 calc(100% - 2px), 0 2px); transform: none; }
+body.p2h #app #dock-main:active { transform: translateY(1px); }
+body.p2h #app #dock-main b { position: relative; max-width: 100%; font: 400 16px/16px var(--pixel); letter-spacing: 1px; white-space: nowrap; overflow: hidden; }
+body.p2h #app #dock-main small { position: relative; max-width: 100%; font: 700 11px/13px var(--sans); color: #fff4e0; text-shadow: 1px 1px 0 var(--o4); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.p2h #app #dock-main .fill { background: #ffffff2a; }
+body.p2h #app #dock-main.off, body.p2h #app #dock-main:disabled, body.p2h #app #dock-main.locked, body.p2h #app #dock-main.idle { background: var(--p1); border-color: var(--p4); box-shadow: inset 0 2px 0 #54486c, inset 0 -3px 0 var(--p3); text-shadow: 1px 1px 0 var(--p4); }
+body.p2h #app #dock-main.blocked { background: #6a2a2a; box-shadow: inset 0 2px 0 #9a4a3a, inset 0 -3px 0 #3a1414; }
+/* La pestaña del refuerzo (mockup BOOSTS, «Botón grande del panel inferior»): en la esquina de arriba a la derecha, por fuera
+   del botón para que no se recorte, con sus gemas y lo que da el puesto en una línea; apagada si el puesto no tiene ratón. */
+body.p2h #app .h-actw { position: relative; display: grid; min-width: 0; }
+body.p2h #app .h-actw #dock-boost { position: absolute; top: -7px; right: -2px; left: auto; bottom: auto; z-index: 2; display: flex; align-items: center; gap: 4px; width: auto; height: auto; max-width: calc(100% + 2px); padding: 3px 6px 4px 4px; margin: 0; font: 400 7px/8px var(--pixel); font-style: normal; color: #e8f8ff; text-shadow: none; white-space: nowrap; background: #1d5f86; border: 2px solid #0c0910; border-radius: 0; box-shadow: inset 0 1px 0 #5ad1ff; transform: none; clip-path: none; animation: none; pointer-events: none; }
+body.p2h #app .h-actw #dock-boost:empty { display: none; }
+body.p2h #app .h-actw #dock-boost::before, body.p2h #app .h-actw #dock-boost::after { content: none; display: none; }
+body.p2h #app .h-actw #dock-boost .gg { display: flex; gap: 1px; }
+body.p2h #app .h-actw #dock-boost .gg canvas { display: block; image-rendering: pixelated; }
+body.p2h #app .h-actw #dock-boost.off { background: #1a1622; box-shadow: inset 0 1px 0 #4a6274; color: var(--muted); }
+/* Su ratón: la cara en su marco, el nombre y el nivel con el rango. */
+body.p2h #app #dock-side { display: flex; flex-direction: column; gap: 4px; min-width: 0; height: 76px; margin: 0; }
+body.p2h #app #dock-side[hidden] { display: none; }
+body.p2h #app #dock-worker { display: grid; grid-template-columns: 52px minmax(0, 1fr); align-items: center; column-gap: 8px; flex: 1; min-height: 0; width: 100%; padding: 0 var(--pad) 1px 6px; margin: 0; text-align: left; cursor: pointer; }
+body.p2h #app #dock-worker img { width: 52px; height: 52px; padding: 4px 2px; object-fit: fill; background: #120e18; border: 2px solid #8a7fb0; box-shadow: inset 0 -3px 0 #000; }
+body.p2h #app #dock-worker > span { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+body.p2h #app #dock-worker b { display: block; max-width: 100%; font: 800 14px/16px var(--sans); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.p2h #app #dock-worker u { display: block; max-width: 100%; font: 700 10px/12px var(--sans); letter-spacing: .6px; text-transform: uppercase; text-decoration: none; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.p2h #app #dock-side:has(#dock-book:not([hidden])) #dock-worker img { width: 40px; height: 40px; padding: 3px 1.5px; } /* el ratón (22 × 20) a escala entera: ×2, o ×1,5 con RECIPES */
+body.p2h #app #dock-side:has(#dock-book:not([hidden])) #dock-worker { grid-template-columns: 40px minmax(0, 1fr); }
+body.p2h #app #dock-book { flex: none; height: 26px; padding: 0 0 1px; margin: 0; font: 400 8px/8px var(--pixel); color: var(--text); cursor: pointer; }
+body.p2h #app #dock-book[hidden] { display: none; }
+/* Mejoras: la más barata, el árbol y comprar todo */
+body.p2h #app .dups { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--gap); height: 40px; flex: none; margin: 0; }
+body.p2h #app .dups > .dup { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 0; height: 40px; padding: 0 4px 2px; margin: 0; cursor: pointer; }
+body.p2h #app .dups > .dup > b { display: block; max-width: 100%; font: 600 12px/14px var(--sans); color: var(--soft); text-transform: lowercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.p2h #app .dups > .dup > b::first-letter { text-transform: uppercase; }
+body.p2h #app #up-quick > b { text-transform: none; }
+body.p2h #app .dups > .dup > span { display: flex; align-items: center; gap: 4px; max-width: 100%; overflow: hidden; }
+body.p2h #app .dups > .dup img { width: 16px; height: 16px; margin: 0; }
+body.p2h #app .dups > .dup u { display: block; max-width: 100%; font: 400 8px/9px var(--pixel); text-decoration: none; color: var(--gold); white-space: nowrap; overflow: hidden; text-overflow: clip; }
+body.p2h #app #up-all u { font-size: 7px; }
+body.p2h #app #up-tree u { font: 700 10px/12px var(--sans); letter-spacing: .6px; text-transform: uppercase; color: var(--muted); }
+body.p2h #app #up-tree u:empty::before { content: 'Tree'; }
+/* Estados de las mejoras (los del botón BUY del árbol aprobado): se puede pagar, precio en oro; no alcanza, precio apagado
+   y la caja se llena por debajo con lo que ya tienes; el árbol con mejoras listas, «N READY» en verde; un hito, borde oro. */
+body.p2h #app .dups > .dup.off u, body.p2h #app .dups > .dup:disabled u { color: var(--muted); }
+body.p2h #app .dups > .dup.off img { filter: grayscale(1) brightness(.8); }
+body.p2h #app .dups > .dup.off[data-cost] { background: linear-gradient(90deg, #34402e var(--p, 0%), var(--p2) var(--p, 0%)); }
+body.p2h #app #up-tree.has u { color: #c8ffc0; }
+body.p2h #app .dups > .dup.hito { border-color: var(--gold); }
+body.p2h #app .dups > .dup.hito u { color: var(--gold); }
+
+/* Barra: COLONY, MICE (puestos cubiertos), BOOSTS (con los que quedan por colocar) y MENU */
+body.p2h #app .tools { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; height: 30px; padding: 0; margin: 0; background: none; border: 0; }
+body.p2h #app .tools > button { position: relative; display: flex; align-items: center; justify-content: center; gap: 5px; min-width: 0; height: 30px; padding: 0 2px 1px; margin: 0; font: 400 8px/8px var(--pixel); color: var(--text); white-space: nowrap; cursor: pointer; }
+body.p2h #app .tools > button[hidden] { display: none; }
+body.p2h #app .tools > button small { font: 700 10px/12px var(--sans); letter-spacing: .6px; color: var(--muted); }
+body.p2h #app .tools > button.sel { border-color: var(--gold); background: #322a2c; }
+body.p2h #app .tools > button .dot { position: absolute; right: 3px; top: 3px; width: 7px; height: 7px; border-radius: 0; background: var(--gold); border: 1px solid var(--p4); box-shadow: none; animation: none; }
+body.p2h #app .tools > button:not([data-alert='on']) .dot { display: none; }
+body.p2h #app .tools > button[data-alert='on'] { border-color: #8a6a1a; }
+/* BOOSTS lleva el número de refuerzos sin colocar en su chapa dorada (en vez del punto). */
+body.p2h #app #nav-boosts[data-n]:not([data-n=''])::after { content: attr(data-n); display: grid; place-items: center; min-width: 14px; height: 14px; padding: 0 3px 1px; font: 400 8px/8px var(--pixel); color: #2b1d12; background: var(--gold); border: 1px solid var(--p4); box-shadow: inset 0 1px 0 #fff3a0, inset 0 -2px 0 #c98a08; }
+body.p2h #app #nav-boosts[data-n]:not([data-n='']) .dot { display: none; }
+/* Móvil estrecho (320–359 px): los nombres de las seis casillas caben enteros. */
+@media (max-width: 359px) { body.p2h #app .chain > .tile b { font-size: 7px; line-height: 8px; } body.p2h #app .chain > .tile { padding-left: 1px; padding-right: 1px; } }
+
+/* ---- Feedback de los botones (el aprobado de los mockups: paneles.html, tree.html, V4.1) ----
+   Pulsar baja la caja 1 px; «no se puede» la sacude (up-shake). La casilla elegida y la pestaña abierta no se levantan
+   (se marcan con el borde oro); el aura del objetivo y el latido de las pestañas con aviso son los del juego. */
+body.p2h #app .chain > .tile.sel, body.p2h #app .tools > button.sel { transform: none; }
+body.p2h #app :is(.hud > .res, .hud > .hshop, .objective, .chain > .tile, .rockstrip .rchip, #dock-worker, #dock-book, .dups > .dup, .tools > button):active { transform: translateY(1px); }
+body.p2h #app :is(.hud > .res, .hud > .hshop, .objective, .chain > .tile, .rockstrip .rchip, #dock-worker, #dock-book, .dups > .dup, .tools > button, #dock-main).nope { animation: up-shake .3s steps(6); }
+@media (prefers-reduced-motion: reduce) { body.p2h #app .nope { animation: none; } }

@@ -1,0 +1,108 @@
+/* CHEESE DRILLER · BETA · Lo poco que necesita la capa de hojas además de los estilos Pulido+ aprobados (que no se tocan).
+   Clases propias: st- (árbol dinámico), mx-it- (ficha de objeto), mx-bf (BEST FIT), mx-lb-mat / mx-lb-study (materiales del LAB). */
+html, body, #app { background: transparent !important; }
+.p1-opts { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 0 2px; }
+.p1-opts .mx-act { min-width: 52px; justify-content: center; } .p1-opts .mx-act.p1-on { outline: 2px solid var(--gold, #ffcf2e); outline-offset: -2px; }
+/* Transiciones de las hojas, las de P1 (29-10-2026): el velo entra en 0,22 s; la hoja sube en 0,32 s; al cerrar baja en 0,2 s. */
+#sheet { background: transparent !important; transition: background-color .2s ease-in; }
+#sheet.p1-in { background: #0c0910b3 !important; transition: background-color .22s ease-out; }
+#sheet > .panel { animation: none !important; transform: translateY(102%); transition: transform .2s cubic-bezier(.4, 0, 1, 1); will-change: transform; }
+#sheet.p1-in > .panel { transform: none; transition: transform .32s cubic-bezier(.16, 1, .3, 1); }
+#sheet.p1-out, #sheet.p1-out * { pointer-events: none !important; }
+@media (prefers-reduced-motion: reduce) { #sheet > .panel { transform: none; opacity: 0; transition: opacity .16s; } #sheet.p1-in > .panel { opacity: 1; transition: opacity .16s; } }
+body > #toast { position: fixed !important; top: calc(10px + env(safe-area-inset-top, 0px)) !important; z-index: 60; }
+
+/* ---- BEST FIT: una fila más de la colonia, con las piezas de los avisos ---- */
+body.p2 #sheet-body .mx-note.mx-bf { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 8px 8px 10px; height: auto; color: var(--text); }
+.mx-bf .mx-t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mx-bf .mx-t b { font: 400 8px/12px var(--pixel); color: var(--gold); }
+.mx-bf .mx-t span { font-size: 11px; line-height: 14px; font-weight: 600; color: var(--muted); }
+.mx-bf .mx-act { flex: none; }
+
+/* ---- Materiales en el LAB ---- */
+.mx-lb-mat { display: inline-flex; align-items: center; gap: 4px; margin-right: 8px; font-weight: 800; color: var(--text); text-decoration: underline dotted #9f97b8; text-underline-offset: 3px; cursor: pointer; }
+.mx-lb-mat.mx-short { color: #ff8a96; }
+.mx-lb-row.mx-lb-study { grid-template-columns: auto minmax(0, 1fr) auto; }
+.mx-lb-row em[role="button"] { cursor: pointer; }
+.mx-lb-row em.mx-off { opacity: .45; }
+
+/* ---- Ficha de objeto ---- */
+.mx-it-win { max-width: 320px; }
+.mx-it-n { display: flex; align-items: baseline; gap: 8px; margin: 2px 0 8px; }
+.mx-it-n b { font: 400 16px var(--pixel); color: var(--text); }
+.mx-it-n small { font-size: 11px; color: var(--muted); }
+.mx-it-sec { margin: 0 0 8px; }
+.mx-it-sec small { display: block; font: 400 8px/12px var(--pixel); color: var(--muted); margin-bottom: 3px; }
+.mx-it-sec p, .mx-it-sec li { margin: 0; font-size: 12px; line-height: 16px; color: var(--soft); }
+.mx-it-sec ul { margin: 0; padding: 0 0 0 14px; }
+/* En PANTRY, una fila de material se puede tocar. */
+.mx-pt-row.mx-pt-mat { cursor: pointer; }
+
+/* ---- UPGRADES: el árbol dinámico ---- */
+body.p2 #sheet[data-panel='tree'] #sheet-body { overflow: hidden; display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; }
+body.p2 #sheet[data-panel='tree'] #sheet-body > .st-root { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+body.p2 #sheet[data-panel='tree'] > .panel { display: flex; flex-direction: column; }
+.st-root > .st-tabs-w, .st-root > .st-head-w, .st-root > .st-card-w { flex: none; }
+.st-tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; flex: none; }
+.st-tabs::-webkit-scrollbar { display: none; }
+.st-tab { position: relative; flex: 1 0 auto; min-width: 44px; height: 42px; padding: 3px 4px 4px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; cursor: pointer; }
+.st-tab img { max-height: 20px; width: auto !important; height: auto !important; max-width: 26px; }
+.st-tab b { font: 400 6px/8px var(--pixel); color: var(--muted); }
+.st-tab.mx-sel b { color: var(--text); }
+.st-tab .mx-badge { position: absolute; top: -2px; right: -2px; }
+.st-head { flex: none; }
+.st-head.up-head { display: block; padding: 6px 10px 8px; }
+.st-head.up-head p { display: none; }
+@media (min-height: 700px) { .st-head.up-head p { display: block; } }
+.st-graph { position: relative; flex: 1 1 0; min-height: 120px; overflow: auto; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; scrollbar-width: none; background: #17121f; border: 2px solid var(--p4); box-shadow: inset 0 0 0 2px #0c0910; background-image: linear-gradient(#ffffff05 1px, transparent 1px), linear-gradient(90deg, #ffffff05 1px, transparent 1px); background-size: 16px 16px; }
+.st-graph::-webkit-scrollbar { display: none; }
+.st-canvas { position: relative; margin: 16px auto 24px; padding: 0 12px; box-sizing: content-box; }
+.st-e { position: absolute; display: block; background: #4a4258; pointer-events: none; }
+.st-e.st-dim { background: #2e2838; }
+.st-e.st-near { background: #8f7c3a; }
+.st-e.st-lit { background: #ffcf2e; box-shadow: 0 0 0 1px #6a4a10; z-index: 1; }
+.st-n { position: absolute; width: 74px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; z-index: 2; -webkit-tap-highlight-color: transparent; }
+.st-n .st-ic { position: relative; width: 52px; height: 52px; display: grid; place-items: center; background: var(--p2); border: 2px solid var(--p4); box-shadow: inset 0 2px 0 var(--p1), inset 0 -3px 0 var(--p3); box-sizing: border-box; }
+.st-n .st-ic > img:first-child { max-width: 40px; max-height: 40px; }
+.st-n small { display: block; width: 72px; font-size: 10px; line-height: 11px; font-weight: 800; text-align: center; color: var(--soft); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.st-n u { position: absolute; right: -4px; bottom: -4px; min-width: 14px; padding: 1px 2px; text-align: center; text-decoration: none; font: 400 7px/10px var(--pixel); color: #1b1220; background: #ffcf2e; border: 2px solid #1b1220; }
+.st-n .st-lk { position: absolute; right: 2px; top: 2px; }
+.st-q { font: 400 16px var(--pixel); color: #5a5270; }
+.st-n.st-sel .st-ic { outline: 2px solid #fff; outline-offset: 1px; }
+.st-n.st-owned .st-ic { border-color: #c98a08; box-shadow: inset 0 0 0 2px #6a4a10, inset 0 -3px 0 var(--p3); }
+.st-n.st-available .st-ic { border-color: #5a9cf0; animation: st-pulse 1.4s steps(4) infinite; }
+.st-n.st-locked .st-ic { background: #221d2c; }
+.st-n.st-locked .st-ic > img:first-child { filter: grayscale(1) brightness(.55); }
+.st-n.st-locked small { color: var(--muted); }
+.st-n.st-announced .st-ic { background: transparent; border-style: dashed; border-color: #4a4258; box-shadow: none; }
+.st-n.st-announced small { color: #5a5270; }
+.st-n.st-excluded .st-ic { background: #1d1826; border-color: #3a3346; box-shadow: none; }
+.st-n.st-excluded .st-ic > img:first-child { filter: grayscale(1) brightness(.4); }
+.st-n.st-excluded small { color: #5a5270; text-decoration: line-through; }
+.st-n.st-future .st-ic { background: #221d2c; border-style: dashed; }
+.st-n.st-future .st-ic > img:first-child { filter: grayscale(1) brightness(.4); }
+.st-n.st-fresh .st-ic { box-shadow: 0 0 0 2px #ffcf2e, 0 0 10px 2px #ffcf2e88; }
+.st-root-n .st-ic { background: #2a2338; border-color: #c98a08; }
+@keyframes st-pulse { 50% { box-shadow: inset 0 0 0 2px #5a9cf0, inset 0 -3px 0 var(--p3); } }
+.st-or { position: absolute; transform: translateX(-50%); z-index: 3; padding: 1px 4px 2px; font: 400 6px/9px var(--pixel); font-style: normal; color: #1b1220; background: #c3b4ff; border: 2px solid #1b1220; pointer-events: none; }
+.st-or.st-chosen { background: #ffcf2e; }
+.st-px { position: absolute; width: 3px; height: 3px; pointer-events: none; z-index: 4; }
+.st-fly { position: fixed; width: 14px; height: 14px; z-index: 50; pointer-events: none; }
+.st-card-w { flex: none; min-height: 90px; }
+.st-card .ic img { max-width: 36px; max-height: 36px; }
+.st-needs .d { display: block; color: #ffb36a !important; }
+.st-q + * { display: none; }
+@media (prefers-reduced-motion: reduce) { .st-n.st-available .st-ic { animation: none; } }
+
+.mx-mn-row.st-plain { display: block; padding: 7px 10px 8px; }
+.st-tab .st-badge { position: absolute; top: 1px; right: 1px; min-width: 12px; padding: 0 2px; text-align: center; font: 400 6px/10px var(--pixel); font-style: normal; color: #1b1220; background: #6fdc6a; }
+.st-n small { background: #17121f; }
+body.p2 #sheet[data-panel='tree'] > .panel { height: calc(100vh - 88px); height: calc(100dvh - 88px); max-height: none; }
+@media (max-height: 700px) { body.p2 #sheet[data-panel='tree'] > .panel { height: calc(100vh - 56px); height: calc(100dvh - 56px); } }
+.st-head.up-head .xp { margin-top: 2px; }
+@media (max-height: 560px) { .st-head.up-head { display: none; } }
+#sheet[data-panel='tree'] .st-card-w { min-height: 92px; }
+/* El papel de un puesto puede ser largo; en un nicho estrecho se corta, nunca empuja a la columna de al lado. */
+.mx-post .mx-job { min-width: 0; overflow: hidden; }
+.mx-post .mx-job .mx-meta { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mx-post .mx-job .mx-hearts { flex: none; }

@@ -97,8 +97,8 @@ E2.ROADMAP = (function () {
     u('study.blue', 'blue', 'lab', [stratum('blue'), unlock('build.lab')]),
 
     // ---- De hitos posteriores: el orden queda escrito, pero aún no se abre nada ----
-    u('pantry.sheet', 'gouda', 'pantry', [{ t: 'material', id: 'gouda', n: 1 }], { planned: 'hito 3', tally: false }),
-    u('pantry.building', 'brie', 'pantry', [unlock('pantry.sheet')], { planned: 'hito 3 (D5)', tally: false }),
+    u('pantry.sheet', 'gouda', 'pantry', [{ t: 'material', id: 'gouda', n: 1 }], { tally: false }),
+    u('pantry.building', 'brie', 'pantry', [unlock('pantry.sheet')], { planned: 'D5', tally: false }),
     u('house.scene', 'gouda', 'house', [unlock('build.house')], { kind: 'social', planned: 'hito 6' }),
     u('house.commonRoom', 'brie', 'house', [unlock('house.scene')], { kind: 'social', planned: 'hito 6' }),
     u('house.bonds', 'emmental', 'house', [unlock('house.commonRoom')], { kind: 'social', planned: 'hito 6' }),

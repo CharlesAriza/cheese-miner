@@ -1,0 +1,77 @@
+/* GENERADO por build_welcome.py: CSS de WELCOME BACK aprobado (welcome.html), dentro de la ventana del juego. */
+body.p2 #modal-body .wb-win { max-height: calc(100% - 48px); overflow: hidden; }
+body.p2 #modal-body .wb-scroll { display: flex; flex-direction: column; gap: 10px; min-height: 0; flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; margin: 0 -4px; padding: 0 4px 2px; scrollbar-width: thin; scrollbar-color: #3a3450 transparent; }
+body.p2 #modal-body .wb-scroll::-webkit-scrollbar { width: 4px; }
+body.p2 #modal-body .wb-scroll::-webkit-scrollbar-thumb { background: #3a3450; }
+body.p2 #modal-body .wb-win .vw-bts { flex: none; }
+body.p2 #modal-body .wb-win .vw-top .vw-kind { color: var(--soft); }
+body.p2 #modal-body .wb-stage { flex: none; height: 164px; }
+body.p2 #modal-body .wb-stage.tall { height: 176px; }
+body.p2 #modal-body .wb-stage > canvas { top: auto; bottom: 0; }
+body.p2 #modal-body .wb-catch { display: flex; flex-direction: column; gap: 7px; }
+body.p2 #modal-body .wb-catch[hidden] { display: none; }
+body.p2 #modal-body .wb-lead { margin: 0; font-size: 12.5px; line-height: 17px; color: var(--text); }
+body.p2 #modal-body .wb-lead b { color: var(--gold); }
+body.p2 #modal-body .wb-bar { position: relative; height: 14px; background: #141020; border: 2px solid var(--p4); box-shadow: inset 0 2px 0 #0008; }
+body.p2 #modal-body .wb-bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: #6a7fd8; box-shadow: inset 0 2px 0 #a8b8ff, inset 0 -2px 0 #3c4a96; }
+body.p2 #modal-body .wb-bar i::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 8px, #0003 8px 10px); }
+body.p2 #modal-body .wb-bar.done i { background: var(--gold); box-shadow: inset 0 2px 0 #fff3a0, inset 0 -2px 0 var(--gold-d); }
+body.p2 #modal-body .wb-barl { display: flex; align-items: baseline; gap: 8px; font-size: 11.5px; line-height: 15px; color: var(--muted); }
+body.p2 #modal-body .wb-barl span { flex: 1; min-width: 0; }
+body.p2 #modal-body .wb-barl b { flex: none; font-family: var(--pixel); font-size: 8px; font-weight: 400; color: var(--soft); font-variant-numeric: tabular-nums; }
+body.p2 #modal-body .wb-cap { display: grid; grid-template-columns: 10px minmax(0, 1fr); gap: 8px; align-items: start; padding: 6px 8px 7px; font-size: 11.5px; line-height: 15px; color: var(--soft); background: #1a1622; border: 2px dashed #3a3450; }
+body.p2 #modal-body .wb-cap[hidden] { display: none; }
+body.p2 #modal-body .wb-cap b { color: var(--text); }
+body.p2 #modal-body .wb-cap > :first-child { margin-top: 1px; }
+body.p2 #modal-body .wb-hero { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 8px 10px 9px; background: #1a1622; border: 2px solid #2a2338; }
+body.p2 #modal-body .wb-hero[hidden] { display: none; }
+body.p2 #modal-body .wb-hero .wb-ico { position: relative; flex: none; width: 36px; height: 36px; }
+body.p2 #modal-body .wb-hero .wb-ico > * { position: absolute; left: 0; top: 0; }
+body.p2 #modal-body .wb-hero .wb-fig { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+body.p2 #modal-body .wb-hero small { font-family: var(--pixel); font-size: 7px; color: var(--muted); letter-spacing: .5px; }
+body.p2 #modal-body .wb-hero b { font-family: var(--pixel); font-size: 22px; line-height: 22px; font-weight: 400; color: var(--gold); text-shadow: 2px 2px 0 #5a3a0a; white-space: nowrap; font-variant-numeric: tabular-nums; }
+body.p2 #modal-body .wb-hero b { padding: 0 2px 2px 0; transform: translateZ(0); backface-visibility: hidden; }
+body.p2 #modal-body .wb-hero { contain: paint; }
+body.p2 #modal-body .wb-none { margin: 0; padding: 9px 10px 10px; font-size: 12px; line-height: 16px; color: var(--soft); background: #1a1622; border: 2px solid #2a2338; }
+body.p2 #modal-body .wb-none[hidden] { display: none; }
+body.p2 #modal-body .wb-news { display: flex; flex-direction: column; gap: 6px; }
+body.p2 #modal-body .wb-n { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 8px; align-items: center; padding: 6px 8px 7px; background: #1a1622; border: 2px solid #2a2338; }
+body.p2 #modal-body .wb-n .wb-ni { display: grid; place-items: center; width: 32px; height: 32px; background: #141020; border: 2px solid var(--p4); }
+body.p2 #modal-body .wb-n span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+body.p2 #modal-body .wb-n small { font-family: var(--pixel); font-size: 6px; color: var(--muted); letter-spacing: .5px; }
+body.p2 #modal-body .wb-n.leg small { color: #c9a24a; }
+body.p2 #modal-body .wb-n b { font-size: 12px; line-height: 15px; color: var(--text); }
+body.p2 #modal-body .wb-n em { font-style: normal; font-size: 11px; line-height: 14px; color: var(--muted); }
+body.p2 #modal-body .wb-n b i { font-style: normal; color: var(--new); }
+body.p2 #modal-body .wb-n.leg { background: #241d12; border-color: var(--gold); box-shadow: inset 0 1px 0 #4a3a18; }
+body.p2 #modal-body .wb-n.leg .wb-ni { background: #3a2c10; border-color: #5a3a0a; }
+body.p2 #modal-body .wb-n.leg b { color: var(--gold); }
+body.p2 #modal-body .wb-n.leg b i { color: #fff3a0; }
+body.p2 #modal-body .wb-more { margin: 0; font-size: 11px; line-height: 14px; color: var(--muted); }
+body.p2 #modal-body .wb-chain { display: grid; grid-template-columns: minmax(0, 1fr) 8px minmax(0, 1fr) 8px minmax(0, 1fr); align-items: center; gap: 3px; }
+body.p2 #modal-body .wb-t { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; padding: 6px 4px 6px; background: #141020; border: 2px solid var(--p4); transition: background .2s, border-color .2s; }
+body.p2 #modal-body .wb-t img { width: 21px; height: 18px; image-rendering: pixelated; opacity: .45; transition: opacity .2s; }
+body.p2 #modal-body .wb-t b { font-family: var(--pixel); font-size: 10px; line-height: 11px; font-weight: 400; color: #5a5270; white-space: nowrap; font-variant-numeric: tabular-nums; transition: color .2s; }
+body.p2 #modal-body .wb-t small { font-family: var(--pixel); font-size: 6px; color: #5a5270; white-space: nowrap; transition: color .2s; }
+body.p2 #modal-body .wb-t.on { background: #241e30; border-color: #3a3450; }
+body.p2 #modal-body .wb-t.on img { opacity: 1; }
+body.p2 #modal-body .wb-t.on b { color: var(--text); }
+body.p2 #modal-body .wb-t.on small { color: var(--muted); }
+body.p2 #modal-body .wb-chev { justify-self: center; }
+body.p2 #modal-body .wb-line { margin: 0; font-size: 11.5px; line-height: 15px; color: var(--soft); }
+body.p2 #modal-body .wb-line b { color: var(--text); font-weight: 800; }
+body.p2 #modal-body .wb-skills { display: flex; flex-wrap: wrap; gap: 5px; }
+body.p2 #modal-body .wb-sk { display: flex; align-items: center; gap: 5px; padding: 3px 6px 4px; font-family: var(--pixel); font-size: 7px; color: var(--soft); background: #141020; border: 2px solid var(--p4); white-space: nowrap; }
+body.p2 #modal-body .wb-sk u { text-decoration: none; color: var(--muted); }
+body.p2 #modal-body .wb-sk s { text-decoration: none; color: var(--gold); font-size: 8px; }
+body.p2 #modal-body .wb-col li b.tok { color: var(--new); }
+body.p2 #modal-body .wb-win .vw-sec[hidden] { display: none; }
+body.p2 #modal-body .wb-win .vw-bts[hidden] { display: none; }
+body.p2 #modal-body .wb-fade { position: sticky; bottom: -2px; flex: none; height: 22px; margin-top: -22px; pointer-events: none; }
+body.p2 #modal-body .wb-fade[hidden] { display: none; }
+
+/* En el juego la ventana es #modal-body: el resumen se desplaza por dentro y el título y NICE se quedan. */
+body.p2 #modal-body:has(.wb-win) { overflow: hidden; display: flex; flex-direction: column; }
+body.p2 #modal-body .wb-win { min-height: 0; max-height: calc(100dvh - 76px); }
+body.p2 #modal-body .wb-win .vw-bts > button { flex: 1; }
+
