@@ -4110,20 +4110,20 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     return art('p1bg:' + tier + ':' + STGS.mine + STGS.drill + STGS.refine + STGS.cheese + ':' + SURFK + (TOWN ? 'n' : 'o') + (builtSt('house') ? 'h' : '') + (builtSt('lab') ? 'l' : '') + (builtSt('sell') ? 's' : ''), () => {
       const c = document.createElement('canvas'); c.width = WW + PAD * 2; c.height = LV.mine.top + 64; const bg = c.getContext('2d'); bg.imageSmoothingEnabled = false; bg.translate(PAD, 0);
       const was = ctx; ctx = bg;
-      try { paintSky(); paintSurfaceBG(bg); for (const k of ORDER) paintLevel(k); paintShaft(); paintEarth(); paintCrest(); }
+      try { paintSurfaceBG(bg); for (const k of ORDER) paintLevel(k); paintShaft(); paintEarth(); paintCrest(); }
       finally { ctx = was; }
       return c;
     });
   }
-  function paintSky() {
+  function paintSky(x0 = -PAD, x1 = WW + PAD) {
     // El cielo y las nubes no se cuecen: los pinta vivos el MUNDO VIVO (drawSky) según la hora. Aquí, montañas y matorral.
-    for (let x = -PAD; x < WW + PAD; x++) {
+    for (let x = x0; x < x1; x++) {
       const h1 = 34 + Math.round(Math.sin(x * 0.035 + 0.6) * 10 + Math.sin(x * 0.11 + 2) * 3), y1 = G - 16 - h1;
       R(x, y1, 1, G - y1, '#8ea6c8'); if (h1 > 40 && (G - 16 - y1) < 4 + (x % 3)) R(x, y1, 1, 2, '#e8f0f8');
       const h2 = 20 + Math.round(Math.sin(x * 0.05 + 3) * 7 + Math.sin(x * 0.17) * 2), y2 = G - 10 - h2; R(x, y2, 1, G - y2, '#6f8db2');
     }
-    for (let x = -PAD; x < WW + PAD; x += 5) { const h = 12 + Math.floor(hash4(x, 3) * 10), cx = x + 2; for (let k = 0; k < h; k++) { const w = Math.max(1, Math.round((k / h) * 4)); R(cx - w, G - 4 - h + k, w * 2 + 1, 1, hash4(x, k >> 2) < 0.5 ? '#2c6a3e' : '#2f7444'); } }
-    for (let x = -PAD; x < WW + PAD; x += 7) { const h = 8 + Math.floor(hash4(x, 5) * 7), cx = x + 3; for (let k = 0; k < h; k++) { const w = Math.max(1, Math.round((k / h) * 5)); R(cx - w, G - 1 - h + k, w * 2 + 1, 1, k < 2 ? '#3d8a4c' : '#235a32'); } }
+    for (let x = x0; x < x1; x += 5) { const h = 12 + Math.floor(hash4(x, 3) * 10), cx = x + 2; for (let k = 0; k < h; k++) { const w = Math.max(1, Math.round((k / h) * 4)); R(cx - w, G - 4 - h + k, w * 2 + 1, 1, hash4(x, k >> 2) < 0.5 ? '#2c6a3e' : '#2f7444'); } }
+    for (let x = x0; x < x1; x += 7) { const h = 8 + Math.floor(hash4(x, 5) * 7), cx = x + 3; for (let k = 0; k < h; k++) { const w = Math.max(1, Math.round((k / h) * 5)); R(cx - w, G - 1 - h + k, w * 2 + 1, 1, k < 2 ? '#3d8a4c' : '#235a32'); } }
   }
   // ================= PUEBLO COMPACTO (prueba, 28-10-2026) =================
   // La superficie de P1 tiene unos 212 px de dibujo entre el borde y el pozo. Los edificios aprobados de la revisión de arte
@@ -4307,14 +4307,15 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
   const CLOUDS = [[20, 22, 18, 2.2, 0], [150, 16, 22, 1.8, 0], [-40, 26, 16, 2.6, 0], [90, 10, 30, 4.6, 1], [230, 14, 26, 5.4, 1], [-10, 6, 34, 4.2, 1]];
   // Lo que se ve del cielo queda bajo el marcador (y < 5) y entre los tejados (y < 16, el punto más alto de los edificios).
   const SKY_SAFE = 16;
+  const CLOUDS_ALL = [0, 1, 2].flatMap((k) => CLOUDS.map(([x, y, w, sp, f]) => [x + k * 470, y - [0, 90, 190][k], w, sp, f]));
   function drawSky(now) {
-    const S = skyState(now), top = -PAD - 60, bh = Math.ceil((G - top) / 9);
-    S.sky.forEach((col, i) => R(-PAD, top + i * bh, WW + PAD * 2, bh + 1, col));
+    const S = skyState(now), top = G - 400, bh = Math.ceil((G - top) / 9);
+    S.sky.forEach((col, i) => R(-1200, top + i * bh, 3600, bh + 1, col));
     // Estrellas bajas (cerca del horizonte, detrás de los edificios): más tenues, la luz de la noche las apaga un poco.
-    if (S.stars > 0.02) for (let i = 0; i < 40; i++) { const x = -PAD + Math.floor(hash4(i, 1, 34) * (WW + PAD * 2)), y = SKY_SAFE + Math.floor(hash4(i, 2, 34) * 34), tw = 0.6 + 0.4 * Math.sin(now / (1100 + (i % 5) * 300) + i); ctx.globalAlpha = S.stars * tw; R(x, y, 1, 1, '#ffffff'); }
+    if (S.stars > 0.02) for (let i = 0; i < 160; i++) { const x = -PAD + Math.floor(hash4(i, 1, 34) * 1400), y = SKY_SAFE + Math.floor(hash4(i, 2, 34) * 34), tw = 0.6 + 0.4 * Math.sin(now / (1100 + (i % 5) * 300) + i); ctx.globalAlpha = S.stars * tw; R(x, y, 1, 1, '#ffffff'); }
     ctx.globalAlpha = 1;
-    const span = WW + PAD * 2 + 90, cn = 0.75 * S.night;
-    for (const [cx0, cy, w, sp, front] of CLOUDS) {
+    const span = 1400, cn = 0.75 * S.night;
+    for (const [cx0, cy, w, sp, front] of CLOUDS_ALL) {
       const c1 = mixc(front ? '#ffffff' : '#eef6fc', S.sky[4], cn), c0 = mixc(front ? '#e4f2fb' : '#dceaf6', S.sky[3], cn), c2 = mixc('#cfe6f6', S.sky[2], cn);
       const cx = ((cx0 + PAD + 45 + (now / 1000) * sp) % span) - PAD - 45;
       if (!front) { R(Math.round(cx - w / 2), cy, w, 2, c0); R(Math.round(cx - w / 2 + 3), cy - 1, w - 8, 1, c1); continue; }
@@ -4323,16 +4324,84 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
   }
   // La luz del momento sobre todo el exterior, cielo incluido (sus colores ya cuentan con ella), multiplicada: de noche, azul
   // y oscuro; al atardecer, dorado.
+  // La luz del momento solo sobre lo pintado: el cielo ya no está en este lienzo.
+  let lightC = null;
   function skyLight(now) {
     const S = skyState(now); if (S.light[1] <= 0.01) return;
-    ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = S.light[1]; ctx.fillStyle = S.light[0]; ctx.fillRect(-PAD, -PAD - 60, WW + PAD * 2, G + 6 + PAD + 60); ctx.restore();
+    if (!lightC) lightC = document.createElement('canvas'); if (lightC.width !== canvas.width || lightC.height !== canvas.height) { lightC.width = canvas.width; lightC.height = canvas.height; }
+    const q = lightC.getContext('2d'), yMax = (G + 6 - cam.y) * s * dpr; q.globalCompositeOperation = 'source-over'; q.clearRect(0, 0, lightC.width, lightC.height); q.fillStyle = S.light[0]; q.fillRect(0, 0, lightC.width, Math.max(0, yMax)); q.globalCompositeOperation = 'destination-in'; q.drawImage(canvas, 0, 0);
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = S.light[1]; ctx.drawImage(lightC, 0, 0); ctx.restore();
+  }
+  // El fondo de la colonia, en su propio lienzo. Cada escena dice dónde tiene su suelo y por dónde va en la calle (shift); el fondo se mueve más despacio que ellas.
+  let farC = null;
+  function farStrip() { if (farC) return farC; const c = document.createElement('canvas'); c.width = 2600; c.height = 90; const q = c.getContext('2d'), was = ctx; q.translate(1000, 80 - G); ctx = q; try { paintSky(-1000, 1600); } finally { ctx = was; } farC = c; return c; }
+  function drawFar(fc, o) {
+    const dprNow = window.devicePixelRatio || 1, w = Math.round(Wc * dprNow), h = Math.round(Hc * dprNow); if (fc.width !== w || fc.height !== h) { fc.width = w; fc.height = h; }
+    const q = fc.getContext('2d'), S = skyState(o.now), kd = d0 * (o.zoom || 1), cx = (E0 + E1) / 2 - w / (2 * kd) + o.shift, cy = G - (o.ground * dprNow) / kd;
+    q.setTransform(1, 0, 0, 1, 0, 0); q.imageSmoothingEnabled = false; q.fillStyle = S.sky[0]; q.fillRect(0, 0, w, h); q.setTransform(kd, 0, 0, kd, Math.round(-cx * kd), Math.round(-cy * kd));
+    const was = ctx; ctx = q; try { drawSky(o.now); q.fillStyle = '#235a32'; q.fillRect(-1200, G - 1, 3600, 2000); q.drawImage(farStrip(), -1000, G - 80);  if (S.light[1] > 0.01) { q.save(); q.globalCompositeOperation = 'multiply'; q.globalAlpha = S.light[1]; q.fillStyle = S.light[0]; q.fillRect(cx - 2, cy - 2, w / kd + 4, h / kd + 4); q.restore(); } nightSky(o.now); } finally { ctx = was; }
+  }
+  // La tierra de la colonia más allá del borde derecho de MAIN, con sus mismos dibujos: superficie, tierra, vigas que acaban en la tierra y roca.
+  // Hasta el borde (GX0..E) es copia exacta de MAIN; desde ahí, sus pinceles siguen (la tierra y la hierba son continuas en x) y la roca es su textura reflejada.
+  const GX0 = WW + PAD - 56, GX1 = WW + PAD + 820;
+  let gStrip = null, gTint = null;
+  function earthInto(D, w, ox, oy, x0, y0, ww, hh, seed) {
+    const P = EARTH.map((h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]), put = (x, y, t) => { const q = ((y - oy) * w + (x - ox)) * 4, c = P[t]; D[q] = c[0]; D[q + 1] = c[1]; D[q + 2] = c[2]; D[q + 3] = 255; };
+    for (let y = y0; y < y0 + hh; y++) for (let x = x0; x < x0 + ww; x++) put(x, y, hash4(x >> 1, y >> 1, seed) < 0.18 ? 1 : 2);
+    for (let i = 0; i < (ww * hh) / 40; i++) {
+      const cx = x0 + Math.floor(hash4(i, seed, 1) * ww), cy = y0 + Math.floor(hash4(i, seed, 2) * hh), rx = 2 + Math.floor(hash4(i, seed, 3) * 3), ry = rx - 1 + Math.floor(hash4(i, seed, 4) * 2);
+      for (let yy = -ry; yy <= ry; yy++) for (let xx = -rx; xx <= rx; xx++) { if ((xx * xx) / (rx * rx) + (yy * yy) / (ry * ry) > 1) continue; const px = cx + xx, py = cy + yy; if (px < x0 || px >= x0 + ww || py < y0 || py >= y0 + hh) continue; put(px, py, xx + yy < -rx + 1 ? 5 : xx + yy > rx - 1 ? 3 : 4); }
+      if (cy + ry + 1 < y0 + hh) for (let x = cx - rx + 1; x < cx + rx; x++) if (x >= x0 && x < x0 + ww) put(x, cy + ry + 1, 0);
+    }
+  }
+  function groundStrip() {
+    const bk = bake(), top = ROCK_TOP(), H = Hw(), s0 = texYAt(top), key = tier + ':' + s0 + ':' + H + ':' + MO;
+    if (gStrip && gStrip.bk === bk && gStrip.key === key) return gStrip;
+    const y0 = G - 90, E = WW + PAD, w = GX1 - GX0, h = H - y0, c = document.createElement('canvas'); c.width = w; c.height = h;
+    const q = c.getContext('2d'); q.imageSmoothingEnabled = false; q.translate(-GX0, -y0);
+    const was = ctx; ctx = q;
+    try {
+      const tex = strataTex(), TW = WW + PAD * 2, F = LV.mine.F + MO;
+      q.drawImage(tex, GX0 + PAD, s0, E - GX0, H - top, GX0, top, E - GX0, H - top);
+      for (let x = E, k = 0; x < GX1; x += TW, k++) { q.save(); if (k % 2 === 0) { q.translate(x + TW, top); q.scale(-1, 1); } else q.translate(x, top); q.drawImage(tex, 0, s0, TW, H - top, 0, 0, TW, H - top); q.restore(); }
+      for (let k = 0; k < 10; k++) { ctx.globalAlpha = 0.11 * (1 - k / 10); R(GX0, top + k * 8, w, 8, '#ffe0b0'); }
+      for (let y = top; y < H; y += 4) { const a1 = Math.min(1, (y - top) / Math.max(80, F - top)) * 0.4, a2 = y > F ? Math.pow((y - F) / (H - F), 1.2) * 0.56 : 0; ctx.globalAlpha = Math.min(0.95, a1 + a2); R(GX0, y, w, 4, '#06050a'); }
+      ctx.globalAlpha = 1;
+      // La tierra de los tres niveles y la cresta sobre la roca, en un solo paso de píxeles.
+      const ex = E, ew = GX1 - E, ey = G + 6, eh = top - ey, et = document.createElement('canvas'); et.width = ew; et.height = eh + 40; const eg = et.getContext('2d'), im = eg.createImageData(ew, eh + 40);
+      for (const k of ['cheese', 'refine', 'drill']) { const lv = LV[k]; earthInto(im.data, ew, ex, ey, ex, lv.top, ew, LH, 13 + lv.y0); }
+      earthInto(im.data, ew, ex, ey, ex, LV.mine.top, ew, BEAM, 13 + LV.mine.top);
+      const cyEnd = crestY(E - 1); eg.putImageData(im, 0, 0); q.drawImage(et, ex, ey);
+      for (let x = ex; x < GX1; x++) { const cy = cyEnd - (hash4(x >> 3, 31) < 0.35 ? 1 : 0) - (hash4(x >> 4, 32) < 0.2 ? 1 : 0), P = TIER_ROCK.cheddar; for (let y = top; y < cy; y++) R(x, y, 1, 1, EARTH[hash4(x >> 1, y >> 1, 41) < 0.2 ? 1 : 2]); R(x, cy - 1, 1, 1, EARTH[0]); R(x, cy, 1, 1, INK4); R(x, cy + 1, 1, 1, P[5]); R(x, cy + 2, 1, 1, P[4]); R(x, cy + 3, 1, 1, hash4(x, 33) < 0.5 ? P[4] : P[3]); }
+      // Las vigas de los niveles entran en la tierra y acaban.
+      for (const k of ORDER) { const lv = LV[k]; beamH(E - 8, E + 7, lv.top, BEAM, lv.top); R(E + 7, lv.top, 1, BEAM, W5[0]); R(E + 6, lv.top + 1, 1, BEAM - 2, W5[1]); }
+      for (let x = E; x < GX1; x++) { R(x, G, 1, 6, EARTH[2]); R(x, G, 1, 3, '#3f9a3a'); R(x, G, 1, 1, '#6cc44e'); if (hash4(x, 2) < 0.3) R(x, G - 1, 1, 1, '#4fae40'); R(x, G + 3, 1, 1, '#2a6a2a'); }
+      q.drawImage(bk, GX0 + PAD, y0, E - GX0, bk.height - y0, GX0, y0, E - GX0, bk.height - y0);
+    } finally { ctx = was; }
+    gStrip = { c, bk, key, x0: GX0, y0 }; gTint = null; return gStrip;
+  }
+  // segs: tramos de la pantalla, cada uno con su correspondencia: kd = píxeles del móvil por píxel del dibujo, gx = x del mundo en el borde izquierdo, gy = y en pantalla (px del móvil) del suelo.
+  function drawGround(gc, o) {
+    const dprNow = window.devicePixelRatio || 1, w = Math.round(Wc * dprNow), h = Math.round(Hc * dprNow); if (gc.width !== w || gc.height !== h) { gc.width = w; gc.height = h; }
+    const S = groundStrip(), L = skyState(o.now), q = gc.getContext('2d'); let img = S.c;
+    if (L.light[1] > 0.01) {
+      const lk = L.light.join(); if (!gTint || gTint.key !== lk) { const t = document.createElement('canvas'); t.width = S.c.width; t.height = 96; const tq = t.getContext('2d'); tq.drawImage(S.c, 0, 0); tq.globalCompositeOperation = 'multiply'; tq.globalAlpha = L.light[1]; tq.fillStyle = L.light[0]; tq.fillRect(0, 0, t.width, 96); tq.globalAlpha = 1; tq.globalCompositeOperation = 'destination-in'; tq.drawImage(S.c, 0, 0); gTint = { key: lk, c: t }; }
+    }
+    q.setTransform(1, 0, 0, 1, 0, 0); q.imageSmoothingEnabled = false; q.clearRect(0, 0, w, h);
+    for (const sg of o.segs) {
+      if (sg.x1 <= sg.x0) continue;
+      q.save(); q.beginPath(); q.rect(Math.round(sg.x0), 0, Math.round(sg.x1 - sg.x0), h); q.clip();
+      q.setTransform(sg.kd, 0, 0, sg.kd, Math.round(-sg.gx * sg.kd), Math.round(sg.gy - G * sg.kd)); q.drawImage(S.c, S.x0, S.y0);
+      if (L.light[1] > 0.01 && gTint) q.drawImage(gTint.c, S.x0, S.y0);
+      q.restore();
+    }
   }
   // La luna con su fase real (la de hoy en el mundo; luna nueva de referencia: 6-1-2000 18:14 UTC) y las estrellas altas.
   // Se pintan después de la luz de la noche, para que brillen, y solo en la franja alta del cielo, donde no hay edificios.
   const moonPhase = (d = Date.now()) => ((((d - Date.UTC(2000, 0, 6, 18, 14)) / 864e5) / 29.530588853) % 1 + 1) % 1;
   function nightSky(now) {
     const S = skyState(now); if (S.stars < 0.02) return;
-    for (let i = 0; i < 34; i++) { const x = -PAD + Math.floor(hash4(i, 1, 33) * (WW + PAD * 2)), y = -26 + Math.floor(hash4(i, 2, 33) * (SKY_SAFE + 26)), tw = 0.5 + 0.5 * Math.sin(now / (900 + (i % 7) * 260) + i); ctx.globalAlpha = S.stars * tw; R(x, y, 1, 1, i % 9 === 0 ? '#fff2c8' : '#e8ecff'); if (i % 8 === 0 && tw > 0.9) { ctx.globalAlpha *= 0.6; R(x - 1, y, 3, 1, '#c8d0ff'); R(x, y - 1, 1, 3, '#c8d0ff'); } }
+    for (let i = 0; i < 240; i++) { const x = -PAD + Math.floor(hash4(i, 1, 33) * 1400), y = -320 + Math.floor(hash4(i, 2, 33) * (SKY_SAFE + 320)), tw = 0.5 + 0.5 * Math.sin(now / (900 + (i % 7) * 260) + i); ctx.globalAlpha = S.stars * tw; R(x, y, 1, 1, i % 9 === 0 ? '#fff2c8' : '#e8ecff'); if (i % 8 === 0 && tw > 0.9) { ctx.globalAlpha *= 0.6; R(x - 1, y, 3, 1, '#c8d0ff'); R(x, y - 1, 1, 3, '#c8d0ff'); } }
     ctx.globalAlpha = 1;
     // Estrella fugaz, muy de vez en cuando: un trazo que cruza y se apaga.
     if (LIFE.star && now - LIFE.star.t0 < 700) { const k = (now - LIFE.star.t0) / 700, x = LIFE.star.x + k * 60, y = LIFE.star.y + k * 16; for (let q = 0; q < 10; q++) { ctx.globalAlpha = S.stars * (1 - k) * (1 - q / 10); R(Math.round(x - q * 2), Math.round(y - q * 0.55), 1, 1, q ? '#c8d0ff' : '#ffffff'); } ctx.globalAlpha = 1; }
@@ -4426,7 +4495,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     for (const [x, big] of [[-24, 1], [-40, 0], [244, 1], [262, 0]]) { const tr = tree(big).canvas(); bg.drawImage(tr, x, G - tr.height + 2); }
     const put = (cv, x, base) => { groundShadow(bg, x, base, cv.width); bg.drawImage(cv, x, base - cv.height + 1); };
     const S = surfStages();
-    if (TOWN) { if (builtSt('lab')) put(gradeCv(townLab(S.lab)), LOT.lab[0], G); if (builtSt('house')) put(gradeCv(townHouse(S.house)), LOT.house[0], G); if (builtSt('sell')) bg.drawImage(gradeCv(shopBack(S.shop)), LOT.shop[0], G - SHOP_H + 1); }
+    if (TOWN) { if (builtSt('house')) put(gradeCv(townHouse(S.house)), LOT.house[0], G); if (builtSt('sell')) bg.drawImage(gradeCv(shopBack(S.shop)), LOT.shop[0], G - SHOP_H + 1); }
     else { put(labV2(S.lab), 52, G - 1); put(houseStage(S.house), -6, G + 1); bg.drawImage(bush(1).canvas(), 78, G - 7); bg.drawImage(shopBack(S.shop), 118, G - SHOP_H + 1); }
     for (let x = -PAD; x < WW + PAD; x++) { R(x, G, 1, 6, EARTH[2]); R(x, G, 1, 3, '#3f9a3a'); R(x, G, 1, 1, '#6cc44e'); if (hash4(x, 2) < 0.3) R(x, G - 1, 1, 1, '#4fae40'); R(x, G + 3, 1, 1, '#2a6a2a'); }
     if (TOWN) townFooting(bg);
@@ -4740,7 +4809,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
   // del juego. Sin construir, la estación no tiene máquina ni ratones: si ya se puede, se ve la silueta de la máquina
   // latiendo (lista para construir); si no, el nivel queda apagado. Al construirla, la máquina aparece con un destello,
   // sale polvo de obra y llegan sus ratones.
-  const stateSt = (st) => (!sim.built || sim.built[st] !== false ? 'on' : sim.ready && sim.ready[st] ? 'build' : 'locked');
+  const stateSt = (st) => (st === 'lab' ? 'none' : !sim.built || sim.built[st] !== false ? 'on' : sim.ready && sim.ready[st] ? 'build' : 'locked');
   const builtSt = (st) => stateSt(st) === 'on';
   const wasBuilt = {};
   function buildTick(now) {
@@ -4754,7 +4823,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
       }
       wasBuilt[st] = b;
     }
-    for (const [st, x, w] of [['house', LOT.house[0], LOT.house[1]], ['lab', LOT.lab[0], LOT.lab[1]], ['sell', LOT.shop[0], LOT.shop[1]]]) {
+    for (const [st, x, w] of [['house', LOT.house[0], LOT.house[1]], ['sell', LOT.shop[0], LOT.shop[1]]]) {
       const b = builtSt(st);
       if (b && wasBuilt[st] === false) { for (let i = 0; i < 10; i++) rfx('puff', x + 6 + rnd() * (w - 12), G - 4, { vx: (rnd() - 0.5) * 0.02, vy: -0.012 - rnd() * 0.01, life: 900 + rnd() * 400, c: '#c8bca8', delay: i * 40 }); for (let i = 0; i < 8; i++) rfx('glint', x + 6 + rnd() * (w - 12), G - 10 - rnd() * 30, { life: 420, delay: 150 + i * 60 }); }
       wasBuilt[st] = b;
@@ -5469,7 +5538,6 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     // El azul claro de las máquinas está pensado para los muros oscuros: sobre el cielo no se veía. Aquí, un azul de plano más oscuro.
     const put = (st, src, x, y) => { ctx.globalAlpha = a(st); ctx.drawImage(tintC(src, '#2f6fb4'), x, y); ctx.globalAlpha = 1; };
     if (!builtSt('house')) { const c = townHouse(S.house); put('house', c, LOT.house[0], G - c.height + 1); }
-    if (!builtSt('lab')) { const c = townLab(S.lab); put('lab', c, LOT.lab[0], G - c.height + 1); }
     if (!builtSt('sell')) { const y = G - SHOP_H + 1; put('sell', shopBack(S.shop), LOT.shop[0], y); put('sell', shopFront(S.shop), LOT.shop[0], y); }
   }
   function drawSurface(now, dt) {
@@ -5957,7 +6025,8 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
   // fondo del mundo quede por encima.
   let insetB = 0;
   const vH = () => (Hc - insetB) / s, vW = () => Wc / s;
-  const clampY = (y) => Math.max(Math.min(-26, Hw() - vH()), Math.min(Hw() - vH(), y));
+  const STREET = 30, streetY = (vh) => Math.min(-26, G + STREET - vh); // filas del dibujo bajo el suelo, las mismas que en LAB
+  const clampY = (y) => Math.max(Math.min(streetY(vH()), Hw() - vH()), Math.min(Hw() - vH(), y));
   const centerX = () => Math.round((E0 + E1) / 2 - vW() / 2);
   const clampX = (x) => Math.max(-PAD + 2, Math.min(WW + PAD - 2 - vW(), x));
   // TRANSICIONES DE CÁMARA (28-10-2026): entrar en un ratón, pasar de uno a otro, centrar una estación o soltar el zoom son
@@ -5968,7 +6037,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
   const easeIO = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
   const vWz = (z) => (Wc * dpr) / z, vHz = (z) => ((Hc - insetB) * dpr) / z;
   const clampXz = (x, z) => Math.max(-PAD + 2, Math.min(WW + PAD - 2 - vWz(z), x));
-  const clampYz = (y, z) => Math.max(Math.min(-26, Hw() - vHz(z)), Math.min(Hw() - vHz(z), y));
+  const clampYz = (y, z) => Math.max(Math.min(mode === 'mouse' ? -26 : streetY(vHz(z)), Hw() - vHz(z)), Math.min(Hw() - vHz(z), y));
   const centerXz = (z) => Math.round((E0 + E1) / 2 - vWz(z) / 2);
   // pan: la curva lleva también la altura con la cámara libre (recentrar al elegir un ratón que no se ve).
   function startTween(pan) { tw = { fx: cam.x, fy: cam.y, fz: dz, t0: null, ms: 0, pan: !!pan }; camLocked = false; } // empieza en el siguiente fotograma, con el reloj de la escena
@@ -6076,12 +6145,12 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     camTick(dt, now);
     // Con un ratón enganchado, la cámara se pinta en píxeles enteros de dibujo (como él); si no, en píxeles de pantalla.
     const kd = s * dpr, grid = mode === 'mouse' && camLocked ? 1 : 1 / kd, cy = Math.round(cam.y / grid) * grid, cx = Math.round(cam.x / grid) * grid;
-    g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = false; g.fillStyle = skyState(now).sky[0]; g.fillRect(0, 0, canvas.width, canvas.height);
+    g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = false; g.clearRect(0, 0, canvas.width, canvas.height);
     g.setTransform(kd, 0, 0, kd, -cx * kd, -cy * kd);
     const was = ctx; ctx = g;
     try {
       descendTick(now); drawStrata(now);
-      drawSky(now); g.drawImage(bake(), -PAD, 0); R(-PAD, Hw(), WW + PAD * 2, 400, '#050407');
+      g.drawImage(bake(), -PAD, 0); R(-PAD, Hw(), WW + PAD * 2, 400, '#050407');
       drawPit(now);
       const mb = mineBake(); g.drawImage(mb, -PAD, mb.top + MO);
       feedTick(now, dt); liftStep(now); passStep(now); if (builtSt('refine')) trolleyStep('refine', now); if (builtSt('cheese')) trolleyStep('cheese', now);
@@ -6100,7 +6169,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
       if (builtSt('refine')) drawTrolley('refine'); if (builtSt('cheese')) drawTrolley('cheese');
       drawPasses(now); drawTosses(now); drawRFX(now, dt);
       drawLift(now);
-      skyLight(now); nightSky(now); townLights(now); shopBoostNight(now);
+      skyLight(now); townLights(now); shopBoostNight(now);
       drawResearcher(now); for (const n of nodes.filter((q) => q.crew && !q.inside && isOutside(q)).sort((a, b) => a.feet - b.feet)) drawMouse(n, now, false, true);
       lightPools(now);
       lifeTick(now); drawLife(now);
@@ -6180,7 +6249,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
   const L = {
     st: { cheese: [E0, LV.cheese.y0, SX0 - E0, LV.cheese.F - LV.cheese.y0], refine: [E0, LV.refine.y0, SX0 - E0, LV.refine.F - LV.refine.y0], drill: [E0, LV.drill.y0, SX0 - E0, LV.drill.F - LV.drill.y0], mine: [E0, LV.mine.y0, SX0 - E0, LV.mine.F - LV.mine.y0] },
     plates: [['cheese', LV.cheese.y0 + 3, LV.cheese.F], ['refine', LV.refine.y0 + 3, LV.refine.F], ['drill', LV.drill.y0 + 3, LV.drill.F], ['mine', LV.mine.y0 + 3, LV.mine.F]],
-    get buildings() { return TOWN ? { house: [LOT.house[0], G - 65, LOT.house[1], 66], lab: [LOT.lab[0], G - 81, LOT.lab[1], 82], shop: [LOT.shop[0], G - SHOP_H + 1, SHOP_W, SHOP_H] } : { house: [-6, G - 57, 64, 58], lab: [52, G - 80, 86, 80], shop: [118, G - SHOP_H + 1, SHOP_W, SHOP_H] }; },
+    get buildings() { return TOWN ? { house: [LOT.house[0], G - 65, LOT.house[1], 66], shop: [LOT.shop[0], G - SHOP_H + 1, SHOP_W, SHOP_H] } : { house: [-6, G - 57, 64, 58], lab: [52, G - 80, 86, 80], shop: [118, G - SHOP_H + 1, SHOP_W, SHOP_H] }; },
   };
   function phList() {
     return [
@@ -6315,6 +6384,14 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     }),
     panBy(dy) { release(); cam.ty = clampY(cam.ty + dy / s); cam.y = cam.ty; },
     show(st) { focusStation(st); },
+    drawFar, farView: () => ({ ground: (G - cam.y) * s, zoom: (s * dpr) / d0, shift: cam.x + vW() / 2 - (E0 + E1) / 2 }), stopCam() { cam.vy = 0; tw = null; cam.ty = cam.y; },
+    setGround(y) { if (mode !== 'free') release(); anchored = false; cam.vy = 0; cam.ty = cam.y = Math.min(Hw() - vH(), G - y / s); },
+    mapView: () => ({ camX: cam.x, s, ground: (G - cam.y) * s, free: centerXz(d0) }), drawGround,
+    baseFor: (w) => { const r = window.devicePixelRatio || 1; return Math.max(1, Math.floor((w * r) / (E1 - E0))) / r; }, freeFor(w) { return (E0 + E1) / 2 - w / (2 * this.baseFor(w)); },
+    goLevel(k) { release(); anchored = false; cam.vy = 0; startTween(true); cam.ty = k === 'street' ? clampY(-1e9) : k === 'mid' ? clampY(G - vH() * 0.45) : k === 'deep' ? clampY(1e9) : clampY(baseBottom() - vH()); },
+    camInfo: () => ({ y: Math.round(cam.y - G), z: +(s).toFixed(2), mode }),
+    earthTones: () => EARTH, camBase: () => d0 / dpr,
+    groundY: () => (G - cam.y) * s,
     showSurface() { release(); anchored = false; cam.vy = 0; cam.ty = clampY(-26); },
     atSurface: () => cam.ty <= clampY(-26) + 4,
     recenter() { if (mode === 'free') { cam.vy = 0; anchored = true; cam.ty = clampY(baseBottom() - vH()); } },

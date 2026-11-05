@@ -88,14 +88,11 @@
   let dragger = null;
   function crewAt(st, role) {
     const stCore = st === 'lift' ? 'sell' : st;
-    if (st === 'lab') return role === 'researcher' && G.lab.workers.length ? G.roster.find((m) => m.id === G.lab.workers[0]) || null : null;
+    if (st === 'lab') return null; // quien investiga está en LAB, la escena de al lado
     const r = SCENE_ROLE[role] || role, p = G.s.placed.find((q) => q.st === stCore && q.role === r);
     return p && !(dragger && dragger.isHidden(p.m)) ? p.m : null;
   }
-  // Presencia del investigador: mientras investiga está dentro del LAB y solo ahí se le ve; sin trabajo sale a su puerta, con su toque de siempre. Con un margen, para que no salga y entre entre dos trabajos.
-  let labBusyAt = -1e9;
-  const labInside = () => { if (G.lab.job) { labBusyAt = performance.now(); return true; } return performance.now() - labBusyAt < 2500; };
-  const scene = CM.createColonyScene($('cv'), $('scene-box'), sim, { hit: () => {}, crewAt, boostLabel: (st, n, x, y) => boostLabel(st, n, x, y), labBusy: () => !!(G.lab.job || G.lab.bpJob), labInside });
+  const scene = CM.createColonyScene($('cv'), $('scene-box'), sim, { hit: () => {}, crewAt, boostLabel: (st, n, x, y) => boostLabel(st, n, x, y) });
   let crewSig = '', selected = 'mine', tierShown = null;
   const crewSigOf = () => G.s.placed.map((p) => p.st + p.role + p.m.id).sort().join() + '|' + G.lab.workers.join() + '|' + WORK.map((st) => G.phase[st]).join('') + '|' + (dragger ? dragger.sig : '');
   function syncCrew(force) {
@@ -162,22 +159,26 @@
     $('plates').appendChild(w); g.el = w;
   }
   function goBuild(id) { if (id === 'sell') focusSt('sell'); else { scene.showSurface(); openPz(id === 'house' ? 'mice' : 'lab', id === 'house' && G.built.house ? 'house' : undefined); } if (!SIGNS[id].el.hidden) pulse(SIGNS[id].el.firstChild, 'bump', 320); }
-  const BUILDING_OF = { shop: 'sell', house: 'house', lab: 'lab' };
+  // Dónde está el lienzo de MAIN dentro de la escena: su posición de maqueta, que el viaje (que lo mueve con transform) no cambia. Medirlo en pantalla
+  // durante el viaje contaría el desplazamiento dos veces, porque las placas y los avisos ya viajan con su capa.
+  const cvOff = () => { const c = $('cv'); return [c.offsetLeft, c.offsetTop]; };
+  const BUILDING_OF = { shop: 'sell', house: 'house' };
   const isBuilt = (id) => scene.stationState(id) === 'on' || (id === 'house' && G.built.house) || (id === 'lab' && G.lab.built) || (id === 'sell' && G.s.built.sell);
   function tapBuilding(hid) {
     const id = BUILDING_OF[hid], r = scene.buildingRect(hid);
-    if (r) { const sb = $('scene-box').getBoundingClientRect(), cr = $('cv').getBoundingClientRect(), [x0, y0] = scene.toScreen(r[0], r[1]), [x1, y1] = scene.toScreen(r[0] + r[2], r[1] + r[3]), el = document.createElement('i'); el.className = 'bd-press'; el.style.cssText = 'left:' + Math.round(cr.left - sb.left + x0) + 'px;top:' + Math.round(cr.top - sb.top + y0) + 'px;width:' + Math.round(x1 - x0) + 'px;height:' + Math.round(y1 - y0) + 'px'; $('scene-box').appendChild(el); setTimeout(() => el.remove(), 260); }
+    if (r) { const [cl, ct] = cvOff(), [x0, y0] = scene.toScreen(r[0], r[1]), [x1, y1] = scene.toScreen(r[0] + r[2], r[1] + r[3]), el = document.createElement('i'); el.className = 'bd-press'; el.style.cssText = 'left:' + Math.round(cl + x0) + 'px;top:' + Math.round(ct + y0) + 'px;width:' + Math.round(x1 - x0) + 'px;height:' + Math.round(y1 - y0) + 'px'; $('scene-box').appendChild(el); setTimeout(() => el.remove(), 260); }
     const sp = scenes.get(id); if (sp && sp.content && isBuilt(id) && scenes.can(id)) return scenes.go(id); // con su escena lista se entra en ella; si no, su panel
     if (id === 'sell') return isBuilt('sell') ? openPz('shopinfo') : focusSt('sell'); // sin construir, su estación dice cómo se construye
-    if (id === 'lab') return openPz('lab');
     return openPz('mice', G.built.house ? 'house' : undefined);
   }
+  const signOn = (id) => (id === 'lab' ? sim.ready.lab && !G.lab.built : scene.stationState(id) === 'build');
   function placeSigns() {
-    if (Object.keys(SIGNS).every((id) => SIGNS[id].el.hidden && scene.stationState(id) !== 'build')) return; // sin obras pendientes no se mide nada en cada fotograma
-    const sb = $('scene-box').getBoundingClientRect(), cr = $('cv').getBoundingClientRect(), ox = cr.left - sb.left, oy = cr.top - sb.top, W = sb.width, top = topInset(), used = [];
+    if (Object.keys(SIGNS).every((id) => SIGNS[id].el.hidden && !signOn(id))) return; // sin obras pendientes no se mide nada en cada fotograma
+    const sb = $('scene-box').getBoundingClientRect(), [ox, oy] = cvOff(), W = sb.width, top = topInset(), used = [];
     for (const [id, g] of Object.entries(SIGNS)) {
-      const on = scene.stationState(id) === 'build'; if (g.el.hidden === on) g.el.hidden = !on;
+      const on = signOn(id); if (g.el.hidden === on) g.el.hidden = !on;
       if (!on) continue;
+      if (id === 'lab') { const w = g.el.offsetWidth; g.el.style.left = W - w - 6 + 'px'; g.el.style.top = Math.max(top, oy + scene.groundY() - 60) + 'px'; g.el.classList.remove('up'); continue; } // aún sin construir, el cartel señala el lado por el que se llega
       const r = scene.buildingRect(g.at), [ax, ay] = scene.toScreen(r[0] + r[2] / 2, r[1]), by = oy + scene.toScreen(r[0], r[1] + r[3])[1], w = g.el.offsetWidth, up = by < top + 28;
       const x = up ? W - w - 6 : Math.max(6, Math.min(W - w - 6, Math.round(ox + ax - w / 2))); let y = up ? top : Math.max(top, Math.round(oy + ay) - 36);
       while (used.some((u) => x < u[0] + u[2] && u[0] < x + w && y < u[1] + 28 && u[1] < y + 28)) y += 28;
@@ -188,7 +189,7 @@
   function topInset() { const sb = $('scene-box').getBoundingClientRect(), gl = $('goal'); return Math.max($('hud-coinsbox').getBoundingClientRect().bottom - sb.top + 6, gl.hidden ? 0 : gl.getBoundingClientRect().bottom - sb.top + 4); }
   function placePlates() {
     const top = topInset(), H = $('scene-box').clientHeight;
-    const sb = $('scene-box').getBoundingClientRect(), cr = $('cv').getBoundingClientRect(), ox = cr.left - sb.left, oy = cr.top - sb.top;
+    const [ox, oy] = cvOff();
     const now = performance.now();
     const covers = (id, x, y, w) => { for (const n of scene.nodes()) { if (n.st !== id || !n.crew || n.px == null) continue; const [ax, ay] = scene.toScreen(n.px + 3, n.py - 20), [bx, by] = scene.toScreen(n.px + 19, n.py + 1); if (!(ox + bx < x || ox + ax > x + w || oy + by < y || oy + ay > y + 24)) return true; } return false; };
     const list = scene.plates().map((p) => {
@@ -424,7 +425,7 @@
     layerShow() { PZ.el.classList.remove('off'); PZ.el.classList.add('in'); PZ.el.setAttribute('aria-hidden', 'false'); },
     layerClosing() { PZ.el.classList.remove('in'); },
     layerClosed() { closePz(true); },
-    questIcon: NAV_IC.goal, questGo: () => goToGoal(), E2,
+    questIcon: NAV_IC.goal, questGo: () => goToGoal(), E2, get scene() { return scene; }, get labScene() { return labScene; },
     ghostClick: (x, y) => { const r = PZ.fr.getBoundingClientRect(); return isGhost(r.left + x, r.top + y); }, ghostClear: () => { ghost.until = 0; },
   };
   const PZ = { el: $('pz'), fr: null, ready: false, want: null, t: 0 };
@@ -441,7 +442,7 @@
     ensurePz(); PZ.want = [kind, arg];
     PZ.el.classList.remove('off'); PZ.el.setAttribute('aria-hidden', 'false');
     if (PZ.ready) return pzGo();
-    $('pz-load').hidden = false; clearTimeout(PZ.t); PZ.t = setTimeout(() => { if (PZ.want && !PZ.ready) { closePz(true); toast('The game panels are taking too long to load'); } }, 12000);
+    $('pz-load').hidden = false; clearTimeout(PZ.t); PZ.t = setTimeout(() => { if (PZ.want && !PZ.ready) { closePz(true); sheet('PANELS', '<p>The game panels could not load in this browser view. Open the game in its own page to use them.</p>'); } }, 7000);
   }
   function pzGo() {
     const [k, a] = PZ.want; PZ.want = null; $('pz-load').hidden = true;
@@ -535,6 +536,7 @@
   document.addEventListener('click', (e) => { if (isGhost(e.clientX, e.clientY)) { e.stopPropagation(); e.preventDefault(); inputNote('ghost click'); } }, true);
 
   // ---- Un solo clasificador (gesture.js); aquí, solo qué hace cada resultado ----
+  let lat = null;
   const cv = $('cv'), TAP_SLOP = 7, TAP_SLOP_MOUSE = 12; // apoyar el dedo en un ratón admite más temblor: en un móvil, un toque se mueve varios píxeles
   const gesture = window.BetaGesture({
     resolve: targetAt, slop: (t) => (t && t.m ? TAP_SLOP_MOUSE : TAP_SLOP),
@@ -542,7 +544,13 @@
     onNote: (t) => inputNote(t),
     press: (t, x, y) => { if (!t.m) return false; const w = Core.whereIs(G, t.m.id); return !!(w && w.scene === 'main') && dragger.press(t.m, x, y, performance.now()); },
     pressMove: (x, y) => dragger.move(x, y), pressAbort: () => dragger.abort(performance.now()),
-    cameraStart: (x, y) => { scene.dragStart(y, x); closeRes(); }, cameraMove: (dy, x, y) => scene.dragBy(dy, y, x), cameraEnd: (v) => scene.dragEnd(v),
+    // Un arrastre claramente horizontal, ya en la línea de calle, es el viaje a la escena vecina. Lo demás, la cámara de siempre. Se decide una vez, al empezar.
+    cameraStart: (x, y) => { lat = { x0: x, y0: y, cx0: rawX0, mode: null }; closeRes(); },
+    cameraMove: (dy, x, y) => {
+      if (!lat.mode) { const dx = x - lat.x0, dv = y - lat.y0; if (dx < 0 && Math.abs(dx) > Math.abs(dv) * 1.4 && canTravel() && travel.pullStart('lab', lat.cx0)) { scene.stopCam(); lat.mode = 'pull'; } else { lat.mode = 'cam'; scene.dragStart(lat.y0, lat.x0); scene.dragBy(dv, y, x); return; } }
+      if (lat.mode === 'pull') travel.pullMove(rawX); else scene.dragBy(dy, y, x);
+    },
+    cameraEnd: (v) => { if (lat && lat.mode === 'pull') travel.pullEnd(); else if (lat && lat.mode === 'cam') scene.dragEnd(v); lat = null; },
     holdMove: (x, y) => dragger.move(x, y),
     holdDrop: (moved) => { if (moved) dragger.release(performance.now()); else dragger.cancel(performance.now(), true); }, // soltarlo sin haberlo llevado a ningún sitio: vuelve, y no abre nada
     holdCancel: () => dragger.cancel(performance.now()),
@@ -558,8 +566,10 @@
       if (h.type === 'building') return tapBuilding(h.id);
     },
   });
-  const pointer = (e) => { const r = cv.getBoundingClientRect(); return { id: e.pointerId, x: e.clientX - r.left, y: e.clientY - r.top, button: e.button, primary: e.isPrimary, kind: e.pointerType }; };
-  cv.addEventListener('pointerdown', (e) => { if (gesture.down(pointer(e))) try { cv.setPointerCapture(e.pointerId); } catch (err) {} });
+  // El viaje se mide con la posición del dedo en la pantalla, no en el lienzo: el lienzo se mueve con el viaje, y medirlo con él lo realimentaría.
+  let rawX = 0, rawX0 = 0;
+  const pointer = (e) => { rawX = e.clientX; const r = cv.getBoundingClientRect(); return { id: e.pointerId, x: e.clientX - r.left, y: e.clientY - r.top, button: e.button, primary: e.isPrimary, kind: e.pointerType }; };
+  cv.addEventListener('pointerdown', (e) => { rawX0 = e.clientX; if (gesture.down(pointer(e))) try { cv.setPointerCapture(e.pointerId); } catch (err) {} });
   // En la ventana, no en el lienzo: el final de un dedo tiene que llegar aunque la captura falle o algo se haya abierto encima.
   window.addEventListener('pointermove', (e) => { if (gesture.active) gesture.move(pointer(e)); }, true);
   window.addEventListener('pointerup', (e) => gesture.up(pointer(e)), true);
@@ -607,7 +617,7 @@
 
   // ---- Volver a la mina ----
   const home = $('home-btn'); let homeOn = false;
-  function homePos() { home.style.setProperty('--ib', (isOpen(pop) ? pop.offsetHeight : 0) + 'px'); }
+  function homePos() { const ib = (isOpen(pop) ? pop.offsetHeight : 0) + 'px', e = document.querySelector('.edge-go'); home.style.setProperty('--ib', ib); if (e) e.style.setProperty('--ib', ib); }
   let mineY = null, mineMoved = 0;
   function mineSeen() { const m = scene.plates().find((p) => p.id === 'mine'), H = $('scene-box').clientHeight, a = m.y, b = m.bottom + 40; return { y: a, vis: Math.max(0, Math.min(H, b) - Math.max(0, a)) / (b - a) }; }
   function homeTick() {
@@ -628,7 +638,7 @@
     if (gEl.hidden) return;
     const sb = $('scene-box').getBoundingClientRect(), W = sb.width, top0 = $('hud-coinsbox').getBoundingClientRect().bottom - sb.top + 6, w = gEl.offsetWidth, h = gEl.offsetHeight;
     const cands = [[W - 6 - w, top0], [6, top0], [W - 6 - w, top0 + h + 6], [6, top0 + h + 6]];
-    const cr = $('cv').getBoundingClientRect(), ox = cr.left - sb.left, oy = cr.top - sb.top;
+    const [ox, oy] = cvOff();
     const boxes = [];
     for (const n of scene.nodes()) { if (!n.crew || n.px == null || n.inside) continue; const [ax, ay] = scene.toScreen(n.px + 3, n.py - 20), [bx, by] = scene.toScreen(n.px + 19, n.py + 1); boxes.push([ox + ax, oy + ay, ox + bx, oy + by, 1]); }
     for (const el of document.querySelectorAll('#plates > *, #p0-toast.show, #home-btn.in')) { if (el.style.visibility === 'hidden') continue; const r = el.getBoundingClientRect(); boxes.push([r.left - sb.left, r.top - sb.top, r.right - sb.left, r.bottom - sb.top, 2]); }
@@ -664,7 +674,7 @@
     if (gShown.id === 'house' || gShown.id === 'lab') return goBuild(gShown.id);
     if (at === 'upgrades') { freshUp = false; return openPz('tree', selected); }
     if (at === 'mice') return openPz('mice');
-    if (/^recipe/.test(gShown.id) || at === 'lab') { if (G.lab.built && scenes.can('lab')) scenes.go('lab'); return openPz('lab'); } // detrás de la hoja, el laboratorio
+    if (/^recipe/.test(gShown.id) || at === 'lab') { if (G.lab.built && scenes.can('lab')) goLab(); return openPz('lab'); } // el viaje al LAB sigue detrás de la hoja
     closePz(); toMain(() => { focusSt(at); if (plates[at]) pulse(plates[at], 'bump', 320); });
   }
   // Avisos en cola: cada uno se lee; si llegan muchos a la vez, se quedan los primeros.
@@ -747,7 +757,7 @@
     const st = Object.keys(L.styles).length; if (st > labSeen.styles) { labSeen.styles = st; toast('New cheese to research!'); }
     for (const k of Object.keys(L.strainsOf || {})) { const n = L.strainsOf[k].length; if (n > (labSeen.strains[k] || 0)) { labSeen.strains[k] = n; if (PZ.ready) try { pzWin().SHEETS.strainFound(k, L.strainsOf[k][n - 1]); } catch (e) { console.warn(e); } toast('New strain found: compare it in LAB'); } }
   }
-  let scenes = null, labScene = null;
+  let scenes = null, labScene = null, travel = null, edgeTick = () => {};
   const toMain = (fn) => (scenes.current === 'main' ? fn() : scenes.go('main', fn));
   let revAt = 0, lastDraw = 0, boostAfter = 0, boostCalm = 0, lastFrameAt = 0;
   const boostSettled = (now) => { if (!boostAfter) return true; boostCalm = now - lastFrameAt < 40 ? boostCalm + 1 : 0; if (boostCalm >= 3 || performance.now() - boostAfter > 500) { boostAfter = 0; boostCalm = 0; return true; } return false; };
@@ -755,7 +765,7 @@
   // ---- Avisos de máquina: la placa aprobada (.ad-warn y su colocación, labelLayer) con lo que le falta de verdad ----
   // Ámbar si lo que falta ya viene de camino; roja si no viene. Sale al segundo y medio de faltar y se va a los 0,8 s de volver, para no parpadear.
   const lbHost = document.createElement('div'); lbHost.className = 'lb-host'; $('scene-box').appendChild(lbHost);
-  const screenOf = () => { const sb = $('scene-box').getBoundingClientRect(), cr = $('cv').getBoundingClientRect(); return [cr.left - sb.left, cr.top - sb.top, sb]; };
+  const screenOf = () => { const [ox, oy] = cvOff(); return [ox, oy, $('scene-box').getBoundingClientRect()]; };
   const LBL = CM.art.labelLayer(lbHost, {
     k: 1,
     view: () => [0, 0, $('scene-box').clientWidth, $('scene-box').clientHeight],
@@ -795,6 +805,7 @@
   }
   // Lo que dibuja MAIN en cada fotograma. Solo se llama con MAIN a la vista.
   function mainFrame(now) {
+    edgeTick(now);
     // Lo pendiente de los refuerzos sale con la escena ya estable: justo al cerrar la hoja, el móvil pierde fotogramas y se comería la animación.
     if (!pzOpen() && boostSettled(now)) flushBoost();
     lastFrameAt = now;
@@ -809,13 +820,14 @@
     paintPanel(false); paintTag(now);
   }
   function tick(now) {
+    travel.step(now);
     if (now - revAt > 200) { revAt = now; rev += 1; watchLab(); }
     const real = Date.now(), elapsed = Math.max(0, real - lastReal); lastReal = real;
     if (off) offlineStep();
     else if (!paused) { if (elapsed >= OFFLINE_MIN && beginOffline(elapsed)) {} else if (elapsed > 0 && elapsed < OFFLINE_MIN) Core.advance(G, elapsed); }
     syncSim(); processEvents(); dragger.step(performance.now()); syncCrew(); dragger.settle(); restoreCam(); syncWorld();
     goalTick(now);
-    scenes.frame(now);
+    scenes.frame(now); paintFar(now); paintGround(now);
     const s = G.s, t = tierNow(), sig = [fmt(s.coins), fmt(income()), s.depth, t, s.vein.open, Math.floor((100 * (s.vein.open ? s.vein.left / Math.max(1, s.vein.cap) : s.vein.found / Math.max(1e-9, s.vein.need))))].join('|');
     if (sig !== hudSig) {
       hudSig = sig;
@@ -860,7 +872,7 @@
   const paintVeil = (a) => { const q = Math.ceil(a * 4) / 4; veil.hidden = q <= 0; veil.style.opacity = String(q); $('p0').classList.toggle('scene-fading', q > 0); $('p0').style.setProperty('--veil', String(q)); };
   scenes = window.BetaScenes({
     fadeMs: RM() ? 0 : 130, veil: paintVeil, onError: (e, id) => console.error('scene ' + id, e),
-    onChange: (to) => { $('p0').dataset.scene = to; paintSceneDev(); },
+    onChange: (to) => { $('p0').dataset.scene = to; panelFor(to); paintSceneDev(); },
   });
   let mainShown = false;
   scenes.register('main', {
@@ -875,11 +887,57 @@
   const probeApi = { host: sceneHost, dev: () => SCENE_DEV, colony: () => G, Core, fmt };
   scenes.register('house', window.BetaProbe('house', probeApi));
   labScene = window.BetaLabScene({
-    host: sceneHost, G: () => G, Core, Pg, Lb, REAL, fmt, recipeName, scene, open: openPz, covered: () => pzOpen() || isOpen($('sheet')) || scenes.busy, top: topInset, reduced: RM, icon: icd, pulse, saved: saveNow, goMain: () => scenes.go('main'),
+    host: sceneHost, G: () => G, Core, Pg, Lb, REAL, fmt, recipeName, scene, open: openPz, covered: () => pzOpen() || isOpen($('sheet')) || travel.active || scenes.busy, sheet: () => pzOpen() || isOpen($('sheet')), top: topInset, reduced: RM, icon: icd, ret: NAV_IC.ret, pulse, saved: saveNow,
+    goMain: () => travel.go('main'),
     ghostAt: (x, y) => { const r = sceneHost.getBoundingClientRect(); ghost.until = performance.now() + GHOST_MS; ghost.x = r.left + x; ghost.y = r.top + y; },
-    panel: (on) => { labPanel = on ? labScene : null; },
+    pull: { start: (x) => travel.pullStart('main', x), move: (x) => travel.pullMove(x), end: () => travel.pullEnd() }, panelMine: () => !!labPanel, 
   });
   scenes.register('lab', labScene); labScene.baseline();
+  // ---- El viaje: mismas capas de siempre, movidas en horizontal. HOUSE solo tendrá que registrarse y añadirse aquí ----
+  const LAYERS = { main: () => [$('cv'), $('plates'), edgeGo, ...document.querySelectorAll('#scene-box > .lb-host, #scene-box > .focus-tag, #home-btn')], lab: () => [sceneHost] };
+  // El fondo de toda la colonia (cielo, nubes, estrellas, luna y montañas): un lienzo común detrás de las escenas. Se pinta al moverse la cámara y, si no, unas diez veces por segundo: las nubes van despacio.
+  const farCv = document.createElement('canvas'); farCv.id = 'far'; $('scene-box').insertBefore(farCv, $('cv'));
+  const FAR = { lab: 100, house: -100 };
+  const farOf = (id) => (id === 'lab' ? labScene.farView() : id === 'main' ? scene.farView() : Object.assign({}, scene.farView(), { shift: FAR[id] || 0 }));
+  let farKey = '', farAt = 0;
+  function paintFar(now) {
+    const f = travel.far() || farOf(scenes.current); if (f.ground <= 0 && !travel.active) { farKey = ''; return; }
+    const key = Math.round(f.ground) + ':' + Math.round(f.shift * 4) + ':' + f.zoom.toFixed(3); if (key === farKey && now - farAt < (pzOpen() ? 500 : 100)) return;
+    farKey = key; farAt = now; scene.drawFar(farCv, { now, shift: f.shift, ground: f.ground, zoom: f.zoom });
+  }
+  // La tierra común: la pared de MAIN continúa con sus propios dibujos (drawGround) y es también el suelo del LAB. Se ve en el viaje y en el LAB; con MAIN quieta, MAIN la tapa.
+  const groundCv = document.createElement('canvas'); groundCv.id = 'ground'; groundCv.hidden = true; $('scene-box').insertBefore(groundCv, $('cv'));
+  // Dónde está el LAB en el mundo de la tierra: su vista de base empieza 1,4 pantallas a la derecha de la de MAIN. Fijo para cada tamaño de pantalla.
+  const groundOff = () => { const W = $('scene-box').clientWidth; return Math.round(scene.freeFor(W) + (1.4 * W) / scene.baseFor(W) - labScene.baseLeft()); };
+  const travelSpan = () => { const m = scene.mapView(), L = labScene.mapView(); return Math.round((groundOff() + L.left - m.camX) * m.s); };
+  let groundKey = '', groundAt = 0;
+  function paintGround(now) {
+    const dpr = window.devicePixelRatio || 1, W = $('scene-box').clientWidth, v = travel.view, lab = (x0, x1, xL, dyL) => { const L = labScene.mapView(); return { x0: x0 * dpr, x1: x1 * dpr, kd: L.s * dpr, gx: groundOff() + L.left - xL / L.s, gy: (L.ground + dyL) * dpr }; };
+    let segs = null;
+    if (v) { const m = scene.mapView(), split = (v.xM + W + v.xL) / 2; segs = [{ x0: 0, x1: split * dpr, kd: m.s * dpr, gx: m.camX - v.xM / m.s, gy: m.ground * dpr }, lab(split, W, v.xL, v.dyL)]; }
+    else if (scenes.current === 'lab' && labScene.engine) segs = [lab(0, W, 0, 0)];
+    if (!segs) { if (!groundCv.hidden) groundCv.hidden = true; groundKey = ''; return; }
+    if (groundCv.hidden) groundCv.hidden = false;
+    const key = segs.map((s) => [s.x0, s.x1, s.kd, s.gx, s.gy].map((n) => Math.round(n * 4)).join(',')).join('|'); if (key === groundKey && now - groundAt < 1000) return;
+    groundKey = key; groundAt = now; scene.drawGround(groundCv, { now, segs });
+  }
+  // Un viaje en marcha se coge con el dedo en cualquier sitio de la escena: ese dedo es del viaje, no de las escenas.
+  let grabId = null;
+  $('scene-box').addEventListener('pointerdown', (e) => { if (!travel.active || travel.held || grabId != null) return; e.stopPropagation(); e.preventDefault(); grabId = e.pointerId; try { $('scene-box').setPointerCapture(e.pointerId); } catch (err) {} travel.grab(e.clientX); }, true);
+  window.addEventListener('pointermove', (e) => { if (e.pointerId !== grabId) return; e.stopPropagation(); travel.pullMove(e.clientX); }, true);
+  for (const k of ['pointerup', 'pointercancel']) window.addEventListener(k, (e) => { if (e.pointerId !== grabId) return; e.stopPropagation(); grabId = null; travel.pullEnd(); }, true);
+  travel = window.BetaTravel({
+    strip: ['house', 'main', 'lab'], box: $('scene-box'), reduced: RM, current: () => scenes.current, layers: (id) => LAYERS[id](), farOf,
+    ground: (id) => (id === 'main' ? scene.mapView().ground : labScene.mapView().ground), span: travelSpan, setGround: (y) => scene.setGround(y),
+    begin: (to) => { const ok = scenes.slideBegin(to); if (ok) $('p0').dataset.slide = '1'; return ok; },
+    end: (commit, from, to) => { scenes.slideEnd(commit); delete $('p0').dataset.slide; panelFor(scenes.current); if (commit && to === 'main' && from === 'lab') { plateSig = ''; } },
+    onSide: (side) => panelFor(side),
+  });
+  function panelFor(side) { const lab = side === 'lab'; if (lab === !!labPanel) return; labPanel = lab ? labScene : null; if (lab) labScene.paintPanel(); else paintPanel(true); pulse($('panel'), 'swap', 260); }
+  const canTravel = () => G.lab.built && scenes.can('lab') && !scene.following && !pzOpen();
+  function goLab() { if (G.lab.built && scenes.can('lab') && scenes.current !== 'lab') travel.go('lab'); }
+  const edgeGo = document.createElement('button'); edgeGo.className = 'bx edge-go'; edgeGo.setAttribute('aria-label', 'Go to the Cheese Lab'); edgeGo.innerHTML = '<img class="pix" alt="" src="' + icd('ic_flask') + '"><span>LAB</span><i class="edge-ar"></i>'; $('scene-box').appendChild(edgeGo); edgeGo.addEventListener('click', goLab);
+  edgeTick = (now) => { const on = !travel.active && G.lab.built && scenes.can('lab') && !pzOpen(); edgeGo.classList.toggle('in', on); edgeGo.tabIndex = on ? 0 : -1; };
   function paintSceneDev() { const d = $('scene-dev'); if (d) for (const b of d.children) b.classList.toggle('on', b.dataset.go === scenes.current); }
   if (SCENE_DEV) {
     const d = document.createElement('div'); d.id = 'scene-dev'; d.className = 'scene-dev';
@@ -890,5 +948,5 @@
   $('p0').dataset.scene = scenes.start(SCENE_DEV ? (location.search.match(/[?&]scene=(\w+)/) || [])[1] : 'main');
   paintSceneDev();
   requestAnimationFrame(frame);
-  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.BETA = { get G() { return G; }, get lab() { return labScene; }, labInside, get dragger() { return dragger; }, sim, scene, stationSeen, boostPend, pick: chooseMouse, gesture, isGhost, get scenes() { return scenes; }, save: saveNow, sync: () => { syncSim(); syncCrew(); }, act: doAct, tick, focus: focusSt };
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.BETA = { get G() { return G; }, get lab() { return labScene; }, get travel() { return travel; }, get dragger() { return dragger; }, sim, scene, stationSeen, boostPend, pick: chooseMouse, gesture, isGhost, get scenes() { return scenes; }, save: saveNow, sync: () => { syncSim(); syncCrew(); }, act: doAct, tick, focus: focusSt };
 })();

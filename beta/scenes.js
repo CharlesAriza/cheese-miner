@@ -9,7 +9,7 @@
 //   ready()    si se puede entrar ahora (sin él, siempre)
 window.BetaScenes = function (o = {}) {
   const now = o.now || (() => performance.now()), FADE = o.fadeMs == null ? 130 : o.fadeMs, HOME = o.home || 'main', defs = new Map(), live = new Set();
-  let cur = null, tr = null;
+  let cur = null, tr = null, sl = null;
   const stats = { switches: 0, enters: {}, leaves: {}, inits: {}, releases: {}, failed: [], swapMaxMs: 0, swapWorst: '' };
   const bump = (m, id) => { m[id] = (m[id] || 0) + 1; };
   const can = (id) => { const d = defs.get(id); return !!d && (!d.ready || !!d.ready()); };
@@ -40,7 +40,10 @@ window.BetaScenes = function (o = {}) {
     get(id) { return defs.get(id) || null; },
     can,
     get current() { return cur; },
-    get busy() { return !!tr; },
+    get busy() { return !!tr || !!sl; },
+    // Viaje entre vecinas: las dos se dibujan mientras dura. Solo al acabar cambia cuál es la actual.
+    slideBegin(id) { if (!can(id) || tr || sl || id === cur) return false; const d = defs.get(id); try { if (!live.has(id)) { if (d.init) d.init(); live.add(id); bump(stats.inits, id); } if (d.enter) d.enter(); } catch (e) { stats.failed.push(id); if (o.onError) o.onError(e, id); return false; } bump(stats.enters, id); sl = { to: id }; return true; },
+    slideEnd(commit) { if (!sl) return; const { to } = sl; sl = null; if (!commit) return leaveScene(to); const from = cur; leaveScene(from); cur = to; stats.switches += 1; if (o.onChange) o.onChange(to, from); },
     get live() { return [...live]; },
     stats,
     // Sin transición, al arrancar. Lo que no exista o no esté disponible acaba en casa, nunca en una pantalla rota.
@@ -63,6 +66,7 @@ window.BetaScenes = function (o = {}) {
         } else { fade(1 - k); if (k >= 1) { fade(0); tr = null; } }
       }
       const d = defs.get(cur); if (d && d.frame) d.frame(t);
+      if (sl) { const e = defs.get(sl.to); if (e && e.frame) e.frame(t); }
     },
   };
 };
