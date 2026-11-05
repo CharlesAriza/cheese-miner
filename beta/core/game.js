@@ -465,5 +465,11 @@ E2.game = (function () {
   });
 
   Mo().hooks.emit = emit;
-  return { setup, create, attach, advance, drain, act, options, view, whereIs, unassigned, emptyPosts, postsOf, capMs, offlineStart, offlineRun, offlineEnd, enterAway, ACTIONS, GRID };
+  // Dónde está cada ratón, sacado de sus puestos: no se guarda aparte, así no puede contradecirlos. Cada uno, en un solo espacio.
+  function presence(c) {
+    const out = { main: [], lab: [], house: [] };
+    for (const m of c.roster) out[whereIs(c, m.id).scene].push(m.id);
+    return out;
+  }
+  return { setup, create, attach, advance, drain, act, options, view, whereIs, presence, unassigned, emptyPosts, postsOf, capMs, offlineStart, offlineRun, offlineEnd, enterAway, ACTIONS, GRID };
 })();

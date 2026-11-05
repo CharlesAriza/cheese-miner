@@ -66,3 +66,14 @@ button { touch-action: manipulation; }
 /* El marcador no cambia de ancho con los dígitos de sus cifras: solo crecería con un saldo de más de seis caracteres. */
 .hud-coins span { min-width: 74px; }
 #hud-rate, #hud-coins { font-variant-numeric: tabular-nums; }
+/* Espacios de la colonia: lo que es de MAIN se oculta sin cambiar el reparto de la pantalla; el marcador, QUESTS y la barra de abajo son de toda la colonia. */
+#p0:not([data-scene='main']) #cv, #p0:not([data-scene='main']) #plates, #p0:not([data-scene='main']) .lb-host, #p0:not([data-scene='main']) .focus-tag, #p0:not([data-scene='main']) .home-btn, #p0:not([data-scene='main']) #crew-pop, #p0:not([data-scene='main']) #panel { visibility: hidden; }
+#p0.scene-fading #panel, #p0.scene-fading #crew-pop, #p0.scene-fading .home-btn { opacity: calc(1 - var(--veil, 0)); }
+.scene-host { position: absolute; inset: 0; z-index: 3; background: #1d1828; }
+.scene-veil { position: absolute; inset: 0; z-index: 5; background: #1d1828; }
+.goal { z-index: 6; }
+/* Solo con ?scenes: instrumentos para comprobar la arquitectura, no contenido. */
+.scene-probe { position: absolute; inset: 0; padding: 110px 14px 14px; white-space: pre-wrap; font: 400 13px/18px ui-monospace, monospace; color: #bfc7d8; }
+.scene-dev { position: absolute; left: 6px; bottom: 6px; z-index: 7; display: flex; gap: 2px; }
+.scene-dev button { height: 28px; padding: 0 8px; font: 400 8px/8px var(--pixel); color: var(--soft); }
+.scene-dev button.on { border-color: var(--gold); color: var(--gold); }
