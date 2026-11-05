@@ -187,3 +187,34 @@ body.p2 #sheet-body .mx-qs-got small { display: block; font-size: 10px; line-hei
 .mx-lb-lib { display: flex; flex-direction: column; gap: 6px; padding: 8px; margin-bottom: 8px; }
 .mx-lb-lh { display: flex; align-items: center; gap: 8px; }
 .mx-lb-lh small { margin-left: auto; opacity: .8; }
+/* Ayuda del LAB (clases lbh-): «?» en la cabecera de cada hoja y en DIRECTIONS; la ficha va en la ventana de siempre (#modal-body), como la de un objeto. */
+body.p2 #sheet .phead .lbh-hq { margin: 0 6px 0 auto; width: 30px; height: 30px; padding: 0 0 2px; font: 400 10px var(--pixel); color: var(--gold); background: var(--p2); border: 2px solid var(--p4); border-radius: 0; box-shadow: inset 0 2px 0 var(--p1), inset 0 -3px 0 var(--p3); cursor: pointer; position: relative; }
+body.p2 #sheet .phead .lbh-hq::before { content: ''; position: absolute; inset: -7px -4px; }
+body.p2 #sheet .phead .lbh-hq[hidden] { display: none; }
+body.p2 #sheet .phead .lbh-hq:active { transform: translateY(1px); }
+body.p2 #sheet-body .lbh-gh { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+body.p2 #sheet-body .lbh-q { position: relative; display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; padding-bottom: 1px; font: 400 8px var(--pixel); color: var(--gold); background: var(--p1); border: 2px solid var(--p4); box-shadow: inset 0 -2px 0 var(--p3); cursor: pointer; }
+body.p2 #sheet-body .lbh-q::before { content: ''; position: absolute; inset: -9px; }
+body.p2 #sheet-body .lbh-why { color: var(--muted); }
+body.p2 #sheet-body .lbh-dx { margin: 8px 2px 0; }
+body.p2 #modal-body .lbh { display: flex; flex-direction: column; gap: 10px; background: inherit; }
+body.p2 #modal-body .lbh-h { display: flex; align-items: center; gap: 8px; padding-bottom: 8px; border-bottom: 2px solid var(--p4); }
+body.p2 #modal-body .lbh-h img { width: 18px; height: 20px; image-rendering: pixelated; }
+body.p2 #modal-body .lbh-h b { font: 400 12px/14px var(--pixel); color: var(--text); }
+body.p2 #modal-body .lbh-h small { margin-left: auto; font: 400 7px var(--pixel); color: var(--muted); }
+body.p2 #modal-body .lbh-sec { display: flex; flex-direction: column; gap: 5px; }
+body.p2 #modal-body .lbh-sec > small { font: 400 7px var(--pixel); color: var(--gold); letter-spacing: .5px; }
+body.p2 #modal-body .lbh-sec p, body.p2 #modal-body .lbh-sec li { margin: 0; font-size: 12px; line-height: 16px; color: var(--soft); }
+body.p2 #modal-body .lbh-sec ul { margin: 0; padding-left: 15px; display: flex; flex-direction: column; gap: 4px; }
+body.p2 #modal-body .lbh-sec b { color: var(--text); font-weight: 800; }
+body.p2 #modal-body .lbh-rows { display: flex; flex-direction: column; gap: 6px; }
+body.p2 #modal-body .lbh-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 6px 9px 8px; text-align: left; color: var(--text); font-family: var(--sans); cursor: pointer; }
+body.p2 #modal-body .lbh-t { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+body.p2 #modal-body .lbh-t b { font: 400 8px/10px var(--pixel); color: var(--text); }
+body.p2 #modal-body .lbh-t small { font-size: 10.5px; line-height: 13px; color: var(--muted); }
+body.p2 #modal-body .lbh-row em { font: 400 8px var(--pixel); font-style: normal; color: var(--gold); }
+body.p2 #modal-body .lbh-row.lbh-off { opacity: .62; }
+body.p2 #modal-body .lbh-row.lbh-off em { color: var(--muted); font-size: 7px; }
+body.p2 #modal-body .lbh-bts { display: flex; gap: 8px; position: sticky; bottom: -12px; padding: 6px 0 2px; background: inherit; }
+body.p2 #modal-body .lbh-bts > * { flex: 1; height: 38px; font-size: 8px; }
+body.p2 #modal-body .lbh-ok { color: #fff; background: var(--act); box-shadow: inset 0 2px 0 var(--act-l), inset 0 -3px 0 var(--act-d); text-shadow: 1px 1px 0 #6a2a08; }

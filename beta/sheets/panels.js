@@ -736,6 +736,8 @@
 
   // ---------- CHEESE LAB ----------
   const DIR_NAME = (dir) => { const [kind, id] = String(dir || '').split(':'); return kind === 'value' ? 'the most valuable recipe' : kind === 'fast' ? 'the quickest recipe to cook' : kind === 'strain' ? 'strains' : kind === 'base' ? B.bases[id].name + ' recipes' : kind === 'ingredient' ? 'recipes with ' + B.ingredients[id].name : kind === 'treatment' ? B.treatments[id].name + ' recipes' : kind === 'maturation' ? B.maturations[id].name + ' recipes' : ''; };
+  // Lo que hará el investigador con la dirección elegida, debajo de las opciones (core/lab.js: pick, fits, strainTarget).
+  const DIR_EXPLAIN = (dir) => { const [kind] = String(dir || '').split(':'); if (!kind) return 'He waits: only your orders in the queue are researched.'; if (kind === 'strain') return 'He cultures strains for the recipe your line cooks.'; const t = kind === 'value' ? 'He researches the most valuable recipe you can make, one after another.' : kind === 'fast' ? 'He researches the recipes that cook fastest first.' : 'Only ' + DIR_NAME(dir) + ', the most valuable first.'; return t + (Lb.pick(G(), dir) ? '' : ' Nothing left there at your CHEESE level.'); };
   const DIR_LABEL = (dir) => { const [kind, id] = String(dir || '').split(':'); return kind === 'value' ? 'Highest value' : kind === 'fast' ? 'Quickest to cook' : kind === 'strain' ? 'Strains' : kind === 'base' ? B.bases[id].name + ' recipes' : kind === 'ingredient' ? 'With ' + B.ingredients[id].name : kind === 'treatment' ? B.treatments[id].name : kind === 'maturation' ? B.maturations[id].name : 'No direction'; };
   const DIR_CATS = [['goal', 'GOAL'], ['base', 'CHEESE'], ['ingredient', 'INGREDIENT'], ['treatment', 'TREATMENT'], ['maturation', 'AGING']];
   const lbIc = (k, sc) => '<canvas class="pix" data-lbic="' + k + '" data-k="' + (sc || 2) + '"></canvas>';
@@ -879,14 +881,14 @@
     return h;
   }
   // Estudiar un queso nuevo y dibujar planos: lo que gasta materiales, con su coste a la vista y la ficha del material a un toque.
-  function matCost(need) { return Object.keys(need || {}).map((k) => { const n = Math.ceil(need[k]), have = Math.floor(Inv.count(G().s, k)); return '<span role="button" class="mx-lb-mat' + (have >= n ? '' : ' mx-short') + '" data-act="item:' + k + '"><img class="pix" src="' + MXSP + 'ic_raw_' + k + '.png" alt="" style="width:14px;height:12px">' + CM.fmt(have) + '/' + CM.fmt(n) + '</span>'; }).join(''); }
+  function matCost(need, disc) { return Object.keys(need || {}).map((k) => { const n = Math.ceil(need[k] * (disc || 1)), have = Math.floor(Inv.count(G().s, k)); return '<span role="button" class="mx-lb-mat' + (have >= n ? '' : ' mx-short') + '" data-act="item:' + k + '"><img class="pix" src="' + MXSP + 'ic_raw_' + k + '.png" alt="" style="width:14px;height:12px">' + CM.fmt(have) + '/' + CM.fmt(n) + '</span>'; }).join(''); }
   function mxStudyRows(s) {
     const L = G().lab, P = H.PARAMS; let h = '';
     for (const st of P.strata) {
       const id = 'study.' + st.id;
       if (!Pg.has(id) || !Pg.isOpen(G(), id) || L.styles[st.id]) continue;
       const busy = (L.job && L.job.style === st.id) || L.queue.some((q) => q.style === st.id), need = Lb.studyNeed(st.id), ok = Lb.afford(G(), { kind: 'study', style: st.id });
-      h += '<div class="mx-box mx-lb-row mx-lb-study' + (ok && !busy ? ' mx-ready' : '') + '" data-m="book"><span class="mx-ic"><img class="pix" src="' + MXSP + 'ic_lot_' + st.id + '.png" alt="" style="width:22px;height:19px"></span><span class="mx-t"><small>NEW CHEESE</small><b>STUDY ' + B.bases[st.id].name.toUpperCase() + '</b><span class="mx-d">' + (busy ? 'In the lab now' : matCost(need)) + '</span></span><em' + (busy || !ok ? ' class="mx-off"' : ' data-act="study:' + st.id + '"') + ' role="button">' + (busy ? 'BUSY' : 'STUDY') + '</em></div>';
+      h += '<div class="mx-box mx-lb-row mx-lb-study' + (ok && !busy ? ' mx-ready' : '') + '" data-m="book"><span class="mx-ic"><img class="pix" src="' + MXSP + 'ic_lot_' + st.id + '.png" alt="" style="width:22px;height:19px"></span><span class="mx-t"><small>NEW CHEESE</small><b>STUDY ' + B.bases[st.id].name.toUpperCase() + '</b><span class="mx-d">' + (busy ? 'In the lab now' : matCost(need)) + '</span><span class="mx-d lbh-why">Opens its ' + Lb.combosOf(st.id).length + ' recipes · no Base or coins</span></span><em' + (busy || !ok ? ' class="mx-off"' : ' data-act="study:' + st.id + '"') + ' role="button">' + (busy ? 'BUSY' : 'STUDY') + '</em></div>';
     }
     return h;
   }
@@ -896,7 +898,7 @@
       const id = 'plan.' + bp;
       if (!Pg.has(id) || !Pg.isOpen(G(), id) || L.blueprints[bp]) continue;
       const busy = (L.bpJob && L.bpJob.id === bp) || (L.bpQueue || []).some((q) => q.id === bp), ok = Lb.afford(G(), { kind: 'blueprint', id: bp });
-      h += '<div class="mx-box mx-lb-row mx-lb-study' + (ok && !busy ? ' mx-ready' : '') + '" data-m="book"><span class="mx-ic">' + lbIc('book', 2) + '</span><span class="mx-t"><small>BLUEPRINT</small><b>' + H.pretty(bp).toUpperCase() + '</b><span class="mx-d">' + (busy ? 'On the drawing desk' : matCost(Lb.bpNeed(bp))) + '</span></span><em' + (busy || !ok ? ' class="mx-off"' : ' data-act="blueprint:' + bp + '"') + ' role="button">' + (busy ? 'BUSY' : 'DRAW') + '</em></div>';
+      h += '<div class="mx-box mx-lb-row mx-lb-study' + (ok && !busy ? ' mx-ready' : '') + '" data-m="book"><span class="mx-ic">' + lbIc('book', 2) + '</span><span class="mx-t"><small>BLUEPRINT</small><b>' + H.pretty(bp).toUpperCase() + '</b><span class="mx-d">' + (busy ? 'On the drawing desk' : matCost(Lb.bpNeed(bp), Lb.bpDisc(G()))) + '</span><span class="mx-d lbh-why">Unlocks ' + H.pretty(bp) + ' in MINE upgrades: ' + (H.PATH_TXT[bp] || '').toLowerCase() + '</span></span><em' + (busy || !ok ? ' class="mx-off"' : ' data-act="blueprint:' + bp + '"') + ' role="button">' + (busy ? 'BUSY' : 'DRAW') + '</em></div>';
     }
     return h;
   }
@@ -913,7 +915,7 @@
       const q = L.queue[i], lastOne = i === L.queue.length - 1;
       h += q ? lbRow('book', '<small>' + (i ? 'THEN' : 'NEXT') + '</small><b>' + esc(jobName(q)) + '</b>', queueCost(q), lastOne ? 'labcancel' : '', lastOne ? 'CANCEL' : '') : lbRow('book', '<small>FREE PLACE</small><b>Nothing here yet</b>', 'Add one from RECIPES, STUDIES or STRAINS', '', '');
     }
-    return h ;
+    return h + '<p class="mx-lb-hint">Each order pays when it starts. CANCEL removes the last one.</p>';
   }
   function mxLabDesk(s) {
     const L = G().lab, j = L.bpJob, done = Object.keys(L.blueprints || {}); let h = '';
@@ -939,7 +941,7 @@
     const kind = String(dir || '').split(':')[0], cat = ui.labDirCat || (DIR_CATS.some((c) => c[0] === kind) ? kind : 'goal'), C = CM.cheesery, s = CM.viewState;
     const chip = (d, label, icn) => '<span role="button" class="mx-lb-chip mx-lb-dchip' + (dir === d ? ' mx-on' : '') + '" data-act="labdir:' + (d || 'none') + '"><span class="mx-r">' + (icn || '') + label + '</span></span>';
     const ids = cat === 'base' ? C.unlockedBases(s) : cat === 'goal' ? [] : Object.keys(B[C.TABLES[cat]]).filter((id) => !C.partLocked(s, cat, id));
-    return '<div class="mx-lb-gh" style="margin:8px 0 4px">DIRECTION · ' + DIR_LABEL(dir === 'strain' ? '' : dir) + '</div><div class="mx-box mx-lb-dsel"><div class="mx-lb-cats">' + DIR_CATS.map((c) => '<span role="button" class="mx-lb-cat' + (c[0] === cat ? ' mx-on' : '') + '" data-act="labdircat:' + c[0] + '">' + c[1] + '</span>').join('') + '</div><div class="mx-lb-opts">' + (cat === 'goal' ? chip('value', 'Highest value') + chip('fast', 'Quickest to cook') + chip('', 'None') : ids.map((id) => chip(cat + ':' + id, B[C.TABLES[cat]][id].name, cat === 'base' ? '<img class="pix" src="' + mxBaseIc(id) + '" alt="" style="width:14px;height:12px">' : lbIc('part:' + id, 2))).join('')) + '</div></div>';
+    return '<div class="mx-lb-gh lbh-gh" style="margin:8px 0 4px"><span>DIRECTION · ' + DIR_LABEL(dir === 'strain' ? '' : dir) + '</span>' + helpQ('directions') + '</div><div class="mx-box mx-lb-dsel"><div class="mx-lb-cats">' + DIR_CATS.map((c) => '<span role="button" class="mx-lb-cat' + (c[0] === cat ? ' mx-on' : '') + '" data-act="labdircat:' + c[0] + '">' + c[1] + '</span>').join('') + '</div><div class="mx-lb-opts">' + (cat === 'goal' ? chip('value', 'Highest value') + chip('fast', 'Quickest to cook') + chip('', 'None') : ids.map((id) => chip(cat + ':' + id, B[C.TABLES[cat]][id].name, cat === 'base' ? '<img class="pix" src="' + mxBaseIc(id) + '" alt="" style="width:14px;height:12px">' : lbIc('part:' + id, 2))).join('')) + '</div><p class="mx-lb-hint lbh-dx">' + DIR_EXPLAIN(dir) + '</p></div>';
   }
   function mxLabRecipes(s, ui) {
     const ready = H.Core.options(G()).filter((o) => /^lab/.test(o.kind) && G().s.coins >= o.cost).length, C = CM.cheesery;
@@ -977,7 +979,7 @@
         const chip = (d, label, icn) => '<span role="button" class="mx-lb-chip mx-lb-dchip' + (dir === d ? ' mx-on' : '') + '" data-act="labdir:' + (d || 'none') + '"><span class="mx-r">' + (icn || '') + label + '</span></span>';
         const ids = cat === 'base' ? C.unlockedBases(s) : cat === 'goal' ? [] : Object.keys(B[C.TABLES[cat]]).filter((id) => !C.partLocked(s, cat, id));
         h += '<div class="mx-box mx-lb-dsel"><div class="mx-lb-cats">' + DIR_CATS.map((c) => '<span role="button" class="mx-lb-cat' + (c[0] === cat ? ' mx-on' : '') + '" data-act="labdircat:' + c[0] + '">' + c[1] + '</span>').join('') + '</div><div class="mx-lb-opts">' +
-          (cat === 'goal' ? chip('value', 'Highest value') + chip('fast', 'Quickest to cook') + chip('', 'None') : ids.map((id) => chip(cat + ':' + id, B[C.TABLES[cat]][id].name, cat === 'base' ? '<img class="pix" src="' + mxBaseIc(id) + '" alt="" style="width:14px;height:12px">' : lbIc('part:' + id, 2))).join('')) + '</div></div>';
+          (cat === 'goal' ? chip('value', 'Highest value') + chip('fast', 'Quickest to cook') + chip('', 'None') : ids.map((id) => chip(cat + ':' + id, B[C.TABLES[cat]][id].name, cat === 'base' ? '<img class="pix" src="' + mxBaseIc(id) + '" alt="" style="width:14px;height:12px">' : lbIc('part:' + id, 2))).join('')) + '</div><p class="mx-lb-hint lbh-dx">' + DIR_EXPLAIN(dir) + '</p></div>';
       }
       h += '</div>';
     } else if (w) h += lbRow('auto', '<small>AUTOMATIC</small><b>' + esc(w.name) + ' researches for you</b>', 'Always the most valuable recipe you can make, one after another.', '', '', m === 'auto');
@@ -1033,6 +1035,139 @@
     return h + '<p class="mx-mn-foot"><b>Cheese Driller Beta</b> · build ' + esc(i.build) + '. Data never leaves this browser.</p>';
   }
 
+  // ---------- Ayuda del LAB: una ficha por sección, en la misma ventana que la ficha de un objeto ----------
+  // Todo sale del núcleo (core/lab.js, REAL, PARAMS.s3.lab y el roadmap) con los números de la partida, así que no puede contar otra cosa que lo que pasa.
+  // Lo bloqueado se presenta en una línea y con sus requisitos reales; lo que aún no se ha descubierto (qué cepas hay, qué planos vendrán) no se nombra.
+  const HELP_ORDER = ['recipes', 'directions', 'studies', 'strains', 'queue', 'desk', 'library', 'researcher', 'upgrades'];
+  const HELP_NAME = { guide: 'CHEESE LAB', recipes: 'RECIPES', directions: 'DIRECTIONS', studies: 'STUDIES', strains: 'STRAINS', queue: 'RESEARCH QUEUE', desk: 'PLANS', library: 'STRAIN LIBRARY', researcher: 'RESEARCHER', upgrades: 'LAB UPGRADES' };
+  const HELP_ONE = { recipes: 'Discover recipes your line can cook', directions: 'Tell your researcher what to look for', studies: 'Open a new cheese for research', strains: 'Other ways to make a recipe you know', queue: 'Your orders, in the order they will run', desk: 'Draw blueprints for the last path steps', library: 'Strains shared by every recipe of a cheese', researcher: 'The mouse who works in the lab', upgrades: 'Faster, cheaper research and new stations' };
+  const HELP_GATE = { directions: 'lab.advanced', strains: 'lab.strains', desk: 'lab.desk', library: 'lab.library', researcher: 'lab.assistant' };
+  const hb = (x) => '<b>' + x + '</b>', pct = (x) => Math.round(x * 100) + '%';
+  function helpOpen(id) {
+    const L = G().lab, n = L.nodes;
+    if (id === 'directions') return !!n.advanced;
+    if (id === 'strains') return !!n.strains;
+    if (id === 'desk') return !!n.desk;
+    if (id === 'library') return !!n.library;
+    if (id === 'researcher') return !!n.assistant;
+    if (id === 'studies') return Object.keys(L.styles).length > 1 || H.PARAMS.strata.some((st) => Pg.has('study.' + st.id) && Pg.isOpen(G(), 'study.' + st.id));
+    return true;
+  }
+  const GATE_NAME = { advanced: 'Advanced Research', assistant: 'Research Assistant', strains: 'Strain Research', queue: 'Research Queue', desk: 'Drawing Desk', library: 'Strain Library' };
+  const reqText = (t) => String(t).replace(/^Lab: (\w+)$/, (m, k) => (GATE_NAME[k] || k) + ' in LAB UPGRADES');
+  function helpNeeds(id) {
+    if (id === 'studies') return ['Reach a new stone: each one brings a new cheese to study'];
+    const g = HELP_GATE[id]; if (!g || !Pg.has(g)) return [];
+    const left = Pg.status(G(), g).requires.filter((r) => !r.ok).map((r) => reqText(r.text));
+    return left.length ? left : ['Ready: buy ' + GATE_NAME[g.slice(4)] + ' in LAB UPGRADES'];
+  }
+  // El queso que se está investigando o, si no, el último estudiado: los tiempos de las fichas son los de ahora.
+  const helpStyle = () => { const j = G().lab.job; if (j && (j.key || j.style)) return String(j.key || j.style).split('+')[0]; const ok = H.PARAMS.strata.filter((x) => G().lab.styles[x.id]); return ok.length ? ok[ok.length - 1].id : 'cheddar'; };
+  const foundStrains = () => { const out = {}; for (const k of Object.keys(G().lab.strainsOf || {})) for (const id of G().lab.strainsOf[k]) out[id] = true; return Object.keys(out); };
+  const STRAIN_FX = (id) => { const x = B.strains[id], out = []; if (x.time) out.push('cooks in ' + pct(x.time) + ' of the time'); if (x.base) out.push('uses ' + x.base + 'x Cheese Base per cheese'); if (x.teach) out.push('its cheesemaker learns ' + x.teach + 'x as fast'); out.push('sells for ' + (x.value >= 1 ? x.value + 'x' : pct(x.value)) + ' of the price'); return out.join(', '); };
+  function helpBody(id) {
+    const c = G(), s = c.s, L = c.lab, R0 = B.cheesery, w = labW(), sp = labSpeedOf(w), st = helpStyle(), C = CM.cheesery, base = Lb.labCost(c), t = lbDur(Lb.labTime(c, st) / sp), cap = Lb.queueCap(c), P3 = H.PARAMS.s3.lab;
+    const ing = Object.entries(B.ingredients).filter(([, o]) => o.coinCost && c.stLv.cheese >= o.level).map(([, o]) => o.name + ' ' + o.coinCost);
+    if (id === 'recipes') return {
+      what: 'A recipe is a cheese plus an ingredient, a treatment and an aging. Your line only cooks recipes in your Recipe Book (' + hb(L.known.length + '/' + C.totalCombos()) + '), and its cheesemaker cooks the most profitable one he can pay for, unless you fix one in the Cheesery.',
+      how: ['Pick the four parts and tap ' + hb('DISCOVER IT') + '. The order goes to the RESEARCH QUEUE and starts when the lab is free.', 'With no researcher the lab still works on your orders.', hb(pct(R0.labFail)) + ' of researches are inconclusive the first time: half of the work is done again, once.'],
+      gives: ['The recipe, its first cheese and Cheesemaking XP.', 'Each part multiplies the value of the cheese (the number under each choice). Some combinations are worth extra.', hb(pct(R0.labBreakthrough)) + ' are breakthroughs: the recipe is born with the mastery of ' + R0.labBreakthroughMade + ' cheeses already made.'],
+      needs: [hb(CM.fmt(base) + ' Cheese Base') + ' now: ' + R0.experimentBase + ' + ' + R0.labCostGrowth + ' per recipe you know' + (n0(L.nodes.samples) ? ', minus ' + pct(0.05 * L.nodes.samples) + ' from Smaller Samples' : '') + '.', 'Coins for the ingredient' + (ing.length ? ': ' + ing.join(', ') : '') + '. Herbs are free.', 'About ' + hb(t) + ' each now. Every recipe you know makes the next one ' + pct(R0.labGrowth - 1) + ' slower' + (n0(L.nodes.burners) ? '; Bunsen Burners make it ' + pct(0.08 * L.nodes.burners) + ' faster' : '') + '.', 'Better parts need a higher CHEESE level (shown on locked parts). A new cheese needs its STUDY first.', 'It pays when it starts. Without enough Cheese Base, the lab waits and saves it up.'],
+    };
+    if (id === 'directions') return {
+      what: 'What your researcher works on when the RESEARCH QUEUE is empty.',
+      how: [hb('Highest value') + ': the most valuable recipe you can make, one after another.', hb('Quickest to cook') + ': the recipe with the shortest cooking time.', hb('A cheese, an ingredient, a treatment or an aging') + ': only recipes with it, the most valuable first.', hb('None') + ': he waits for your orders.'].concat(L.nodes.strains ? [hb('Keeps culturing') + ' (in STRAINS): strains for the recipe your line cooks.'] : []),
+      gives: ['You decide where the Recipe Book grows: toward the cheese or part you want, instead of always the single most valuable recipe.', 'Now: ' + hb(DIR_LABEL(L.dir === 'strain' ? '' : L.dir)) + (L.dir === 'strain' ? ' (culturing strains)' : '') + '.'],
+      needs: ['A mouse on the Research post. Your own orders in the queue always go first.', 'Only recipes your CHEESE level allows and whose cheese you have studied.'],
+    };
+    if (id === 'studies') {
+      const open = H.PARAMS.strata.filter((x) => Pg.has('study.' + x.id) && Pg.isOpen(c, 'study.' + x.id) && !L.styles[x.id]), next = open[0], mat = next && Lb.studyNeed(next.id);
+      return {
+        what: 'Each new stone brings a richer cheese. Until you study it, the lab cannot discover its recipes.',
+        how: ['When a cheese appears here, tap ' + hb('STUDY') + '. It goes to the front of the RESEARCH QUEUE.'],
+        gives: ['Its ' + hb(Lb.combosOf('cheddar').length) + ' recipes (every ingredient, treatment and aging) can be discovered.', 'Studied: ' + hb(Object.keys(L.styles).map((x) => B.bases[x].name).join(', ')) + '.'],
+        needs: [hb((P3.study && P3.study.materials) || 0) + ' pieces of that stone\'s own material' + (next && mat ? ' (now ' + B.bases[next.id].name + ': you have ' + CM.fmt(Math.floor(Inv.count(s, next.id))) + ')' : '') + '. ' + (next ? H.itemSource(next.id) : 'Cheese veins of each stone give its material.'), 'No Cheese Base and no coins. It takes ' + hb(((P3.study && P3.study.timeMult) || 3) + 'x') + ' the time of a recipe of that cheese.'],
+      };
+    }
+    if (id === 'strains') {
+      const found = foundStrains(), miss = Object.keys(B.strains).length - found.length;
+      return {
+        what: 'Other ways to make a recipe you already know. Each strain gives something and costs something else.',
+        how: ['Pick a recipe and tap ' + hb('CULTURE A NEW STRAIN') + '. It goes to the RESEARCH QUEUE.', 'Each culture finds one strain of that recipe you do not have yet (' + pct(R0.labBreakthrough) + ' of the time, two).', 'Tap a strain card to use it. ' + hb('Plain') + ' is always there. Changing strain converts the cheeses of that recipe in stock, keeping their total value.'].concat(L.nodes.library ? ['With the Strain Library, a strain counts for every recipe of its cheese.'] : []),
+        gives: found.map((x) => hb(B.strains[x].name) + ': ' + STRAIN_FX(x) + '.').concat(miss ? [miss + ' kind' + (miss > 1 ? 's' : '') + ' still to discover.'] : []),
+        needs: [hb(CM.fmt(base) + ' Cheese Base') + ', like a recipe, and ' + hb((R0.strainTime || 2) + 'x') + ' its time.', 'A strain only works while your line cooks that recipe: STRAINS warns you when it is equipped but idle.'],
+      };
+    }
+    if (id === 'queue') return {
+      what: 'Your orders for the lab: recipes, studies and strains, in the order they will run.',
+      how: ['Orders start one after another as soon as the lab is free. A study goes to the front.', 'Nothing is paid while it waits: each order pays its Cheese Base and coins when it starts.', hb('CANCEL') + ' removes the last order. It had not been paid, so nothing is lost.'],
+      gives: ['Your orders always go before your researcher\'s DIRECTION.'],
+      needs: [hb(cap + ' place' + (cap > 1 ? 's' : '')) + (L.nodes.queue ? '.' : '. The Research Queue upgrade raises it to ' + (P3.queue || 3) + '.'), 'Blueprints have their own table: see PLANS.'],
+    };
+    if (id === 'desk') {
+      const disc = Lb.bpDisc(c), plans = Object.keys(P3.blueprints || {}).filter((x) => L.blueprints[x] || (Pg.has('plan.' + x) && Pg.isOpen(c, 'plan.' + x)));
+      return {
+        what: 'A second table where blueprints are drawn, at the same time as the research.',
+        how: ['A blueprint appears here once you own the path step before it in UPGRADES. Tap ' + hb('DRAW') + '.'],
+        gives: plans.length ? plans.map((x) => hb(H.pretty(x)) + (L.blueprints[x] ? ' (drawn)' : '') + ': lets you buy ' + H.pretty(x) + ' in MINE upgrades. ' + (H.PATH_TXT[x] || '') + '.') : ['Each blueprint opens the last step of a path in UPGRADES.'],
+        needs: plans.length ? plans.map((x) => H.pretty(x) + ': ' + Object.keys(Lb.bpNeed(x) || {}).map((k) => hb(CM.fmt(Math.ceil(Lb.bpNeed(x)[k] * disc)) + ' ' + B.bases[k].name)).join(', ') + (disc < 1 ? ' (with Strata Logs)' : '')).concat(['Paid when drawing starts. It takes ' + hb(((P3.blueprints[plans[0]] || {}).timeMult || 4) + 'x') + ' the time of a Cheddar recipe.']) : ['Materials from the stones. Each blueprint shows its cost.'],
+      };
+    }
+    if (id === 'library') return {
+      what: 'Keeps the strains you find by cheese instead of by recipe.',
+      how: ['A strain found for any recipe of a cheese counts for all its recipes.', 'Choose one strain per cheese here: every recipe of that cheese uses it.'],
+      gives: ['No need to culture each recipe separately.'],
+      needs: ['Cultures still happen in STRAINS.'],
+    };
+    if (id === 'researcher') return {
+      what: 'A mouse on the Research post works in the lab, even while you are away.',
+      how: ['Assign one from the top of any lab panel (' + hb('ASSIGN') + ' or ' + hb('CHANGE') + ').', L.nodes.advanced ? 'He takes your orders first and then follows your DIRECTION.' : 'He takes your orders first and then researches the most valuable recipe he can, on his own.'],
+      gives: [w ? hb(esc(w.name)) + ' finishes a ' + B.bases[st].name + ' recipe in about ' + hb(t) + '.' : 'Faster research the better he is at the job.', 'He gains Research levels and develops traits like any mouse. Some make research cheaper, safer or luckier.'],
+      needs: ['One post. A mouse there does not work anywhere else.'],
+    };
+    if (id === 'upgrades') {
+      const lines = [], has = (k) => L.nodes[k];
+      for (const nd of B.trees.lab) if (has(nd.id) || (Pg.has('lab.' + nd.id) && Pg.isOpen(c, 'lab.' + nd.id))) lines.push(hb(nd.name) + (nd.max > 1 ? ' (' + (L.nodes[nd.id] || 0) + '/' + nd.max + ')' : has(nd.id) ? ' (owned)' : '') + ': ' + nd.desc + '.');
+      for (const [k, nm, d] of [['queue', 'Research Queue', (P3.queue || 3) + ' places in the queue'], ['desk', 'Drawing Desk', 'a table for blueprints'], ['library', 'Strain Library', 'strains shared by cheese']]) if (has(k) || (Pg.has('lab.' + k) && Pg.isOpen(c, 'lab.' + k))) lines.push(hb(nm) + (has(k) ? ' (owned)' : '') + ': ' + d + '.');
+      const nx = L.phase + 1, req = Pg.has('lab.phase' + nx) ? Pg.status(c, 'lab.phase' + nx).requires : [];
+      return {
+        what: 'The lab\'s own upgrades, in LAB UPGRADES. Each stage builds a new floor and makes room for new stations.',
+        how: ['Buy them in LAB UPGRADES or from a station marked BUILD. Upgrades that open something are explained when you buy them.'],
+        gives: lines.length ? lines : ['Nothing to buy yet.'],
+        needs: [nx <= 4 && req.length ? 'Stage ' + nx + ': ' + req.map((r) => (r.ok ? '✓ ' : '') + r.text).join(' · ') : 'The lab has all its stages.'],
+      };
+    }
+    return null;
+  }
+  const n0 = (x) => x || 0;
+  const helpList = (a) => (a.length > 1 ? '<ul>' + a.map((x) => '<li>' + x + '</li>').join('') + '</ul>' : '<p>' + a[0] + '</p>');
+  const helpSec = (lbl, a) => (a && a.length ? '<div class="lbh-sec"><small>' + lbl + '</small>' + (typeof a === 'string' ? '<p>' + a + '</p>' : helpList(a)) + '</div>' : '');
+  const helpTop = (id, sub) => '<div class="lbh-h"><img class="pix" src="' + MXSP + 'ic_flask.png" alt=""><b>' + HELP_NAME[id] + '</b><small>' + sub + '</small></div>';
+  function helpCard(id) {
+    if (id === 'guide') return helpGuide();
+    let h = '<div class="lbh">';
+    if (!helpOpen(id)) {
+      const need = helpNeeds(id);
+      h += helpTop(id, 'NOT YET') + helpSec('WHAT IT IS', HELP_ONE[id] + '.') + helpSec('TO OPEN IT', need.length ? need : ['Keep growing the lab: it is announced when it opens.']);
+    } else {
+      const b = helpBody(id);
+      h += helpTop(id, 'HOW IT WORKS') + helpSec('WHAT IT IS', b.what) + helpSec('HOW TO USE IT', b.how) + helpSec('WHAT YOU GET', b.gives) + helpSec('WHAT IT NEEDS', b.needs);
+    }
+    return h + '<div class="lbh-bts"><button class="mx-act" data-m="guide">LAB GUIDE</button><button class="mx-act lbh-ok" data-m="ok">GOT IT</button></div></div>';
+  }
+  function helpGuide() {
+    const L = G().lab, rows = HELP_ORDER.map((id) => { const on = helpOpen(id); return '<button class="mx-box lbh-row' + (on ? '' : ' lbh-off') + '" data-m="h:' + id + '"><span class="lbh-t"><b>' + HELP_NAME[id] + '</b><small>' + HELP_ONE[id] + '</small></span><em>' + (on ? '?' : 'LATER') + '</em></button>'; }).join('');
+    return '<div class="lbh">' + helpTop('guide', 'GUIDE') +
+      helpSec('WHAT IT IS FOR', 'The lab turns Cheese Base and coins into knowledge. Your line can only cook recipes you have discovered, and better recipes sell for more: research is how each cheese becomes worth more.') +
+      helpSec('HOW IT FITS', ['MINE, DRILL and REFINE make the Cheese Base the lab spends. CHEESE cooks the most profitable recipe you know. The stones you reach bring new cheeses to study.', 'It keeps working while you are away, like the rest of the colony.']) +
+      helpSec('HOW IT GROWS', 'Discovering recipes and reaching new stones open LAB UPGRADES and new stages. Each stage builds a floor with new stations. You are at stage ' + hb(L.phase) + '.') +
+      '<div class="lbh-sec"><small>SECTIONS</small><div class="lbh-rows">' + rows + '</div></div>' +
+      '<div class="lbh-bts"><button class="mx-act lbh-ok" data-m="ok">GOT IT</button></div></div>';
+  }
+  // Qué sección explica el «?» de la cabecera de cada hoja del LAB.
+  const helpFor = (name, ui) => (name === 'lab' ? (ui && ui.labView ? ui.labView : ui && ui.labTab === 'strains' && G().lab.nodes.strains ? 'strains' : 'guide') : '');
+  const helpQ = (id) => '<span role="button" class="lbh-q" data-act="help:' + id + '" aria-label="How it works">?</span>';
+
   // ---------- Ficha de un objeto: se abre desde cualquier coste, sin perder lo que se estaba haciendo ----------
   function itemCard(id) {
     const k = Inv.card(G(), id), uses = Inv.uses(G(), id, true);
@@ -1064,7 +1199,7 @@
   const pnRoot = (kind, extra) => '<div class="mx-pn-root" data-pn="' + kind + '" data-k="' + (extra || '') + '"></div>';
   const TITLES = { cheese: 'CHEESERY', lab: 'CHEESE LAB', stock: 'PANTRY', shopinfo: 'SHOP', coins: 'COINS', mice: 'MICE', boosts: 'BOOSTS', quests: 'QUESTS', options: 'MENU', tree: 'UPGRADES' };
   CM.panels = {
-    esc, mouseRate, itemCard,
+    esc, mouseRate, itemCard, helpCard, helpFor,
     // Las cifras de la tarjeta de CHEESE se ponen al día en su sitio, sin rehacer la tarjeta.
     cheeseLive() {
       const s = CM.viewState, o = chInfo(s), C = CM.cheesery, reserve = o.reserve ? ' · ' + o.reserve + ' set aside for the lab' : '';

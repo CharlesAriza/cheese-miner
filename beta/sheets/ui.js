@@ -124,6 +124,7 @@
     study(style) { act('labStudy', { style }); },
     blueprint(id) { act('labBlueprint', { id }); },
     item(id) { showModal(P.itemCard(id), { ok() {} }); },
+    help(id) { showHelp(id); },
     buy(id, ev, el) { const r = el ? el.getBoundingClientRect() : null; report(CM.skilltree.buy(id, ui, r)); },
     switch(id) { report(CM.skilltree.switch(id, ui)); },
     sky(v) { H.setSky(v); },
@@ -169,7 +170,7 @@
     let html;
     try { html = P.render(ui.panel, CM.viewState, ui); } catch (e) { console.error(e); if (!tick) toast('That panel could not be drawn'); return; }
     if (html !== lastHtml) {
-      lastHtml = html; calmAt = performance.now();
+      lastHtml = html; calmAt = performance.now(); helpButton();
       const b = $('sheet-body'); b.innerHTML = html; mountAll(b);
     } else if (ui.panel === 'tree') CM.skilltree.tick(ui);
     paintBars();
@@ -205,6 +206,7 @@
     $('sheet').dataset.panel = name;
     const t = $('sheet-title'); t.textContent = P.title(name, ui);
     if (TITLE_IC[name]) t.insertAdjacentHTML('afterbegin', TITLE_IC[name]());
+    helpButton();
     $('sheet').hidden = false;
     top();
     repaint();
@@ -242,8 +244,12 @@
   // ---- Ventanas ----
   let handlers = {};
   function showModal(html, h) { handlers = h || {}; $('modal-body').innerHTML = html; $('modal').hidden = false; for (const m of [CM.pmenu && $('modal-body').querySelector('.mx-mn-layer') && CM.pmenu.mountWin, CM.pwb && $('modal-body').querySelector('.wb-win') && CM.pwb.mount]) { try { if (m) m($('modal-body')); } catch (e) { console.error(e); } } }
+  // La ayuda del LAB: una ventana, la de la ficha de un objeto. La guía es su índice; elegir una sección cambia el contenido, sin abrir otra encima.
+  function showHelp(id) { const h = { ok() {}, guide() { showHelp('guide'); return false; } }; for (const x of ['recipes', 'directions', 'studies', 'strains', 'queue', 'desk', 'library', 'researcher', 'upgrades']) h['h:' + x] = () => { showHelp(x); return false; }; showModal(P.helpCard(id), h); $('modal-body').scrollTop = 0; }
+  function helpButton() { const b = $('sheet-help'); if (!b) return; const id = P.helpFor(ui.panel, ui); b.hidden = !id; if (id) b.dataset.act = 'help:' + id; }
   function closeModal() { $('modal').hidden = true; $('modal-body').innerHTML = ''; handlers = {}; if ($('sheet').hidden) H.layerClosed(); }
   $('modal').addEventListener('click', (e) => {
+    if (e.target === $('modal') && $('modal-body').querySelector('.lbh')) { closeModal(); return; } // la ayuda se cierra también tocando fuera
     const b = e.target.closest('[data-m]'); if (!b) return;
     const f = handlers[b.dataset.m], res = f ? f() : undefined;
     if (res === false) return;
