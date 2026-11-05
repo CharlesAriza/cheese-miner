@@ -864,7 +864,7 @@
       if (mainShown) { const now = performance.now(); lastDraw = now; scene.draw(now); placePlates(); placeSigns(); } // ya dibujada detrás del velo: al retirarse, nada salta
       mainShown = true;
     },
-    leave() { gesture.reset('scene'); dragger.cancel(performance.now()); closeRes(); }, // lo que tuviera en la mano vuelve a su sitio
+    leave() { gesture.reset('scene'); dragger.cancel(performance.now()); closeRes(); scene.bubbles().clear(); }, // lo que tuviera en la mano vuelve a su sitio; ningún globo sobrevive a la salida
   });
   const probeApi = { host: sceneHost, dev: () => SCENE_DEV, colony: () => G, Core, fmt };
   scenes.register('house', window.BetaProbe('house', probeApi)).register('lab', window.BetaProbe('lab', probeApi));

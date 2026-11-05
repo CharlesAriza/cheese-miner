@@ -2007,7 +2007,7 @@ function adPhone(parent, { s = 0.8, dock = 'colony', cap = '', res = true, w = 3
 // Al hablar, el ratón reacciona (salto pequeño y su cara, poses aprobadas). Uno a la vez; tiempo de lectura según el texto.
 // Aviso: placa oscura con borde ámbar y el icono del recurso que falta, colgada de la máquina, en mayúsculas. Sin punta.
 const TAILSVG = (dir) => { const R = dir === 'down' ? [[0, 5], [1, 4], [2, 3], [3, 2], [4, 1]] : [[0, 5], [1, 4], [2, 3], [3, 2], [4, 1]]; let s = ''; R.forEach(([y, w], i) => { for (let x = i; x < i + w; x++) s += `<rect x="${x * 2}" y="${y === 0 ? 0 : i * 2}" width="2" height="2" fill="${x === i || x === i + w - 1 ? '#1b1220' : '#fffdf2'}"/>`; }); return `<svg class="ad-tail" width="10" height="10" viewBox="0 0 10 10" shape-rendering="crispEdges">${s}<rect x="0" y="0" width="10" height="2" fill="#fffdf2"/><rect x="0" y="0" width="2" height="2" fill="#1b1220"/><rect x="8" y="0" width="2" height="2" fill="#1b1220"/></svg>`; };
-const readMs = (t) => Math.max(2200, Math.min(4500, 1600 + t.length * 60));
+const readMs = (t) => Math.max(2400, Math.min(6500, 1800 + t.length * 75));
 function bubble(P, head, text, { tone = 'say', avoid = [] } = {}) {
   const b = document.createElement('div'); b.className = 'ad-bub'; b.innerHTML = `<span>${text}</span>${TAILSVG('down')}`; P.ov.appendChild(b);
   const w = b.offsetWidth, h = b.offsetHeight, [hx, hy] = P.toPh(head[0], head[1]), top0 = 48, m = 6;
@@ -5781,7 +5781,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     if (canTalk && r < 0.7 && (lines || r < 0.35)) {
       const pool = lines || GENERIC, [la, lb] = pool[Math.floor(r * 97) % pool.length], ms = readMs(la), ms2 = readMs(lb);
       b.q = [T.face(fb), T.act('listen', ms + 380), T.act('talk', ms2), ...end(b)];
-      return [T.face(fa), T.do(() => { speak(n, la); speak(b, lb); }), T.act('talk', ms), T.act('listen', ms2 + 380), ...end(n)];
+      return [T.face(fa), T.do(() => { speak(n, la, 0); speak(b, lb, 0); }), T.act('talk', ms), T.act('listen', ms2 + 380), ...end(n)];
     }
     if (XTRA && r >= 0.7 && r < 0.8) {
       // FACTORY+: le ofrece una miga de queso; el otro la coge de su pata, se la come y se alegran los dos.
@@ -5894,64 +5894,22 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
   // Un globo cada vez (los aprobados: .ad-bub con su punta). Se mide una vez con su ancho final; su lado (encima o al costado)
   // se decide al nacer y no cambia; después solo sigue a la cabeza, suavizado, dentro de la escena y por debajo del marcador.
   const bubHost = document.createElement('div'); bubHost.className = 'lb-host'; host.appendChild(bubHost);
-  const BUBS = { cur: null, q: [], gapUntil: 0 };
-  const TALK_GAP = 45000;
-  function speak(n, text, always) { if (!n) return; const t = performance.now(); if (!always) { if (t >= (BUBS.okAt || 0)) { BUBS.okAt = t + TALK_GAP; BUBS.pairTo = t + 60; } else if (t > (BUBS.pairTo || 0)) return; } if (BUBS.q.length >= 3) BUBS.q.shift(); BUBS.q.push({ n, text }); }
   const hudBottom = () => { const e = document.querySelector('.hud'), hb = host.getBoundingClientRect(); return e ? e.getBoundingClientRect().bottom - hb.top + 4 : 8; };
-  function bubbleTick(now) {
-    const B = BUBS;
-    if (B.cur && (now > B.cur.until || !visible(B.cur.n) || (boostBusy() && overBoost(B.cur)))) { const el = B.cur.el; el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, easing: 'steps(2)', fill: 'forwards' }).onfinish = () => el.remove(); B.cur = null; B.gapUntil = now + 380; }
-    if (!B.cur && B.q.length && now > B.gapUntil && !boostBusy()) {
-      const sp = B.q.shift();
-      if (sp.n.px != null && visible(sp.n)) {
-        const el = document.createElement('div'); el.className = 'ad-bub p1-bub'; el.innerHTML = `<span>${sp.text}</span>${TAILSVG('down')}`; bubHost.appendChild(el);
-        el.animate([{ transform: 'scale(.6)', opacity: 0 }, { transform: 'scale(1.08)', opacity: 1, offset: 0.6 }, { transform: 'none', opacity: 1 }], { duration: 150, easing: 'steps(3)' });
-        B.cur = { ...sp, el, w: el.offsetWidth, h: el.offsetHeight, until: now + readMs(sp.text), x: null, y: null, side: 0 };
-      }
-    }
-    const c = B.cur; if (!c) return;
-    const hx = (c.n.px + 11 - cam.x) * s, hy = (c.n.py - 19 - cam.y) * s, top = hudBottom();
-    if (c.x === null) c.side = hy - c.h - 10 < top ? (hx + 16 + c.w < Wc - 6 ? 1 : -1) : 0;
-    let tx, ty;
-    if (!c.side) { tx = Math.max(6, Math.min(Wc - c.w - 6, hx - c.w / 2)); ty = hy - c.h - 10; }
-    // Los carteles de estación no tapan el globo ni el globo a ellos: si chocaría con uno, se aparta a su lado (la punta
-    // sigue llegando a la cabeza); si no, al nacer pasa al costado del ratón; y si tampoco cabe, sube por encima del cartel.
-    if (!c.side) {
-      const hb = host.getBoundingClientRect();
-      for (const pl of obstacles()) {
-        const r = pl.getBoundingClientRect(), l = r.left - hb.left - 4, t = r.top - hb.top - 4, rr = r.right - hb.left + 4, b = r.bottom - hb.top + 4;
-        if (tx >= rr || tx + c.w <= l || ty >= b || ty + c.h + 10 <= t) continue;
-        const toR = rr + 2, toL = l - c.w - 2;
-        if (toR + c.w <= Wc - 6 && hx >= toR + 4 && hx <= toR + c.w - 14) tx = Math.max(toR, Math.min(tx, hx - 6));
-        else if (toL >= 6 && hx >= toL + 4 && hx <= toL + c.w - 14) tx = toL;
-        else if (c.x === null && hx + 16 + c.w <= Wc - 6) { c.side = 1; break; } // al costado del ratón, como cerca del marcador
-        else if (c.x === null && hx - 16 - c.w >= 6) { c.side = -1; break; }
-        else ty = Math.min(ty, t - c.h - 10);
-      }
-      ty = Math.max(top, ty); // nunca debajo del marcador; si no hay sitio, el globo queda por encima del cartel
-    }
-    if (c.side) {
-      tx = c.side > 0 ? hx + 16 : hx - c.w - 16; ty = Math.max(top, hy - c.h / 2);
-      // De lado, baja lo justo para dejar ver el cartel, mientras la punta siga llegando a la cabeza.
-      const hb = host.getBoundingClientRect();
-      for (const pl of obstacles()) {
-        const r = pl.getBoundingClientRect(), b = r.bottom - hb.top + 3;
-        if (tx >= r.right - hb.left || tx + c.w <= r.left - hb.left || ty >= b || ty + c.h <= r.top - hb.top) continue;
-        if (hy - b >= -2) ty = b; // la punta, como mucho dos píxeles por encima de la cabeza
-      }
-    }
-    else { tx = c.side > 0 ? hx + 16 : hx - c.w - 16; ty = Math.max(top, hy - c.h / 2); }
-    if (c.x === null || Math.abs(tx - c.x) > 60 || Math.abs(ty - c.y) > 60) { c.x = tx; c.y = ty; } else { c.x += (tx - c.x) * 0.35; c.y += (ty - c.y) * 0.35; }
-    const el = c.el, tail = el.querySelector('.ad-tail'); el.style.left = Math.round(c.x) + 'px'; el.style.top = Math.round(c.y) + 'px';
-    el.classList.toggle('side-r', c.side < 0); el.classList.toggle('side-l', c.side > 0);
-    if (!c.side) { tail.style.top = ''; tail.style.left = Math.max(4, Math.min(c.w - 14, Math.round(hx - c.x - 5))) + 'px'; } else { tail.style.left = ''; tail.style.top = Math.max(4, Math.min(c.h - 14, Math.round(hy - c.y - 4))) + 'px'; }
-  }
+  const BUBS = window.BetaBubbles({
+    host: bubHost, readMs, tail: TAILSVG('down'),
+    // Se habla por ratón, no por sitio: si lo cogen o cambia de puesto, su globo no se queda colgado donde estaba.
+    head: (w) => { const q = nodes.find((x) => x.crew && x.m && x.m.id === w.id); if (!q || q.px == null) return null; return { x: (q.px + 11 - cam.x) * s, y: (q.py - 19 - cam.y) * s, visible: visible(q) }; },
+    bounds: () => ({ left: 6, right: Wc - 6, top: hudBottom(), bottom: Hc - insetB - 4 }),
+    obstacles: () => obstacles(), canStart: () => !boostBusy(), hush: (c) => boostBusy() && overBoost(c),
+  });
+  function speak(n, text, pri) { if (!n || !n.m) return false; return BUBS.say({ id: n.m.id }, text, pri === true ? 2 : pri == null ? 1 : pri); }
+  function bubbleTick(now) { BUBS.tick(now); }
   // ¿Tapa el globo la máquina que se está activando? (rectángulo del taladro y su módulo, en pantalla)
   function overBoost(c) { if (c.x == null) return false; const x0 = (DCX - 18 - cam.x) * s, x1 = (DCX + 18 - cam.x) * s, y0 = (LV.drill.F - 50 - cam.y) * s, y1 = (LV.drill.F + 4 - cam.y) * s; return !(c.x > x1 || c.x + c.w < x0 || c.y > y1 || c.y + c.h < y0); }
   // Lo que un globo no tapa: los carteles de estación, el objetivo y el botón de volver a la mina (si están a la vista).
-  function obstacles() { return [...document.querySelectorAll('#plates > *, #goal, #home-btn')].filter((el) => el.style.visibility !== 'hidden' && !el.hidden && (el.id !== 'home-btn' || el.classList.contains('in'))); }
+  function obstacles() { return [...document.querySelectorAll('#plates > *, #goal, #home-btn, .focus-tag.in')].filter((el) => el.style.visibility !== 'hidden' && !el.hidden && (el.id !== 'home-btn' || el.classList.contains('in'))); }
   function say2(a, la, b, lb) { if (!a || !b) return; speak(a, la); speak(b, lb); }
-  const visible = (n) => !!n && n.px != null && n.py - 20 >= cam.y + 18 && n.py <= cam.y + Hc / s && n.px >= cam.x - 4 && n.px <= cam.x + Wc / s;
+  const visible = (n) => !!n && n.px != null && n.py - 20 >= cam.y + 18 && n.py <= cam.y + (Hc - insetB) / s && n.px >= cam.x - 4 && n.px <= cam.x + Wc / s;
   function onEvent(type) {
     const now = performance.now();
     if (type === 'reveal') { vis.reveal = { t0: now, burst: false }; vis.drillCycle++; for (const n of nodes) if (n.st === 'mine' || n.st === 'drill') react(n, 'vein', ((n.hx >> 3) % 4) * 90); say2(N('mine', 'picker'), 'Vein! Look at that!', N('drill', 'operator'), 'Bar going down!'); }
@@ -6355,6 +6313,7 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     locate(id) { focusMouse(id); return nodes.find((q) => q.m && q.m.id === id); },
     get scale() { return s; },
     bubbles: () => BUBS,
+    bubbleLines: () => [...Object.values(CHAT).flat(2), ...GENERIC.flat(), 'Vein! Look at that!', 'Bar going down!', 'Empty. Dig deeper!', 'New stone down here!', 'Full power!', 'Hear it hum!'],
     portrait(m, st) { return mouseCanvas(crewOf(m, SKILL[st] || st || 'mining'), 0, false, {}).toDataURL(); },
   };
 };
