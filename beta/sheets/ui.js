@@ -43,7 +43,7 @@
   const ACTS = {
     close, noop() {},
     treetab(t) { ui.tree = t; },
-    open(name) { openPanel(name); },
+    open(name) { ui.labView = null; openPanel(name); },
     questgo() { H.questGo(); },
     questall() { ui.questAll = !ui.questAll; },
     tree(t) { ui.tree = t; openPanel('tree'); },
@@ -339,7 +339,11 @@
       else if (kind === 'post') { openPanel('mice'); ui.pick = arg; lastHtml = ''; repaint(); }
       else if (kind === 'recruit') { openPanel('mice'); ui.miceTab = G().cands.length ? 'recruit' : ''; lastHtml = ''; repaint(); }
       else if (kind === 'book') { openPanel('cheese'); ui.cheeseView = 'book'; lastHtml = ''; repaint(); }
-      else openPanel(kind);
+      else if (kind === 'treenode') { ui.tree = 'lab'; CM.skilltree.want(arg); openPanel('tree'); }
+      else if (kind === 'labview') { ui.labView = arg; openPanel('lab'); }
+      else if (kind === 'labstrains') { ui.labView = null; ui.labTab = 'strains'; openPanel('lab'); }
+      else if (kind === 'labrecipes') { ui.labView = null; ui.labTab = 'recipes'; openPanel('lab'); }
+      else { ui.labView = null; openPanel(kind); }
       opening = false; enter(); lastView = viewKey();
       return !$('sheet').hidden;
     },

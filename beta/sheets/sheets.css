@@ -183,3 +183,7 @@ body.p2 #sheet-body .mx-qs-done { box-shadow: none; background: transparent; }
 body.p2 #sheet-body .mx-qs-tick { flex: none; font-style: normal; font-weight: 800; color: #62d36e; }
 body.p2 #sheet-body .mx-qs-got { flex: none; text-align: right; font-size: 12px; line-height: 14px; font-weight: 800; color: var(--soft); }
 body.p2 #sheet-body .mx-qs-got small { display: block; font-size: 10px; line-height: 12px; font-weight: 700; color: var(--muted); }
+/* LIBRARY del LAB: una ficha por queso, con las piezas de siempre. */
+.mx-lb-lib { display: flex; flex-direction: column; gap: 6px; padding: 8px; margin-bottom: 8px; }
+.mx-lb-lh { display: flex; align-items: center; gap: 8px; }
+.mx-lb-lh small { margin-left: auto; opacity: .8; }

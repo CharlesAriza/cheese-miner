@@ -880,7 +880,7 @@
   }
   // Estudiar un queso nuevo y dibujar planos: lo que gasta materiales, con su coste a la vista y la ficha del material a un toque.
   function matCost(need) { return Object.keys(need || {}).map((k) => { const n = Math.ceil(need[k]), have = Math.floor(Inv.count(G().s, k)); return '<span role="button" class="mx-lb-mat' + (have >= n ? '' : ' mx-short') + '" data-act="item:' + k + '"><img class="pix" src="' + MXSP + 'ic_raw_' + k + '.png" alt="" style="width:14px;height:12px">' + CM.fmt(have) + '/' + CM.fmt(n) + '</span>'; }).join(''); }
-  function mxStudies(s) {
+  function mxStudyRows(s) {
     const L = G().lab, P = H.PARAMS; let h = '';
     for (const st of P.strata) {
       const id = 'study.' + st.id;
@@ -888,6 +888,10 @@
       const busy = (L.job && L.job.style === st.id) || L.queue.some((q) => q.style === st.id), need = Lb.studyNeed(st.id), ok = Lb.afford(G(), { kind: 'study', style: st.id });
       h += '<div class="mx-box mx-lb-row mx-lb-study' + (ok && !busy ? ' mx-ready' : '') + '" data-m="book"><span class="mx-ic"><img class="pix" src="' + MXSP + 'ic_lot_' + st.id + '.png" alt="" style="width:22px;height:19px"></span><span class="mx-t"><small>NEW CHEESE</small><b>STUDY ' + B.bases[st.id].name.toUpperCase() + '</b><span class="mx-d">' + (busy ? 'In the lab now' : matCost(need)) + '</span></span><em' + (busy || !ok ? ' class="mx-off"' : ' data-act="study:' + st.id + '"') + ' role="button">' + (busy ? 'BUSY' : 'STUDY') + '</em></div>';
     }
+    return h;
+  }
+  function mxPlanRows(s) {
+    const L = G().lab; let h = '';
     for (const bp of Object.keys(H.PARAMS.s3.lab.blueprints || {})) {
       const id = 'plan.' + bp;
       if (!Pg.has(id) || !Pg.isOpen(G(), id) || L.blueprints[bp]) continue;
@@ -896,6 +900,46 @@
     }
     return h;
   }
+  const mxStudies = (s) => mxStudyRows(s) + mxPlanRows(s);
+  // Secciones que abre cada mueble de la escena LAB: lo mismo de siempre, separado por sitios. Sin acciones nuevas.
+  const LAB_ALL = () => lbRow('up', '<b>ALL OF THE LAB</b>', 'Direction, upgrades and the Recipe Book', 'open:lab', 'OPEN');
+  function queueCost(q) {
+    if (q.kind === 'study') return matCost(Lb.studyNeed(q.style)) || 'Takes time, no materials';
+    const coin = q.kind === 'recipe' ? Mo.formula(q.key).coin : 0;
+    return CM.fmt(Lb.labCost(G())) + ' Cheese Base' + (coin ? ' · ' + CM.fmt(coin) + ' coins' : '');
+  }
+  function mxLabQueue() {
+    const L = G().lab, cap = Lb.queueCap(G()); let h = '';
+    for (let i = 0; i < cap; i++) {
+      const q = L.queue[i], lastOne = i === L.queue.length - 1;
+      h += q ? lbRow('book', '<small>' + (i ? 'THEN' : 'NEXT') + '</small><b>' + esc(jobName(q)) + '</b>', queueCost(q), lastOne ? 'labcancel' : '', lastOne ? 'CANCEL' : '') : lbRow('book', '<small>FREE PLACE</small><b>Nothing here yet</b>', 'Add a recipe, a strain or a new cheese', 'open:lab', 'ADD');
+    }
+    return h + LAB_ALL();
+  }
+  function mxLabDesk(s) {
+    const L = G().lab, j = L.bpJob, done = Object.keys(L.blueprints || {}); let h = '';
+    if (j) h += '<div class="mx-box mx-lb-row" data-m="book"><span class="mx-ic">' + lbIc('book', 2) + '</span><span class="mx-t"><small>ON THE TABLE</small><b>' + esc(H.pretty(j.id)) + '</b><i class="mx-lb-bar"><i style="width:' + Math.round((1 - j.remaining / j.total) * 100) + '%"></i></i></span></div>';
+    const rows = mxPlanRows(s);
+    h += rows || (j ? '' : '<p class="mx-lb-hint">No blueprint to draw now. New ones come with the paths in UPGRADES.</p>');
+    if (done.length) h += '<p class="mx-lb-hint">Drawn: ' + done.map((id) => esc(H.pretty(id))).join(', ') + '</p>';
+    return h + LAB_ALL();
+  }
+  function mxLabLibrary() {
+    const c = G(), L = c.lab, all = Object.keys(B.strains); let h = '<p class="mx-lb-hint">A strain counts for every recipe of its cheese.</p>';
+    for (const st of H.PARAMS.strata) {
+      const key = L.known.find((k) => k.startsWith(st.id + '+')); if (!L.styles[st.id] || !key) continue;
+      const found = Lb.strainsFor(c, key), cur = c.s.strains.style[st.id] || c.s.strains.of[key] || '';
+      const chip = (id) => '<span role="button" class="mx-lb-chip' + (cur === id ? ' mx-on' : '') + '"' + (cur === id ? '' : ' data-act="strain:' + key + ':' + (id || 'plain') + '"') + '><span class="mx-r">' + (id ? lbIc('s:' + id, 2) : '') + STRAIN_NAME(id) + '</span><small>' + (cur === id ? 'IN USE' : 'USE') + '</small></span>';
+      h += '<div class="mx-box mx-lb-lib"><div class="mx-lb-lh"><img class="pix" src="' + MXSP + 'ic_lot_' + st.id + '.png" alt="" style="width:22px;height:19px"><b>' + B.bases[st.id].name.toUpperCase() + '</b><small>' + found.length + '/' + all.length + ' strains</small></div>' + (found.length ? '<div class="mx-lb-chips">' + chip('') + found.map(chip).join('') + '</div>' : '<p class="mx-lb-hint">None found yet: culture one in STRAINS.</p>') + '</div>';
+    }
+    return h + LAB_ALL();
+  }
+  function mxLabStudies(s) {
+    const rows = mxStudyRows(s), cheeses = Object.keys(G().lab.styles).map((id) => B.bases[id].name).join(', ');
+    return (rows || '<p class="mx-lb-hint">No new cheese to study now. Each new stratum brings a richer one.</p>') + '<p class="mx-lb-hint">Studied: ' + esc(cheeses) + '</p>' + LAB_ALL();
+  }
+  const LAB_VIEW = { queue: mxLabQueue, desk: mxLabDesk, library: mxLabLibrary, studies: mxLabStudies };
+  const LAB_VIEW_TITLE = { queue: 'RESEARCH QUEUE', desk: 'BLUEPRINTS', library: 'STRAIN LIBRARY', studies: 'STUDIES' };
   function mxLab(s, ui) {
     const L = G().lab, C = CM.cheesery, w = labW();
     if (!L.built) {
@@ -905,6 +949,7 @@
         : '<b>CHEESE LAB</b><small>' + q.map((r) => r.text).join(' · ') + '</small>') + '</div></div>';
     }
     let h = lbHead(s);
+    if (ui.labView && LAB_VIEW[ui.labView]) return h + LAB_VIEW[ui.labView](s);
     const m = lbMode(s);
     if (L.nodes.strains) {
       const tab = ui.labTab === 'strains' ? 'strains' : 'recipes', fresh = !!ui.found || (!s.recipes.some((r) => r.strains.length) && !(L.job && L.job.kind === 'strain'));
@@ -1014,7 +1059,7 @@
       const s = CM.viewState, o = chInfo(s), C = CM.cheesery, reserve = o.reserve ? ' · ' + o.reserve + ' set aside for the lab' : '';
       return { held: !!o.held, have: CM.fmt(o.have), text: o.text, need: chNeedN(o), needtx: o.st === 'base' ? CM.fmt(Math.min(o.have, o.need)) + '/' + CM.fmt(o.need) + ' for the next batch' + reserve : o.text, pct: o.need ? Math.round(Math.min(1, o.have / o.need) * 100) : 0 };
     },
-    title: (name) => TITLES[name],
+    title: (name, ui) => (name === 'lab' && ui && ui.labView ? LAB_VIEW_TITLE[ui.labView] : TITLES[name]),
     render(name, s, ui) {
       GM = s.master && G().ms.master ? s.master : '';
       if (name === 'mice') return micePanel(s, ui);

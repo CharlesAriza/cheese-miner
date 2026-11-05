@@ -92,7 +92,10 @@
     const r = SCENE_ROLE[role] || role, p = G.s.placed.find((q) => q.st === stCore && q.role === r);
     return p && !(dragger && dragger.isHidden(p.m)) ? p.m : null;
   }
-  const scene = CM.createColonyScene($('cv'), $('scene-box'), sim, { hit: () => {}, crewAt, boostLabel: (st, n, x, y) => boostLabel(st, n, x, y) });
+  // Presencia del investigador: mientras investiga está dentro del LAB y solo ahí se le ve; sin trabajo sale a su puerta, con su toque de siempre. Con un margen, para que no salga y entre entre dos trabajos.
+  let labBusyAt = -1e9;
+  const labInside = () => { if (G.lab.job) { labBusyAt = performance.now(); return true; } return performance.now() - labBusyAt < 2500; };
+  const scene = CM.createColonyScene($('cv'), $('scene-box'), sim, { hit: () => {}, crewAt, boostLabel: (st, n, x, y) => boostLabel(st, n, x, y), labBusy: () => !!(G.lab.job || G.lab.bpJob), labInside });
   let crewSig = '', selected = 'mine', tierShown = null;
   const crewSigOf = () => G.s.placed.map((p) => p.st + p.role + p.m.id).sort().join() + '|' + G.lab.workers.join() + '|' + WORK.map((st) => G.phase[st]).join('') + '|' + (dragger ? dragger.sig : '');
   function syncCrew(force) {
@@ -164,7 +167,7 @@
   function tapBuilding(hid) {
     const id = BUILDING_OF[hid], r = scene.buildingRect(hid);
     if (r) { const sb = $('scene-box').getBoundingClientRect(), cr = $('cv').getBoundingClientRect(), [x0, y0] = scene.toScreen(r[0], r[1]), [x1, y1] = scene.toScreen(r[0] + r[2], r[1] + r[3]), el = document.createElement('i'); el.className = 'bd-press'; el.style.cssText = 'left:' + Math.round(cr.left - sb.left + x0) + 'px;top:' + Math.round(cr.top - sb.top + y0) + 'px;width:' + Math.round(x1 - x0) + 'px;height:' + Math.round(y1 - y0) + 'px'; $('scene-box').appendChild(el); setTimeout(() => el.remove(), 260); }
-    const sp = scenes.get(id); if (sp && sp.content && isBuilt(id)) return scenes.go(id); // cuando HOUSE o LAB tengan su escena, se entra en ella; hasta entonces, su panel
+    const sp = scenes.get(id); if (sp && sp.content && isBuilt(id) && scenes.can(id)) return scenes.go(id); // con su escena lista se entra en ella; si no, su panel
     if (id === 'sell') return isBuilt('sell') ? openPz('shopinfo') : focusSt('sell'); // sin construir, su estación dice cómo se construye
     if (id === 'lab') return openPz('lab');
     return openPz('mice', G.built.house ? 'house' : undefined);
@@ -216,7 +219,9 @@
   const BNAME = { drill: 'Cheese Drill', refine: 'Refinery', cheese: 'Cheesery', sell: 'Cheese Shop' };
   const hasBoss = (st) => G.s.placed.some((p) => p.st === st && p.fn === 'pr');
   const buildReq = (st) => Pg.status(G, 'build.' + st).requires[0];
+  let labPanel = null; // con LAB a la vista, el panel de abajo es suyo
   function paintPanel(force) {
+    if (labPanel) return;
     const st = selected, s = G.s, t = tierNow(), T = t.charAt(0).toUpperCase() + t.slice(1), v = s.vein, job = s.job[st], boss = hasBoss(st);
     let status = '', flow = '', tone = '', act = VERB[st], acts = boss ? 'Tap · faster' : 'Tap to work', dig = false, off = false, bar = job ? 1 - Math.max(0, job.end - s.t) / job.total : 0;
     if (st === 'mine') {
@@ -251,6 +256,7 @@
   const act = $('pn-act');
   act.addEventListener('pointerdown', () => {
     pulse(act, 'hit', 180);
+    if (labPanel) return labPanel.panelAct();
     if (scene.focusedStation !== selected) focusSt(selected);
     if (selected === 'mine') return tapMine();
     const ss = scene.stationState(selected);
@@ -269,7 +275,7 @@
     for (const [k, b] of Object.entries(plates)) { const ss = k === 'mine' ? 'on' : scene.stationState(k), bo = ss === 'on' ? G.boosts.place[k] || 0 : 0; b.classList.toggle('rush', !!sim.boost[k]); b.classList.toggle('build', ss === 'build'); b.classList.toggle('locked', ss === 'locked'); if (b.dataset.bo !== String(bo)) b.dataset.bo = bo; }
   }
   const ST_SHEET = { cheese: () => openPz('cheese'), sell: () => openPz('shopinfo') };
-  $('pn-st').addEventListener('click', () => { const sp = ST_SHEET[selected]; if (sp) sp(); });
+  $('pn-st').addEventListener('click', () => { if (labPanel) return labPanel.panelStation(); const sp = ST_SHEET[selected]; if (sp) sp(); });
 
   // ---- Equipo de la estación: los puestos de verdad; un puesto vacío se ve vacío ----
   const pop = $('crew-pop');
@@ -309,7 +315,7 @@
     scene.setInsetBottom(open ? pop.offsetHeight : 0);
     homePos();
   }
-  $('pn-crew').addEventListener('click', () => { popBySel = false; openCrew(!isOpen(pop)); });
+  $('pn-crew').addEventListener('click', () => { if (labPanel) return labPanel.panelCrew(); popBySel = false; openCrew(!isOpen(pop)); });
   pop.addEventListener('pointerdown', () => { popHold = Infinity; }, true);
   for (const t of ['pointerup', 'pointercancel']) window.addEventListener(t, () => { if (popHold === Infinity) popHold = performance.now() + 250; }, true);
   pop.addEventListener('click', (e) => {
@@ -453,7 +459,7 @@
   document.querySelectorAll('[data-nav]').forEach((b) => b.addEventListener('click', () => {
     const k = b.dataset.nav;
     if (k === 'mice') return openPz('mice');
-    if (k === 'upgrades') { freshUp = false; return openPz('tree', selected); }
+    if (k === 'upgrades') { freshUp = false; return openPz('tree', scenes.current === 'lab' ? 'lab' : selected); }
     if (k === 'boosts') return openPz('boosts');
     if (k === 'menu') return openPz('options');
   }));
@@ -658,7 +664,7 @@
     if (gShown.id === 'house' || gShown.id === 'lab') return goBuild(gShown.id);
     if (at === 'upgrades') { freshUp = false; return openPz('tree', selected); }
     if (at === 'mice') return openPz('mice');
-    if (/^recipe/.test(gShown.id) || at === 'lab') return openPz('lab');
+    if (/^recipe/.test(gShown.id) || at === 'lab') { if (G.lab.built && scenes.can('lab')) scenes.go('lab'); return openPz('lab'); } // detrás de la hoja, el laboratorio
     closePz(); toMain(() => { focusSt(at); if (plates[at]) pulse(plates[at], 'bump', 320); });
   }
   // Avisos en cola: cada uno se lee; si llegan muchos a la vez, se quedan los primeros.
@@ -741,7 +747,7 @@
     const st = Object.keys(L.styles).length; if (st > labSeen.styles) { labSeen.styles = st; toast('New cheese to research!'); }
     for (const k of Object.keys(L.strainsOf || {})) { const n = L.strainsOf[k].length; if (n > (labSeen.strains[k] || 0)) { labSeen.strains[k] = n; if (PZ.ready) try { pzWin().SHEETS.strainFound(k, L.strainsOf[k][n - 1]); } catch (e) { console.warn(e); } toast('New strain found: compare it in LAB'); } }
   }
-  let scenes = null;
+  let scenes = null, labScene = null;
   const toMain = (fn) => (scenes.current === 'main' ? fn() : scenes.go('main', fn));
   let revAt = 0, lastDraw = 0, boostAfter = 0, boostCalm = 0, lastFrameAt = 0;
   const boostSettled = (now) => { if (!boostAfter) return true; boostCalm = now - lastFrameAt < 40 ? boostCalm + 1 : 0; if (boostCalm >= 3 || performance.now() - boostAfter > 500) { boostAfter = 0; boostCalm = 0; return true; } return false; };
@@ -819,7 +825,7 @@
       $('hud-depthbox').classList.toggle('vein', s.vein.open);
     }
     if (now - slow > 400) {
-      slow = now; if (scenes.current === 'main') goalPlace(now); perfPaint(); for (const k of Object.keys(madeLog)) rate(k);
+      slow = now; if (scenes.current === 'main') goalPlace(now); perfPaint(); if (now > 2500 && (G.lab.built || sim.ready.lab)) labScene.preload(); for (const k of Object.keys(madeLog)) rate(k);
       if (isOpen(pop)) paintCrew(false); if (isOpen(res)) paintRes();
       $('nav-upgrades').classList.toggle('fresh', freshUp || (gShown && gShown.id === 'node' && Core.options(G).some((o) => s.coins >= o.cost)));
       $('nav-boosts').classList.toggle('fresh', G.boosts.earned - Ru.placedBoosts(G) > 0);
@@ -845,8 +851,8 @@
   if (paused) startCover();
 
   // ---- Espacios: HOUSE ← MAIN → LAB (scenes.js). Una colonia y un avance, el de tick(); cada escena solo la dibuja ----
-  // MAIN conserva cámara, selección y FOLLOW en la propia escena: no se rehace nunca, solo deja de dibujarse. HOUSE y LAB aún no tienen contenido:
-  // sus edificios siguen abriendo sus paneles y solo se entra en ellas con ?scenes, para comprobar la arquitectura.
+  // MAIN conserva cámara, selección y FOLLOW en la propia escena: no se rehace nunca, solo deja de dibujarse. LAB tiene su escena (lab-scene.js), a la que se entra tocando su edificio.
+  // HOUSE aún no tiene contenido: su edificio sigue abriendo su panel y solo se entra con ?scenes, para comprobar la arquitectura.
   const SCENE_DEV = /[?&]scenes\b/.test(location.search);
   const sceneHost = document.createElement('div'); sceneHost.className = 'scene-host'; sceneHost.hidden = true; $('scene-box').appendChild(sceneHost);
   const veil = document.createElement('div'); veil.className = 'scene-veil'; veil.hidden = true; $('scene-box').appendChild(veil);
@@ -867,7 +873,13 @@
     leave() { gesture.reset('scene'); dragger.cancel(performance.now()); closeRes(); scene.bubbles().clear(); }, // lo que tuviera en la mano vuelve a su sitio; ningún globo sobrevive a la salida
   });
   const probeApi = { host: sceneHost, dev: () => SCENE_DEV, colony: () => G, Core, fmt };
-  scenes.register('house', window.BetaProbe('house', probeApi)).register('lab', window.BetaProbe('lab', probeApi));
+  scenes.register('house', window.BetaProbe('house', probeApi));
+  labScene = window.BetaLabScene({
+    host: sceneHost, G: () => G, Core, Pg, Lb, REAL, fmt, recipeName, scene, open: openPz, covered: () => pzOpen() || isOpen($('sheet')) || scenes.busy, top: topInset, reduced: RM, icon: icd, pulse, saved: saveNow, goMain: () => scenes.go('main'),
+    ghostAt: (x, y) => { const r = sceneHost.getBoundingClientRect(); ghost.until = performance.now() + GHOST_MS; ghost.x = r.left + x; ghost.y = r.top + y; },
+    panel: (on) => { labPanel = on ? labScene : null; },
+  });
+  scenes.register('lab', labScene); labScene.baseline();
   function paintSceneDev() { const d = $('scene-dev'); if (d) for (const b of d.children) b.classList.toggle('on', b.dataset.go === scenes.current); }
   if (SCENE_DEV) {
     const d = document.createElement('div'); d.id = 'scene-dev'; d.className = 'scene-dev';
@@ -878,5 +890,5 @@
   $('p0').dataset.scene = scenes.start(SCENE_DEV ? (location.search.match(/[?&]scene=(\w+)/) || [])[1] : 'main');
   paintSceneDev();
   requestAnimationFrame(frame);
-  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.BETA = { get G() { return G; }, get dragger() { return dragger; }, sim, scene, stationSeen, boostPend, pick: chooseMouse, gesture, isGhost, get scenes() { return scenes; }, save: saveNow, sync: () => { syncSim(); syncCrew(); }, act: doAct, tick, focus: focusSt };
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') window.BETA = { get G() { return G; }, get lab() { return labScene; }, labInside, get dragger() { return dragger; }, sim, scene, stationSeen, boostPend, pick: chooseMouse, gesture, isGhost, get scenes() { return scenes; }, save: saveNow, sync: () => { syncSim(); syncCrew(); }, act: doAct, tick, focus: focusSt };
 })();

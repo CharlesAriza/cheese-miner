@@ -4187,12 +4187,13 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
   function townLab(k) {
     return art('tLab' + k, () => {
       const c = PB(50, 82), P = P2;
-      // IV · Strain Research: el biorreactor de cepas, una columna de vidrio pegada a la torre (dentro del solar).
+      // IV · Strain Library: el archivo, un anexo bajo con faldón apoyado en la torre (dentro del solar).
       if (k >= 4) {
-        cylv(c, 37, 30, 11, 44, P.gla, null);
-        for (let y = 32; y < 72; y++) { const band = Math.floor((y - 32) / 8), col = ['#c8ffb0', '#b58cff', '#7ae08a', '#ffd84a', '#8af0d0'][band % 5]; c.rect(39, y, 7, 1, mixc(col, '#000000', y % 8 === 0 ? 0.35 : 0.12)); c.px(39, y, mixc(col, '#ffffff', 0.4)); }
-        c.rect(36, 27, 13, 3, P.irn[2]); c.hline(36, 27, 13, P.irn[1]); c.rect(40, 22, 5, 5, P.irn[3]); c.rect(36, 72, 13, 3, P.irn[2]); c.hline(36, 72, 13, P.irn[1]);
-        for (const y of [44, 60]) { c.rect(32, y, 6, 2, P.cop[2]); c.hline(32, y, 6, P.cop[1]); c.rect(36, y - 1, 2, 4, BRS[2]); }
+        boards(c, 34, 59, 13, 16, P.plb, 3, 'h', 6);
+        for (let x = 33; x <= 49; x++) { const y = 54 + Math.floor((x - 33) / 4); c.px(x, y, P.woo[1]); c.px(x, y + 1, P.woo[2]); c.px(x, y + 2, P.woo[2]); c.px(x, y + 3, P.woo[3]); if ((x - 33) % 5 === 0) c.px(x, y + 1, P.woo[3]); }
+        c.rect(36, 62, 9, 9, '#2a2232'); c.rect(37, 63, 7, 7, '#3e3446');
+        c.hline(37, 66, 7, P.woo[2]); for (const [x, y, col] of [[38, 64, '#ffe08a'], [40, 64, '#ffc070'], [42, 64, '#f4eedc'], [38, 67, '#fff0a0'], [40, 67, '#bcd0f4']]) { c.rect(x, y, 1, 2, col); }
+        c.hline(35, 71, 11, P.woo[1]); c.vline(35, 61, 11, P.woo[3]); c.vline(45, 61, 11, P.woo[3]); c.hline(35, 61, 11, P.woo[3]);
         stones2(c, 34, 75, 16, 6, P.stn, 3, 12);
       }
       // Planta baja: tablas claras, puerta a la izquierda (ahí se pone el investigador) y el ojo de buey de cobre.
@@ -4215,13 +4216,18 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
         vol(c, 3, 30, 32, 3, P.stn, { side: 2, ao: 1, face: 1 });
         if (k === 2) { cylv(c, 26, 19, 4, 11, P.irn, null); c.rect(25, 18, 6, 2, P.irn[1]); }
       }
-      // III · Advanced Research: cúpula de verdín con ranura, telescopio y antena (sube sobre la torre).
+      // III · Advanced Research: cúpula de cristal, telescopio dentro y ventana abierta (sube sobre la torre).
       if (k >= 3) {
-        c.fill((x, y) => segDist(x + 0.5, y + 0.5, 23, 25, 33, 15) < 1.6, (x, y) => (y + x < 46 ? P.cop[1] : P.cop[2]), 21, 12, 36, 27); c.rect(32, 12, 4, 5, P.cop[3]); c.rect(33, 13, 2, 3, P.gla[1]);
         const inD = (x, y) => ((x + 0.5 - 19) / 14) ** 2 + ((y + 0.5 - 30) / 13) ** 2 <= 1 && y < 30;
-        c.fill(inD, (x, y) => faceTone(P.ver, x, y, 5, 17, 28, 13, 0.06), 4, 16, 34, 30);
-        for (const x of [10, 15, 25, 29]) c.fill((xx, yy) => xx === x && inD(xx, yy) && yy > 20, P.ver[3], x, 17, x + 1, 30);
-        c.fill((x, y) => x >= 18 && x <= 21 && y >= 20 && y < 30 && inD(x, y), (x) => (x === 18 ? P.ver[4] : '#0e1a1e'), 18, 19, 22, 30); c.hline(10, 20, 3, P.ver[0]); c.hline(8, 22, 2, P.ver[0]);
+        const inI = (x, y) => ((x + 0.5 - 19) / 12.6) ** 2 + ((y + 0.5 - 30) / 11.6) ** 2 <= 1 && y < 30;
+        const open = (x, y) => x >= 25 && y < 23 && y >= 17 && inD(x, y);
+        c.fill((x, y) => inI(x, y) && !open(x, y), (x, y) => { const t = y < 23 ? 0 : y < 27 ? 1 : 2, g = x < 14 ? 0 : x < 24 ? 1 : 2; return [['#6fa8b0', '#5a949e', '#4a8590'], ['#5a949e', '#4a8590', '#3f7581'], ['#3f7581', '#356874', '#2f5f6c']][t][g]; }, 4, 16, 34, 30);
+        c.fill((x, y) => inD(x, y) && !inI(x, y) && !open(x, y), (x, y) => (x < 13 && y < 26 ? P.ver[0] : x < 24 ? P.ver[1] : P.ver[2]), 4, 16, 34, 30);
+        for (const k2 of [-0.55, 0, 0.55]) for (let y = 18; y < 30; y++) { const b2 = (y + 0.5 - 30) / 11.6, xx = Math.round(19 + k2 * 12.6 * Math.sqrt(Math.max(0, 1 - b2 * b2)) - 0.5); if (inI(xx, y) && !open(xx, y)) c.px(xx, y, P.ver[3]); }
+        for (const y of [23, 27]) c.fill((x, yy) => yy === y && inI(x, yy) && !open(x, yy), P.ver[3], 4, y, 34, y + 1);
+        c.hline(10, 20, 3, '#d8f0ee'); c.hline(9, 21, 2, '#d8f0ee');
+        c.fill((x, y) => segDist(x + 0.5, y + 0.5, 20, 28, 28, 20) < 1.5, (x, y) => (y + x < 48 ? BRS[1] : BRS[2]), 18, 16, 34, 30); c.rect(27, 19, 3, 3, P.irn[2]);
+        for (let i = 0; i <= 6; i++) { c.px(25 + i, 16 - i, P.ver[1]); c.px(26 + i, 16 - i, '#6fa8b0'); c.px(27 + i, 16 - i, P.ver[2]); }
         c.vline(19, 8, 10, P.irn[3]); c.vline(20, 9, 8, P.irn[1]); c.rect(18, 8, 3, 2, P.irn[2]);
       }
       closeGaps(c); c.outline();
@@ -5488,10 +5494,12 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
 
   // El investigador lee a la puerta del laboratorio (se pinta con los ratones de fuera, con la luz del momento).
   function drawResearcher(now) {
+    if (TOWN && hooks.labBusy && hooks.labBusy()) vfxBubbles(ctx, LOT.lab[0] + 27, G - 27, now);
     const rs = N('lab', 'researcher'); if (!rs) return;
+    if (hooks.labInside && hooks.labInside()) { rs.px = null; rs.py = null; return; }
     const lx = TOWN ? LOT.lab[0] - 16 : 52, cv = litSprite(mF(rs.crew, Math.floor((now + 431) / 650) % 2, false, { book: Math.floor(now / 900) % 2 ? 2 : 1 }));
     ctx.save(); ctx.translate(lx + 14 + 22, G - 4 - 20); ctx.scale(-1, 1); ctx.drawImage(cv, 0, 0); ctx.restore();
-    if (TOWN) vfxBubbles(ctx, LOT.lab[0] + 27, G - 27, now); else vfxBubbles(ctx, lx + 30, G - 4 - 30, now); rs.px = lx + 14; rs.py = G - 4;
+    rs.px = lx + 14; rs.py = G - 4;
   }
   // ================= MONTACARGAS: jaula con su ascensorista =================
   const STOPS = ['drill', 'refine', 'cheese', 'surface'];
@@ -6313,6 +6321,9 @@ CM.createColonyScene = function (canvas, host, sim, hooks) {
     locate(id) { focusMouse(id); return nodes.find((q) => q.m && q.m.id === id); },
     get scale() { return s; },
     bubbles: () => BUBS,
+    skyNow: () => skyState(performance.now()),
+    crewLook: (m, st) => crewOf(m, SKILL[st] || st),
+    bubbleKit: () => ({ readMs, tail: TAILSVG('down') }),
     bubbleLines: () => [...Object.values(CHAT).flat(2), ...GENERIC.flat(), 'Vein! Look at that!', 'Bar going down!', 'Empty. Dig deeper!', 'New stone down here!', 'Full power!', 'Hear it hum!'],
     portrait(m, st) { return mouseCanvas(crewOf(m, SKILL[st] || st || 'mining'), 0, false, {}).toDataURL(); },
   };

@@ -284,7 +284,8 @@
         if (T.sig) setTimeout(() => focusNode(gw, fresh[0], true), 60);
       }
       if (!T.sig) { // al abrir: lo que se puede hacer ahora, a la vista
-        const go = Object.keys(g).find((id) => st[id].s === 'available' && G().s.coins >= st[id].opt.cost) || Object.keys(g).find((id) => st[id].s === 'available') || 'root';
+        const go = (T.want && st[T.want] && st[T.want].s === 'available' && T.want) || Object.keys(g).find((id) => st[id].s === 'available' && G().s.coins >= st[id].opt.cost) || Object.keys(g).find((id) => st[id].s === 'available') || 'root';
+        if (T.want) { T.sel = null; T.want = null; }
         if (!T.sel) { T.sel = go; const e = cv.querySelector('[data-n="' + go + '"]'); if (e) e.classList.add('st-sel'); }
         focusNode(gw, go, false);
       }
@@ -317,6 +318,8 @@
     labnode: (n) => ['labNode', { id: n.labId }], labrank: (n) => ['labRank', { id: n.labId }], labphase: () => ['labPhase', {}], lamp: () => ['lamp', {}],
   };
   CM.skilltree = {
+    // Abrir con un nudo elegido: lo que se acaba de anunciar en la escena, listo para comprar.
+    want(id) { T.want = id; },
     render, graph, states, TABS,
     mount(root, ui) { const r = root.querySelector('.st-root'); if (r) { T.sig = ''; T.tab = ''; paint(r, ui, true); } },
     tick(ui) { const r = document.querySelector('#sheet-body .st-root'); if (r) paint(r, ui, false); },
