@@ -3,10 +3,11 @@
 // de hojas (iframe) y en las escenas (LAB, HOUSE): cada documento crea la suya con BetaDeny({ doc, sound, reduced }).
 //   deny.show({ el | x,y, title, text, key, tone })   tone: 'block' (regla del juego, por defecto) · 'error' (fallo técnico: sin sonido de rechazo)
 // Una sola alerta por documento: repetir el mismo intento la renueva sin otra alerta ni otro sonido seguido; si el motivo cambia, cambia el texto.
+// Nunca tapa iconos ni botones: busca el sitio limpio más cercano a lo tocado (place).
 window.BetaDeny = function (o) {
   const doc = o.doc || document, win = doc.defaultView || window, PAD = 8, GAP = 8;
   const reduced = () => (o.reduced ? o.reduced() : win.matchMedia && win.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  let box = null, timer = 0, lastKey = '', lastSound = 0, ac = null;
+  let box = null, timer = 0, lastKey = '', lastSound = 0, ac = null, covered = 0;
   function style() {
     if (doc.getElementById('dn-style')) return;
     const s = doc.createElement('style'); s.id = 'dn-style';
@@ -34,14 +35,40 @@ window.BetaDeny = function (o) {
     el.classList.add('dn-hit'); setTimeout(() => el.classList.remove('dn-hit'), 260);
     if (!reduced()) el.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-2px)' }, { transform: 'translateX(2px)' }, { transform: 'translateX(-1px)' }, { transform: 'translateX(0)' }], { duration: 200, easing: 'steps(4)' });
   }
-  // Cerca de lo tocado: encima si cabe, si no debajo; siempre dentro de la pantalla. No mueve nada de la interfaz.
-  function place(r) {
-    const vw = win.innerWidth, vh = win.innerHeight, w = box.offsetWidth, h = box.offsetHeight;
-    let x = r.x + r.w / 2 - w / 2, y = r.y - h - GAP;
-    if (y < PAD + (o.top ? o.top() : 0)) y = r.y + r.h + GAP;
-    if (y + h > vh - PAD) y = Math.max(PAD, Math.min(vh - h - PAD, r.y - h - GAP));
-    x = Math.max(PAD, Math.min(vw - w - PAD, x));
-    box.style.transform = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)';
+  // Lo que la alerta nunca debe tapar: iconos e imágenes, botones, casillas pequeñas y los iconos de las estaciones de una escena.
+  // Una fila o una tarjeta entera no cuenta (sus iconos y botones ya están en la lista); un lienzo de escena tampoco.
+  const ICONS = 'img, canvas, svg, button, [role="button"], [data-act], .mx-act, .mx-ic, .st-ic .st-box, .st-ic .st-cap, .p0-plate, .edge-go, .home-btn';
+  const BIG = 150 * 70;
+  function obstacles(target) {
+    const vw = win.innerWidth, vh = win.innerHeight, out = [];
+    for (const el of doc.querySelectorAll(ICONS)) {
+      if (el === box || (box && box.contains(el)) || (target && (el === target || el.contains(target) || target.contains(el)))) continue;
+      const r = el.getBoundingClientRect(); if (!r.width || !r.height || r.width * r.height > BIG) continue;
+      if (r.right <= 0 || r.bottom <= 0 || r.left >= vw || r.top >= vh) continue;
+      const cs = win.getComputedStyle(el); if (cs.visibility === 'hidden' || cs.opacity === '0') continue;
+      out.push(r);
+    }
+    return o.avoid ? out.concat(o.avoid()) : out;
+  }
+  const over = (x, y, w, h, r) => Math.max(0, Math.min(x + w, r.right) - Math.max(x, r.left)) * Math.max(0, Math.min(y + h, r.bottom) - Math.max(y, r.top));
+  // Cerca de lo tocado y sin tapar ningún icono ni lo tocado: primero arriba, abajo y a los lados del botón; si ahí no cabe, la franja libre más cercana
+  // de la pantalla. Si no hay ningún sitio limpio, el que menos tape. Siempre dentro de la pantalla; no mueve nada de la interfaz.
+  function place(t, target) {
+    const vw = win.innerWidth, vh = win.innerHeight, w = box.offsetWidth, h = box.offsetHeight, top = PAD + (o.top ? o.top() : 0), obs = obstacles(target);
+    const cl = (v, lo, hi) => Math.max(lo, Math.min(hi, v)), tr = { left: t.x - 2, top: t.y - 2, right: t.x + t.w + 2, bottom: t.y + t.h + 2 };
+    const cx = t.x + t.w / 2 - w / 2, xs = [cx, t.x, t.x + t.w - w, PAD, vw - w - PAD], cands = [];
+    for (const x of [cx, t.x + t.w - w, t.x]) { cands.push([x, t.y - h - GAP], [x, t.y + t.h + GAP]); }
+    cands.push([t.x - w - GAP, t.y + t.h / 2 - h / 2], [t.x + t.w + GAP, t.y + t.h / 2 - h / 2]);
+    for (let d = 12; d < vh; d += 12) for (const x of xs) cands.push([x, t.y - h - GAP - d], [x, t.y + t.h + GAP + d]);
+    let best = null;
+    for (const [x0, y0] of cands) {
+      const x = cl(x0, PAD, vw - w - PAD), y = cl(y0, top, vh - h - PAD);
+      let cost = over(x, y, w, h, tr) * 20; for (const r of obs) { cost += over(x, y, w, h, r); if (best && cost >= best.cost) break; }
+      if (!best || cost < best.cost) best = { x, y, cost };
+      if (cost === 0) break;
+    }
+    box.style.transform = 'translate(' + Math.round(best.x) + 'px,' + Math.round(best.y) + 'px)';
+    return best.cost;
   }
   function show(a) {
     style();
@@ -50,13 +77,13 @@ window.BetaDeny = function (o) {
     box.classList.toggle('dn-err', tone === 'error');
     box.innerHTML = '<b><i></i>' + a.title + '</b>' + (a.text ? '<span>' + a.text + '</span>' : '');
     const r = a.el && a.el.getBoundingClientRect ? a.el.getBoundingClientRect() : null;
-    place(r ? { x: r.left, y: r.top, w: r.width, h: r.height } : { x: a.x || win.innerWidth / 2, y: a.y || win.innerHeight / 2, w: 0, h: 0 });
-    box.classList.add('dn-in');
+    box.classList.add('dn-in'); // visible antes de colocarla: hace falta su tamaño real
+    covered = place(r ? { x: r.left, y: r.top, w: r.width, h: r.height } : { x: a.x || win.innerWidth / 2, y: a.y || win.innerHeight / 2, w: 0, h: 0 }, a.el);
     hit(a.el);
     if (!same) sound(tone);
     lastKey = key;
     clearTimeout(timer); timer = setTimeout(hide, Math.max(2200, Math.min(5000, 1700 + 45 * (a.title.length + (a.text || '').length))));
   }
   function hide() { clearTimeout(timer); if (box) box.classList.remove('dn-in'); lastKey = ''; }
-  return { show, hide, get open() { return !!(box && box.classList.contains('dn-in')); }, get text() { return box ? box.textContent : ''; } };
+  return { show, hide, get open() { return !!(box && box.classList.contains('dn-in')); }, get text() { return box ? box.textContent : ''; }, get covered() { return covered; } };
 };
