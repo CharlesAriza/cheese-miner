@@ -425,6 +425,7 @@
     layerShow() { PZ.el.classList.remove('off'); PZ.el.classList.add('in'); PZ.el.setAttribute('aria-hidden', 'false'); },
     layerClosing() { PZ.el.classList.remove('in'); },
     layerClosed() { closePz(true); },
+    soundOn: () => G.settings.sound !== false,
     questIcon: NAV_IC.goal, questGo: () => goToGoal(), E2, get scene() { return scene; }, get labScene() { return labScene; },
     ghostClick: (x, y) => { const r = PZ.fr.getBoundingClientRect(); return isGhost(r.left + x, r.top + y); }, ghostClear: () => { ghost.until = 0; },
   };
@@ -872,7 +873,7 @@
   const paintVeil = (a) => { const q = Math.ceil(a * 4) / 4; veil.hidden = q <= 0; veil.style.opacity = String(q); $('p0').classList.toggle('scene-fading', q > 0); $('p0').style.setProperty('--veil', String(q)); };
   scenes = window.BetaScenes({
     fadeMs: RM() ? 0 : 130, veil: paintVeil, onError: (e, id) => console.error('scene ' + id, e),
-    onChange: (to) => { $('p0').dataset.scene = to; panelFor(to); paintSceneDev(); },
+    onChange: (to) => { $('p0').dataset.scene = to; panelFor(to); paintSceneDev(); sceneDeny.hide(); }, // un aviso es de su escena: no se queda al cambiar
   });
   let mainShown = false;
   scenes.register('main', {
@@ -886,8 +887,10 @@
   });
   const probeApi = { host: sceneHost, dev: () => SCENE_DEV, colony: () => G, Core, fmt };
   scenes.register('house', window.BetaProbe('house', probeApi));
+  // Los intentos rechazados en las escenas (LAB, luego HOUSE): el mismo aviso que en las hojas (beta/deny.js).
+  const sceneDeny = window.BetaDeny({ doc: document, sound: () => G.settings.sound !== false, reduced: RM, top: topInset });
   labScene = window.BetaLabScene({
-    host: sceneHost, G: () => G, Core, Pg, Lb, REAL, fmt, recipeName, scene, open: openPz, covered: () => pzOpen() || isOpen($('sheet')) || travel.active || scenes.busy, sheet: () => pzOpen() || isOpen($('sheet')), top: topInset, reduced: RM, icon: icd, ret: NAV_IC.ret, pulse, saved: saveNow,
+    host: sceneHost, G: () => G, Core, Pg, Lb, REAL, fmt, recipeName, scene, open: openPz, covered: () => pzOpen() || isOpen($('sheet')) || travel.active || scenes.busy, sheet: () => pzOpen() || isOpen($('sheet')), top: topInset, reduced: RM, icon: icd, ret: NAV_IC.ret, deny: (a) => sceneDeny.show(a), pulse, saved: saveNow,
     goMain: () => travel.go('main'),
     ghostAt: (x, y) => { const r = sceneHost.getBoundingClientRect(); ghost.until = performance.now() + GHOST_MS; ghost.x = r.left + x; ghost.y = r.top + y; },
     pull: { start: (x) => travel.pullStart('main', x), move: (x) => travel.pullMove(x), end: () => travel.pullEnd() }, panelMine: () => !!labPanel, 
@@ -929,7 +932,7 @@
   travel = window.BetaTravel({
     strip: ['house', 'main', 'lab'], box: $('scene-box'), reduced: RM, current: () => scenes.current, layers: (id) => LAYERS[id](), farOf,
     ground: (id) => (id === 'main' ? scene.mapView().ground : labScene.mapView().ground), span: travelSpan, setGround: (y) => scene.setGround(y),
-    begin: (to) => { const ok = scenes.slideBegin(to); if (ok) $('p0').dataset.slide = '1'; return ok; },
+    begin: (to) => { sceneDeny.hide(); const ok = scenes.slideBegin(to); if (ok) $('p0').dataset.slide = '1'; return ok; },
     end: (commit, from, to) => { scenes.slideEnd(commit); delete $('p0').dataset.slide; panelFor(scenes.current); if (commit && to === 'main' && from === 'lab') { plateSig = ''; } },
     onSide: (side) => panelFor(side),
   });

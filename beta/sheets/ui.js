@@ -18,8 +18,20 @@
     clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('show'), 2200);
   };
   const FAIL = { 'no-coins': 'Not enough coins', locked: 'Not available yet', 'no-materials': 'Not enough materials', 'queue-full': 'The lab queue is full', 'bed-busy': 'The house is busy', 'no-house': 'Build the Mouse House first', 'not-built': 'Build it first', full: 'Two boosts at most', 'none-free': 'No free boost: take one off another station first', done: 'Already done', same: 'That mouse is already there', invalid: 'That is not possible' };
-  const report = (r) => { if (r && r.ok === false) toast(FAIL[r.reason] || 'Not possible right now'); return r; };
-  const act = (type, args) => report(H.act(type, args));
+  // Un intento rechazado en el LAB: sonido, sacudida del botón tocado y una alerta con el motivo (BetaDeny, beta/deny.js). El motivo lo da el núcleo (código de NO)
+  // y lo redacta P.denyText con los números de la partida; si no se sabe por qué, se dice como fallo técnico, sin inventar que falta algo.
+  const deny = window.BetaDeny({ doc: document, sound: () => H.soundOn(), reduced: () => RM() });
+  let tapEl = null;
+  const LAB_TYPES = { labResearch: 1, labDir: 1, labStudy: 1, labBlueprint: 1, labCulture: 1, labCancel: 1, strain: 1, experiment: 1, partlock: 1, strainunk: 1, labbuy: 1 };
+  const isLab = (type, args) => LAB_TYPES[type] || (type === 'build' && args && args.id === 'lab');
+  function oops() { deny.show({ el: tapEl, title: 'That did not work', text: 'Nothing was spent. Try again.', tone: 'error', key: 'oops' }); }
+  function refuse(type, args, reason) {
+    const t = P.denyText(type, args || {}, reason);
+    if (!t) return oops();
+    deny.show({ el: tapEl, title: t.title, text: t.text, key: type + ':' + reason + ':' + JSON.stringify(args || {}) });
+  }
+  const report = (r, type, args) => { if (r && r.ok === false) { if (isLab(type, args)) refuse(type, args, r.reason); else toast(FAIL[r.reason] || 'Not possible right now'); } return r; };
+  const act = (type, args) => report(H.act(type, args), type, args);
   // Mover: siempre por Core (el mismo estado que el arrastre de MAIN). Se recuerda cómo estaba para poder deshacerlo.
   function snapshot() { return G().s.placed.map((p) => ({ id: p.m.id, st: p.st, role: p.role })).concat(G().lab.workers.map((id) => ({ id, st: 'lab' }))); }
   function restore(list) { for (const m of G().roster) H.act('unassign', { id: m.id }); for (const a of list) H.act('assign', a); }
@@ -116,7 +128,17 @@
     labdir(kind, id) { const dir = kind === 'none' ? '' : id ? kind + ':' + id : kind; act('labDir', { dir: G().lab.dir === dir ? '' : dir }); ui.labDirOpen = false; },
     labcancel() { act('labCancel', {}); },
     pick(part, value) { ui.combo[part] = value; },
-    experiment() { act('labResearch', { key: CM.cheesery.keyOf(ui.combo) }); },
+    // Lo que la hoja ya no deja pedir (repetir un encargo, pedirlo sin monedas con el laboratorio libre) se explica igual, leyendo la partida.
+    experiment() {
+      const key = CM.cheesery.keyOf(ui.combo), L = G().lab, s = G().s;
+      if (L.queue.some((q) => q.key === key)) return refuse('experiment', { key }, 'queued');
+      if (L.job && L.job.key === key) return refuse('experiment', { key }, 'busy');
+      if (!L.isKnown[key] && L.queue.length < H.Lb.queueCap(G()) && !L.job && s.inv.base >= H.Lb.labCost(G()) && s.coins < H.Mo.formula(key).coin) return refuse('experiment', { key }, 'no-coins');
+      act('labResearch', { key });
+    },
+    partlock(part, id) { refuse('partlock', { part, id }); },
+    strainunk() { refuse('strainunk', {}); },
+    soundfx() { act('setting', { key: 'sound', value: !H.soundOn() }); },
     strainrecipe(id) { ui.strainRecipe = id; },
     strainfind(id) { act('labCulture', { key: id }); },
     strain(key, id) { const r = act('strain', { key, id: id === 'plain' ? '' : id }); if (r.ok) ui.found = null; },
@@ -125,7 +147,7 @@
     blueprint(id) { act('labBlueprint', { id }); },
     item(id) { showModal(P.itemCard(id), { ok() {} }); },
     help(id) { showHelp(id); },
-    buy(id, ev, el) { const r = el ? el.getBoundingClientRect() : null; report(CM.skilltree.buy(id, ui, r)); },
+    buy(id, ev, el) { const r = el ? el.getBoundingClientRect() : null, res = CM.skilltree.buy(id, ui, r); if (ui.tree === 'lab') report(res, 'labbuy', { cost: el && el.dataset.cost }); else report(res); },
     switch(id) { report(CM.skilltree.switch(id, ui)); },
     sky(v) { H.setSky(v); },
     export() { const text = H.exportSave(); showModal(CM.pmenu.win('export', { bytes: text.length }).replace('A file was downloaded. You can also copy the text:', 'Copy this text and keep it safe:'), { ok() {} }); const ta = $('io-text'); if (ta) ta.value = text; },
@@ -235,8 +257,11 @@
     if (!el || !$('sheet').contains(el)) return;
     const parts = el.dataset.act.split(':'), f = ACTS[parts[0]];
     if (!f) return;
-    if (parts[0] === 'buy') { f(parts[1], e, el); return; }
-    f(...parts.slice(1));
+    tapEl = el;
+    try {
+      if (parts[0] === 'buy') { f(parts[1], e, el); return; }
+      f(...parts.slice(1));
+    } catch (err) { console.error(err); oops(); return; } // un fallo técnico no es una regla del juego: se dice así
     repaint();
     swapFx();
   });

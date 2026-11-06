@@ -178,6 +178,12 @@ window.BetaLabScene = function (o) {
   // Se puede comprar ya: silueta azul e icono verde. Lleva al árbol con la mejora elegida.
   const canBuy = (st) => { const c = G(), L = c.lab; return st.node && !L.nodes[st.node] && Pg.isOpen(c, 'lab.' + st.node) && E.shown.stage >= (st.min || 1); };
   const lockedOf = (st) => st.id === 'studies' && !studiesOn();
+  // Por qué está cerrada una estación: el primer requisito que falta, según el roadmap (core/progression.js).
+  function lockWhy(st) {
+    const c = G(), wait = E2.PARAMS.strata.filter((x) => Pg.has('study.' + x.id) && !c.lab.styles[x.id] && !Pg.isOpen(c, 'study.' + x.id));
+    for (const x of wait) { const left = Pg.status(c, 'study.' + x.id).requires.filter((r) => !r.ok).map((r) => r.text); if (left.length) return { title: 'No new cheese to study', text: left[0] + ' to study ' + E2.REAL.bases[x.id].name + ' cheese.' }; }
+    return { title: 'No new cheese to study', text: wait.length ? 'A new cheese opens here in a moment.' : 'Every cheese is studied.' };
+  }
   const studiesOn = () => { const c = G(); return E2.PARAMS.strata.some((st) => st.id !== 'cheddar' && Pg.has('study.' + st.id) && Pg.isOpen(c, 'study.' + st.id)); };
   const nextStage = () => { const c = G(), n = c.lab.phase + 1; return n <= 4 && !E.busyObra && E.shown.stage === c.lab.phase && Pg.has('lab.phase' + n) && Pg.isOpen(c, 'lab.phase' + n) ? n : 0; };
   const rectOf = (st) => { const fs = st.frames().map((n) => F[n]).filter(Boolean); return fs[0]; };
@@ -263,7 +269,8 @@ window.BetaLabScene = function (o) {
   // Tocar una estación abre su panel al momento, y detrás la cámara se acerca al mueble. Al cerrar, sigues ahí y deja de estar marcada.
   function focusStation(st, openIt) {
     const f = rectOf(st), buy = canBuy(st), lock = st.on() && lockedOf(st);
-    sel = st.id; selUntil = performance.now() + 900; picked = false; needMsg = lock ? 'Needs the next stratum' : ''; panelSig = ''; flash(st); const b = icons.get(st.id); if (b) o.pulse(b.firstChild, 'bump', 320);
+    sel = st.id; selUntil = performance.now() + 900; picked = false; needMsg = lock ? 'Needs the next stratum' : ''; panelSig = ''; flash(st); const b = icons.get(st.id); if (b && !lock) o.pulse(b.firstChild, 'bump', 320);
+    if (lock && o.deny) o.deny(Object.assign({ el: b && b.firstChild, key: 'lock:' + st.id }, lockWhy(st)));
     if (C.mode !== 'obra') { C.mode = 'near'; flyTo({ s: sN, cx: f.wx + f.w / 2, cy: f.wy + f.h / 2 + (openIt && !lock ? (H * 0.22) / sN : 0) }); } // con panel, el mueble queda encima de él
     if (!openIt || lock) return;
     if (buy) o.open('treenode', 'lab.' + st.node); else o.open('labview', st.view);

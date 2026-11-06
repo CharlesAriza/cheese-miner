@@ -26,7 +26,7 @@ E2.game = (function () {
   function create(opts) {
     if (!E2.PARAMS || !E2.PARAMS.items) setup();
     const c = Ru().create({ seed: (opts && opts.seed) || 1, profile: null });
-    Object.assign(c, { gated: true, built: { house: false }, settings: { managersBuy: true }, lamp: 0, unlocked: {}, seen: {}, goals: {}, album: {}, news: [], inbox: [], care: null, cands: [], candsFor: '', totals: { retrains: 0, treatments: 0 }, modsT: 0, offJob: null });
+    Object.assign(c, { gated: true, built: { house: false }, settings: { managersBuy: true, sound: true }, lamp: 0, unlocked: {}, seen: {}, goals: {}, album: {}, news: [], inbox: [], care: null, cands: [], candsFor: '', totals: { retrains: 0, treatments: 0 }, modsT: 0, offJob: null });
     Lb().ensure(c);
     c.s.m.minutes = {}; // en el juego solo se guardan los últimos minutos
     attach(c);
@@ -431,7 +431,8 @@ E2.game = (function () {
       c.care = { id: m.id, kind: a.kind, what: a.what, to, from: a.kind === 'spec' ? m.spec[a.what] : '', remaining: M.care.ms, total: M.care.ms };
       return OK({ cost });
     },
-    setting(c, a) { if (!(a.key in c.settings)) return NO('invalid'); c.settings[a.key] = !!a.value; return OK(); },
+    // Ajustes del jugador. `sound` llegó después: en partidas anteriores no existe y cuenta como activado.
+    setting(c, a) { if (!(a.key in c.settings) && a.key !== 'sound') return NO('invalid'); c.settings[a.key] = !!a.value; return OK(); },
     seen(c, a) { c.seen[a.id] = c.s.t; return OK(); },
   };
   // Toda acción entra por aquí: falle o no, deja la partida coherente.

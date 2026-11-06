@@ -789,7 +789,7 @@
       for (const id of Object.keys(B[C.TABLES[part]])) {
         const lk = C.partLocked(s, part, id);
         if (lk && part === 'base') continue;
-        h += '<span role="button" class="mx-lb-chip' + (lk ? ' mx-lock' : '') + (combo[part] === id ? ' mx-on' : '') + '"' + (lk ? '' : ' data-act="pick:' + part + ':' + id + '"') + '><span class="mx-r">' + (part === 'base' ? '<img class="pix" src="' + mxBaseIc(id) + '" alt="" style="width:14px;height:12px">' : lbIc('part:' + id, 2)) + B[C.TABLES[part]][id].name + '</span><small>' + (lk ? 'CHEESE LV ' + B[C.TABLES[part]][id].level : sub(part, id)) + '</small></span>';
+        h += '<span role="button" class="mx-lb-chip' + (lk ? ' mx-lock' : '') + (combo[part] === id ? ' mx-on' : '') + '"' + (lk ? ' data-act="partlock:' + part + ':' + id + '"' : ' data-act="pick:' + part + ':' + id + '"') + '><span class="mx-r">' + (part === 'base' ? '<img class="pix" src="' + mxBaseIc(id) + '" alt="" style="width:14px;height:12px">' : lbIc('part:' + id, 2)) + B[C.TABLES[part]][id].name + '</span><small>' + (lk ? 'CHEESE LV ' + B[C.TABLES[part]][id].level : sub(part, id)) + '</small></span>';
       }
       h += '</div></div>';
     }
@@ -801,7 +801,7 @@
       const syn = C.formula(combo).synergies, short = have < cost, queued = Lv.queue.some((q) => q.key === key), busy = !!Lv.job, same = busy && Lv.job.key === key, full = Lv.queue.length >= Lb.queueCap(G());
       const can = !queued && !same && !full && (busy || short || G().s.coins >= coins);
       h += '<div class="mx-lb-res"><span class="mx-art">' + lbIc('seal', 2) + '</span><div><b>Undiscovered cheese</b>' + (syn.length ? '<span class="mx-syn">These go well together!</span>' : '') + '<small>Costs ' + cost + ' Cheese Base' + (coins ? ' + ' + coins + ' coins' : '') + ' · ' + lbDur(Lb.labTime(G(), combo.base)) + ' · you get the recipe</small></div></div>';
-      h += '<span role="button" class="mx-lb-go' + (can ? '' : ' mx-off') + '"' + (can ? ' data-act="experiment"' : '') + '>' + (queued || same ? '<b>NEXT IN THE LAB</b>' : full ? '<b>THE QUEUE IS FULL</b>' : busy ? '<b>DISCOVER IT NEXT</b><small>after the research in progress</small>' : short ? '<b>DISCOVER IT</b><small>the lab saves up the Cheese Base first</small>' : '<b>DISCOVER IT</b>') + '</span>';
+      h += '<span role="button" class="mx-lb-go' + (can ? '' : ' mx-off') + '" data-act="experiment">' + (queued || same ? '<b>NEXT IN THE LAB</b>' : full ? '<b>THE QUEUE IS FULL</b>' : busy ? '<b>DISCOVER IT NEXT</b><small>after the research in progress</small>' : short ? '<b>DISCOVER IT</b><small>the lab saves up the Cheese Base first</small>' : '<b>DISCOVER IT</b>') + '</span>';
     }
     return h + '<p class="mx-lb-hint">CHEESE LV ' + level + '. Higher levels unlock better ingredients.</p></div>';
   }
@@ -860,10 +860,10 @@
       const on = want === id;
       const lines = id ? strainLines(s, r, id).map((l) => '<li class="' + (l[1] === 'up' ? 'mx-up' : 'mx-dn') + '"><i>' + lbIc(l[1] === 'up' ? 'up' : 'down', 2) + '</i>' + l[0] + '</li>').join('')
         : '<li>Cooks in ' + lbDur(plain.time) + '</li><li>Uses ' + plain.base + ' Cheese Base</li><li>Sells for ' + CM.fmt(plain.price) + '</li>';
-      h += '<div role="button" class="mx-box mx-st-card' + (on ? ' mx-on' : '') + '" data-s="' + (id || 'plain') + '"' + (on ? '' : ' data-act="strain:' + r.id + ':' + (id || 'plain') + '"') + '><span class="mx-art">' + (id ? stDish(id, 2, on ? '' : 'still') : stLot(combo.base, 42, 36)) + '</span><b>' + STRAIN_NAME(id).toUpperCase() + '</b><ul>' + lines + '</ul><em>' + (on ? 'IN USE' : 'USE') + '</em></div>';
+      h += '<div role="button" class="mx-box mx-st-card' + (on ? ' mx-on' : '') + '" data-s="' + (id || 'plain') + '"' + ' data-act="strain:' + r.id + ':' + (id || 'plain') + '"' + '><span class="mx-art">' + (id ? stDish(id, 2, on ? '' : 'still') : stLot(combo.base, 42, 36)) + '</span><b>' + STRAIN_NAME(id).toUpperCase() + '</b><ul>' + lines + '</ul><em>' + (on ? 'IN USE' : 'USE') + '</em></div>';
     }
     const missing = Object.keys(B.strains).length - r.strains.length;
-    if (missing) h += '<div class="mx-box mx-st-card mx-st-unk"><span class="mx-arts">' + stDish('', 1.5, 'lid').repeat(missing) + '</span><small>' + missing + ' undiscovered strain' + (missing > 1 ? 's' : '') + '</small></div>';
+    if (missing) h += '<div class="mx-box mx-st-card mx-st-unk" role="button" data-act="strainunk"><span class="mx-arts">' + stDish('', 1.5, 'lid').repeat(missing) + '</span><small>' + missing + ' undiscovered strain' + (missing > 1 ? 's' : '') + '</small></div>';
     h += '</div>';
     const job = L.job, busy = !!job, q0 = L.queue[0], queued = L.queue.some((q) => q.kind === 'strain' && q.key === r.key), cult = busy && job.kind === 'strain' ? C.recipe(s, job.key) : null;
     const nr = q0 && q0.key ? q0.key : '', nxName = q0 ? jobName(q0) : '';
@@ -876,7 +876,7 @@
     }
     const time = lbDur((Lb.labTime(G(), combo.base) * B.cheesery.strainTime) / labSpeedOf(w)), full = L.queue.length >= Lb.queueCap(G());
     const off = !missing || queued || full;
-    h += '<span role="button" class="mx-st-go mx-culture' + (off ? ' mx-off' : '') + '"' + (off ? '' : ' data-act="strainfind:' + r.id + '"') + '>' + (!missing ? '<b>EVERY STRAIN OF THIS CHEESE FOUND</b>' : queued ? '<b>NEXT IN THE LAB</b>' : full ? '<b>THE QUEUE IS FULL</b>' : '<b>CULTURE A NEW STRAIN' + (busy ? ' NEXT' : '') + '</b><small>' + CM.fmt(Lb.labCost(G())) + ' Cheese Base · ' + time + '</small>') + '</span>';
+    h += '<span role="button" class="mx-st-go mx-culture' + (off ? ' mx-off' : '') + '" data-act="strainfind:' + r.id + '">' + (!missing ? '<b>EVERY STRAIN OF THIS CHEESE FOUND</b>' : queued ? '<b>NEXT IN THE LAB</b>' : full ? '<b>THE QUEUE IS FULL</b>' : '<b>CULTURE A NEW STRAIN' + (busy ? ' NEXT' : '') + '</b><small>' + CM.fmt(Lb.labCost(G())) + ' Cheese Base · ' + time + '</small>') + '</span>';
     if (w) h += lbRow('auto', '<b>' + esc(w.name).toUpperCase() + ' KEEPS CULTURING</b>', 'follows the recipe your line cooks', 'labdir:strain', L.dir === 'strain' ? 'ON' : 'OFF', L.dir === 'strain', ' mx-st-keep');
     return h;
   }
@@ -888,7 +888,7 @@
       const id = 'study.' + st.id;
       if (!Pg.has(id) || !Pg.isOpen(G(), id) || L.styles[st.id]) continue;
       const busy = (L.job && L.job.style === st.id) || L.queue.some((q) => q.style === st.id), need = Lb.studyNeed(st.id), ok = Lb.afford(G(), { kind: 'study', style: st.id });
-      h += '<div class="mx-box mx-lb-row mx-lb-study' + (ok && !busy ? ' mx-ready' : '') + '" data-m="book"><span class="mx-ic"><img class="pix" src="' + MXSP + 'ic_lot_' + st.id + '.png" alt="" style="width:22px;height:19px"></span><span class="mx-t"><small>NEW CHEESE</small><b>STUDY ' + B.bases[st.id].name.toUpperCase() + '</b><span class="mx-d">' + (busy ? 'In the lab now' : matCost(need)) + '</span><span class="mx-d lbh-why">Opens its ' + Lb.combosOf(st.id).length + ' recipes · no Base or coins</span></span><em' + (busy || !ok ? ' class="mx-off"' : ' data-act="study:' + st.id + '"') + ' role="button">' + (busy ? 'BUSY' : 'STUDY') + '</em></div>';
+      h += '<div class="mx-box mx-lb-row mx-lb-study' + (ok && !busy ? ' mx-ready' : '') + '" data-m="book"><span class="mx-ic"><img class="pix" src="' + MXSP + 'ic_lot_' + st.id + '.png" alt="" style="width:22px;height:19px"></span><span class="mx-t"><small>NEW CHEESE</small><b>STUDY ' + B.bases[st.id].name.toUpperCase() + '</b><span class="mx-d">' + (busy ? 'In the lab now' : matCost(need)) + '</span><span class="mx-d lbh-why">Opens its ' + Lb.combosOf(st.id).length + ' recipes · no Base or coins</span></span><em' + (busy || !ok ? ' class="mx-off"' : '') + ' data-act="study:' + st.id + '" role="button">' + (busy ? 'BUSY' : 'STUDY') + '</em></div>';
     }
     return h;
   }
@@ -898,7 +898,7 @@
       const id = 'plan.' + bp;
       if (!Pg.has(id) || !Pg.isOpen(G(), id) || L.blueprints[bp]) continue;
       const busy = (L.bpJob && L.bpJob.id === bp) || (L.bpQueue || []).some((q) => q.id === bp), ok = Lb.afford(G(), { kind: 'blueprint', id: bp });
-      h += '<div class="mx-box mx-lb-row mx-lb-study' + (ok && !busy ? ' mx-ready' : '') + '" data-m="book"><span class="mx-ic">' + lbIc('book', 2) + '</span><span class="mx-t"><small>BLUEPRINT</small><b>' + H.pretty(bp).toUpperCase() + '</b><span class="mx-d">' + (busy ? 'On the drawing desk' : matCost(Lb.bpNeed(bp), Lb.bpDisc(G()))) + '</span><span class="mx-d lbh-why">Unlocks ' + H.pretty(bp) + ' in MINE upgrades: ' + (H.PATH_TXT[bp] || '').toLowerCase() + '</span></span><em' + (busy || !ok ? ' class="mx-off"' : ' data-act="blueprint:' + bp + '"') + ' role="button">' + (busy ? 'BUSY' : 'DRAW') + '</em></div>';
+      h += '<div class="mx-box mx-lb-row mx-lb-study' + (ok && !busy ? ' mx-ready' : '') + '" data-m="book"><span class="mx-ic">' + lbIc('book', 2) + '</span><span class="mx-t"><small>BLUEPRINT</small><b>' + H.pretty(bp).toUpperCase() + '</b><span class="mx-d">' + (busy ? 'On the drawing desk' : matCost(Lb.bpNeed(bp), Lb.bpDisc(G()))) + '</span><span class="mx-d lbh-why">Unlocks ' + H.pretty(bp) + ' in MINE upgrades: ' + (H.PATH_TXT[bp] || '').toLowerCase() + '</span></span><em' + (busy || !ok ? ' class="mx-off"' : '') + ' data-act="blueprint:' + bp + '" role="button">' + (busy ? 'BUSY' : 'DRAW') + '</em></div>';
     }
     return h;
   }
@@ -930,7 +930,7 @@
     for (const st of H.PARAMS.strata) {
       const key = L.known.find((k) => k.startsWith(st.id + '+')); if (!L.styles[st.id] || !key) continue;
       const found = Lb.strainsFor(c, key), cur = c.s.strains.style[st.id] || c.s.strains.of[key] || '';
-      const chip = (id) => '<span role="button" class="mx-lb-chip' + (cur === id ? ' mx-on' : '') + '"' + (cur === id ? '' : ' data-act="strain:' + key + ':' + (id || 'plain') + '"') + '><span class="mx-r">' + (id ? lbIc('s:' + id, 2) : '') + STRAIN_NAME(id) + '</span><small>' + (cur === id ? 'IN USE' : 'USE') + '</small></span>';
+      const chip = (id) => '<span role="button" class="mx-lb-chip' + (cur === id ? ' mx-on' : '') + '"' + ' data-act="strain:' + key + ':' + (id || 'plain') + '"' + '><span class="mx-r">' + (id ? lbIc('s:' + id, 2) : '') + STRAIN_NAME(id) + '</span><small>' + (cur === id ? 'IN USE' : 'USE') + '</small></span>';
       h += '<div class="mx-box mx-lb-lib"><div class="mx-lb-lh"><img class="pix" src="' + MXSP + 'ic_lot_' + st.id + '.png" alt="" style="width:22px;height:19px"><b>' + B.bases[st.id].name.toUpperCase() + '</b><small>' + found.length + '/' + all.length + ' strains</small></div>' + (found.length ? '<div class="mx-lb-chips">' + chip('') + found.map(chip).join('') + '</div>' : '<p class="mx-lb-hint">None found yet: culture one in STRAINS.</p>') + '</div>';
     }
     return h ;
@@ -1029,6 +1029,8 @@
     const i = H.saveInfo(), sky = H.skyInfo();
     const alert = G().s.vein.open || G().s.rates.mine.auto ? 'Nothing is stopped.' : 'DRILL is stopped: dig in MINE to open a vein.';
     let h = sec('ALERTS', '', '', '<div class="mx-box mx-mn-row st-plain"><span class="mx-t"><b>' + alert + '</b></span></div>') + sec('YOUR COLONY', '', '', '<div class="mx-box mx-mn-row st-plain"><span class="mx-t"><b>Saved on this device</b><small>' + (i.failed ? '<em class="mx-off">Could not save here</em>' : i.ago != null ? i.ago + ' s ago' : 'Not saved yet') + ' · works up to ' + i.hours + ' h while you are away</small></span></div>');
+    const snd = H.soundOn();
+    h += sec('SOUND', '', '', row(ic(snd ? 'spkon' : 'spkoff'), 'Sound effects', 'Effects are ' + (snd ? '<em>on</em>' : '<em class="mx-off">muted</em>'), '<span class="mx-mn-sw' + (snd ? ' mx-on' : '') + '"><i></i><em>' + (snd ? 'ON' : 'OFF') + '</em></span>', '', 'soundfx'));
     h += sec('SKY', '', '', '<div class="mx-box mx-mn-row st-plain"><span class="mx-t"><b>' + (sky.mode === 'auto' ? 'Follows your clock' : 'Fixed time') + '</b><small>' + sky.text + '</small></span></div><div class="p1-opts">' + [['auto', 'AUTO'], ['8', 'DAWN'], ['13', 'DAY'], ['18.4', 'DUSK'], ['23', 'NIGHT']].map(([v, l]) => '<span role="button" class="mx-act' + (sky.value === v ? ' p1-on' : '') + '" data-act="sky:' + v + '">' + l + '</span>').join('') + '</div>');
     h += sec('YOUR SAVE', '', '', row(ic('exp'), 'Export save', 'A copy of this colony, as text', b('export', 'EXPORT', 'mx-mn-btn')) + row(ic('imp'), 'Import save', 'Paste an exported colony', b('import', 'IMPORT', 'mx-mn-btn')));
     h += sec('DANGER ZONE', '', 'mx-mn-danger', row(ic('reset'), 'Start over', 'Only this beta colony. Other games are not touched', b('reset', 'RESET', 'mx-mn-red'), 'mx-bad'));
@@ -1164,6 +1166,63 @@
       '<div class="lbh-sec"><small>SECTIONS</small><div class="lbh-rows">' + rows + '</div></div>' +
       '<div class="lbh-bts"><button class="mx-act lbh-ok" data-m="ok">GOT IT</button></div></div>';
   }
+  // ---------- Por qué no: el motivo de un intento rechazado, en una alerta corta ----------
+  // Quien decide es el núcleo (el código de NO que devuelve cada acción); aquí solo se redacta, leyendo la partida para decir cuánto hay y cuánto falta.
+  // Si llega un código que no se conoce, no se inventa un motivo: lo dice como fallo técnico.
+  const gateLeft = (id) => (Pg.has(id) ? Pg.status(G(), id).requires.filter((r) => !r.ok).map((r) => reqText(r.text)) : []);
+  const firstAndMore = (list) => (list.length ? list[0] + (list.length > 1 ? ' (and ' + (list.length - 1) + ' more)' : '') : '');
+  const short = (need) => { const s = G().s, out = []; for (const k of Object.keys(need || {})) { const n = Math.ceil(need[k]), have = Math.floor(Inv.count(s, k)); if (have < n) out.push({ k, n, have }); } return out; };
+  const matLine = (m) => 'You need ' + CM.fmt(m.n - m.have) + ' more ' + B.bases[m.k].name + ' (' + CM.fmt(m.have) + '/' + CM.fmt(m.n) + ').';
+  const qFull = () => { const cap = Lb.queueCap(G()); return { title: 'Research queue full', text: 'All ' + cap + ' place' + (cap > 1 ? 's are' : ' is') + ' taken. CANCEL the last order or wait for the next to start.' }; };
+  function denyText(type, a, reason) {
+    const c = G(), L = c.lab, R0 = B.cheesery;
+    if (reason === 'queue-full') return qFull();
+    if (reason === 'not-built') return { title: 'Cheese Lab not built', text: 'Build the lab first.' };
+    if (type === 'labResearch' || type === 'experiment') {
+      const key = a.key, [st] = String(key).split('+');
+      if (reason === 'queued') return { title: 'Already ordered', text: 'This recipe is waiting in the research queue.' };
+      if (reason === 'no-coins') { const f = Mo.formula(key), ing = B.ingredients[String(key).split('+')[1]]; return { title: 'Not enough coins', text: ing.name + ' costs ' + CM.fmt(f.coin) + ' coins to research (you have ' + CM.fmt(Math.floor(c.s.coins)) + ').' }; }
+      if (reason === 'busy') return { title: 'Being researched', text: 'The lab is working on it now (' + Math.round((1 - L.job.remaining / L.job.total) * 100) + '% done).' };
+      if (L.isKnown[key]) return { title: 'Already discovered', text: 'It is in your Recipe Book.' };
+      if (!L.styles[st]) return { title: B.bases[st].name + ' not studied', text: 'Study it in STUDIES first.' };
+      const C = CM.cheesery, combo = C.parseKey(key), lv = c.stLv.cheese, low = ['ingredient', 'treatment', 'maturation'].map((p) => B[C.TABLES[p]][combo[p]]).filter((x) => x.level > lv);
+      if (low.length) return { title: 'CHEESE level too low', text: low[0].name + ' needs CHEESE LV ' + low[0].level + ' (you are LV ' + lv + ').' };
+    }
+    if (type === 'partlock') { const C = CM.cheesery, x = B[C.TABLES[a.part]][a.id]; return { title: 'Needs CHEESE LV ' + x.level, text: 'You are LV ' + c.stLv.cheese + '. Your line and the lab raise it as they cook and discover.' }; }
+    if (type === 'labStudy') {
+      const nm = B.bases[a.style].name;
+      if (reason === 'locked') return { title: nm + ' not open yet', text: firstAndMore(gateLeft('study.' + a.style)) || 'Reach its stone first.' };
+      if (reason === 'done') return L.styles[a.style] ? { title: 'Already studied', text: nm + ' recipes can already be discovered.' } : { title: 'Already in the lab', text: 'Studying ' + nm + ' is ' + (L.job && L.job.style === a.style ? 'in progress.' : 'in the queue.') };
+      if (reason === 'no-materials') { const m = short(Lb.studyNeed(a.style)); if (m.length) return { title: 'Missing materials', text: matLine(m[0]) }; }
+    }
+    if (type === 'labBlueprint') {
+      const nm = H.pretty(a.id);
+      if (reason === 'locked') return { title: nm + ' not available', text: firstAndMore(gateLeft('plan.' + a.id)) || 'Not open yet.' };
+      if (reason === 'done') return L.blueprints[a.id] ? { title: 'Already drawn', text: nm + ' can be bought in MINE upgrades.' } : { title: 'Already on the desk', text: nm + ' is being drawn.' };
+      if (reason === 'no-materials') { const need = Lb.bpNeed(a.id), d = Lb.bpDisc(c), m = short(Object.fromEntries(Object.keys(need || {}).map((k) => [k, need[k] * d]))); if (m.length) return { title: 'Missing materials', text: matLine(m[0]) }; }
+    }
+    if (type === 'labCulture') {
+      if (reason === 'locked') return L.nodes.strains ? { title: 'Recipe not known', text: 'Discover the recipe before culturing it.' } : { title: 'Strain Research needed', text: firstAndMore(gateLeft('lab.strains')) || 'Buy Strain Research in LAB UPGRADES.' };
+      if (reason === 'done') { const all = Object.keys(B.strains).length; return Lb.strainsFor(c, a.key).length >= all ? { title: 'Every strain found', text: 'This recipe has all its strains.' } : { title: 'Already culturing', text: 'A culture of this recipe is ' + (L.job && L.job.kind === 'strain' && L.job.key === a.key ? 'in progress.' : 'in the queue.') }; }
+    }
+    if (type === 'strainunk') return { title: 'Not discovered yet', text: 'CULTURE A NEW STRAIN to find it.' };
+    if (type === 'strain') {
+      if (reason === 'same') return { title: 'Already in use', text: 'This strain is the one being used.' };
+      if (reason === 'invalid') return { title: 'Strain not found yet', text: 'Culture it in STRAINS first.' };
+    }
+    if (type === 'labDir' && reason === 'locked') return { title: 'Advanced Research needed', text: firstAndMore(gateLeft('lab.advanced')) || 'Buy Advanced Research in LAB UPGRADES.' };
+    if (type === 'labCancel') return { title: 'Nothing to cancel', text: 'The research queue is empty.' };
+    if (type === 'build' && a.id === 'lab') {
+      if (reason === 'built') return { title: 'Already built', text: 'The Cheese Lab is standing.' };
+      if (reason === 'locked') return { title: 'Cheese Lab not ready', text: firstAndMore(gateLeft('build.lab')) || 'Not open yet.' };
+    }
+    if (type === 'labbuy') {
+      if (reason === 'no-coins') { const need = +a.cost || 0, have = Math.floor(c.s.coins); return { title: 'Not enough coins', text: need > have ? 'You need ' + CM.fmt(need - have) + ' more (' + CM.fmt(have) + '/' + CM.fmt(need) + ').' : 'You need more coins.' }; }
+      if (reason === 'locked') return { title: 'Not available yet', text: 'Its requirements are shown on the card.' };
+    }
+    if (type === 'labstation') return { title: a.title, text: a.text };
+    return null; // no se sabe por qué: lo dice quien llama como fallo técnico
+  }
   // Qué sección explica el «?» de la cabecera de cada hoja del LAB.
   const helpFor = (name, ui) => (name === 'lab' ? (ui && ui.labView ? ui.labView : ui && ui.labTab === 'strains' && G().lab.nodes.strains ? 'strains' : 'guide') : '');
   const helpQ = (id) => '<span role="button" class="lbh-q" data-act="help:' + id + '" aria-label="How it works">?</span>';
@@ -1199,7 +1258,7 @@
   const pnRoot = (kind, extra) => '<div class="mx-pn-root" data-pn="' + kind + '" data-k="' + (extra || '') + '"></div>';
   const TITLES = { cheese: 'CHEESERY', lab: 'CHEESE LAB', stock: 'PANTRY', shopinfo: 'SHOP', coins: 'COINS', mice: 'MICE', boosts: 'BOOSTS', quests: 'QUESTS', options: 'MENU', tree: 'UPGRADES' };
   CM.panels = {
-    esc, mouseRate, itemCard, helpCard, helpFor,
+    esc, mouseRate, itemCard, helpCard, helpFor, denyText,
     // Las cifras de la tarjeta de CHEESE se ponen al día en su sitio, sin rehacer la tarjeta.
     cheeseLive() {
       const s = CM.viewState, o = chInfo(s), C = CM.cheesery, reserve = o.reserve ? ' · ' + o.reserve + ' set aside for the lab' : '';
